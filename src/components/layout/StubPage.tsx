@@ -8,24 +8,17 @@ interface StubPageProps {
 
 export const StubPage: React.FC<StubPageProps> = ({ title, description }) => {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center space-y-5 shadow-2xl relative overflow-hidden">
-        {/* Subtle Background Glow */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
-          <Construction className="w-8 h-8" />
-        </div>
-
-        <div className="space-y-2">
-          <h2 className="font-heading text-2xl font-bold text-white tracking-tight">{title}</h2>
-          <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
-        </div>
-
-        <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-400 flex items-center justify-center space-x-2">
-          <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          <span>Scheduled for Milestone Phase 2 & 3 Release</span>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-4">
+      <div className="w-16 h-16 sq-avatar bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/5">
+        <Construction className="w-8 h-8" />
+      </div>
+      <div className="max-w-md space-y-2">
+        <h2 className="text-2xl font-bold font-heading text-[var(--text-primary)]">{title}</h2>
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{description}</p>
+      </div>
+      <div className="inline-flex items-center space-x-2 px-3 py-1.5 sq-badge bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-muted)] text-xs">
+        <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+        <span>Planned for Phase 2 Rollout</span>
       </div>
     </div>
   );

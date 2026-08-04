@@ -11,10 +11,10 @@ export const ProtectedLayout: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
           <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-          <p className="text-sm font-medium text-zinc-400">Loading EduCRM Platform...</p>
+          <p className="text-sm font-medium text-[var(--text-secondary)]">Loading EduCRM Platform...</p>
         </div>
       </div>
     );
@@ -25,7 +25,7 @@ export const ProtectedLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col lg:flex-row font-sans">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col lg:flex-row font-sans">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar setMobileOpen={setMobileOpen} />

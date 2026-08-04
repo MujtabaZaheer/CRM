@@ -2,35 +2,98 @@
 
 @layer base {
   :root {
+    /* Surface colors */
     --bg-main: #09090b;
     --bg-card: #18181b;
-    --bg-card-header: rgba(9, 9, 11, 0.8);
-    --border-color: #27272a;
+    --bg-card-alt: rgba(9, 9, 11, 0.8);
+    --bg-elevated: #09090b;
+    --bg-input: #09090b;
+    --bg-hover: rgba(39, 39, 42, 0.6);
+
+    /* Border colors */
+    --border-default: #27272a;
+    --border-subtle: rgba(39, 39, 42, 0.6);
+
+    /* Text colors */
     --text-primary: #f4f4f5;
     --text-secondary: #a1a1aa;
     --text-muted: #71717a;
-    --bg-input: #09090b;
+    --text-placeholder: #52525b;
+
+    /* Backdrop */
+    --backdrop: rgba(9, 9, 11, 0.8);
+
+    /* Selection */
+    --select-bg: #10b981;
+    --select-text: #09090b;
   }
 
   html.light {
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
-    --bg-card-header: rgba(248, 250, 252, 0.9);
-    --border-color: #e2e8f0;
+    --bg-card-alt: rgba(248, 250, 252, 0.9);
+    --bg-elevated: #f1f5f9;
+    --bg-input: #f1f5f9;
+    --bg-hover: rgba(226, 232, 240, 0.6);
+
+    --border-default: #e2e8f0;
+    --border-subtle: rgba(226, 232, 240, 0.6);
+
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #64748b;
-    --bg-input: #f1f5f9;
+    --text-placeholder: #94a3b8;
+
+    --backdrop: rgba(15, 23, 42, 0.5);
+
+    --select-bg: #10b981;
+    --select-text: #0f172a;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background-color: var(--bg-main);
     color: var(--text-primary);
-    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1, h2, h3, h4, .font-heading {
     font-family: 'Space Grotesk', sans-serif;
+  }
+
+  *, *::before, *::after {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  ::selection {
+    background-color: var(--select-bg);
+    color: var(--select-text);
+  }
+}
+
+/* ===== SQUIRCLE DESIGN SYSTEM ===== */
+@layer utilities {
+  .sq-card {
+    border-radius: 20px;
+  }
+  .sq-modal {
+    border-radius: 24px;
+  }
+  .sq-btn {
+    border-radius: 14px;
+  }
+  .sq-input {
+    border-radius: 12px;
+  }
+  .sq-badge {
+    border-radius: 10px;
+  }
+  .sq-avatar {
+    border-radius: 22%;
+  }
+  .sq-icon {
+    border-radius: 22%;
+  }
+  .sq-pill {
+    border-radius: 10px;
   }
 }

@@ -7,6 +7,13 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
+import { Students } from "./pages/Students";
+import { Applications } from "./pages/Applications";
+import { Documents } from "./pages/Documents";
+import { Universities } from "./pages/Universities";
+import { Tasks } from "./pages/Tasks";
+import { AuditLogPage } from "./pages/AuditLog";
+import { NotificationsPage } from "./pages/Notifications";
 import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { StubPage } from "./components/layout/StubPage";
@@ -25,43 +32,23 @@ export const App: React.FC = () => {
             <Route element={<ProtectedLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/leads" element={<Leads />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/applications" element={<Applications />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/universities" element={<Universities />} />
+              <Route path="/audit-log" element={<AuditLogPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/users" element={<Users />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
 
-              {/* Modules — Under Construction Stubs */}
-              <Route
-                path="/students"
-                element={
-                  <StubPage
-                    title="Students"
-                    description="Student record profiles, academic background, and enrolment history."
-                  />
-                }
-              />
-              <Route
-                path="/applications"
-                element={
-                  <StubPage
-                    title="Applications"
-                    description="University application submission tracking and offer management."
-                  />
-                }
-              />
-              <Route
-                path="/documents"
-                element={
-                  <StubPage
-                    title="Documents"
-                    description="Student document vault, OCR processing, and verification checklist."
-                  />
-                }
-              />
+              {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}
               <Route
                 path="/programme-search"
                 element={
                   <StubPage
-                    title="Programme Search"
-                    description="Global university course directory and entry requirement finder."
+                    title="Programme Search Engine"
+                    description="Global university course finder and entry requirement matcher."
                   />
                 }
               />
@@ -69,17 +56,8 @@ export const App: React.FC = () => {
                 path="/communications"
                 element={
                   <StubPage
-                    title="Communications"
-                    description="Unified omnichannel messaging inbox (Email, WhatsApp, SMS)."
-                  />
-                }
-              />
-              <Route
-                path="/universities"
-                element={
-                  <StubPage
-                    title="Universities & Courses"
-                    description="Partner university profiles, commission structures, and course mapping."
+                    title="Omnichannel Communications"
+                    description="Unified messaging inbox (Email, WhatsApp, SMS)."
                   />
                 }
               />
@@ -87,8 +65,8 @@ export const App: React.FC = () => {
                 path="/agents"
                 element={
                   <StubPage
-                    title="Agents & Partners"
-                    description="Sub-agent network directory, performance analytics, and payouts."
+                    title="Agents & Sub-Agent Network"
+                    description="External agent management, referral links, and commission statements."
                   />
                 }
               />
@@ -96,8 +74,8 @@ export const App: React.FC = () => {
                 path="/reports"
                 element={
                   <StubPage
-                    title="Reports"
-                    description="Executive analytics, conversion funnels, and performance reporting."
+                    title="Reports & Funnel Analytics"
+                    description="Executive reporting, conversion funnels, and performance forecasts."
                   />
                 }
               />

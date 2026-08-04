@@ -601,7 +601,7 @@ export const LeadsContent: React.FC = () => {
 
 export const Leads: React.FC = () => {
   return (
-    <RoleGate>
+    <RoleGate allowedRoles={["platform_super_admin", "org_admin", "counsellor", "office_manager", "admissions_officer"]}>
       <LeadsContent />
     </RoleGate>
   );

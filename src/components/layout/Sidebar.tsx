@@ -13,8 +13,11 @@ import {
   BarChart3,
   ShieldCheck,
   ShieldAlert,
+  CheckSquare,
+  History,
+  Bell,
   X,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -36,11 +39,15 @@ const navItems: NavItem[] = [
   { label: "Students", path: "/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Applications", path: "/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "Documents", path: "/documents", icon: <FolderOpen className="w-4 h-4" /> },
-  { label: "Programme Search", path: "/programme-search", icon: <Search className="w-4 h-4" /> },
-  { label: "Communications", path: "/communications", icon: <MessageSquare className="w-4 h-4" /> },
+  { label: "Tasks & Reminders", path: "/tasks", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Universities & Courses", path: "/universities", icon: <Building2 className="w-4 h-4" /> },
-  { label: "Agents & Partners", path: "/agents", icon: <UserCheck className="w-4 h-4" /> },
-  { label: "Reports", path: "/reports", icon: <BarChart3 className="w-4 h-4" /> },
+  { label: "Notifications", path: "/notifications", icon: <Bell className="w-4 h-4" /> },
+  { 
+    label: "Audit Log", 
+    path: "/audit-log", 
+    icon: <History className="w-4 h-4" />, 
+    rolesAllowed: ["platform_super_admin", "org_admin"] 
+  },
   { 
     label: "User Management", 
     path: "/users", 
@@ -53,6 +60,10 @@ const navItems: NavItem[] = [
     icon: <ShieldAlert className="w-4 h-4 text-emerald-400" />, 
     rolesAllowed: ["platform_super_admin"] 
   },
+  { label: "Programme Search", path: "/programme-search", icon: <Search className="w-4 h-4" /> },
+  { label: "Communications", path: "/communications", icon: <MessageSquare className="w-4 h-4" /> },
+  { label: "Agents & Partners", path: "/agents", icon: <UserCheck className="w-4 h-4" /> },
+  { label: "Reports", path: "/reports", icon: <BarChart3 className="w-4 h-4" /> },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
@@ -69,25 +80,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-zinc-950/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--backdrop)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar Drawer */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-zinc-900 border-r border-zinc-800 text-zinc-300 flex flex-col transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[var(--bg-card)] border-r border-[var(--border-default)] text-[var(--text-primary)] flex flex-col transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand Banner */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-800 bg-zinc-900/50">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-default)] bg-[var(--bg-card-alt)]">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-zinc-950 font-extrabold text-xl shadow-lg shadow-emerald-500/20">
+            <div className="w-9 h-9 sq-avatar bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-zinc-950 font-extrabold text-xl shadow-lg shadow-emerald-500/20">
               E
             </div>
             <div>
-              <span className="font-heading font-bold text-lg text-white tracking-tight block leading-none">
+              <span className="font-heading font-bold text-lg text-[var(--text-primary)] tracking-tight block leading-none">
                 EduCRM
               </span>
               <span className="text-[10px] text-teal-400 font-medium tracking-wide uppercase">
@@ -97,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           </div>
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+            className="lg:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 sq-btn hover:bg-[var(--bg-hover)]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -111,26 +122,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
               to={item.path}
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                `flex items-center space-x-3 px-3 py-2.5 sq-btn text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5"
-                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200 border border-transparent"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border border-transparent"
                 }`
               }
             >
-              <span className="p-1 rounded-md bg-zinc-800/80 border border-zinc-700/50">{item.icon}</span>
+              <span className="p-1 sq-icon bg-[var(--bg-elevated)] border border-[var(--border-default)]">{item.icon}</span>
               <span className="truncate">{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-zinc-800 bg-zinc-950/40 text-[11px] text-zinc-500 flex items-center justify-between">
+        <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-card-alt)] text-[11px] text-[var(--text-muted)] flex items-center justify-between">
           <span className="flex items-center space-x-1">
             <Sparkles className="w-3 h-3 text-emerald-400" />
             <span>EduCRM Engine</span>
           </span>
-          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono text-[10px]">
+          <span className="px-1.5 py-0.5 sq-pill bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-mono text-[10px]">
             v1.2.0
           </span>
         </div>

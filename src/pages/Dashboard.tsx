@@ -1,173 +1,147 @@
-import React, { useEffect, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { Lead, LeadStage } from "../types/lead";
+import { collection, onSnapshot } from "firebase/firestore";
+import { Lead } from "../types/lead";
+import { Student } from "../types/student";
+import { Application } from "../types/application";
 import { RoleGate } from "../components/layout/RoleGate";
-import { Users, Clock, Filter, TrendingUp, Sparkles, ArrowUpRight } from "lucide-react";
-
-export const DashboardContent: React.FC = () => {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const leadsCollection = collection(db, "leads");
-    const unsubscribe = onSnapshot(
-      leadsCollection,
-      (snapshot) => {
-        const leadList: Lead[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Lead[];
-        setLeads(leadList);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error listening to leads:", error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, []);
-
-  const totalLeads = leads.length;
-
-  const stageCounts = leads.reduce((acc, lead) => {
-    acc[lead.stage] = (acc[lead.stage] || 0) + 1;
-    return acc;
-  }, {} as Record<LeadStage, number>);
-
-  const newLeadsCount = stageCounts["New"] || 0;
-  const counsellingCount = stageCounts["Counselling"] || 0;
-  const convertedCount = stageCounts["Converted"] || 0;
-
-  return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Dashboard Overview</h1>
-          <p className="text-sm text-zinc-400">Live metrics and student pipeline performance</p>
-        </div>
-      </div>
-
-      {/* Prim
-      </div>
-
-      {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Leads */}
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-          <div className="flex items-center justify-between text-zinc-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Leads</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-heading text-3xl font-extrabold text-white">
-              {loading ? "..." : totalLeads}
-            </span>
-            <span className="text-[11px] text-emerald-400 flex items-center font-medium">
-              Live <ArrowUpRight className="w-3 h-3 ml-0.5" />
-            </span>
-          </div>
-          <p className="text-xs text-zinc-500">All registered student enquiries</p>
-        </div>
-
-        {/* New Enquiries */}
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-sky-500/30 transition-all">
-          <div className="flex items-center justify-between text-zinc-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">New Stage</span>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-heading text-3xl font-extrabold text-white">
-              {loading ? "..." : newLeadsCount}
-            </span>
-            <span className="text-[11px] text-sky-400 font-medium">Unassigned</span>
-          </div>
-          <p className="text-xs text-zinc-500">Requires initial contact</p>
-        </div>
-
-        {/* In Counselling */}
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-amber-500/30 transition-all">
-          <div className="flex items-center justify-between text-zinc-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Counselling</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Filter className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-heading text-3xl font-extrabold text-white">
-              {loading ? "..." : counsellingCount}
-            </span>
-            <span className="text-[11px] text-amber-400 font-medium">Active</span>
-          </div>
-          <p className="text-xs text-zinc-500">In active student guidance</p>
-        </div>
-
-        {/* Converted */}
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-teal-500/30 transition-all">
-          <div className="flex items-center justify-between text-zinc-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Converted</span>
-            <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-heading text-3xl font-extrabold text-white">
-              {loading ? "..." : convertedCount}
-            </span>
-            <span className="text-[11px] text-teal-400 font-medium">Enrolled</span>
-          </div>
-          <p className="text-xs text-zinc-500">Successful student conversions</p>
-        </div>
-      </div>
-
-      {/* Pipeline Breakdown */}
-      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4">
-        <h2 className="font-heading text-base font-semibold text-zinc-200">
-          Complete Stage Breakdown
-        </h2>
-        {loading ? (
-          <p className="text-sm text-zinc-500">Loading breakdown data...</p>
-        ) : leads.length === 0 ? (
-          <p className="text-sm text-zinc-500 py-4 text-center">No lead records available in Firestore.</p>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {[
-              "New",
-              "Contacted",
-              "Qualified",
-              "Counselling",
-              "Documents Pending",
-              "Application Initiated",
-              "Converted",
-              "Lost",
-              "Unresponsive",
-            ].map((stageName) => {
-              const count = stageCounts[stageName as LeadStage] || 0;
-              return (
-                <div key={stageName} className="p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl space-y-1">
-                  <div className="text-[11px] text-zinc-400 font-medium truncate">{stageName}</div>
-                  <div className="font-heading text-xl font-bold text-white">{count}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw } from "lucide-react";
 
 export const Dashboard: React.FC = () => {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+
+  // Filters
+  const [stageFilter, setStageFilter] = useState("All");
+  const [sourceFilter, setSourceFilter] = useState("All");
+
+  useEffect(() => {
+    const unsubLeads = onSnapshot(collection(db, "leads"), (snap) => {
+      const docs: Lead[] = [];
+      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Lead));
+      setLeads(docs);
+    });
+
+    const unsubStudents = onSnapshot(collection(db, "students"), (snap) => {
+      const docs: Student[] = [];
+      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Student));
+      setStudents(docs);
+    });
+
+    const unsubApps = onSnapshot(collection(db, "applications"), (snap) => {
+      const docs: Application[] = [];
+      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Application));
+      setApplications(docs);
+    });
+
+    return () => {
+      unsubLeads();
+      unsubStudents();
+      unsubApps();
+    };
+  }, []);
+
+  const filteredLeads = leads.filter((l) => {
+    const matchesStage = stageFilter === "All" || l.stage === stageFilter;
+    const matchesSource = sourceFilter === "All" || l.source === sourceFilter;
+    return matchesStage && matchesSource;
+  });
+
+  const totalLeads = filteredLeads.length;
+  const convertedLeads = filteredLeads.filter((l) => l.stage === "Converted").length;
+
   return (
-    <RoleGate>
-      <DashboardContent />
+    <RoleGate allowedRoles={["platform_super_admin", "org_admin", "counsellor", "office_manager", "admissions_officer"]}>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">Executive Dashboard</h1>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Multi-tenant recruitment funnel, student conversion rates, and live operational metrics.
+            </p>
+          </div>
+
+          {/* Filter Toolbar */}
+          <div className="flex items-center space-x-2 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card p-1.5 text-xs">
+            <Filter className="w-3.5 h-3.5 text-emerald-400 ml-1.5" />
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              className="bg-transparent text-[var(--text-primary)] focus:outline-none"
+            >
+              <option value="All" className="bg-[var(--bg-card)]">All Stages</option>
+              <option value="New" className="bg-[var(--bg-card)]">New</option>
+              <option value="Counselling" className="bg-[var(--bg-card)]">Counselling</option>
+              <option value="Converted" className="bg-[var(--bg-card)]">Converted</option>
+            </select>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="bg-transparent text-[var(--text-primary)] focus:outline-none border-l border-[var(--border-default)] pl-2"
+            >
+              <option value="All" className="bg-[var(--bg-card)]">All Sources</option>
+              <option value="Website" className="bg-[var(--bg-card)]">Website</option>
+              <option value="Referral" className="bg-[var(--bg-card)]">Referral</option>
+              <option value="Walk-in" className="bg-[var(--bg-card)]">Walk-in</option>
+            </select>
+            {(stageFilter !== "All" || sourceFilter !== "All") && (
+              <button
+                onClick={() => {
+                  setStageFilter("All");
+                  setSourceFilter("All");
+                }}
+                className="p-1 hover:text-emerald-400"
+                title="Reset Filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card space-y-2">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs">
+              <span>Total Lead Inquiries</span>
+              <Users2 className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-3xl font-extrabold font-heading text-[var(--text-primary)]">{totalLeads}</div>
+            <div className="text-[10px] text-emerald-400 font-medium">Filtered lead count</div>
+          </div>
+
+          <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card space-y-2">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs">
+              <span>Enrolled Students</span>
+              <GraduationCap className="w-4 h-4 text-teal-400" />
+            </div>
+            <div className="text-3xl font-extrabold font-heading text-[var(--text-primary)]">{students.length}</div>
+            <div className="text-[10px] text-teal-400 font-medium">Active student profiles</div>
+          </div>
+
+          <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card space-y-2">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs">
+              <span>Active Applications</span>
+              <FileText className="w-4 h-4 text-sky-400" />
+            </div>
+            <div className="text-3xl font-extrabold font-heading text-[var(--text-primary)]">{applications.length}</div>
+            <div className="text-[10px] text-sky-400 font-medium">University submissions</div>
+          </div>
+
+          <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card space-y-2">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs">
+              <span>Conversion Rate</span>
+              <TrendingUp className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-3xl font-extrabold font-heading text-[var(--text-primary)]">
+              {totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0}%
+            </div>
+            <div className="text-[10px] text-amber-400 font-medium">Converted to enrolment</div>
+          </div>
+        </div>
+      </div>
     </RoleGate>
   );
 };
