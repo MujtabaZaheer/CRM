@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 export const ProtectedLayout: React.FC = () => {
   const { firebaseUser, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   if (loading) {
     return (
@@ -26,7 +27,12 @@ export const ProtectedLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col lg:flex-row font-sans">
-      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar setMobileOpen={setMobileOpen} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">

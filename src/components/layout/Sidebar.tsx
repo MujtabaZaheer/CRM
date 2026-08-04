@@ -18,12 +18,16 @@ import {
   Bell,
   X,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface NavItem {
@@ -66,7 +70,7 @@ const navItems: NavItem[] = [
   { label: "Reports", path: "/reports", icon: <BarChart3 className="w-4 h-4" /> },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
@@ -87,31 +91,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
       {/* Sidebar Drawer */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[var(--bg-card)] border-r border-[var(--border-default)] text-[var(--text-primary)] flex flex-col transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-[var(--bg-card)] border-r border-[var(--border-default)] text-[var(--text-primary)] flex flex-col transition-all duration-200 ease-in-out lg:static lg:translate-x-0 ${
+          collapsed ? "lg:w-20 w-64" : "w-64"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* Brand Banner */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-default)] bg-[var(--bg-card-alt)]">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 sq-avatar bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-zinc-950 font-extrabold text-xl shadow-lg shadow-emerald-500/20">
+        <div className={`h-16 flex items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-card-alt)] ${collapsed ? "px-3" : "px-5"}`}>
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <div className="w-9 h-9 sq-avatar bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-zinc-950 font-extrabold text-xl shadow-lg shadow-emerald-500/20 flex-shrink-0">
               E
             </div>
-            <div>
-              <span className="font-heading font-bold text-lg text-[var(--text-primary)] tracking-tight block leading-none">
-                EduCRM
-              </span>
-              <span className="text-[10px] text-teal-400 font-medium tracking-wide uppercase">
-                Enterprise
-              </span>
-            </div>
+            {!collapsed && (
+              <div className="truncate">
+                <span className="font-heading font-bold text-lg text-[var(--text-primary)] tracking-tight block leading-none truncate">
+                  EduCRM
+                </span>
+                <span className="text-[10px] text-teal-400 font-medium tracking-wide uppercase">
+                  Enterprise
+                </span>
+              </div>
+            )}
           </div>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 sq-btn hover:bg-[var(--bg-hover)]"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-1">
+            {/* Desktop Collapse Toggle */}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              className="hidden lg:flex text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 sq-btn hover:bg-[var(--bg-hover)] border border-[var(--border-default)]"
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 sq-btn hover:bg-[var(--bg-hover)]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Nav Items */}
@@ -120,30 +137,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             <NavLink
               key={item.path}
               to={item.path}
+              title={collapsed ? item.label : undefined}
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2.5 sq-btn text-sm font-medium transition-all duration-150 ${
+                `flex items-center ${collapsed ? "justify-center px-2" : "space-x-3 px-3"} py-2.5 sq-btn text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5"
                     : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border border-transparent"
                 }`
               }
             >
-              <span className="p-1 sq-icon bg-[var(--bg-elevated)] border border-[var(--border-default)]">{item.icon}</span>
-              <span className="truncate">{item.label}</span>
+              <span className="p-1 sq-icon bg-[var(--bg-elevated)] border border-[var(--border-default)] flex-shrink-0">{item.icon}</span>
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-card-alt)] text-[11px] text-[var(--text-muted)] flex items-center justify-between">
+        <div className={`p-4 border-t border-[var(--border-default)] bg-[var(--bg-card-alt)] text-[11px] text-[var(--text-muted)] flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
           <span className="flex items-center space-x-1">
-            <Sparkles className="w-3 h-3 text-emerald-400" />
-            <span>EduCRM Engine</span>
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            {!collapsed && <span>EduCRM Engine</span>}
           </span>
-          <span className="px-1.5 py-0.5 sq-pill bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-mono text-[10px]">
-            v1.2.0
-          </span>
+          {!collapsed && (
+            <span className="px-1.5 py-0.5 sq-pill bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-mono text-[10px]">
+              v1.2.0
+            </span>
+          )}
         </div>
       </aside>
     </>
