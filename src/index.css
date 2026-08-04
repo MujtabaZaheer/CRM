@@ -68,9 +68,25 @@
     background-color: var(--select-bg);
     color: var(--select-text);
   }
+
+  /* Custom Modern Thin Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
 }
 
-/* ===== SQUIRCLE DESIGN SYSTEM ===== */
+/* ===== SQUIRCLE DESIGN SYSTEM & MODERN UI UTILITIES ===== */
 @layer utilities {
   .sq-card {
     border-radius: 20px;
@@ -96,4 +112,32 @@
   .sq-pill {
     border-radius: 10px;
   }
+
+  /* Glassmorphism & Depth Utilities */
+  .glass-panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glow-emerald {
+    box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.25);
+  }
+
+  /* Smooth Page Transition Fade-in */
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+  }
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
