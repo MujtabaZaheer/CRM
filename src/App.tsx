@@ -7,7 +7,8 @@ import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Users } from "./pages/Users";
-import { StubPage } from "./components/common/StubPage";
+import { SuperAdmin } from "./pages/SuperAdmin";
+import { StubPage } from "./components/layout/StubPage";
 
 export const App: React.FC = () => {
   return (
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/super-admin" element={<SuperAdmin />} />
 
             {/* Modules — Under Construction Stubs */}
             <Route

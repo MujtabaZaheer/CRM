@@ -3,7 +3,7 @@ import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { Lead, LeadStage } from "../types/lead";
 import { RoleGate } from "../components/layout/RoleGate";
-import { Users, Filter, Clock, TrendingUp } from "lucide-react";
+import { Users, Clock, Filter, TrendingUp, Sparkles, ArrowUpRight } from "lucide-react";
 
 export const DashboardContent: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -43,69 +43,100 @@ export const DashboardContent: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-        <p className="text-sm text-slate-500">Live operational overview of student lead pipeline</p>
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Dashboard Overview</h1>
+          <p className="text-sm text-zinc-400">Live metrics and student pipeline performance</p>
+        </div>
+        <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-400">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Real-time Sync Active</span>
+        </div>
       </div>
 
-      {/* Stat Cards Grid */}
+      {/* Primary Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Leads */}
-        <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm space-y-2 border-l-4 border-l-indigo-600">
-          <div className="flex items-center justify-between text-slate-500">
+        {/* Total Leads */}
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-emerald-500/30 transition-all">
+          <div className="flex items-center justify-between text-zinc-400">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Leads</span>
-            <Users className="w-4 h-4 text-indigo-600" />
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Users className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900">
-            {loading ? "..." : totalLeads}
+          <div className="flex items-baseline justify-between">
+            <span className="font-heading text-3xl font-extrabold text-white">
+              {loading ? "..." : totalLeads}
+            </span>
+            <span className="text-[11px] text-emerald-400 flex items-center font-medium">
+              Live <ArrowUpRight className="w-3 h-3 ml-0.5" />
+            </span>
           </div>
-          <p className="text-xs text-slate-400">All registered student enquiries</p>
+          <p className="text-xs text-zinc-500">All registered student enquiries</p>
         </div>
 
-        {/* Card 2: New Enquiries */}
-        <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm space-y-2 border-l-4 border-l-blue-500">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">New Enquiries</span>
-            <Clock className="w-4 h-4 text-blue-500" />
+        {/* New Enquiries */}
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-sky-500/30 transition-all">
+          <div className="flex items-center justify-between text-zinc-400">
+            <span className="text-xs font-semibold uppercase tracking-wider">New Stage</span>
+            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <Clock className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900">
-            {loading ? "..." : newLeadsCount}
+          <div className="flex items-baseline justify-between">
+            <span className="font-heading text-3xl font-extrabold text-white">
+              {loading ? "..." : newLeadsCount}
+            </span>
+            <span className="text-[11px] text-sky-400 font-medium">Unassigned</span>
           </div>
-          <p className="text-xs text-slate-400">Stage: New</p>
+          <p className="text-xs text-zinc-500">Requires initial contact</p>
         </div>
 
-        {/* Card 3: In Counselling */}
-        <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm space-y-2 border-l-4 border-l-amber-500">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">In Counselling</span>
-            <Filter className="w-4 h-4 text-amber-500" />
+        {/* In Counselling */}
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-amber-500/30 transition-all">
+          <div className="flex items-center justify-between text-zinc-400">
+            <span className="text-xs font-semibold uppercase tracking-wider">Counselling</span>
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Filter className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900">
-            {loading ? "..." : counsellingCount}
+          <div className="flex items-baseline justify-between">
+            <span className="font-heading text-3xl font-extrabold text-white">
+              {loading ? "..." : counsellingCount}
+            </span>
+            <span className="text-[11px] text-amber-400 font-medium">Active</span>
           </div>
-          <p className="text-xs text-slate-400">Active engagement</p>
+          <p className="text-xs text-zinc-500">In active student guidance</p>
         </div>
 
-        {/* Card 4: Converted */}
-        <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm space-y-2 border-l-4 border-l-emerald-500">
-          <div className="flex items-center justify-between text-slate-500">
+        {/* Converted */}
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl space-y-3 relative overflow-hidden group hover:border-teal-500/30 transition-all">
+          <div className="flex items-center justify-between text-zinc-400">
             <span className="text-xs font-semibold uppercase tracking-wider">Converted</span>
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20">
+              <TrendingUp className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900">
-            {loading ? "..." : convertedCount}
+          <div className="flex items-baseline justify-between">
+            <span className="font-heading text-3xl font-extrabold text-white">
+              {loading ? "..." : convertedCount}
+            </span>
+            <span className="text-[11px] text-teal-400 font-medium">Enrolled</span>
           </div>
-          <p className="text-xs text-slate-400">Successfully enrolled</p>
+          <p className="text-xs text-zinc-500">Successful student conversions</p>
         </div>
       </div>
 
-      {/* Stage Breakdown Section */}
-      <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm space-y-4">
-        <h2 className="text-base font-semibold text-slate-800">Leads by Stage Breakdown</h2>
+      {/* Pipeline Breakdown */}
+      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4">
+        <h2 className="font-heading text-base font-semibold text-zinc-200">
+          Complete Stage Breakdown
+        </h2>
         {loading ? (
-          <p className="text-sm text-slate-400">Loading breakdown data...</p>
+          <p className="text-sm text-zinc-500">Loading breakdown data...</p>
         ) : leads.length === 0 ? (
-          <p className="text-sm text-slate-400 py-4 text-center">No leads available in Firestore yet.</p>
+          <p className="text-sm text-zinc-500 py-4 text-center">No lead records available in Firestore.</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
@@ -121,9 +152,9 @@ export const DashboardContent: React.FC = () => {
             ].map((stageName) => {
               const count = stageCounts[stageName as LeadStage] || 0;
               return (
-                <div key={stageName} className="p-3 bg-slate-50 border border-slate-100 rounded-lg space-y-1">
-                  <div className="text-xs text-slate-500 font-medium truncate">{stageName}</div>
-                  <div className="text-xl font-bold text-slate-800">{count}</div>
+                <div key={stageName} className="p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl space-y-1">
+                  <div className="text-[11px] text-zinc-400 font-medium truncate">{stageName}</div>
+                  <div className="font-heading text-xl font-bold text-white">{count}</div>
                 </div>
               );
             })}

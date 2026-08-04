@@ -23,8 +23,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   support_user: "Support User",
 };
 
-// Only these two have real behavior wired up today.
-export const ACTIVE_ROLES: UserRole[] = ["org_admin", "counsellor"];
+// Platform Super Admin, Organization Admin, and Counsellor have real behavior active
+export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "counsellor"];
 
 export interface AppUser {
   uid: string;
