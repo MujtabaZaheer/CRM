@@ -59,76 +59,76 @@ export const Users: React.FC = () => {
       <div>
         <div className="flex items-center space-x-2">
           <ShieldCheck className="w-6 h-6 text-emerald-400" />
-          <h1 className="font-heading text-2xl font-bold text-white">User Management</h1>
+          <h1 className="font-heading text-2xl font-bold text-[var(--text-primary)]">User Management</h1>
         </div>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-[var(--text-secondary)] mt-1">
           Admin Control — View user directory and assign active system roles
         </p>
       </div>
 
       {/* Users Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-card shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-950/80 border-b border-zinc-800 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+              <tr className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 <th className="py-3.5 px-4">User</th>
                 <th className="py-3.5 px-4">Email</th>
                 <th className="py-3.5 px-4">Assigned Role</th>
                 <th className="py-3.5 px-4">Joined Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 text-sm">
+            <tbody className="divide-y divide-[var(--border-default)] text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-zinc-500">
+                  <td colSpan={4} className="py-8 text-center text-[var(--text-muted)]">
                     Loading directory from Firestore...
                   </td>
                 </tr>
               ) : usersList.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-zinc-500">
+                  <td colSpan={4} className="py-8 text-center text-[var(--text-muted)]">
                     No registered user accounts found.
                   </td>
                 </tr>
               ) : (
                 usersList.map((u) => (
-                  <tr key={u.uid} className="hover:bg-zinc-800/40 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-white flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 text-xs">
+                  <tr key={u.uid} className="hover:bg-[var(--bg-hover)] transition-colors">
+                    <td className="py-3.5 px-4 font-semibold text-[var(--text-primary)] flex items-center space-x-3">
+                      <div className="w-8 h-8 sq-avatar bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] text-xs">
                         {u.role === "platform_super_admin" ? (
                           <ShieldAlert className="w-4 h-4 text-emerald-400" />
                         ) : u.role === "org_admin" ? (
                           <UserCheck className="w-4 h-4 text-teal-400" />
                         ) : (
-                          <UserCog className="w-4 h-4 text-zinc-400" />
+                          <UserCog className="w-4 h-4 text-[var(--text-muted)]" />
                         )}
                       </div>
                       <div>
                         <span>{u.displayName || "Unnamed User"}</span>
                         {u.uid === appUser?.uid && (
-                          <span className="ml-2 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-medium">
+                          <span className="ml-2 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 sq-badge font-medium">
                             You
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-zinc-400">{u.email}</td>
+                    <td className="py-3.5 px-4 text-[var(--text-secondary)]">{u.email}</td>
                     <td className="py-3.5 px-4">
                       <select
                         value={u.role}
                         disabled={updatingUid === u.uid}
                         onChange={(e) => handleRoleChange(u.uid, e.target.value as UserRole)}
-                        className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-medium text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 disabled:opacity-50"
+                        className="px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs font-medium text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 disabled:opacity-50"
                       >
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
-                          <option key={r} value={r}>
+                          <option key={r} value={r} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
                             {ROLE_LABELS[r]}
                           </option>
                         ))}
                       </select>
                     </td>
-                    <td className="py-3.5 px-4 text-xs text-zinc-500">
+                    <td className="py-3.5 px-4 text-xs text-[var(--text-muted)]">
                       {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
                     </td>
                   </tr>
