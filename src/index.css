@@ -1,9 +1,35 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --bg-main: #09090b;
+    --bg-card: #18181b;
+    --bg-card-header: rgba(9, 9, 11, 0.8);
+    --border-color: #27272a;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --bg-input: #09090b;
+  }
+
+  html.light {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-header: rgba(248, 250, 252, 0.9);
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --bg-input: #f1f5f9;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
+
   h1, h2, h3, h4, .font-heading {
     font-family: 'Space Grotesk', sans-serif;
   }

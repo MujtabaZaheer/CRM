@@ -1,8 +1,9 @@
 import React from "react";
 import { signOut } from "firebase/auth";
-import { Menu, LogOut, Shield, User as UserIcon } from "lucide-react";
+import { Menu, LogOut, Shield, User as UserIcon, Sun, Moon } from "lucide-react";
 import { auth } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { ROLE_LABELS } from "../../types/role";
 
 interface TopbarProps {
@@ -11,6 +12,7 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
   const { firebaseUser, appUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -24,7 +26,7 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
   const isSuperAdmin = appUser?.role === "platform_super_admin";
 
   return (
-    <header className="h-16 bg-zinc-900 border-b border-zinc-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 bg-zinc-900 dark:bg-zinc-900 border-b border-zinc-800 dark:border-zinc-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
       <div className="flex items-center space-x-3">
         <button
           onClick={() => setMobileOpen(true)}
@@ -45,7 +47,20 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3 sm:space-x-4">
+        {/* Theme Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-xl border border-zinc-800 transition-colors"
+          title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4 text-amber-400" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-400" />
+          )}
+        </button>
+
         {/* User Info Badge */}
         <div className="flex items-center space-x-3 px-3 py-1.5 bg-zinc-950/60 border border-zinc-800 rounded-full">
           <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-xs">

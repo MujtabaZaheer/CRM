@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { Lead, LeadSource, LeadStage } from "../types/lead";
 import { RoleGate } from "../components/layout/RoleGate";
-import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen } from "lucide-react";
+import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye } from "lucide-react";
 
 const LEAD_STAGES: LeadStage[] = [
   "New",
@@ -30,8 +30,9 @@ export const LeadsContent: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  // Form State
+  // Form State & Validation
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -43,6 +44,7 @@ export const LeadsContent: React.FC = () => {
   const [stage, setStage] = useState<LeadStage>("New");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,8 +73,22 @@ export const LeadsContent: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\+?[0-9\s\-()]{7,}$/;
+
+    if (!fullName.trim()) errors.fullName = "Full name is required";
+    if (!email.trim() || !emailRegex.test(email)) errors.email = "Valid email address required";
+    if (!phone.trim() || !phoneRegex.test(phone)) errors.phone = "Valid phone number required";
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleAddLead = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setSubmitting(true);
 
     try {
@@ -101,6 +117,7 @@ export const LeadsContent: React.FC = () => {
       setSource("Website");
       setStage("New");
       setNotes("");
+      setFormErrors({});
       setIsModalOpen(false);
     } catch (err) {
       console.error("Error adding lead:", err);
@@ -108,6 +125,42 @@ export const LeadsContent: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleStageQuickChange = async (leadId: string, newStage: LeadStage) => {
+    try {
+      const leadRef = doc(db, "leads", leadId);
+      await updateDoc(leadRef, { stage: newStage });
+    } catch (err) {
+      console.error("Error updating lead stage:", err);
+      alert("Failed to update lead stage.");
+    }
+  };
+
+  const exportToCSV = () => {
+    if (leads.length === 0) return;
+    const headers = ["ID", "Full Name", "Email", "Phone", "Nationality", "Residence", "Program Interest", "Destination", "Source", "Stage", "Created At"];
+    const rows = leads.map(l => [
+      l.id,
+      `"${l.fullName}"`,
+      `"${l.email}"`,
+      `"${l.phone}"`,
+      `"${l.nationality || ""}"`,
+      `"${l.countryOfResidence || ""}"`,
+      `"${l.programInterest || ""}"`,
+      `"${l.destinationCountry || ""}"`,
+      `"${l.source}"`,
+      `"${l.stage}"`,
+      new Date(l.createdAt).toISOString()
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `EduCRM_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filteredLeads = leads.filter((lead) => {
@@ -127,15 +180,26 @@ export const LeadsContent: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Leads & Enquiries</h1>
-          <p className="text-sm text-zinc-400">Manage student inquiries, lead stages, and source tracking</p>
+          <p className="text-sm text-zinc-400">Manage student inquiries, lead stages, and quick actions</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Lead</span>
-        </button>
+        <div className="flex items-center space-x-3 self-start sm:self-auto">
+          <button
+            onClick={exportToCSV}
+            disabled={leads.length === 0}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+            title="Export Leads to CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export CSV</span>
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Lead</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -152,24 +216,36 @@ export const LeadsContent: React.FC = () => {
           />
         </div>
 
-        {/* Stage Dropdown Filter */}
-        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
-          <Filter className="w-4 h-4 text-zinc-500" />
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider hidden sm:inline">
-            Stage:
-          </span>
-          <select
-            value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
-            className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 w-full sm:w-auto"
-          >
-            <option value="All">All Stages ({leads.length})</option>
-            {LEAD_STAGES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+        {/* Stage Dropdown Filter & Clear */}
+        <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
+          {(searchQuery || stageFilter !== "All") && (
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setStageFilter("All");
+              }}
+              className="flex items-center space-x-1 text-xs text-rose-400 hover:text-rose-300 font-medium px-2 py-1 rounded bg-rose-500/10 border border-rose-500/20"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset</span>
+            </button>
+          )}
+
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <Filter className="w-4 h-4 text-zinc-500" />
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 w-full sm:w-auto"
+            >
+              <option value="All">All Stages ({leads.length})</option>
+              {LEAD_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -182,9 +258,9 @@ export const LeadsContent: React.FC = () => {
                 <th className="py-3.5 px-4">Student Name</th>
                 <th className="py-3.5 px-4">Contact Info</th>
                 <th className="py-3.5 px-4">Preferences</th>
-                <th className="py-3.5 px-4">Stage</th>
+                <th className="py-3.5 px-4">Stage (Quick Switch)</th>
                 <th className="py-3.5 px-4">Source</th>
-                <th className="py-3.5 px-4">Added On</th>
+                <th className="py-3.5 px-4">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 text-sm">
@@ -238,25 +314,28 @@ export const LeadsContent: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-                          lead.stage === "New"
-                            ? "bg-sky-500/10 text-sky-400 border-sky-500/30"
-                            : lead.stage === "Counselling"
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                            : lead.stage === "Converted"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : lead.stage === "Lost"
-                            ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
-                            : "bg-zinc-800 text-zinc-300 border-zinc-700"
-                        }`}
+                      {/* Inline Quick Stage Changer */}
+                      <select
+                        value={lead.stage}
+                        onChange={(e) => handleStageQuickChange(lead.id, e.target.value as LeadStage)}
+                        className="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-zinc-950 border-zinc-800 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       >
-                        {lead.stage}
-                      </span>
+                        {LEAD_STAGES.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="py-3.5 px-4 text-xs text-zinc-400">{lead.source}</td>
-                    <td className="py-3.5 px-4 text-xs text-zinc-500">
-                      {new Date(lead.createdAt).toLocaleDateString()}
+                    <td className="py-3.5 px-4">
+                      <button
+                        onClick={() => setSelectedLead(lead)}
+                        className="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -265,6 +344,58 @@ export const LeadsContent: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Lead Details Modal */}
+      {selectedLead && (
+        <div className="fixed inset-0 z-50 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 className="font-heading text-lg font-bold text-white">{selectedLead.fullName}</h2>
+                <p className="text-xs text-zinc-400">Lead Record #{selectedLead.id.slice(0, 8)}</p>
+              </div>
+              <button onClick={() => setSelectedLead(null)} className="text-zinc-400 hover:text-white p-1 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">EMAIL ADDRESS</span>
+                <span className="text-zinc-200 font-medium">{selectedLead.email}</span>
+              </div>
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">PHONE NUMBER</span>
+                <span className="text-zinc-200 font-medium">{selectedLead.phone}</span>
+              </div>
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">NATIONALITY</span>
+                <span className="text-zinc-200 font-medium">{selectedLead.nationality || "Not specified"}</span>
+              </div>
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1">
+                <span className="text-zinc-500 block">RESIDENCE</span>
+                <span className="text-zinc-200 font-medium">{selectedLead.countryOfResidence || "Not specified"}</span>
+              </div>
+            </div>
+
+            {selectedLead.notes && (
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-1 text-xs">
+                <span className="text-zinc-500 block">NOTES</span>
+                <p className="text-zinc-300 italic">{selectedLead.notes}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedLead(null)}
+                className="px-4 py-2 bg-emerald-500 text-zinc-950 text-xs font-bold rounded-xl"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Lead Modal Overlay */}
       {isModalOpen && (
@@ -292,12 +423,14 @@ export const LeadsContent: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Alex Morgan"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className={`w-full px-3.5 py-2.5 bg-zinc-950 border rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none ${
+                      formErrors.fullName ? "border-rose-500" : "border-zinc-800 focus:border-emerald-500"
+                    }`}
                   />
+                  {formErrors.fullName && <p className="text-[11px] text-rose-400 mt-1">{formErrors.fullName}</p>}
                 </div>
 
                 {/* Email */}
@@ -307,12 +440,14 @@ export const LeadsContent: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alex@example.com"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className={`w-full px-3.5 py-2.5 bg-zinc-950 border rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none ${
+                      formErrors.email ? "border-rose-500" : "border-zinc-800 focus:border-emerald-500"
+                    }`}
                   />
+                  {formErrors.email && <p className="text-[11px] text-rose-400 mt-1">{formErrors.email}</p>}
                 </div>
 
                 {/* Phone */}
@@ -322,12 +457,14 @@ export const LeadsContent: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+1 555-0199"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className={`w-full px-3.5 py-2.5 bg-zinc-950 border rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none ${
+                      formErrors.phone ? "border-rose-500" : "border-zinc-800 focus:border-emerald-500"
+                    }`}
                   />
+                  {formErrors.phone && <p className="text-[11px] text-rose-400 mt-1">{formErrors.phone}</p>}
                 </div>
 
                 {/* Nationality */}
@@ -340,7 +477,7 @@ export const LeadsContent: React.FC = () => {
                     value={nationality}
                     onChange={(e) => setNationality(e.target.value)}
                     placeholder="e.g. Canadian"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -354,7 +491,7 @@ export const LeadsContent: React.FC = () => {
                     value={countryOfResidence}
                     onChange={(e) => setCountryOfResidence(e.target.value)}
                     placeholder="e.g. UAE"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -368,7 +505,7 @@ export const LeadsContent: React.FC = () => {
                     value={programInterest}
                     onChange={(e) => setProgramInterest(e.target.value)}
                     placeholder="e.g. MSc Computer Science"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -382,7 +519,7 @@ export const LeadsContent: React.FC = () => {
                     value={destinationCountry}
                     onChange={(e) => setDestinationCountry(e.target.value)}
                     placeholder="e.g. United Kingdom"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -394,7 +531,7 @@ export const LeadsContent: React.FC = () => {
                   <select
                     value={source}
                     onChange={(e) => setSource(e.target.value as LeadSource)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
                   >
                     {LEAD_SOURCES.map((s) => (
                       <option key={s} value={s}>
@@ -412,7 +549,7 @@ export const LeadsContent: React.FC = () => {
                   <select
                     value={stage}
                     onChange={(e) => setStage(e.target.value as LeadStage)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
                   >
                     {LEAD_STAGES.map((st) => (
                       <option key={st} value={st}>
@@ -432,7 +569,7 @@ export const LeadsContent: React.FC = () => {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Enter student background details, intake goals..."
-                    className="w-full px-3.5 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full px-3.5 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
