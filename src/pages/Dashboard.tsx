@@ -49,10 +49,9 @@ export const DashboardContent: React.FC = () => {
           <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Dashboard Overview</h1>
           <p className="text-sm text-zinc-400">Live metrics and student pipeline performance</p>
         </div>
-        <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-400">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Real-time Sync Active</span>
-        </div>
+      </div>
+
+      {/* Prim
       </div>
 
       {/* Primary Metrics Grid */}
