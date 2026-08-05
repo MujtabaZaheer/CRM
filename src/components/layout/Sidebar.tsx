@@ -81,16 +81,29 @@ const teamLeaderNavItems: NavItem[] = [
   { label: "Notifications", path: "/team-leader/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
+const counsellorNavItems: NavItem[] = [
+  { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
+  { label: "My Students", path: "/counsellor/students", icon: <GraduationCap className="w-4 h-4" /> },
+  { label: "My Applications", path: "/counsellor/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "Document Vault", path: "/counsellor/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Tasks & Follow-ups", path: "/counsellor/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Programme Matcher", path: "/counsellor/programme-matcher", icon: <Search className="w-4 h-4" /> },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
-  const visibleNavItems = currentRole === "team_leader"
-    ? teamLeaderNavItems
-    : navItems.filter((item) => {
-        if (!item.rolesAllowed) return true;
-        return currentRole && item.rolesAllowed.includes(currentRole);
-      });
+  const visibleNavItems =
+    currentRole === "team_leader"
+      ? teamLeaderNavItems
+      : currentRole === "counsellor"
+      ? counsellorNavItems
+      : navItems.filter((item) => {
+          if (!item.rolesAllowed) return true;
+          return currentRole && item.rolesAllowed.includes(currentRole);
+        });
 
   return (
     <>

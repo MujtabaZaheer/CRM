@@ -24,7 +24,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 // Platform Super Admin, Organization Admin, and Counsellor have real behavior active
-export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "counsellor"];
+export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "team_leader", "counsellor"];
 
 export interface AppUser {
   uid: string;

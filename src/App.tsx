@@ -18,6 +18,7 @@ import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
+import { CounsellorRoute } from "./components/layout/CounsellorRoute";
 
 // Team Leader Module Imports
 import { TeamLeaderDashboard } from "./pages/teamleader/Dashboard";
@@ -28,6 +29,15 @@ import { TeamLeaderTasks } from "./pages/teamleader/Tasks";
 import { TeamLeaderPerformance } from "./pages/teamleader/Performance";
 import { TeamLeaderReports } from "./pages/teamleader/Reports";
 import { TeamLeaderNotifications } from "./pages/teamleader/Notifications";
+
+// Counsellor Module Imports
+import { CounsellorDashboard } from "./pages/counsellor/Dashboard";
+import { CounsellorLeads } from "./pages/counsellor/Leads";
+import { CounsellorStudents } from "./pages/counsellor/Students";
+import { CounsellorApplications } from "./pages/counsellor/Applications";
+import { CounsellorDocuments } from "./pages/counsellor/Documents";
+import { CounsellorTasks } from "./pages/counsellor/Tasks";
+import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
 
 export const App: React.FC = () => {
   return (
@@ -63,6 +73,17 @@ export const App: React.FC = () => {
                 <Route path="performance" element={<TeamLeaderPerformance />} />
                 <Route path="reports" element={<TeamLeaderReports />} />
                 <Route path="notifications" element={<TeamLeaderNotifications />} />
+              </Route>
+
+              {/* Counsellor Module Routes */}
+              <Route path="/counsellor" element={<CounsellorRoute />}>
+                <Route path="dashboard" element={<CounsellorDashboard />} />
+                <Route path="leads" element={<CounsellorLeads />} />
+                <Route path="students" element={<CounsellorStudents />} />
+                <Route path="applications" element={<CounsellorApplications />} />
+                <Route path="documents" element={<CounsellorDocuments />} />
+                <Route path="tasks" element={<CounsellorTasks />} />
+                <Route path="programme-matcher" element={<CounsellorProgrammeMatcher />} />
               </Route>
 
               {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}

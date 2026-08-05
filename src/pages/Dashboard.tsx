@@ -50,6 +50,10 @@ export const Dashboard: React.FC = () => {
     return <Navigate to="/team-leader/dashboard" replace />;
   }
 
+  if (appUser?.role === "counsellor") {
+    return <Navigate to="/counsellor/dashboard" replace />;
+  }
+
   const filteredLeads = leads.filter((l) => {
     const matchesStage = stageFilter === "All" || l.stage === stageFilter;
     const matchesSource = sourceFilter === "All" || l.source === sourceFilter;
