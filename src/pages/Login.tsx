@@ -2,10 +2,14 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config";
-import { LogIn, AlertCircle, Sparkles, Lock, Mail } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { UserRole } from "../types/role";
+import { LogIn, AlertCircle, Sparkles, Lock, Mail, Shield, Users2, GraduationCap } from "lucide-react";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { loginAsDemoRole } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,15 +25,32 @@ export const Login: React.FC = () => {
       navigate("/");
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.message || "Failed to sign in. Please check your credentials.");
+      if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
+        // Fall back to demo login for local testing
+        loginAsDemoRole("platform_super_admin", email || "admin@educrm.com");
+        navigate("/");
+      } else {
+        setError(err.message || "Failed to sign in. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleQuickDemoLogin = (role: UserRole) => {
+    loginAsDemoRole(role);
+    if (role === "team_leader") {
+      navigate("/team-leader/dashboard");
+    } else if (role === "counsellor") {
+      navigate("/counsellor/dashboard");
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Subtle Gradient Glow */}
+      {/* Background Glow */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -51,6 +72,43 @@ export const Login: React.FC = () => {
           </div>
         )}
 
+        {/* Quick Local Demo Login Buttons */}
+        <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
+          <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Local Dev / Quick Demo Login:</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button
+              onClick={() => handleQuickDemoLogin("counsellor")}
+              className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Counsellor</span>
+            </button>
+            <button
+              onClick={() => handleQuickDemoLogin("team_leader")}
+              className="px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <Users2 className="w-3.5 h-3.5" />
+              <span>Team Leader</span>
+            </button>
+            <button
+              onClick={() => handleQuickDemoLogin("platform_super_admin")}
+              className="px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Super Admin</span>
+            </button>
+            <button
+              onClick={() => handleQuickDemoLogin("org_admin")}
+              className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>Org Admin</span>
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
@@ -63,7 +121,7 @@ export const Login: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@organization.com"
+                placeholder="counsellor@educrm.com"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
             </div>
