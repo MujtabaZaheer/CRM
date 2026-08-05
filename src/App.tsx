@@ -39,11 +39,14 @@ import { CounsellorDocuments } from "./pages/counsellor/Documents";
 import { CounsellorTasks } from "./pages/counsellor/Tasks";
 import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
 
+import { GlobalDataProvider } from "./contexts/GlobalDataContext";
+
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <GlobalDataProvider>
+          <BrowserRouter>
           <Routes>
             {/* Public Authentication Routes */}
             <Route path="/login" element={<Login />} />
@@ -129,6 +132,7 @@ export const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </GlobalDataProvider>
       </AuthProvider>
     </ThemeProvider>
   );

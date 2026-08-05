@@ -1,15 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { db } from "../firebase/config";
 import {
-  collection,
-  onSnapshot,
   doc,
   updateDoc,
   addDoc,
-  query,
-  orderBy
+  collection
 } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Lead, LeadStage } from "../types/lead";
 import { Student } from "../types/student";
 import { Application, ApplicationStage } from "../types/application";
@@ -19,99 +17,16 @@ import { logAuditEvent } from "../utils/auditLogger";
 
 export const useCounsellorData = () => {
   const { appUser } = useAuth();
-
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [documents, setDocuments] = useState<StudentDocument[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const loadedSources = new Set<string>();
-
-    const markSourceLoaded = (source: string) => {
-      loadedSources.add(source);
-      if (loadedSources.size === 5) setLoading(false);
-    };
-
-    const handleSourceError = (source: string, err: Error) => {
-      console.error(`Error loading ${source}:`, err);
-      setError("Some counsellor data could not be loaded. Please check permissions.");
-      markSourceLoaded(source);
-    };
-
-    // 1. Subscribe to Leads
-    const unsubLeads = onSnapshot(
-      query(collection(db, "leads"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Lead[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Lead));
-        setLeads(list);
-        markSourceLoaded("leads");
-      },
-      (err) => handleSourceError("leads", err)
-    );
-
-    // 2. Subscribe to Students
-    const unsubStudents = onSnapshot(
-      query(collection(db, "students"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Student[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Student));
-        setStudents(list);
-        markSourceLoaded("students");
-      },
-      (err) => handleSourceError("students", err)
-    );
-
-    // 3. Subscribe to Applications
-    const unsubApps = onSnapshot(
-      query(collection(db, "applications"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Application[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Application));
-        setApplications(list);
-        markSourceLoaded("applications");
-      },
-      (err) => handleSourceError("applications", err)
-    );
-
-    // 4. Subscribe to Student Documents
-    const unsubDocs = onSnapshot(
-      query(collection(db, "student_documents"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: StudentDocument[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...d.data() } as StudentDocument));
-        setDocuments(list);
-        markSourceLoaded("documents");
-      },
-      (err) => handleSourceError("documents", err)
-    );
-
-    // 5. Subscribe to Tasks
-    const unsubTasks = onSnapshot(
-      query(collection(db, "tasks"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Task[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Task));
-        setTasks(list);
-        markSourceLoaded("tasks");
-      },
-      (err) => handleSourceError("tasks", err)
-    );
-
-    return () => {
-      unsubLeads();
-      unsubStudents();
-      unsubApps();
-      unsubDocs();
-      unsubTasks();
-    };
-  }, []);
+  const {
+    leads,
+    students,
+    applications,
+    documents,
+    tasks,
+    universities,
+    initialLoading: loading,
+    error
+  } = useGlobalData();
 
   // Filter Data scoped to logged-in Counsellor
   const userUid = appUser?.uid;
@@ -191,7 +106,6 @@ export const useCounsellorData = () => {
 
       const docRef = await addDoc(collection(db, "students"), newStudent);
 
-      // Update lead stage to Converted
       const leadRef = doc(db, "leads", lead.id);
       await updateDoc(leadRef, {
         stage: "Converted",
@@ -398,6 +312,7 @@ export const useCounsellorData = () => {
     applications: myApplications,
     documents: myDocuments,
     tasks: myTasks,
+    universities,
     allLeads: leads,
     allStudents: students,
     loading,

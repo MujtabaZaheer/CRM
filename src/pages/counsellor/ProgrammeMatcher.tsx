@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { db } from "../../firebase/config";
-import { collection, onSnapshot } from "firebase/firestore";
-import { University } from "../../types/university";
+import React, { useState } from "react";
+import { University, Programme } from "../../types/university";
 import { useCounsellorData } from "../../hooks/useCounsellorData";
 import { Student } from "../../types/student";
 import {
@@ -13,29 +11,19 @@ import {
 } from "lucide-react";
 
 export const CounsellorProgrammeMatcher: React.FC = () => {
-  const { students, createApplication } = useCounsellorData();
+  const { students, universities, createApplication } = useCounsellorData();
 
-  const [universities, setUniversities] = useState<University[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [countryFilter, setCountryFilter] = useState("All");
   const [degreeFilter, setDegreeFilter] = useState("All");
 
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "universities"), (snap) => {
-      const docs: University[] = [];
-      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as University));
-      setUniversities(docs);
-    });
-    return () => unsub();
-  }, []);
-
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
 
   // Flatten programmes with university metadata
-  const allCourses = universities.flatMap((u) =>
-    (u.programmes || []).map((p) => ({
+  const allCourses = universities.flatMap((u: University) =>
+    (u.programmes || []).map((p: Programme) => ({
       ...p,
       universityId: u.id,
       universityName: u.name,

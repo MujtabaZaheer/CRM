@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, addDoc, query, orderBy } from "firebase/firestore";
-import { Student } from "../types/student";
+import { collection, addDoc } from "firebase/firestore";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { Upload, Search, AlertTriangle, X, File } from "lucide-react";
 
@@ -32,9 +32,7 @@ export interface StudentDocument {
 
 export const Documents: React.FC = () => {
   const { appUser } = useAuth();
-  const [documents, setDocuments] = useState<StudentDocument[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { documents, students, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
@@ -43,33 +41,6 @@ export const Documents: React.FC = () => {
   const [docType, setDocType] = useState<DocumentType>("Passport");
   const [simulatedFileName, setSimulatedFileName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    // Documents snapshot
-    const q = query(collection(db, "student_documents"), orderBy("createdAt", "desc"));
-    const unsubscribeDocs = onSnapshot(q, (snapshot) => {
-      const docs: StudentDocument[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as StudentDocument);
-      });
-      setDocuments(docs);
-      setLoading(false);
-    });
-
-    // Students snapshot
-    const unsubscribeStudents = onSnapshot(collection(db, "students"), (snapshot) => {
-      const docs: Student[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as Student);
-      });
-      setStudents(docs);
-    });
-
-    return () => {
-      unsubscribeDocs();
-      unsubscribeStudents();
-    };
-  }, []);
 
   const handleUploadDoc = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, addDoc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { Student, QualificationLevel } from "../types/student";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { Plus, Search, Eye, GraduationCap, Mail, Phone, Globe, BookOpen, Award, AlertCircle, X } from "lucide-react";
 
 export const Students: React.FC = () => {
   const { appUser } = useAuth();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { students, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -28,19 +28,6 @@ export const Students: React.FC = () => {
   const [completionYear] = useState(2025);
   const [ieltsScore, setIeltsScore] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    const q = query(collection(db, "students"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs: Student[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as Student);
-      });
-      setStudents(docs);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();

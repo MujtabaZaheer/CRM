@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, addDoc, updateDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import { Application, ApplicationStage } from "../types/application";
-import { Student } from "../types/student";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { Plus, Search, FileText, GraduationCap, AlertCircle, X } from "lucide-react";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 
 const STAGES: ApplicationStage[] = [
   "Draft",
@@ -26,9 +26,7 @@ const STAGES: ApplicationStage[] = [
 
 export const Applications: React.FC = () => {
   const { appUser } = useAuth();
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { applications, students, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -39,33 +37,6 @@ export const Applications: React.FC = () => {
   const [programmeName, setProgrammeName] = useState("");
   const [intake, setIntake] = useState("Fall 2026");
   const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    // Applications snapshot
-    const q = query(collection(db, "applications"), orderBy("createdAt", "desc"));
-    const unsubscribeApps = onSnapshot(q, (snapshot) => {
-      const docs: Application[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as Application);
-      });
-      setApplications(docs);
-      setLoading(false);
-    });
-
-    // Students snapshot for dropdown
-    const unsubscribeStudents = onSnapshot(collection(db, "students"), (snapshot) => {
-      const docs: Student[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as Student);
-      });
-      setStudents(docs);
-    });
-
-    return () => {
-      unsubscribeApps();
-      unsubscribeStudents();
-    };
-  }, []);
 
   const handleCreateApplication = async (e: React.FormEvent) => {
     e.preventDefault();
