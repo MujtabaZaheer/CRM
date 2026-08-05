@@ -17,6 +17,17 @@ import { NotificationsPage } from "./pages/Notifications";
 import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { StubPage } from "./components/layout/StubPage";
+import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
+
+// Team Leader Module Imports
+import { TeamLeaderDashboard } from "./pages/teamleader/Dashboard";
+import { TeamLeaderTeamMembers } from "./pages/teamleader/TeamMembers";
+import { TeamLeaderApplications } from "./pages/teamleader/Applications";
+import { TeamLeaderAssignApplications } from "./pages/teamleader/AssignApplications";
+import { TeamLeaderTasks } from "./pages/teamleader/Tasks";
+import { TeamLeaderPerformance } from "./pages/teamleader/Performance";
+import { TeamLeaderReports } from "./pages/teamleader/Reports";
+import { TeamLeaderNotifications } from "./pages/teamleader/Notifications";
 
 export const App: React.FC = () => {
   return (
@@ -41,6 +52,18 @@ export const App: React.FC = () => {
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/users" element={<Users />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
+
+              {/* Team Leader Module Routes */}
+              <Route path="/team-leader" element={<TeamLeaderRoute />}>
+                <Route path="dashboard" element={<TeamLeaderDashboard />} />
+                <Route path="team-members" element={<TeamLeaderTeamMembers />} />
+                <Route path="applications" element={<TeamLeaderApplications />} />
+                <Route path="assign-applications" element={<TeamLeaderAssignApplications />} />
+                <Route path="tasks" element={<TeamLeaderTasks />} />
+                <Route path="performance" element={<TeamLeaderPerformance />} />
+                <Route path="reports" element={<TeamLeaderReports />} />
+                <Route path="notifications" element={<TeamLeaderNotifications />} />
+              </Route>
 
               {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}
               <Route

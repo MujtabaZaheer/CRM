@@ -15,10 +15,6 @@ export const Users: React.FC = () => {
   // Route Guard: Platform Super Admin & Organization Admin
   const isAuthorized = appUser?.role === "platform_super_admin" || appUser?.role === "org_admin";
 
-  if (appUser && !isAuthorized) {
-    return <Navigate to="/" replace />;
-  }
-
   useEffect(() => {
     const usersCollection = collection(db, "users");
     const unsubscribe = onSnapshot(
@@ -40,6 +36,10 @@ export const Users: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  if (appUser && !isAuthorized) {
+    return <Navigate to="/" replace />;
+  }
+
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingUid(userId);
     try {
@@ -48,6 +48,35 @@ export const Users: React.FC = () => {
     } catch (err) {
       console.error("Failed to update role:", err);
       alert("Permission denied or error updating user role.");
+    } finally {
+      setUpdatingUid(null);
+    }
+  };
+
+  const OFFICES = ["Toronto Office", "Vancouver Office", "London Office", "Sydney Office", "Delhi Office"];
+  const TEAMS = ["North America Team", "Europe Team", "Asia-Pacific Team", "Americas Team"];
+
+  const handleOfficeChange = async (userId: string, newOffice: string) => {
+    setUpdatingUid(userId);
+    try {
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, { office: newOffice || null });
+    } catch (err) {
+      console.error("Failed to update office:", err);
+      alert("Permission denied or error updating office.");
+    } finally {
+      setUpdatingUid(null);
+    }
+  };
+
+  const handleTeamChange = async (userId: string, newTeam: string) => {
+    setUpdatingUid(userId);
+    try {
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, { team: newTeam || null });
+    } catch (err) {
+      console.error("Failed to update team:", err);
+      alert("Permission denied or error updating team.");
     } finally {
       setUpdatingUid(null);
     }
@@ -75,19 +104,21 @@ export const Users: React.FC = () => {
                 <th className="py-3.5 px-4">User</th>
                 <th className="py-3.5 px-4">Email</th>
                 <th className="py-3.5 px-4">Assigned Role</th>
+                <th className="py-3.5 px-4">Office</th>
+                <th className="py-3.5 px-4">Team</th>
                 <th className="py-3.5 px-4">Joined Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-default)] text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={6} className="py-8 text-center text-[var(--text-muted)]">
                     Loading directory from Firestore...
                   </td>
                 </tr>
               ) : usersList.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={6} className="py-8 text-center text-[var(--text-muted)]">
                     No registered user accounts found.
                   </td>
                 </tr>
@@ -124,6 +155,36 @@ export const Users: React.FC = () => {
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
                           <option key={r} value={r} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
                             {ROLE_LABELS[r]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <select
+                        value={u.office || ""}
+                        disabled={updatingUid === u.uid}
+                        onChange={(e) => handleOfficeChange(u.uid, e.target.value)}
+                        className="px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs font-medium text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 disabled:opacity-50"
+                      >
+                        <option value="" className="bg-[var(--bg-card)] text-[var(--text-muted)]">Unassigned</option>
+                        {OFFICES.map((o) => (
+                          <option key={o} value={o} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <select
+                        value={u.team || ""}
+                        disabled={updatingUid === u.uid}
+                        onChange={(e) => handleTeamChange(u.uid, e.target.value)}
+                        className="px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs font-medium text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 disabled:opacity-50"
+                      >
+                        <option value="" className="bg-[var(--bg-card)] text-[var(--text-muted)]">Unassigned</option>
+                        {TEAMS.map((t) => (
+                          <option key={t} value={t} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
+                            {t}
                           </option>
                         ))}
                       </select>

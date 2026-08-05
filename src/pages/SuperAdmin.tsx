@@ -23,11 +23,6 @@ export const SuperAdmin: React.FC = () => {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(true);
 
-  // Route Guard: Super Admin Only
-  if (appUser && appUser.role !== "platform_super_admin") {
-    return <Navigate to="/" replace />;
-  }
-
   useEffect(() => {
     const unsubscribeUsers = onSnapshot(
       collection(db, "users"),
@@ -52,6 +47,11 @@ export const SuperAdmin: React.FC = () => {
       unsubscribeLeads();
     };
   }, []);
+
+  // Route Guard: Super Admin Only
+  if (appUser && appUser.role !== "platform_super_admin") {
+    return <Navigate to="/" replace />;
+  }
 
   const totalUsers = usersList.length;
   const totalLeads = leadsList.length;

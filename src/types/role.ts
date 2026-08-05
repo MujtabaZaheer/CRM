@@ -32,4 +32,6 @@ export interface AppUser {
   displayName?: string;
   role: UserRole;
   createdAt: number;
+  office?: string;
+  team?: string;
 }

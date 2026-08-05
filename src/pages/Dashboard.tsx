@@ -5,9 +5,13 @@ import { Lead } from "../types/lead";
 import { Student } from "../types/student";
 import { Application } from "../types/application";
 import { RoleGate } from "../components/layout/RoleGate";
+import { useAuth } from "../contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw } from "lucide-react";
 
 export const Dashboard: React.FC = () => {
+  const { appUser } = useAuth();
+  
   const [leads, setLeads] = useState<Lead[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -41,6 +45,10 @@ export const Dashboard: React.FC = () => {
       unsubApps();
     };
   }, []);
+
+  if (appUser?.role === "team_leader") {
+    return <Navigate to="/team-leader/dashboard" replace />;
+  }
 
   const filteredLeads = leads.filter((l) => {
     const matchesStage = stageFilter === "All" || l.stage === stageFilter;

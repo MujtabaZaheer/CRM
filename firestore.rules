@@ -24,6 +24,14 @@ service cloud.firestore {
       return isSignedIn() && getUserData().role == 'counsellor';
     }
 
+    function isTeamLeader() {
+      return isSignedIn() && getUserData().role == 'team_leader';
+    }
+
+    function isManagement() {
+      return isSuperAdmin() || isOrgAdmin() || isTeamLeader();
+    }
+
     // ----------------------------------------------------
     // USERS COLLECTION
     // ----------------------------------------------------
@@ -46,12 +54,36 @@ service cloud.firestore {
     // ----------------------------------------------------
     match /leads/{leadId} {
       // Super Admin, Org Admin, and Counsellors can read and create leads
-      allow read: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
-      allow create: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
+      allow read: if isManagement() || isCounsellor();
+      allow create: if isManagement() || isCounsellor();
       
       // Updates and deletions
-      allow update: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
+      allow update: if isManagement() || isCounsellor();
       allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /applications/{applicationId} {
+      allow read: if isManagement() || isCounsellor();
+      allow create: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
+      allow update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() ||
+        (isTeamLeader() && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['assignedCounsellor', 'updatedAt']));
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /students/{studentId} {
+      allow read: if isManagement() || isCounsellor();
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read, create, update: if isManagement() || isCounsellor();
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /audit_logs/{logId} {
+      allow read, create: if isManagement() || isCounsellor();
     }
 
   }
