@@ -85,7 +85,6 @@ const teamLeaderNavItems: NavItem[] = [
   { label: "Notifications", path: "/team-leader/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
-<<<<<<< HEAD
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
@@ -94,7 +93,8 @@ const counsellorNavItems: NavItem[] = [
   { label: "Document Vault", path: "/counsellor/documents", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Tasks & Follow-ups", path: "/counsellor/tasks", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Programme Matcher", path: "/counsellor/programme-matcher", icon: <Search className="w-4 h-4" /> },
-=======
+];
+
 const financeNavItems: NavItem[] = [
   { label: "Finance Dashboard", path: "/finance/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "Invoices", path: "/finance/invoices", icon: <FileText className="w-4 h-4" /> },
@@ -103,33 +103,35 @@ const financeNavItems: NavItem[] = [
   { label: "Commissions", path: "/finance/commissions", icon: <CircleDollarSign className="w-4 h-4" /> },
   { label: "Financial Reports", path: "/finance/reports", icon: <ReceiptText className="w-4 h-4" /> },
   { label: "Notifications", path: "/finance/notifications", icon: <Bell className="w-4 h-4" /> },
->>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
+];
+
+const admissionsNavItems: NavItem[] = [
+  { label: "Admissions Dashboard", path: "/admissions/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Application Queue", path: "/admissions/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "Document Verification", path: "/admissions/verification", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Offer & CAS Tracking", path: "/admissions/offers", icon: <ShieldCheck className="w-4 h-4" /> },
+  { label: "Admissions Tasks", path: "/admissions/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Admissions Analytics", path: "/admissions/reports", icon: <BarChart3 className="w-4 h-4" /> },
+  { label: "Notifications", path: "/admissions/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
-<<<<<<< HEAD
   const visibleNavItems =
     currentRole === "team_leader"
       ? teamLeaderNavItems
       : currentRole === "counsellor"
       ? counsellorNavItems
+      : currentRole === "finance_officer"
+      ? financeNavItems
+      : currentRole === "admissions_officer"
+      ? admissionsNavItems
       : navItems.filter((item) => {
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);
         });
-=======
-  const visibleNavItems = currentRole === "team_leader"
-    ? teamLeaderNavItems
-    : currentRole === "finance_officer"
-      ? financeNavItems
-      : navItems.filter((item) => {
-        if (!item.rolesAllowed) return true;
-        return currentRole && item.rolesAllowed.includes(currentRole);
-      });
->>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
 
   return (
     <>

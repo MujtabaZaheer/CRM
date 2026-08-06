@@ -32,6 +32,10 @@ service cloud.firestore {
       return isSignedIn() && getUserData().role == 'finance_officer';
     }
 
+    function isAdmissionsOfficer() {
+      return isSignedIn() && getUserData().role == 'admissions_officer';
+    }
+
     function isManagement() {
       return isSuperAdmin() || isOrgAdmin() || isTeamLeader();
     }
@@ -58,7 +62,7 @@ service cloud.firestore {
     // ----------------------------------------------------
     match /leads/{leadId} {
       // Super Admin, Org Admin, and Counsellors can read and create leads
-      allow read: if isManagement() || isCounsellor();
+      allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
       allow create: if isManagement() || isCounsellor();
       
       // Updates and deletions
@@ -67,27 +71,33 @@ service cloud.firestore {
     }
 
     match /applications/{applicationId} {
-      allow read: if isManagement() || isCounsellor();
-      allow create: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
-      allow update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() ||
+      allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
+      allow create: if isSuperAdmin() || isOrgAdmin() || isCounsellor() || isAdmissionsOfficer();
+      allow update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() || isAdmissionsOfficer() ||
         (isTeamLeader() && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['assignedCounsellor', 'updatedAt']));
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /students/{studentId} {
-      allow read: if isManagement() || isCounsellor();
-      allow create, update: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
+      allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() || isAdmissionsOfficer();
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /student_documents/{docId} {
+      allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
+      allow create, update: if isManagement() || isCounsellor() || isAdmissionsOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /tasks/{taskId} {
-      allow read, create, update: if isManagement() || isCounsellor();
+      allow read, create, update: if isManagement() || isCounsellor() || isAdmissionsOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /audit_logs/{logId} {
-      allow read, create: if isManagement() || isCounsellor() || isFinanceOfficer();
+      allow read, create: if isManagement() || isCounsellor() || isFinanceOfficer() || isAdmissionsOfficer();
     }
 
     // Finance collections are intentionally isolated from operational roles.

@@ -18,10 +18,11 @@ import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
-<<<<<<< HEAD
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";
-=======
 import { FinanceRoute } from "./components/layout/FinanceRoute";
+import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
+
+// Finance Module Imports
 import { FinanceDashboard } from "./pages/finance/Dashboard";
 import { FinanceInvoices } from "./pages/finance/Invoices";
 import { FinancePayments } from "./pages/finance/Payments";
@@ -29,7 +30,15 @@ import { FinanceRefunds } from "./pages/finance/Refunds";
 import { FinanceCommissions } from "./pages/finance/Commissions";
 import { FinanceReports } from "./pages/finance/Reports";
 import { FinanceNotifications } from "./pages/finance/Notifications";
->>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
+
+// Admissions Module Imports
+import { AdmissionsDashboard } from "./pages/admissions/Dashboard";
+import { AdmissionsApplications } from "./pages/admissions/Applications";
+import { AdmissionsVerification } from "./pages/admissions/Verification";
+import { AdmissionsOffers } from "./pages/admissions/Offers";
+import { AdmissionsTasks } from "./pages/admissions/Tasks";
+import { AdmissionsReports } from "./pages/admissions/Reports";
+import { AdmissionsNotifications } from "./pages/admissions/Notifications";
 
 // Team Leader Module Imports
 import { TeamLeaderDashboard } from "./pages/teamleader/Dashboard";
@@ -88,6 +97,8 @@ export const App: React.FC = () => {
                 <Route path="reports" element={<TeamLeaderReports />} />
                 <Route path="notifications" element={<TeamLeaderNotifications />} />
               </Route>
+
+              {/* Finance Module Routes */}
               <Route path="/finance" element={<FinanceRoute />}>
                 <Route path="dashboard" element={<FinanceDashboard />} />
                 <Route path="invoices" element={<FinanceInvoices />} />
@@ -96,6 +107,17 @@ export const App: React.FC = () => {
                 <Route path="commissions" element={<FinanceCommissions />} />
                 <Route path="reports" element={<FinanceReports />} />
                 <Route path="notifications" element={<FinanceNotifications />} />
+              </Route>
+
+              {/* Admissions Module Routes */}
+              <Route path="/admissions" element={<AdmissionsRoute />}>
+                <Route path="dashboard" element={<AdmissionsDashboard />} />
+                <Route path="applications" element={<AdmissionsApplications />} />
+                <Route path="verification" element={<AdmissionsVerification />} />
+                <Route path="offers" element={<AdmissionsOffers />} />
+                <Route path="tasks" element={<AdmissionsTasks />} />
+                <Route path="reports" element={<AdmissionsReports />} />
+                <Route path="notifications" element={<AdmissionsNotifications />} />
               </Route>
 
               {/* Counsellor Module Routes */}

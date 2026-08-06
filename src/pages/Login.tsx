@@ -43,6 +43,10 @@ export const Login: React.FC = () => {
       navigate("/team-leader/dashboard");
     } else if (role === "counsellor") {
       navigate("/counsellor/dashboard");
+    } else if (role === "admissions_officer") {
+      navigate("/admissions/dashboard");
+    } else if (role === "finance_officer") {
+      navigate("/finance/dashboard");
     } else {
       navigate("/");
     }
@@ -92,6 +96,18 @@ export const Login: React.FC = () => {
             >
               <Users2 className="w-3.5 h-3.5" />
               <span>Team Leader</span>
+            </button>
+            <button
+              onClick={() => handleQuickDemoLogin("admissions_officer")}
+              className="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>Admissions</span>
+            </button>
+            <button
+              onClick={() => handleQuickDemoLogin("finance_officer")}
+              className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>Finance</span>
             </button>
             <button
               onClick={() => handleQuickDemoLogin("platform_super_admin")}
