@@ -33,9 +33,12 @@ export const CounsellorProgrammeMatcher: React.FC = () => {
   );
 
   const filteredCourses = allCourses.filter((course) => {
+    const titleStr = course.title || "";
+    const uniStr = course.universityName || "";
+    const queryStr = searchQuery.toLowerCase();
     const matchesSearch =
-      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.universityName.toLowerCase().includes(searchQuery.toLowerCase());
+      titleStr.toLowerCase().includes(queryStr) ||
+      uniStr.toLowerCase().includes(queryStr);
     const matchesCountry = countryFilter === "All" || course.country === countryFilter;
     const matchesDegree = degreeFilter === "All" || course.level === degreeFilter;
     return matchesSearch && matchesCountry && matchesDegree;

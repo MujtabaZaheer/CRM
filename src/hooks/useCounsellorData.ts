@@ -28,34 +28,40 @@ export const useCounsellorData = () => {
     error
   } = useGlobalData();
 
-  // Filter Data scoped to logged-in Counsellor
+  // Filter Data scoped to logged-in Counsellor (or all items for Admins)
   const userUid = appUser?.uid;
   const userEmail = appUser?.email;
+  const isAdminOrManager =
+    appUser?.role === "platform_super_admin" ||
+    appUser?.role === "org_admin" ||
+    appUser?.role === "office_manager";
 
-  const myLeads = leads.filter(
-    (l) => l.assignedTo === userUid || l.assignedTo === userEmail
-  );
+  const myLeads = isAdminOrManager
+    ? leads
+    : leads.filter((l) => l.assignedTo === userUid || l.assignedTo === userEmail);
 
-  const myStudents = students.filter(
-    (s) => s.assignedCounsellorId === userUid || s.assignedCounsellorId === userEmail
-  );
+  const myStudents = isAdminOrManager
+    ? students
+    : students.filter((s) => s.assignedCounsellorId === userUid || s.assignedCounsellorId === userEmail);
 
   const myStudentIds = myStudents.map((s) => s.id);
 
-  const myApplications = applications.filter(
-    (a) =>
-      a.assignedCounsellor === userEmail ||
-      a.assignedCounsellor === userUid ||
-      myStudentIds.includes(a.studentId)
-  );
+  const myApplications = isAdminOrManager
+    ? applications
+    : applications.filter(
+        (a) =>
+          a.assignedCounsellor === userEmail ||
+          a.assignedCounsellor === userUid ||
+          myStudentIds.includes(a.studentId)
+      );
 
-  const myDocuments = documents.filter(
-    (d) => myStudentIds.includes(d.studentId) || d.uploadedBy === userEmail
-  );
+  const myDocuments = isAdminOrManager
+    ? documents
+    : documents.filter((d) => myStudentIds.includes(d.studentId) || d.uploadedBy === userEmail);
 
-  const myTasks = tasks.filter(
-    (t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail
-  );
+  const myTasks = isAdminOrManager
+    ? tasks
+    : tasks.filter((t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail);
 
   // Actions
   const updateLeadStage = useCallback(

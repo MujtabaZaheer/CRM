@@ -13,7 +13,8 @@ export const RoleGate: React.FC<RoleGateProps> = ({ children, allowedRoles }) =>
   const currentRole = appUser?.role;
 
   const isSuperAdmin = currentRole === "platform_super_admin";
-  const isAllowed = isSuperAdmin || (currentRole && allowedRoles.includes(currentRole));
+  const isOrgAdmin = currentRole === "org_admin";
+  const isAllowed = isSuperAdmin || isOrgAdmin || (currentRole && allowedRoles.includes(currentRole));
 
   if (!isAllowed) {
     return (

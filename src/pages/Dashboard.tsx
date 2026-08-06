@@ -21,6 +21,14 @@ export const Dashboard: React.FC = () => {
     return <Navigate to="/counsellor/dashboard" replace />;
   }
 
+  if (appUser?.role === "admissions_officer") {
+    return <Navigate to="/admissions/dashboard" replace />;
+  }
+
+  if (appUser?.role === "finance_officer") {
+    return <Navigate to="/finance/dashboard" replace />;
+  }
+
   const filteredLeads = leads.filter((l) => {
     const matchesStage = stageFilter === "All" || l.stage === stageFilter;
     const matchesSource = sourceFilter === "All" || l.source === sourceFilter;
