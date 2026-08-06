@@ -23,8 +23,13 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   support_user: "Support User",
 };
 
+<<<<<<< HEAD
 // Platform Super Admin, Organization Admin, and Counsellor have real behavior active
 export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "team_leader", "counsellor"];
+=======
+// Roles with dedicated application modules.
+export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "counsellor", "team_leader", "finance_officer"];
+>>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
 
 export interface AppUser {
   uid: string;

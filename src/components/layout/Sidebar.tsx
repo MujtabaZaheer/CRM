@@ -20,6 +20,10 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  ReceiptText,
+  WalletCards,
+  RefreshCw,
+  CircleDollarSign,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -81,6 +85,7 @@ const teamLeaderNavItems: NavItem[] = [
   { label: "Notifications", path: "/team-leader/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
+<<<<<<< HEAD
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
@@ -89,12 +94,23 @@ const counsellorNavItems: NavItem[] = [
   { label: "Document Vault", path: "/counsellor/documents", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Tasks & Follow-ups", path: "/counsellor/tasks", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Programme Matcher", path: "/counsellor/programme-matcher", icon: <Search className="w-4 h-4" /> },
+=======
+const financeNavItems: NavItem[] = [
+  { label: "Finance Dashboard", path: "/finance/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Invoices", path: "/finance/invoices", icon: <FileText className="w-4 h-4" /> },
+  { label: "Payments & Receipts", path: "/finance/payments", icon: <WalletCards className="w-4 h-4" /> },
+  { label: "Refunds", path: "/finance/refunds", icon: <RefreshCw className="w-4 h-4" /> },
+  { label: "Commissions", path: "/finance/commissions", icon: <CircleDollarSign className="w-4 h-4" /> },
+  { label: "Financial Reports", path: "/finance/reports", icon: <ReceiptText className="w-4 h-4" /> },
+  { label: "Notifications", path: "/finance/notifications", icon: <Bell className="w-4 h-4" /> },
+>>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
+<<<<<<< HEAD
   const visibleNavItems =
     currentRole === "team_leader"
       ? teamLeaderNavItems
@@ -104,6 +120,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);
         });
+=======
+  const visibleNavItems = currentRole === "team_leader"
+    ? teamLeaderNavItems
+    : currentRole === "finance_officer"
+      ? financeNavItems
+      : navItems.filter((item) => {
+        if (!item.rolesAllowed) return true;
+        return currentRole && item.rolesAllowed.includes(currentRole);
+      });
+>>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
 
   return (
     <>
