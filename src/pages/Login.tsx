@@ -26,9 +26,14 @@ export const Login: React.FC = () => {
     } catch (err: any) {
       console.error("Login error:", err);
       if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
-        // Fall back to demo login for local testing
-        loginAsDemoRole("platform_super_admin", email || "admin@educrm.com");
-        navigate("/");
+        // Fall back to demo login for local testing / demo mode
+        let inferredRole: UserRole = "platform_super_admin";
+        if (email.toLowerCase().includes("admissions")) inferredRole = "admissions_officer";
+        else if (email.toLowerCase().includes("finance")) inferredRole = "finance_officer";
+        else if (email.toLowerCase().includes("team")) inferredRole = "team_leader";
+        else if (email.toLowerCase().includes("counsellor")) inferredRole = "counsellor";
+
+        handleQuickDemoLogin(inferredRole);
       } else {
         setError(err.message || "Failed to sign in. Please check your credentials.");
       }
