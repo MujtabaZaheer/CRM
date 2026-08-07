@@ -1,0 +1,93 @@
+{
+  "nodes": [
+    {
+      "id": "overview",
+      "type": "text",
+      "text": "# 🎓 EduCRM Architecture Overview\n\nCentralized Multi-Tenant Education Management Engine\n\n- Live Deployment: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- Stack: React 19 + TypeScript + Vite + Firebase Firestore",
+      "x": 0,
+      "y": -300,
+      "width": 500,
+      "height": 180,
+      "color": "1"
+    },
+    {
+      "id": "admissions_module",
+      "type": "text",
+      "text": "## 🛡️ Admissions Officer Module\n\n- **Route**: `/admissions/*` (`AdmissionsRoute.tsx`)\n- **Hook**: `useAdmissionsData.ts`\n- **Workspace**: `AdmissionsWorkspace.tsx` \n\n### Functions\n- Application Queue (20 Stages)\n- Document Verification Audit\n- Offer Letter & Decision Issuance\n- CAS & Visa Milestone Tracking",
+      "x": -350,
+      "y": 0,
+      "width": 320,
+      "height": 260,
+      "color": "2"
+    },
+    {
+      "id": "finance_module",
+      "type": "text",
+      "text": "## 💳 Finance Officer Module\n\n- **Route**: `/finance/*` (`FinanceRoute.tsx`)\n- **Hook**: `useFinanceData.ts`\n- **Workspace**: `FinanceWorkspace.tsx` \n\n### Functions\n- Invoicing (Tuition, Fees, Deposits)\n- Payment Receipts & Multi-currency\n- Student Refunds Approval\n- Agent Commission Statements",
+      "x": 350,
+      "y": 0,
+      "width": 320,
+      "height": 260,
+      "color": "3"
+    },
+    {
+      "id": "counsellor_module",
+      "type": "text",
+      "text": "## 🎓 Counsellor Module\n\n- **Route**: `/counsellor/*` (`CounsellorRoute.tsx`)\n- **Hook**: `useCounsellorData.ts` \n\n### Functions\n- Lead Pipeline Management\n- Student Profile & Academic History\n- Document Uploads\n- Entry Requirement Programme Matcher",
+      "x": -350,
+      "y": 340,
+      "width": 320,
+      "height": 240,
+      "color": "4"
+    },
+    {
+      "id": "teamleader_module",
+      "type": "text",
+      "text": "## 👥 Team Leader Module\n\n- **Route**: `/team-leader/*` (`TeamLeaderRoute.tsx`)\n- **Hook**: `useTeamLeaderData.ts` \n\n### Functions\n- Workload & Application Reassignment\n- Counsellor Directory & Activity\n- Conversion Performance Analytics",
+      "x": 350,
+      "y": 340,
+      "width": 320,
+      "height": 240,
+      "color": "5"
+    },
+    {
+      "id": "app_entity",
+      "type": "text",
+      "text": "### 📄 Application Entity\n\n- 20 Stages (`Draft` → `Enrolled`)\n- History Timestamps & Audit Notes",
+      "x": -40,
+      "y": 140,
+      "width": 260,
+      "height": 120,
+      "color": "6"
+    },
+    {
+      "id": "student_entity",
+      "type": "text",
+      "text": "### 👤 Student Entity\n\n- Passport & Nationality\n- Academic Records & GPA\n- English Scores (IELTS/TOEFL/PTE)",
+      "x": -40,
+      "y": 340,
+      "width": 260,
+      "height": 130,
+      "color": "6"
+    },
+    {
+      "id": "invoice_entity",
+      "type": "text",
+      "text": "### 🧾 Invoice & Payment Entities\n\n- Fee Receipts & Balances\n- Refund & Commission Claims",
+      "x": 350,
+      "y": -220,
+      "width": 280,
+      "height": 120,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "fromNode": "overview", "toNode": "admissions_module", "label": "Controls Workflow" },
+    { "id": "e2", "fromNode": "overview", "toNode": "finance_module", "label": "Controls Billing" },
+    { "id": "e3", "fromNode": "admissions_module", "toNode": "app_entity", "label": "Verifies & Decides" },
+    { "id": "e4", "fromNode": "counsellor_module", "toNode": "student_entity", "label": "Manages Profiles" },
+    { "id": "e5", "fromNode": "counsellor_module", "toNode": "app_entity", "label": "Submits Drafts" },
+    { "id": "e6", "fromNode": "teamleader_module", "toNode": "app_entity", "label": "Reassigns Workload" },
+    { "id": "e7", "fromNode": "finance_module", "toNode": "invoice_entity", "label": "Processes Fees" }
+  ]
+}
