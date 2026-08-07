@@ -3,91 +3,80 @@
     {
       "id": "overview",
       "type": "text",
-      "text": "# 🎓 EduCRM Architecture Overview\n\nCentralized Multi-Tenant Education Management Engine\n\n- Live Deployment: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- Stack: React 19 + TypeScript + Vite + Firebase Firestore",
+      "text": "# 🎓 EduCRM System Graph & Live Roadmap\n\n- **Live App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Status Legend\n- 🟢 **Green**: Implemented & Live\n- 🟡 **Yellow**: In-Progress / Stubs\n- 🔴 **Red**: Remaining Roadmap (Phase 2/3)",
       "x": 0,
-      "y": -300,
-      "width": 500,
-      "height": 180,
-      "color": "1"
+      "y": -350,
+      "width": 540,
+      "height": 220,
+      "color": "6"
     },
     {
       "id": "admissions_module",
       "type": "text",
-      "text": "## 🛡️ Admissions Officer Module\n\n- **Route**: `/admissions/*` (`AdmissionsRoute.tsx`)\n- **Hook**: `useAdmissionsData.ts`\n- **Workspace**: `AdmissionsWorkspace.tsx` \n\n### Functions\n- Application Queue (20 Stages)\n- Document Verification Audit\n- Offer Letter & Decision Issuance\n- CAS & Visa Milestone Tracking",
-      "x": -350,
-      "y": 0,
-      "width": 320,
-      "height": 260,
-      "color": "2"
+      "text": "## 🟢 Admissions Officer Module\n\n**Status**: Implemented & Live (`/admissions/*`)\n\n- 20 Application Stages\n- Document Verification Hub\n- Offer Letter & Decision Issuance\n- CAS & Visa Milestones",
+      "x": -450,
+      "y": -60,
+      "width": 340,
+      "height": 240,
+      "color": "4"
     },
     {
       "id": "finance_module",
       "type": "text",
-      "text": "## 💳 Finance Officer Module\n\n- **Route**: `/finance/*` (`FinanceRoute.tsx`)\n- **Hook**: `useFinanceData.ts`\n- **Workspace**: `FinanceWorkspace.tsx` \n\n### Functions\n- Invoicing (Tuition, Fees, Deposits)\n- Payment Receipts & Multi-currency\n- Student Refunds Approval\n- Agent Commission Statements",
-      "x": 350,
-      "y": 0,
-      "width": 320,
-      "height": 260,
-      "color": "3"
+      "text": "## 🟢 Finance Officer Module\n\n**Status**: Implemented & Live (`/finance/*`)\n\n- Multi-currency Invoices & Payments\n- Student Refunds Workflow\n- Agent Commission Statements\n- Accounting CSV Exports",
+      "x": 450,
+      "y": -60,
+      "width": 340,
+      "height": 240,
+      "color": "4"
     },
     {
       "id": "counsellor_module",
       "type": "text",
-      "text": "## 🎓 Counsellor Module\n\n- **Route**: `/counsellor/*` (`CounsellorRoute.tsx`)\n- **Hook**: `useCounsellorData.ts` \n\n### Functions\n- Lead Pipeline Management\n- Student Profile & Academic History\n- Document Uploads\n- Entry Requirement Programme Matcher",
-      "x": -350,
-      "y": 340,
-      "width": 320,
-      "height": 240,
+      "text": "## 🟢 Counsellor Module\n\n**Status**: Implemented & Live (`/counsellor/*`)\n\n- Lead Pipeline & Student Profiles\n- Document Vault Uploads\n- Entry Requirement Programme Matcher",
+      "x": -450,
+      "y": 240,
+      "width": 340,
+      "height": 220,
       "color": "4"
     },
     {
       "id": "teamleader_module",
       "type": "text",
-      "text": "## 👥 Team Leader Module\n\n- **Route**: `/team-leader/*` (`TeamLeaderRoute.tsx`)\n- **Hook**: `useTeamLeaderData.ts` \n\n### Functions\n- Workload & Application Reassignment\n- Counsellor Directory & Activity\n- Conversion Performance Analytics",
-      "x": 350,
-      "y": 340,
-      "width": 320,
-      "height": 240,
-      "color": "5"
+      "text": "## 🟢 Team Leader Module\n\n**Status**: Implemented & Live (`/team-leader/*`)\n\n- Workload Reassignment\n- Counsellor Directory\n- Team Conversion Analytics",
+      "x": 450,
+      "y": 240,
+      "width": 340,
+      "height": 220,
+      "color": "4"
     },
     {
-      "id": "app_entity",
+      "id": "stubs_group",
       "type": "text",
-      "text": "### 📄 Application Entity\n\n- 20 Stages (`Draft` → `Enrolled`)\n- History Timestamps & Audit Notes",
-      "x": -40,
-      "y": 140,
-      "width": 260,
-      "height": 120,
-      "color": "6"
-    },
-    {
-      "id": "student_entity",
-      "type": "text",
-      "text": "### 👤 Student Entity\n\n- Passport & Nationality\n- Academic Records & GPA\n- English Scores (IELTS/TOEFL/PTE)",
-      "x": -40,
-      "y": 340,
-      "width": 260,
-      "height": 130,
-      "color": "6"
-    },
-    {
-      "id": "invoice_entity",
-      "type": "text",
-      "text": "### 🧾 Invoice & Payment Entities\n\n- Fee Receipts & Balances\n- Refund & Commission Claims",
-      "x": 350,
-      "y": -220,
-      "width": 280,
-      "height": 120,
+      "text": "## 🟡 In-Progress / UI Stubs\n\n- Programme Search Engine (`/programme-search`)\n- Omnichannel Inbox (`/communications`)\n- External Agents Directory (`/agents`)\n- Executive Reports (`/reports`)",
+      "x": 0,
+      "y": 0,
+      "width": 360,
+      "height": 200,
       "color": "3"
+    },
+    {
+      "id": "remaining_roadmap",
+      "type": "text",
+      "text": "## 🔴 Remaining Roadmap (Phase 2 & 3)\n\n- Student Self-Service Portal\n- External Agent Referral Portal\n- AI Counsellor Eligibility Engine\n- University Partner Portal\n- Drag-and-Drop Form Builder\n- Calendar & Appointment Sync",
+      "x": 0,
+      "y": 260,
+      "width": 360,
+      "height": 240,
+      "color": "1"
     }
   ],
   "edges": [
-    { "id": "e1", "fromNode": "overview", "toNode": "admissions_module", "label": "Controls Workflow" },
-    { "id": "e2", "fromNode": "overview", "toNode": "finance_module", "label": "Controls Billing" },
-    { "id": "e3", "fromNode": "admissions_module", "toNode": "app_entity", "label": "Verifies & Decides" },
-    { "id": "e4", "fromNode": "counsellor_module", "toNode": "student_entity", "label": "Manages Profiles" },
-    { "id": "e5", "fromNode": "counsellor_module", "toNode": "app_entity", "label": "Submits Drafts" },
-    { "id": "e6", "fromNode": "teamleader_module", "toNode": "app_entity", "label": "Reassigns Workload" },
-    { "id": "e7", "fromNode": "finance_module", "toNode": "invoice_entity", "label": "Processes Fees" }
+    { "id": "e1", "fromNode": "overview", "toNode": "admissions_module", "label": "Active" },
+    { "id": "e2", "fromNode": "overview", "toNode": "finance_module", "label": "Active" },
+    { "id": "e3", "fromNode": "overview", "toNode": "counsellor_module", "label": "Active" },
+    { "id": "e4", "fromNode": "overview", "toNode": "teamleader_module", "label": "Active" },
+    { "id": "e5", "fromNode": "overview", "toNode": "stubs_group", "label": "In Development" },
+    { "id": "e6", "fromNode": "overview", "toNode": "remaining_roadmap", "label": "Roadmap" }
   ]
 }
