@@ -3,29 +3,35 @@ tags:
   - project/crm
   - architecture/overview
   - status/active
-date: 2026-08-07
+date: 2026-08-09
 ---
 
 # EduCRM Enterprise System Overview
 
-EduCRM is a multi-tenant education management platform connecting recruitment leads, student profiles, university applications, document verification, financial processing, and role-gated administration.
+EduCRM is a multi-tenant education management platform connecting recruitment leads, student profiles, university applications, document verification, financial processing, support ticketing, compliance auditing, and role-gated administration.
 
 ## 🕸️ Core System Graph
 
 - **Architecture & Global State**: [[Core Architecture]]
 - **Authentication & Security**: [[Authentication & RBAC]]
+- **Live Status Matrix**: [[Implementation Status Dashboard]]
 
-### 🎭 User Roles
-- [[Platform Super Admin Role]]
-- [[Organization Admin Role]]
-- [[Team Leader Role]]
-- [[Counsellor Role]]
-- [[Admissions Officer Role]]
-- [[Finance Officer Role]]
+### 🎭 User Roles (10 System Roles)
+- [[Platform Super Admin Portal]] (`platform_super_admin`)
+- [[Organization Admin Role]] (`org_admin`)
+- [[Team Leader Module]] (`team_leader`)
+- [[Counsellor Module]] (`counsellor`)
+- [[Admissions Officer Module]] (`admissions_officer`)
+- [[Finance Officer Module]] (`finance_officer`)
+- [[Support User Module]] (`support_user`)
+- [[Auditor Module]] (`auditor` / `compliance_officer`)
 
 ### 📦 Operational Modules
+- [[Platform Super Admin Portal]]
 - [[Admissions Officer Module]]
 - [[Finance Officer Module]]
+- [[Support User Module]]
+- [[Auditor Module]]
 - [[Counsellor Module]]
 - [[Team Leader Module]]
 
