@@ -126,6 +126,15 @@ const supportNavItems: NavItem[] = [
   { label: "Notifications", path: "/support/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
+const auditorNavItems: NavItem[] = [
+  { label: "Auditor Portal", path: "/auditor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Audit Trail", path: "/auditor/audit-trail", icon: <History className="w-4 h-4" /> },
+  { label: "Compliance Inspect", path: "/auditor/compliance-inspect", icon: <ShieldCheck className="w-4 h-4" /> },
+  { label: "System Security Logs", path: "/auditor/system-logs", icon: <FileText className="w-4 h-4" /> },
+  { label: "Compliance Reports", path: "/auditor/reports", icon: <BarChart3 className="w-4 h-4" /> },
+  { label: "Notifications", path: "/auditor/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
@@ -141,6 +150,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
       ? admissionsNavItems
       : currentRole === "support_user"
       ? supportNavItems
+      : currentRole === "auditor" || currentRole === "compliance_officer"
+      ? auditorNavItems
       : navItems.filter((item) => {
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);

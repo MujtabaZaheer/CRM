@@ -22,6 +22,7 @@ import { CounsellorRoute } from "./components/layout/CounsellorRoute";
 import { FinanceRoute } from "./components/layout/FinanceRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
 import { SupportRoute } from "./components/layout/SupportRoute";
+import { AuditorRoute } from "./components/layout/AuditorRoute";
 
 // Support Module Imports
 import { SupportDashboard } from "./pages/support/Dashboard";
@@ -30,6 +31,14 @@ import { SupportCreateTicketPage } from "./pages/support/CreateTicket";
 import { SupportKnowledgeBasePage } from "./pages/support/KnowledgeBase";
 import { SupportReportsPage } from "./pages/support/Reports";
 import { SupportNotificationsPage } from "./pages/support/Notifications";
+
+// Auditor Module Imports
+import { AuditorDashboard } from "./pages/auditor/Dashboard";
+import { AuditorAuditTrailPage } from "./pages/auditor/AuditTrail";
+import { AuditorComplianceInspectPage } from "./pages/auditor/ComplianceInspect";
+import { AuditorSystemLogsPage } from "./pages/auditor/SystemLogs";
+import { AuditorReportsPage } from "./pages/auditor/Reports";
+import { AuditorNotificationsPage } from "./pages/auditor/Notifications";
 
 // Finance Module Imports
 import { FinanceDashboard } from "./pages/finance/Dashboard";
@@ -148,6 +157,16 @@ export const App: React.FC = () => {
                 <Route path="knowledge-base" element={<SupportKnowledgeBasePage />} />
                 <Route path="reports" element={<SupportReportsPage />} />
                 <Route path="notifications" element={<SupportNotificationsPage />} />
+              </Route>
+
+              {/* Auditor Module Routes */}
+              <Route path="/auditor" element={<AuditorRoute />}>
+                <Route path="dashboard" element={<AuditorDashboard />} />
+                <Route path="audit-trail" element={<AuditorAuditTrailPage />} />
+                <Route path="compliance-inspect" element={<AuditorComplianceInspectPage />} />
+                <Route path="system-logs" element={<AuditorSystemLogsPage />} />
+                <Route path="reports" element={<AuditorReportsPage />} />
+                <Route path="notifications" element={<AuditorNotificationsPage />} />
               </Route>
 
               {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}

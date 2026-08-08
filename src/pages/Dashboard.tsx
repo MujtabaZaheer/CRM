@@ -33,6 +33,10 @@ export const Dashboard: React.FC = () => {
     return <Navigate to="/support/dashboard" replace />;
   }
 
+  if (appUser?.role === "auditor" || appUser?.role === "compliance_officer") {
+    return <Navigate to="/auditor/dashboard" replace />;
+  }
+
   const filteredLeads = leads.filter((l) => {
     const matchesStage = stageFilter === "All" || l.stage === stageFilter;
     const matchesSource = sourceFilter === "All" || l.source === sourceFilter;

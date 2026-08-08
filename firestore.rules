@@ -40,6 +40,10 @@ service cloud.firestore {
       return isSignedIn() && getUserData().role == 'support_user';
     }
 
+    function isAuditor() {
+      return isSignedIn() && (getUserData().role == 'auditor' || getUserData().role == 'compliance_officer');
+    }
+
     function isManagement() {
       return isSuperAdmin() || isOrgAdmin() || isTeamLeader();
     }
@@ -101,7 +105,8 @@ service cloud.firestore {
     }
 
     match /audit_logs/{logId} {
-      allow read, create: if isManagement() || isCounsellor() || isFinanceOfficer() || isAdmissionsOfficer() || isSupportUser();
+      allow read: if isSignedIn();
+      allow create: if isManagement() || isCounsellor() || isFinanceOfficer() || isAdmissionsOfficer() || isSupportUser() || isAuditor();
     }
 
     match /support_tickets/{ticketId} {
@@ -115,24 +120,28 @@ service cloud.firestore {
     }
 
     // Finance collections are intentionally isolated from operational roles.
-    // Finance Officers and administrators can create and manage these records.
+    // Finance Officers, administrators, and Auditors can inspect these records.
     match /invoices/{invoiceId} {
-      allow read, create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
+      allow read: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer() || isAuditor();
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /payments/{paymentId} {
-      allow read, create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
+      allow read: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer() || isAuditor();
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /refunds/{refundId} {
-      allow read, create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
+      allow read: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer() || isAuditor();
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /commissions/{commissionId} {
-      allow read, create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
+      allow read: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer() || isAuditor();
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isFinanceOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
