@@ -30,6 +30,7 @@ export const Login: React.FC = () => {
         let inferredRole: UserRole = "platform_super_admin";
         if (email.toLowerCase().includes("admissions")) inferredRole = "admissions_officer";
         else if (email.toLowerCase().includes("finance")) inferredRole = "finance_officer";
+        else if (email.toLowerCase().includes("support")) inferredRole = "support_user";
         else if (email.toLowerCase().includes("team")) inferredRole = "team_leader";
         else if (email.toLowerCase().includes("counsellor")) inferredRole = "counsellor";
 
@@ -52,6 +53,8 @@ export const Login: React.FC = () => {
       navigate("/admissions/dashboard");
     } else if (role === "finance_officer") {
       navigate("/finance/dashboard");
+    } else if (role === "support_user") {
+      navigate("/support/dashboard");
     } else {
       navigate("/");
     }
@@ -120,6 +123,12 @@ export const Login: React.FC = () => {
             >
               <Shield className="w-3.5 h-3.5" />
               <span>Super Admin</span>
+            </button>
+            <button
+              onClick={() => handleQuickDemoLogin("support_user")}
+              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>Support User</span>
             </button>
             <button
               onClick={() => handleQuickDemoLogin("org_admin")}

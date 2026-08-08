@@ -29,6 +29,10 @@ export const Dashboard: React.FC = () => {
     return <Navigate to="/finance/dashboard" replace />;
   }
 
+  if (appUser?.role === "support_user") {
+    return <Navigate to="/support/dashboard" replace />;
+  }
+
   const filteredLeads = leads.filter((l) => {
     const matchesStage = stageFilter === "All" || l.stage === stageFilter;
     const matchesSource = sourceFilter === "All" || l.source === sourceFilter;

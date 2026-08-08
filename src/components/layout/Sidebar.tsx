@@ -117,6 +117,15 @@ const admissionsNavItems: NavItem[] = [
   { label: "Notifications", path: "/admissions/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
+const supportNavItems: NavItem[] = [
+  { label: "Support Dashboard", path: "/support/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Tickets", path: "/support/tickets", icon: <FileText className="w-4 h-4" /> },
+  { label: "New Ticket", path: "/support/create-ticket", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Knowledge Base", path: "/support/knowledge-base", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Support Reports", path: "/support/reports", icon: <BarChart3 className="w-4 h-4" /> },
+  { label: "Notifications", path: "/support/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
@@ -130,6 +139,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
       ? financeNavItems
       : currentRole === "admissions_officer"
       ? admissionsNavItems
+      : currentRole === "support_user"
+      ? supportNavItems
       : navItems.filter((item) => {
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);

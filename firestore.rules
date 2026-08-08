@@ -36,6 +36,10 @@ service cloud.firestore {
       return isSignedIn() && getUserData().role == 'admissions_officer';
     }
 
+    function isSupportUser() {
+      return isSignedIn() && getUserData().role == 'support_user';
+    }
+
     function isManagement() {
       return isSuperAdmin() || isOrgAdmin() || isTeamLeader();
     }
@@ -97,7 +101,17 @@ service cloud.firestore {
     }
 
     match /audit_logs/{logId} {
-      allow read, create: if isManagement() || isCounsellor() || isFinanceOfficer() || isAdmissionsOfficer();
+      allow read, create: if isManagement() || isCounsellor() || isFinanceOfficer() || isAdmissionsOfficer() || isSupportUser();
+    }
+
+    match /support_tickets/{ticketId} {
+      allow read, create, update: if isSignedIn();
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /support_articles/{articleId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin() || isOrgAdmin() || isSupportUser();
     }
 
     // Finance collections are intentionally isolated from operational roles.

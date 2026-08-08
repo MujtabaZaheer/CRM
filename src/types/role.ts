@@ -31,6 +31,7 @@ export const ACTIVE_ROLES: UserRole[] = [
   "team_leader",
   "finance_officer",
   "admissions_officer",
+  "support_user",
 ];
 
 export interface AppUser {

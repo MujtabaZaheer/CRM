@@ -21,6 +21,15 @@ import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";
 import { FinanceRoute } from "./components/layout/FinanceRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
+import { SupportRoute } from "./components/layout/SupportRoute";
+
+// Support Module Imports
+import { SupportDashboard } from "./pages/support/Dashboard";
+import { SupportTicketsPage } from "./pages/support/Tickets";
+import { SupportCreateTicketPage } from "./pages/support/CreateTicket";
+import { SupportKnowledgeBasePage } from "./pages/support/KnowledgeBase";
+import { SupportReportsPage } from "./pages/support/Reports";
+import { SupportNotificationsPage } from "./pages/support/Notifications";
 
 // Finance Module Imports
 import { FinanceDashboard } from "./pages/finance/Dashboard";
@@ -129,6 +138,16 @@ export const App: React.FC = () => {
                 <Route path="documents" element={<CounsellorDocuments />} />
                 <Route path="tasks" element={<CounsellorTasks />} />
                 <Route path="programme-matcher" element={<CounsellorProgrammeMatcher />} />
+              </Route>
+
+              {/* Support Module Routes */}
+              <Route path="/support" element={<SupportRoute />}>
+                <Route path="dashboard" element={<SupportDashboard />} />
+                <Route path="tickets" element={<SupportTicketsPage />} />
+                <Route path="create-ticket" element={<SupportCreateTicketPage />} />
+                <Route path="knowledge-base" element={<SupportKnowledgeBasePage />} />
+                <Route path="reports" element={<SupportReportsPage />} />
+                <Route path="notifications" element={<SupportNotificationsPage />} />
               </Route>
 
               {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}
