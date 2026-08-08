@@ -58,6 +58,8 @@ export const Login: React.FC = () => {
       navigate("/support/dashboard");
     } else if (role === "auditor" || role === "compliance_officer") {
       navigate("/auditor/dashboard");
+    } else if (role === "platform_super_admin") {
+      navigate("/super-admin/dashboard");
     } else {
       navigate("/");
     }

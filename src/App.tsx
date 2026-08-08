@@ -23,6 +23,7 @@ import { FinanceRoute } from "./components/layout/FinanceRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
 import { SupportRoute } from "./components/layout/SupportRoute";
 import { AuditorRoute } from "./components/layout/AuditorRoute";
+import { SuperAdminRoute } from "./components/layout/SuperAdminRoute";
 
 // Support Module Imports
 import { SupportDashboard } from "./pages/support/Dashboard";
@@ -39,6 +40,15 @@ import { AuditorComplianceInspectPage } from "./pages/auditor/ComplianceInspect"
 import { AuditorSystemLogsPage } from "./pages/auditor/SystemLogs";
 import { AuditorReportsPage } from "./pages/auditor/Reports";
 import { AuditorNotificationsPage } from "./pages/auditor/Notifications";
+
+// Super Admin Module Imports
+import { SuperAdminDashboardPage } from "./pages/superadmin/Dashboard";
+import { SuperAdminTenantsPage } from "./pages/superadmin/Tenants";
+import { SuperAdminUsersPage } from "./pages/superadmin/Users";
+import { SuperAdminSystemHealthPage } from "./pages/superadmin/SystemHealth";
+import { SuperAdminGlobalSettingsPage } from "./pages/superadmin/GlobalSettings";
+import { SuperAdminAuditLogsPage } from "./pages/superadmin/AuditLogs";
+import { SuperAdminNotificationsPage } from "./pages/superadmin/Notifications";
 
 // Finance Module Imports
 import { FinanceDashboard } from "./pages/finance/Dashboard";
@@ -167,6 +177,17 @@ export const App: React.FC = () => {
                 <Route path="system-logs" element={<AuditorSystemLogsPage />} />
                 <Route path="reports" element={<AuditorReportsPage />} />
                 <Route path="notifications" element={<AuditorNotificationsPage />} />
+              </Route>
+
+              {/* Super Admin Module Routes */}
+              <Route path="/super-admin" element={<SuperAdminRoute />}>
+                <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+                <Route path="tenants" element={<SuperAdminTenantsPage />} />
+                <Route path="users" element={<SuperAdminUsersPage />} />
+                <Route path="system-health" element={<SuperAdminSystemHealthPage />} />
+                <Route path="global-settings" element={<SuperAdminGlobalSettingsPage />} />
+                <Route path="audit-logs" element={<SuperAdminAuditLogsPage />} />
+                <Route path="notifications" element={<SuperAdminNotificationsPage />} />
               </Route>
 
               {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}

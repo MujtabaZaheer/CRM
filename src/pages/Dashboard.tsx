@@ -37,6 +37,10 @@ export const Dashboard: React.FC = () => {
     return <Navigate to="/auditor/dashboard" replace />;
   }
 
+  if (appUser?.role === "platform_super_admin") {
+    return <Navigate to="/super-admin/dashboard" replace />;
+  }
+
   const filteredLeads = leads.filter((l) => {
     const matchesStage = stageFilter === "All" || l.stage === stageFilter;
     const matchesSource = sourceFilter === "All" || l.source === sourceFilter;

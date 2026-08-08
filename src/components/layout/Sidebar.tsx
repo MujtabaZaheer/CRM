@@ -135,6 +135,16 @@ const auditorNavItems: NavItem[] = [
   { label: "Notifications", path: "/auditor/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
+const superAdminNavItems: NavItem[] = [
+  { label: "Super Admin Portal", path: "/super-admin/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Tenants & Orgs", path: "/super-admin/tenants", icon: <ShieldCheck className="w-4 h-4" /> },
+  { label: "User Accounts", path: "/super-admin/users", icon: <Users2 className="w-4 h-4" /> },
+  { label: "System Health", path: "/super-admin/system-health", icon: <BarChart3 className="w-4 h-4" /> },
+  { label: "Global Settings", path: "/super-admin/global-settings", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Root Audit Trail", path: "/super-admin/audit-logs", icon: <History className="w-4 h-4" /> },
+  { label: "Notifications", path: "/super-admin/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
@@ -152,6 +162,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
       ? supportNavItems
       : currentRole === "auditor" || currentRole === "compliance_officer"
       ? auditorNavItems
+      : currentRole === "platform_super_admin"
+      ? superAdminNavItems
       : navItems.filter((item) => {
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);
