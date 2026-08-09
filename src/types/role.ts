@@ -28,7 +28,6 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 // Roles with dedicated application modules.
-<<<<<<< HEAD
 export const ACTIVE_ROLES: UserRole[] = [
   "platform_super_admin",
   "org_admin",
@@ -36,12 +35,11 @@ export const ACTIVE_ROLES: UserRole[] = [
   "team_leader",
   "finance_officer",
   "admissions_officer",
+  "visa_officer",
+  "student",
   "support_user",
   "auditor",
 ];
-=======
-export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "counsellor", "team_leader", "finance_officer", "visa_officer", "student", "support_user"];
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 
 export interface AppUser {
   uid: string;

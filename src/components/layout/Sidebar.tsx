@@ -1,46 +1,45 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { UserRole } from "../../types/role";
 import {
   LayoutDashboard,
   Users2,
   GraduationCap,
   FileText,
   FolderOpen,
+  CheckSquare,
+  Building2,
+  Bell,
   Search,
   MessageSquare,
-  Building2,
   UserCheck,
   BarChart3,
-  ShieldCheck,
-  ShieldAlert,
-  CheckSquare,
-  History,
-  Bell,
-  X,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
-  ReceiptText,
+  X,
+  History,
+  ShieldCheck,
+  ShieldAlert,
   WalletCards,
   RefreshCw,
   CircleDollarSign,
-  Plane,
-  LifeBuoy,
+  ReceiptText,
+  Plane
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
 
 interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
   collapsed: boolean;
-  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  setCollapsed: (collapsed: boolean) => void;
 }
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
-  rolesAllowed?: string[];
+  rolesAllowed?: UserRole[];
 }
 
 const navItems: NavItem[] = [
@@ -81,15 +80,14 @@ const navItems: NavItem[] = [
 const teamLeaderNavItems: NavItem[] = [
   { label: "Dashboard", path: "/team-leader/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "Team Members", path: "/team-leader/team-members", icon: <Users2 className="w-4 h-4" /> },
-  { label: "Applications", path: "/team-leader/applications", icon: <FileText className="w-4 h-4" /> },
-  { label: "Assign Applications", path: "/team-leader/assign-applications", icon: <UserCheck className="w-4 h-4" /> },
-  { label: "Tasks & Reminders", path: "/team-leader/tasks", icon: <CheckSquare className="w-4 h-4" /> },
-  { label: "Performance", path: "/team-leader/performance", icon: <BarChart3 className="w-4 h-4" /> },
-  { label: "Reports", path: "/team-leader/reports", icon: <History className="w-4 h-4" /> },
+  { label: "Applications Pool", path: "/team-leader/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "Assign Workloads", path: "/team-leader/assign-applications", icon: <UserCheck className="w-4 h-4" /> },
+  { label: "Team Tasks", path: "/team-leader/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Performance KPI", path: "/team-leader/performance", icon: <BarChart3 className="w-4 h-4" /> },
+  { label: "Reports", path: "/team-leader/reports", icon: <ReceiptText className="w-4 h-4" /> },
   { label: "Notifications", path: "/team-leader/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
-<<<<<<< HEAD
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
@@ -100,8 +98,6 @@ const counsellorNavItems: NavItem[] = [
   { label: "Programme Matcher", path: "/counsellor/programme-matcher", icon: <Search className="w-4 h-4" /> },
 ];
 
-=======
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 const financeNavItems: NavItem[] = [
   { label: "Finance Dashboard", path: "/finance/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "Invoices", path: "/finance/invoices", icon: <FileText className="w-4 h-4" /> },
@@ -111,7 +107,6 @@ const financeNavItems: NavItem[] = [
   { label: "Financial Reports", path: "/finance/reports", icon: <ReceiptText className="w-4 h-4" /> },
   { label: "Notifications", path: "/finance/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
-<<<<<<< HEAD
 
 const admissionsNavItems: NavItem[] = [
   { label: "Admissions Dashboard", path: "/admissions/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -149,37 +144,29 @@ const superAdminNavItems: NavItem[] = [
   { label: "Global Settings", path: "/super-admin/global-settings", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Root Audit Trail", path: "/super-admin/audit-logs", icon: <History className="w-4 h-4" /> },
   { label: "Notifications", path: "/super-admin/notifications", icon: <Bell className="w-4 h-4" /> },
-=======
+];
+
 const visaNavItems: NavItem[] = [
-  { label: "Visa Dashboard", path: "/visa/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Visa Applications", path: "/visa/cases", icon: <Plane className="w-4 h-4" /> },
-  { label: "Documents", path: "/visa/documents", icon: <FolderOpen className="w-4 h-4" /> },
-  { label: "Tasks", path: "/visa/tasks", icon: <CheckSquare className="w-4 h-4" /> },
-  { label: "Notifications", path: "/visa/notifications", icon: <Bell className="w-4 h-4" /> },
+  { label: "Visa Dashboard", path: "/visa-officer/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Visa Applications", path: "/visa-officer/cases", icon: <Plane className="w-4 h-4" /> },
+  { label: "Documents", path: "/visa-officer/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Tasks", path: "/visa-officer/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Notifications", path: "/visa-officer/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
+
 const studentNavItems: NavItem[] = [
-  { label: "My Dashboard", path: "/student-portal/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "My Profile", path: "/student-portal/profile", icon: <UserCheck className="w-4 h-4" /> },
-  { label: "My Applications", path: "/student-portal/applications", icon: <FileText className="w-4 h-4" /> },
-  { label: "My Documents", path: "/student-portal/documents", icon: <FolderOpen className="w-4 h-4" /> },
-  { label: "My Tasks", path: "/student-portal/tasks", icon: <CheckSquare className="w-4 h-4" /> },
-  { label: "Support Requests", path: "/student-portal/requests", icon: <MessageSquare className="w-4 h-4" /> },
-  { label: "Notifications", path: "/student-portal/notifications", icon: <Bell className="w-4 h-4" /> },
-];
-const supportNavItems: NavItem[] = [
-  { label: "Operations Dashboard", path: "/support/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Support Requests", path: "/support/requests", icon: <LifeBuoy className="w-4 h-4" /> },
-  { label: "Tasks", path: "/support/tasks", icon: <CheckSquare className="w-4 h-4" /> },
-  { label: "Activities", path: "/support/activities", icon: <History className="w-4 h-4" /> },
-  { label: "Notifications", path: "/support/notifications", icon: <Bell className="w-4 h-4" /> },
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
+  { label: "My Dashboard", path: "/student/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "My Profile", path: "/student/profile", icon: <UserCheck className="w-4 h-4" /> },
+  { label: "My Applications", path: "/student/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "My Documents", path: "/student/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "My Tasks", path: "/student/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Support Requests", path: "/student/requests", icon: <MessageSquare className="w-4 h-4" /> },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
-<<<<<<< HEAD
   const visibleNavItems =
     currentRole === "team_leader"
       ? teamLeaderNavItems
@@ -195,111 +182,106 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
       ? auditorNavItems
       : currentRole === "platform_super_admin"
       ? superAdminNavItems
+      : currentRole === "visa_officer"
+      ? visaNavItems
+      : currentRole === "student"
+      ? studentNavItems
       : navItems.filter((item) => {
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);
         });
-=======
-  const visibleNavItems = currentRole === "team_leader"
-    ? teamLeaderNavItems
-    : currentRole === "finance_officer"
-      ? financeNavItems
-      : currentRole === "visa_officer"
-        ? visaNavItems
-        : currentRole === "student"
-          ? studentNavItems
-          : currentRole === "support_user"
-            ? supportNavItems
-      : navItems.filter((item) => {
-        if (!item.rolesAllowed) return true;
-        return currentRole && item.rolesAllowed.includes(currentRole);
-      });
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 
   return (
     <>
       {/* Mobile Backdrop */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-[var(--backdrop)] backdrop-blur-sm lg:hidden"
+        <div 
+          className="fixed inset-0 z-40 bg-[var(--backdrop)] backdrop-blur-sm lg:hidden transition-opacity"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar Drawer */}
+      {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-[var(--bg-card)] border-r border-[var(--border-default)] text-[var(--text-primary)] flex flex-col transition-all duration-200 ease-in-out lg:static lg:translate-x-0 ${
-          collapsed ? "lg:w-20 w-64" : "w-64"
-        } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 z-50 h-screen bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] transition-all duration-300 flex flex-col justify-between
+          ${collapsed ? "w-16" : "w-64"}
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}
       >
-        {/* Brand Banner */}
-        <div className={`h-16 flex items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-card-alt)] ${collapsed ? "px-3" : "px-5"}`}>
+        {/* Top Header & Logo */}
+        <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="w-9 h-9 sq-avatar bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-zinc-950 font-extrabold text-xl shadow-lg shadow-emerald-500/20 flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-tr from-emerald-500 to-teal-400 sq-badge flex items-center justify-center text-zinc-950 font-heading font-extrabold text-lg flex-shrink-0">
               E
             </div>
             {!collapsed && (
               <div className="truncate">
-                <span className="font-heading font-bold text-lg text-[var(--text-primary)] tracking-tight block leading-none truncate">
+                <h1 className="font-heading font-bold text-sm text-[var(--text-primary)] leading-none tracking-tight">
                   EduCRM
-                </span>
-                <span className="text-[10px] text-teal-400 font-medium tracking-wide uppercase">
+                </h1>
+                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest block mt-0.5">
                   Enterprise
                 </span>
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-1">
-            {/* Desktop Collapse Toggle */}
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              className="hidden lg:flex text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 sq-btn hover:bg-[var(--bg-hover)] border border-[var(--border-default)]"
-            >
-              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-            {/* Mobile Close Button */}
+
+          {/* Close Mobile / Collapse Desktop */}
+          <div className="flex items-center">
             <button
               onClick={() => setMobileOpen(false)}
-              className="lg:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 sq-btn hover:bg-[var(--bg-hover)]"
+              className="lg:hidden p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg"
             >
               <X className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden lg:flex p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] sq-btn"
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
-        {/* Nav Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        {/* Navigation Items List */}
+        <div className="flex-1 py-4 overflow-y-auto overflow-x-hidden px-2 space-y-1">
           {visibleNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              title={collapsed ? item.label : undefined}
               onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center ${collapsed ? "justify-center px-2" : "space-x-3 px-3"} py-2.5 sq-btn text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border border-transparent"
-                }`
-              }
+              className={({ isActive }) => `
+                flex items-center space-x-3 px-3 py-2.5 sq-btn text-xs font-medium transition-all group relative
+                ${isActive 
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold" 
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border border-transparent"
+                }
+              `}
             >
-              <span className="p-1 sq-icon bg-[var(--bg-elevated)] border border-[var(--border-default)] flex-shrink-0">{item.icon}</span>
+              <span className="flex-shrink-0">{item.icon}</span>
               {!collapsed && <span className="truncate">{item.label}</span>}
+
+              {/* Tooltip for Collapsed State */}
+              {collapsed && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-zinc-900 text-white text-xs sq-card opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-zinc-800">
+                  {item.label}
+                </div>
+              )}
             </NavLink>
           ))}
-        </nav>
+        </div>
 
-        {/* Footer */}
-        <div className={`p-4 border-t border-[var(--border-default)] bg-[var(--bg-card-alt)] text-[11px] text-[var(--text-muted)] flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
-          <span className="flex items-center space-x-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            {!collapsed && <span>EduCRM Engine</span>}
-          </span>
-          {!collapsed && (
-            <span className="px-1.5 py-0.5 sq-pill bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-mono text-[10px]">
-              v1.2.0
-            </span>
+        {/* Footer Info */}
+        <div className="p-3 border-t border-[var(--border-default)] bg-[var(--bg-card)]">
+          {!collapsed ? (
+            <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+              <span>System v2.4</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
           )}
         </div>
       </aside>

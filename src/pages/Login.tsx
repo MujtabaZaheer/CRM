@@ -2,49 +2,18 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config";
-import { LogIn, AlertCircle, Sparkles, Lock, Mail } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { UserRole } from "../types/role";
+import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield } from "lucide-react";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { loginAsDemoRole } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/");
-    } catch (err: any) {
-      console.error("Login error:", err);
-<<<<<<< HEAD
-      if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
-        // Fall back to demo login for local testing / demo mode
-        let inferredRole: UserRole = "platform_super_admin";
-        if (email.toLowerCase().includes("admissions")) inferredRole = "admissions_officer";
-        else if (email.toLowerCase().includes("finance")) inferredRole = "finance_officer";
-        else if (email.toLowerCase().includes("support")) inferredRole = "support_user";
-        else if (email.toLowerCase().includes("audit")) inferredRole = "auditor";
-        else if (email.toLowerCase().includes("team")) inferredRole = "team_leader";
-        else if (email.toLowerCase().includes("counsellor")) inferredRole = "counsellor";
-
-        handleQuickDemoLogin(inferredRole);
-      } else {
-        setError(err.message || "Failed to sign in. Please check your credentials.");
-      }
-=======
-      setError(err.message || "Failed to sign in. Please check your credentials.");
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
-    } finally {
-      setLoading(false);
-    }
-  };
-
-<<<<<<< HEAD
   const handleQuickDemoLogin = (role: UserRole) => {
     loginAsDemoRole(role);
     if (role === "team_leader") {
@@ -61,13 +30,45 @@ export const Login: React.FC = () => {
       navigate("/auditor/dashboard");
     } else if (role === "platform_super_admin") {
       navigate("/super-admin/dashboard");
+    } else if (role === "visa_officer") {
+      navigate("/visa-officer/dashboard");
+    } else if (role === "student") {
+      navigate("/student/dashboard");
     } else {
       navigate("/");
     }
   };
 
-=======
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate("/");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
+        let inferredRole: UserRole = "platform_super_admin";
+        if (email.toLowerCase().includes("admissions")) inferredRole = "admissions_officer";
+        else if (email.toLowerCase().includes("finance")) inferredRole = "finance_officer";
+        else if (email.toLowerCase().includes("support")) inferredRole = "support_user";
+        else if (email.toLowerCase().includes("audit")) inferredRole = "auditor";
+        else if (email.toLowerCase().includes("visa")) inferredRole = "visa_officer";
+        else if (email.toLowerCase().includes("student")) inferredRole = "student";
+        else if (email.toLowerCase().includes("team")) inferredRole = "team_leader";
+        else if (email.toLowerCase().includes("counsellor")) inferredRole = "counsellor";
+
+        handleQuickDemoLogin(inferredRole);
+      } else {
+        setError(err.message || "Failed to sign in. Please check your credentials.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Subtle Gradient Glow */}
@@ -92,7 +93,6 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-<<<<<<< HEAD
         {/* Quick Local Demo Login Buttons */}
         <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
           <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
@@ -101,6 +101,7 @@ export const Login: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("counsellor")}
               className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
@@ -108,6 +109,7 @@ export const Login: React.FC = () => {
               <span>Counsellor</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("team_leader")}
               className="px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
@@ -115,18 +117,21 @@ export const Login: React.FC = () => {
               <span>Team Leader</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("admissions_officer")}
               className="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
               <span>Admissions</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("finance_officer")}
               className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
               <span>Finance</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("platform_super_admin")}
               className="px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
@@ -134,28 +139,36 @@ export const Login: React.FC = () => {
               <span>Super Admin</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("support_user")}
               className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
               <span>Support User</span>
             </button>
             <button
+              type="button"
               onClick={() => handleQuickDemoLogin("auditor")}
               className="px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
               <span>Auditor</span>
             </button>
             <button
-              onClick={() => handleQuickDemoLogin("org_admin")}
+              type="button"
+              onClick={() => handleQuickDemoLogin("visa_officer")}
               className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
-              <span>Org Admin</span>
+              <span>Visa Officer</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoLogin("student")}
+              className="px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>Student Portal</span>
             </button>
           </div>
         </div>
 
-=======
->>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">

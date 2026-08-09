@@ -30,6 +30,8 @@ export interface Lead {
   stage: LeadStage;
   notes?: string;
   assignedTo?: string; // uid, optional for now
+  lastContactedAt?: number;
+  lostReason?: string;
   createdAt: number;
   updatedAt: number;
 }

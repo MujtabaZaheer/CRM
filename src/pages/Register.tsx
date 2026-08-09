@@ -46,7 +46,7 @@ export const Register: React.FC = () => {
       console.warn("Registration error:", err);
       if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
         // Fallback for demo mode / invalid API key environment
-        loginAsDemoRole(role, email);
+        loginAsDemoRole(role);
         const demoUid = `demo-${role}-${Date.now()}`;
         try {
           await setDoc(doc(db, "users", demoUid), {
