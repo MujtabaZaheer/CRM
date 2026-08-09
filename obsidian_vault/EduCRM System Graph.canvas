@@ -3,12 +3,12 @@
     {
       "id": "overview",
       "type": "text",
-      "text": "# 🎓 EduCRM Master System Graph & Roadmap\n\n- **Live Web App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Visual Status Color Code\n- 🟢 **Green**: Implemented & Live in Production (12 System Roles & Portals)\n- 🟡 **Yellow**: UI Stubs / Under Construction\n- 🔴 **Red**: Remaining Roadmap (External Agent & University Portals, AI Engine)",
+      "text": "# 🎓 EduCRM Master System Graph & Architecture\n\n- **Live Web App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Visual Status Legend\n- 🟢 **Green**: 100% Implemented & Live in Production (All 13 Roles & Portals)",
       "x": 0,
       "y": -520,
       "width": 640,
       "height": 220,
-      "color": "6"
+      "color": "4"
     },
     {
       "id": "superadmin_role",
@@ -128,7 +128,7 @@
       "y": 360,
       "width": 340,
       "height": 240,
-      "color": "1"
+      "color": "4"
     },
     {
       "id": "university_portal",
@@ -138,7 +138,7 @@
       "y": 360,
       "width": 340,
       "height": 240,
-      "color": "1"
+      "color": "4"
     },
     {
       "id": "ai_counsellor",
@@ -148,7 +148,7 @@
       "y": 360,
       "width": 340,
       "height": 240,
-      "color": "1"
+      "color": "3"
     }
   ],
   "edges": [
@@ -161,8 +161,8 @@
     { "id": "e7", "fromNode": "admissions_role", "toNode": "visa_role", "label": "Visa Verification" },
     { "id": "e8", "fromNode": "admissions_role", "toNode": "finance_role", "label": "Triggers Invoicing" },
     { "id": "e9", "fromNode": "overview", "toNode": "student_portal", "label": "Live Student Portal" },
-    { "id": "e10", "fromNode": "overview", "toNode": "agent_portal", "label": "Phase 2 Roadmap" },
-    { "id": "e11", "fromNode": "overview", "toNode": "university_portal", "label": "Phase 3 Roadmap" },
-    { "id": "e12", "fromNode": "overview", "toNode": "ai_counsellor", "label": "Phase 3 Roadmap" }
+    { "id": "e10", "fromNode": "overview", "toNode": "agent_portal", "label": "Live External Agent Portal" },
+    { "id": "e11", "fromNode": "overview", "toNode": "university_portal", "label": "Live University Partner Portal" },
+    { "id": "e12", "fromNode": "overview", "toNode": "ai_counsellor", "label": "Future AI Engine" }
   ]
 }
