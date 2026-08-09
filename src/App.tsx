@@ -18,39 +18,10 @@ import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
+<<<<<<< HEAD
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";
+=======
 import { FinanceRoute } from "./components/layout/FinanceRoute";
-import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
-import { SupportRoute } from "./components/layout/SupportRoute";
-import { AuditorRoute } from "./components/layout/AuditorRoute";
-import { SuperAdminRoute } from "./components/layout/SuperAdminRoute";
-
-// Support Module Imports
-import { SupportDashboard } from "./pages/support/Dashboard";
-import { SupportTicketsPage } from "./pages/support/Tickets";
-import { SupportCreateTicketPage } from "./pages/support/CreateTicket";
-import { SupportKnowledgeBasePage } from "./pages/support/KnowledgeBase";
-import { SupportReportsPage } from "./pages/support/Reports";
-import { SupportNotificationsPage } from "./pages/support/Notifications";
-
-// Auditor Module Imports
-import { AuditorDashboard } from "./pages/auditor/Dashboard";
-import { AuditorAuditTrailPage } from "./pages/auditor/AuditTrail";
-import { AuditorComplianceInspectPage } from "./pages/auditor/ComplianceInspect";
-import { AuditorSystemLogsPage } from "./pages/auditor/SystemLogs";
-import { AuditorReportsPage } from "./pages/auditor/Reports";
-import { AuditorNotificationsPage } from "./pages/auditor/Notifications";
-
-// Super Admin Module Imports
-import { SuperAdminDashboardPage } from "./pages/superadmin/Dashboard";
-import { SuperAdminTenantsPage } from "./pages/superadmin/Tenants";
-import { SuperAdminUsersPage } from "./pages/superadmin/Users";
-import { SuperAdminSystemHealthPage } from "./pages/superadmin/SystemHealth";
-import { SuperAdminGlobalSettingsPage } from "./pages/superadmin/GlobalSettings";
-import { SuperAdminAuditLogsPage } from "./pages/superadmin/AuditLogs";
-import { SuperAdminNotificationsPage } from "./pages/superadmin/Notifications";
-
-// Finance Module Imports
 import { FinanceDashboard } from "./pages/finance/Dashboard";
 import { FinanceInvoices } from "./pages/finance/Invoices";
 import { FinancePayments } from "./pages/finance/Payments";
@@ -58,15 +29,7 @@ import { FinanceRefunds } from "./pages/finance/Refunds";
 import { FinanceCommissions } from "./pages/finance/Commissions";
 import { FinanceReports } from "./pages/finance/Reports";
 import { FinanceNotifications } from "./pages/finance/Notifications";
-
-// Admissions Module Imports
-import { AdmissionsDashboard } from "./pages/admissions/Dashboard";
-import { AdmissionsApplications } from "./pages/admissions/Applications";
-import { AdmissionsVerification } from "./pages/admissions/Verification";
-import { AdmissionsOffers } from "./pages/admissions/Offers";
-import { AdmissionsTasks } from "./pages/admissions/Tasks";
-import { AdmissionsReports } from "./pages/admissions/Reports";
-import { AdmissionsNotifications } from "./pages/admissions/Notifications";
+>>>>>>> 23d3134 (Implement Finance Officer module and latest CRM updates)
 
 // Team Leader Module Imports
 import { TeamLeaderDashboard } from "./pages/teamleader/Dashboard";
@@ -78,23 +41,11 @@ import { TeamLeaderPerformance } from "./pages/teamleader/Performance";
 import { TeamLeaderReports } from "./pages/teamleader/Reports";
 import { TeamLeaderNotifications } from "./pages/teamleader/Notifications";
 
-// Counsellor Module Imports
-import { CounsellorDashboard } from "./pages/counsellor/Dashboard";
-import { CounsellorLeads } from "./pages/counsellor/Leads";
-import { CounsellorStudents } from "./pages/counsellor/Students";
-import { CounsellorApplications } from "./pages/counsellor/Applications";
-import { CounsellorDocuments } from "./pages/counsellor/Documents";
-import { CounsellorTasks } from "./pages/counsellor/Tasks";
-import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
-
-import { GlobalDataProvider } from "./contexts/GlobalDataContext";
-
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <GlobalDataProvider>
-          <BrowserRouter>
+        <BrowserRouter>
           <Routes>
             {/* Public Authentication Routes */}
             <Route path="/login" element={<Login />} />
@@ -135,17 +86,6 @@ export const App: React.FC = () => {
                 <Route path="commissions" element={<FinanceCommissions />} />
                 <Route path="reports" element={<FinanceReports />} />
                 <Route path="notifications" element={<FinanceNotifications />} />
-              </Route>
-
-              {/* Admissions Module Routes */}
-              <Route path="/admissions" element={<AdmissionsRoute />}>
-                <Route path="dashboard" element={<AdmissionsDashboard />} />
-                <Route path="applications" element={<AdmissionsApplications />} />
-                <Route path="verification" element={<AdmissionsVerification />} />
-                <Route path="offers" element={<AdmissionsOffers />} />
-                <Route path="tasks" element={<AdmissionsTasks />} />
-                <Route path="reports" element={<AdmissionsReports />} />
-                <Route path="notifications" element={<AdmissionsNotifications />} />
               </Route>
 
               {/* Counsellor Module Routes */}
@@ -233,7 +173,6 @@ export const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
-        </GlobalDataProvider>
       </AuthProvider>
     </ThemeProvider>
   );

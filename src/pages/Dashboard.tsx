@@ -1,25 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { db } from "../firebase/config";
+import { collection, onSnapshot } from "firebase/firestore";
+import { Lead } from "../types/lead";
+import { Student } from "../types/student";
+import { Application } from "../types/application";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
-import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Navigate } from "react-router-dom";
 import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw } from "lucide-react";
 
 export const Dashboard: React.FC = () => {
   const { appUser } = useAuth();
-  const { leads, students, applications } = useGlobalData();
   
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+
   // Filters
   const [stageFilter, setStageFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
 
-  if (appUser?.role === "team_leader") {
-    return <Navigate to="/team-leader/dashboard" replace />;
-  }
+  useEffect(() => {
+    const unsubLeads = onSnapshot(collection(db, "leads"), (snap) => {
+      const docs: Lead[] = [];
+      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Lead));
+      setLeads(docs);
+    });
 
-  if (appUser?.role === "counsellor") {
-    return <Navigate to="/counsellor/dashboard" replace />;
-  }
+    const unsubStudents = onSnapshot(collection(db, "students"), (snap) => {
+      const docs: Student[] = [];
+      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Student));
+      setStudents(docs);
+    });
+
+    const unsubApps = onSnapshot(collection(db, "applications"), (snap) => {
+      const docs: Application[] = [];
+      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Application));
+      setApplications(docs);
+    });
+
+    return () => {
+      unsubLeads();
+      unsubStudents();
+      unsubApps();
+    };
+  }, []);
+
+  const roleHome: Partial<Record<NonNullable<typeof appUser>["role"], string>> = {
+    team_leader: "/team-leader/dashboard",
+    finance_officer: "/finance/dashboard",
+    visa_officer: "/visa/dashboard",
+    student: "/student-portal/dashboard",
+    support_user: "/support/dashboard",
+  };
+
+  const destination = appUser?.role ? roleHome[appUser.role] : undefined;
+  if (destination) return <Navigate to={destination} replace />;
 
   if (appUser?.role === "admissions_officer") {
     return <Navigate to="/admissions/dashboard" replace />;

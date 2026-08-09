@@ -2,14 +2,10 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config";
-import { useAuth } from "../contexts/AuthContext";
-import { UserRole } from "../types/role";
-import { LogIn, AlertCircle, Sparkles, Lock, Mail, Shield, Users2, GraduationCap } from "lucide-react";
+import { LogIn, AlertCircle, Sparkles, Lock, Mail } from "lucide-react";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { loginAsDemoRole } = useAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +21,7 @@ export const Login: React.FC = () => {
       navigate("/");
     } catch (err: any) {
       console.error("Login error:", err);
+<<<<<<< HEAD
       if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
         // Fall back to demo login for local testing / demo mode
         let inferredRole: UserRole = "platform_super_admin";
@@ -39,11 +36,15 @@ export const Login: React.FC = () => {
       } else {
         setError(err.message || "Failed to sign in. Please check your credentials.");
       }
+=======
+      setError(err.message || "Failed to sign in. Please check your credentials.");
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< HEAD
   const handleQuickDemoLogin = (role: UserRole) => {
     loginAsDemoRole(role);
     if (role === "team_leader") {
@@ -65,9 +66,11 @@ export const Login: React.FC = () => {
     }
   };
 
+=======
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Glow */}
+      {/* Background Subtle Gradient Glow */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -89,6 +92,7 @@ export const Login: React.FC = () => {
           </div>
         )}
 
+<<<<<<< HEAD
         {/* Quick Local Demo Login Buttons */}
         <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
           <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
@@ -150,6 +154,8 @@ export const Login: React.FC = () => {
           </div>
         </div>
 
+=======
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
@@ -162,7 +168,7 @@ export const Login: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="counsellor@educrm.com"
+                placeholder="user@organization.com"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
             </div>

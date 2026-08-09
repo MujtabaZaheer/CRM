@@ -29,9 +29,7 @@ export interface Lead {
   source: LeadSource;
   stage: LeadStage;
   notes?: string;
-  lostReason?: string;
-  lastContactedAt?: number;
-  assignedTo?: string; // uid or email
+  assignedTo?: string; // uid, optional for now
   createdAt: number;
   updatedAt: number;
 }

@@ -24,6 +24,8 @@ import {
   WalletCards,
   RefreshCw,
   CircleDollarSign,
+  Plane,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -87,6 +89,7 @@ const teamLeaderNavItems: NavItem[] = [
   { label: "Notifications", path: "/team-leader/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 
+<<<<<<< HEAD
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
@@ -97,6 +100,8 @@ const counsellorNavItems: NavItem[] = [
   { label: "Programme Matcher", path: "/counsellor/programme-matcher", icon: <Search className="w-4 h-4" /> },
 ];
 
+=======
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 const financeNavItems: NavItem[] = [
   { label: "Finance Dashboard", path: "/finance/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "Invoices", path: "/finance/invoices", icon: <FileText className="w-4 h-4" /> },
@@ -106,6 +111,7 @@ const financeNavItems: NavItem[] = [
   { label: "Financial Reports", path: "/finance/reports", icon: <ReceiptText className="w-4 h-4" /> },
   { label: "Notifications", path: "/finance/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
+<<<<<<< HEAD
 
 const admissionsNavItems: NavItem[] = [
   { label: "Admissions Dashboard", path: "/admissions/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -143,12 +149,37 @@ const superAdminNavItems: NavItem[] = [
   { label: "Global Settings", path: "/super-admin/global-settings", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Root Audit Trail", path: "/super-admin/audit-logs", icon: <History className="w-4 h-4" /> },
   { label: "Notifications", path: "/super-admin/notifications", icon: <Bell className="w-4 h-4" /> },
+=======
+const visaNavItems: NavItem[] = [
+  { label: "Visa Dashboard", path: "/visa/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Visa Applications", path: "/visa/cases", icon: <Plane className="w-4 h-4" /> },
+  { label: "Documents", path: "/visa/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Tasks", path: "/visa/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Notifications", path: "/visa/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+const studentNavItems: NavItem[] = [
+  { label: "My Dashboard", path: "/student-portal/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "My Profile", path: "/student-portal/profile", icon: <UserCheck className="w-4 h-4" /> },
+  { label: "My Applications", path: "/student-portal/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "My Documents", path: "/student-portal/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "My Tasks", path: "/student-portal/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Support Requests", path: "/student-portal/requests", icon: <MessageSquare className="w-4 h-4" /> },
+  { label: "Notifications", path: "/student-portal/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+const supportNavItems: NavItem[] = [
+  { label: "Operations Dashboard", path: "/support/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Requests", path: "/support/requests", icon: <LifeBuoy className="w-4 h-4" /> },
+  { label: "Tasks", path: "/support/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Activities", path: "/support/activities", icon: <History className="w-4 h-4" /> },
+  { label: "Notifications", path: "/support/notifications", icon: <Bell className="w-4 h-4" /> },
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
+<<<<<<< HEAD
   const visibleNavItems =
     currentRole === "team_leader"
       ? teamLeaderNavItems
@@ -168,6 +199,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);
         });
+=======
+  const visibleNavItems = currentRole === "team_leader"
+    ? teamLeaderNavItems
+    : currentRole === "finance_officer"
+      ? financeNavItems
+      : currentRole === "visa_officer"
+        ? visaNavItems
+        : currentRole === "student"
+          ? studentNavItems
+          : currentRole === "support_user"
+            ? supportNavItems
+      : navItems.filter((item) => {
+        if (!item.rolesAllowed) return true;
+        return currentRole && item.rolesAllowed.includes(currentRole);
+      });
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 
   return (
     <>

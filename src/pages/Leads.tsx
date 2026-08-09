@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Lead, LeadSource, LeadStage } from "../types/lead";
 import { RoleGate } from "../components/layout/RoleGate";
 import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye } from "lucide-react";
@@ -28,7 +27,8 @@ const LEAD_SOURCES: LeadSource[] = [
 ];
 
 export const LeadsContent: React.FC = () => {
-  const { leads, initialLoading: loading } = useGlobalData();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -49,6 +49,29 @@ export const LeadsContent: React.FC = () => {
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("All");
+
+  useEffect(() => {
+    const leadsRef = collection(db, "leads");
+    const q = query(leadsRef, orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const leadList: Lead[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Lead[];
+        setLeads(leadList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching real-time leads:", error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   const validateForm = () => {
     const errors: Record<string, string> = {};

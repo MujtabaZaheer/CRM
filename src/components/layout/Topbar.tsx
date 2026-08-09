@@ -3,19 +3,20 @@ import { Menu, LogOut, Sun, Moon, Shield, Bell } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../../firebase/config";
 
 interface TopbarProps {
   setMobileOpen: (open: boolean) => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
-  const { appUser, logout } = useAuth();
+  const { appUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await auth.signOut();
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);

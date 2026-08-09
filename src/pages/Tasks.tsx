@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, updateDoc, doc, query, orderBy } from "firebase/firestore";
 import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
-import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { CheckSquare, Plus, Search, Calendar, AlertCircle, X, Check } from "lucide-react";
 
 export const Tasks: React.FC = () => {
   const { appUser } = useAuth();
-  const { tasks, initialLoading: loading } = useGlobalData();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -23,6 +23,20 @@ export const Tasks: React.FC = () => {
   const [linkedEntityType] = useState<"lead" | "student" | "application">("student");
   const [linkedEntityName, setLinkedEntityName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs: Task[] = [];
+      snapshot.forEach((doc) => {
+        docs.push({ id: doc.id, ...doc.data() } as Task);
+      });
+      setTasks(docs);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();

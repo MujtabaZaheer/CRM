@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, query, orderBy } from "firebase/firestore";
 import { University } from "../types/university";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
-import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { Building2, Plus, Search, Globe, MapPin, X, AlertCircle } from "lucide-react";
 
 export const Universities: React.FC = () => {
   const { appUser } = useAuth();
-  const { universities, initialLoading: loading } = useGlobalData();
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddUnivModalOpen, setIsAddUnivModalOpen] = useState(false);
 
@@ -20,6 +20,20 @@ export const Universities: React.FC = () => {
   const [city, setCity] = useState("");
   const [website, setWebsite] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const q = query(collection(db, "universities"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs: University[] = [];
+      snapshot.forEach((doc) => {
+        docs.push({ id: doc.id, ...doc.data() } as University);
+      });
+      setUniversities(docs);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleCreateUniversity = async (e: React.FormEvent) => {
     e.preventDefault();

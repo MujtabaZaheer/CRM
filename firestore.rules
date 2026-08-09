@@ -32,16 +32,30 @@ service cloud.firestore {
       return isSignedIn() && getUserData().role == 'finance_officer';
     }
 
+<<<<<<< HEAD
     function isAdmissionsOfficer() {
       return isSignedIn() && getUserData().role == 'admissions_officer';
+=======
+    function isVisaOfficer() {
+      return isSignedIn() && getUserData().role == 'visa_officer';
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
     }
 
     function isSupportUser() {
       return isSignedIn() && getUserData().role == 'support_user';
     }
 
+<<<<<<< HEAD
     function isAuditor() {
       return isSignedIn() && (getUserData().role == 'auditor' || getUserData().role == 'compliance_officer');
+=======
+    function isStudent() {
+      return isSignedIn() && getUserData().role == 'student';
+    }
+
+    function ownsStudent(studentId) {
+      return isStudent() && get(/databases/$(database)/documents/students/$(studentId)).data.email == request.auth.token.email;
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
     }
 
     function isManagement() {
@@ -79,15 +93,22 @@ service cloud.firestore {
     }
 
     match /applications/{applicationId} {
+<<<<<<< HEAD
       allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
       allow create: if isSuperAdmin() || isOrgAdmin() || isCounsellor() || isAdmissionsOfficer();
       allow update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() || isAdmissionsOfficer() ||
+=======
+      allow read: if isManagement() || isCounsellor() || isVisaOfficer() || isSupportUser() || ownsStudent(resource.data.studentId);
+      allow create: if isSuperAdmin() || isOrgAdmin() || isCounsellor();
+      allow update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() ||
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
         (isTeamLeader() && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['assignedCounsellor', 'updatedAt']));
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /students/{studentId} {
+<<<<<<< HEAD
       allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
       allow create, update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() || isAdmissionsOfficer();
       allow delete: if isSuperAdmin() || isOrgAdmin();
@@ -96,11 +117,47 @@ service cloud.firestore {
     match /student_documents/{docId} {
       allow read: if isManagement() || isCounsellor() || isAdmissionsOfficer();
       allow create, update: if isManagement() || isCounsellor() || isAdmissionsOfficer();
+=======
+      allow read: if isManagement() || isCounsellor() || isVisaOfficer() || isSupportUser() || ownsStudent(studentId);
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isCounsellor() ||
+        (ownsStudent(studentId) && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['phone', 'countryOfResidence', 'notes', 'updatedAt']));
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 
     match /tasks/{taskId} {
+<<<<<<< HEAD
       allow read, create, update: if isManagement() || isCounsellor() || isAdmissionsOfficer();
+=======
+      allow read, create, update: if isManagement() || isCounsellor() || isVisaOfficer() || isSupportUser() ||
+        (isStudent() && resource.data.assignedTo == request.auth.token.email);
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /student_documents/{documentId} {
+      allow read: if isManagement() || isCounsellor() || isVisaOfficer() || isSupportUser() || ownsStudent(resource.data.studentId);
+      allow create: if isManagement() || isCounsellor() || isVisaOfficer() ||
+        (isStudent() && request.resource.data.studentId != null && ownsStudent(request.resource.data.studentId));
+      allow update: if isManagement() || isCounsellor() || isVisaOfficer() ||
+        (isStudent() && ownsStudent(resource.data.studentId) && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['fileName', 'status', 'updatedAt']) && request.resource.data.status == 'Pending');
+    }
+
+    match /visa_cases/{caseId} {
+      allow read: if isSuperAdmin() || isOrgAdmin() || isVisaOfficer() ||
+        (isStudent() && ownsStudent(resource.data.studentId));
+      allow create, update: if isSuperAdmin() || isOrgAdmin() || isVisaOfficer();
+      allow delete: if isSuperAdmin() || isOrgAdmin();
+    }
+
+    match /support_requests/{requestId} {
+      allow read: if isSuperAdmin() || isOrgAdmin() || isSupportUser() ||
+        (isStudent() && resource.data.studentId != null && ownsStudent(resource.data.studentId));
+      allow create: if isSuperAdmin() || isOrgAdmin() || isSupportUser() ||
+        (isStudent() && request.resource.data.studentId != null && ownsStudent(request.resource.data.studentId));
+      allow update: if isSuperAdmin() || isOrgAdmin() || isSupportUser();
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
       allow delete: if isSuperAdmin() || isOrgAdmin();
     }
 

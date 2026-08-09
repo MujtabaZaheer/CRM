@@ -7,6 +7,8 @@ export type UserRole =
   | "admissions_officer"
   | "compliance_officer"
   | "finance_officer"
+  | "visa_officer"
+  | "student"
   | "auditor"
   | "support_user";
 
@@ -19,11 +21,14 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   admissions_officer: "Admissions Officer",
   compliance_officer: "Compliance Officer",
   finance_officer: "Finance Officer",
+  visa_officer: "Visa Officer",
+  student: "Student / Applicant",
   auditor: "Auditor / Read-only",
   support_user: "Support User",
 };
 
 // Roles with dedicated application modules.
+<<<<<<< HEAD
 export const ACTIVE_ROLES: UserRole[] = [
   "platform_super_admin",
   "org_admin",
@@ -34,6 +39,9 @@ export const ACTIVE_ROLES: UserRole[] = [
   "support_user",
   "auditor",
 ];
+=======
+export const ACTIVE_ROLES: UserRole[] = ["platform_super_admin", "org_admin", "counsellor", "team_leader", "finance_officer", "visa_officer", "student", "support_user"];
+>>>>>>> a1ca141 (Implement Visa Officer Student and Support modules)
 
 export interface AppUser {
   uid: string;
