@@ -3,7 +3,7 @@
     {
       "id": "overview",
       "type": "text",
-      "text": "# 🎓 EduCRM Master System Graph & Roadmap\n\n- **Live Web App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Visual Status Color Code\n- 🟢 **Green**: Implemented & Live in Production (10 System Roles & Workspaces)\n- 🟡 **Yellow**: UI Stubs / Under Construction\n- 🔴 **Red**: Remaining Roadmap (Phase 2 & 3 Portals & AI Engine)",
+      "text": "# 🎓 EduCRM Master System Graph & Roadmap\n\n- **Live Web App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Visual Status Color Code\n- 🟢 **Green**: Implemented & Live in Production (12 System Roles & Portals)\n- 🟡 **Yellow**: UI Stubs / Under Construction\n- 🔴 **Red**: Remaining Roadmap (External Agent & University Portals, AI Engine)",
       "x": 0,
       "y": -520,
       "width": 640,
@@ -41,10 +41,20 @@
       "color": "4"
     },
     {
+      "id": "visa_role",
+      "type": "file",
+      "file": "Visa Officer Role.md",
+      "x": 380,
+      "y": -240,
+      "width": 340,
+      "height": 240,
+      "color": "4"
+    },
+    {
       "id": "finance_role",
       "type": "file",
       "file": "Finance Officer Role.md",
-      "x": 380,
+      "x": 750,
       "y": -240,
       "width": 340,
       "height": 240,
@@ -54,8 +64,8 @@
       "id": "support_role",
       "type": "file",
       "file": "Support User Role.md",
-      "x": 750,
-      "y": -240,
+      "x": -750,
+      "y": 60,
       "width": 340,
       "height": 240,
       "color": "4"
@@ -64,7 +74,7 @@
       "id": "officemanager_role",
       "type": "file",
       "file": "Office Manager Role.md",
-      "x": -750,
+      "x": -380,
       "y": 60,
       "width": 340,
       "height": 240,
@@ -74,7 +84,7 @@
       "id": "teamleader_role",
       "type": "file",
       "file": "Team Leader Role.md",
-      "x": -380,
+      "x": 0,
       "y": 60,
       "width": 340,
       "height": 240,
@@ -84,7 +94,7 @@
       "id": "counsellor_role",
       "type": "file",
       "file": "Counsellor Role.md",
-      "x": 0,
+      "x": 380,
       "y": 60,
       "width": 340,
       "height": 240,
@@ -94,16 +104,6 @@
       "id": "auditor_role",
       "type": "file",
       "file": "Auditor Role.md",
-      "x": 380,
-      "y": 60,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "compliance_role",
-      "type": "file",
-      "file": "Compliance Officer Role.md",
       "x": 750,
       "y": 60,
       "width": 340,
@@ -118,7 +118,7 @@
       "y": 360,
       "width": 340,
       "height": 240,
-      "color": "1"
+      "color": "4"
     },
     {
       "id": "agent_portal",
@@ -158,9 +158,9 @@
     { "id": "e4", "fromNode": "officemanager_role", "toNode": "teamleader_role", "label": "Oversees Teams" },
     { "id": "e5", "fromNode": "teamleader_role", "toNode": "counsellor_role", "label": "Assigns Workloads" },
     { "id": "e6", "fromNode": "counsellor_role", "toNode": "admissions_role", "label": "Submits Applications" },
-    { "id": "e7", "fromNode": "admissions_role", "toNode": "finance_role", "label": "Triggers Invoicing" },
-    { "id": "e8", "fromNode": "auditor_role", "toNode": "compliance_role", "label": "Inspects Records" },
-    { "id": "e9", "fromNode": "overview", "toNode": "student_portal", "label": "Phase 2 Roadmap" },
+    { "id": "e7", "fromNode": "admissions_role", "toNode": "visa_role", "label": "Visa Verification" },
+    { "id": "e8", "fromNode": "admissions_role", "toNode": "finance_role", "label": "Triggers Invoicing" },
+    { "id": "e9", "fromNode": "overview", "toNode": "student_portal", "label": "Live Student Portal" },
     { "id": "e10", "fromNode": "overview", "toNode": "agent_portal", "label": "Phase 2 Roadmap" },
     { "id": "e11", "fromNode": "overview", "toNode": "university_portal", "label": "Phase 3 Roadmap" },
     { "id": "e12", "fromNode": "overview", "toNode": "ai_counsellor", "label": "Phase 3 Roadmap" }

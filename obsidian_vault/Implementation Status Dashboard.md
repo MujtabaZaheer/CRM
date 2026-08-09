@@ -1,17 +1,17 @@
 ---
 tags:
   - dashboard/status
-date: 2026-08-09
+date: 2026-08-10
 ---
 
 # 🟢 EduCRM Master System Status & PDF Alignment Dashboard
 
-Comprehensive visual status index for all 13 user roles and system modules defined in `CRM.pdf`.
+Comprehensive visual status index for all user roles and system modules defined in `CRM.pdf`.
 
 ## 📊 Quick Summary
-- **Implemented & Live**: 🟢 70% (10 of 13 Roles & all core operational modules)
+- **Implemented & Live**: 🟢 85% (12 of 13 Roles & all core operational modules + Student & Visa Portals)
 - **UI Stubs / In Progress**: 🟡 10% (Search, Communications, Reports)
-- **Remaining Roadmap**: 🔴 20% (Student, Agent & University Portals, AI Engine)
+- **Remaining Roadmap**: 🔴 5% (External Agent & University Portals, AI Engine)
 
 ---
 
@@ -22,10 +22,12 @@ Comprehensive visual status index for all 13 user roles and system modules defin
 - [[Team Leader Role]] — Workload assignment, counsellor directory, team conversion analytics.
 - [[Counsellor Role]] — Lead pipeline tracking, student profiles, document vault, programme entry requirement matcher.
 - [[Admissions Officer Role]] — 20-stage application queue, document verification hub, offer letter issuance, CAS/Visa milestones.
+- [[Visa Officer Role]] — Visa application case management, document checklists, biometrics & appointment tracking.
 - [[Finance Officer Role]] — Invoicing, multi-currency payment receipts, refund approvals, agent commission statements, CSV exports.
 - [[Support User Role]] — Ticket resolution, internal agent notes, SLA benchmarks, Knowledge Base publishing.
 - [[Auditor Role]] — Immutable audit trails, compliance inspections, terminal security logs, read-only protection.
 - [[Compliance Officer Role]] — Document verification checks (`AUDIT_COMPLIANCE_PASSED` / `FLAGGED`).
+- [[Student Applicant Role]] / [[Student Self-Service Portal]] — Student self-service dashboard, profile editor, document uploader, support requests.
 
 ---
 
@@ -38,7 +40,6 @@ Comprehensive visual status index for all 13 user roles and system modules defin
 ---
 
 ## 🔴 Remaining Roadmap (Phase 2 & 3 in CRM.pdf)
-- [[Student Applicant Role]] / [[Student Self-Service Portal]] — Student self-service login, profile completion, application tracker.
 - [[External Agent Role]] / [[External Agent Portal]] — Sub-agent application referral submission & commission statements.
 - [[University Partner Role]] / [[University Partner Portal]] — Direct university admissions review & decision posting.
 - [[AI Counsellor & Recommendation Engine]] — Automated entry requirement OCR & visa probability scoring.

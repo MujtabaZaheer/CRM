@@ -1,18 +1,25 @@
 ---
 tags:
   - module/studentportal
-  - status/planned
-date: 2026-08-09
+  - status/completed
+date: 2026-08-10
 ---
 
 # 🎓 Student Self-Service Portal
 
-**Status**: 🔴 Remaining Roadmap (Phase 2 in CRM.pdf)
+**Status**: 🟢 Implemented & Live in Production (`/student/*`)
 
-Dedicated student-facing portal enabling applicants to complete profiles, upload verification documents, track application progress, and chat with assigned counsellors.
+Dedicated student-facing portal enabling applicants to manage profiles, upload verification documents, track application progress, and submit support requests.
 
-## 📋 PDF Requirements (CRM.pdf Section 5.1)
-- Student self-registration and passwordless magic link login.
-- Interactive profile builder (Academic history, GPA, English scores).
-- Live 20-stage application tracker.
-- Mobile-responsive document uploader with camera scan support.
+## 📋 PDF Requirements & Features (CRM.pdf Section 5.1)
+- **Student Dashboard**: Live summary of submitted applications, documents, and pending tasks.
+- **My Profile**: Update personal details, phone number, country of residence, and emergency contacts.
+- **My Applications**: Real-time stage tracking across all submitted university applications.
+- **Document Uploader**: Upload replacement transcripts, passports, and English test certificates.
+- **Support Requests**: Submit direct inquiries to assigned counsellors and support officers.
+
+## 🔗 Connected Modules & Entities
+- [[Student Applicant Role]]
+- [[Counsellor Module]]
+- [[Support User Module]]
+- [[Document Entity]]
