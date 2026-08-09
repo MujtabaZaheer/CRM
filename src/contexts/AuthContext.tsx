@@ -9,6 +9,7 @@ interface AuthContextType {
   appUser: AppUser | null;
   loading: boolean;
   loginAsDemoRole: (role: UserRole) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -16,11 +17,20 @@ const AuthContext = createContext<AuthContextType>({
   appUser: null,
   loading: true,
   loginAsDemoRole: () => {},
+  logout: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-  const [appUser, setAppUser] = useState<AppUser | null>(null);
+  const [appUser, setAppUser] = useState<AppUser | null>(() => {
+    try {
+      const stored = localStorage.getItem("educrm_demo_user");
+      if (stored) return JSON.parse(stored) as AppUser;
+    } catch (e) {
+      console.warn("Failed to load stored demo user:", e);
+    }
+    return null;
+  });
   const [loading, setLoading] = useState<boolean>(true);
 
   const loginAsDemoRole = (role: UserRole) => {
@@ -32,8 +42,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: Date.now(),
       office: "Main HQ",
     };
+    try {
+      localStorage.setItem("educrm_demo_user", JSON.stringify(demoUser));
+    } catch (e) {
+      console.warn("Failed to persist demo user:", e);
+    }
     setAppUser(demoUser);
     setLoading(false);
+  };
+
+  const logout = () => {
+    try {
+      localStorage.removeItem("educrm_demo_user");
+    } catch (e) {}
+    setAppUser(null);
+    auth.signOut();
   };
 
   useEffect(() => {
@@ -55,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (docSnap.exists()) {
               setAppUser(docSnap.data() as AppUser);
             } else {
-              // Default to super admin if doc doesn't exist yet
               setAppUser({
                 uid: user.uid,
                 email: user.email || "",
@@ -72,9 +94,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         );
       } else {
-        // Keep demo user if currently logged in via demo button
-        if (!appUser || !appUser.uid.startsWith("demo_")) {
-          setAppUser(null);
+        // If not logged in via Firebase Auth, check if demo user is stored
+        const storedDemo = localStorage.getItem("educrm_demo_user");
+        if (storedDemo) {
+          try {
+            setAppUser(JSON.parse(storedDemo) as AppUser);
+          } catch (e) {
+            setAppUser(null);
+          }
         }
         setLoading(false);
       }
@@ -89,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ firebaseUser, appUser, loading, loginAsDemoRole }}>
+    <AuthContext.Provider value={{ firebaseUser, appUser, loading, loginAsDemoRole, logout }}>
       {children}
     </AuthContext.Provider>
   );
