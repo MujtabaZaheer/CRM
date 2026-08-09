@@ -49,9 +49,11 @@ export const Dashboard: React.FC = () => {
   const roleHome: Partial<Record<NonNullable<typeof appUser>["role"], string>> = {
     team_leader: "/team-leader/dashboard",
     finance_officer: "/finance/dashboard",
-    visa_officer: "/visa/dashboard",
-    student: "/student-portal/dashboard",
+    visa_officer: "/visa-officer/dashboard",
+    student: "/student/dashboard",
     support_user: "/support/dashboard",
+    external_agent: "/agent/dashboard",
+    university_partner: "/university/dashboard",
   };
 
   const destination = appUser?.role ? roleHome[appUser.role] : undefined;

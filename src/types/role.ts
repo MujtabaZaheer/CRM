@@ -10,7 +10,9 @@ export type UserRole =
   | "visa_officer"
   | "student"
   | "auditor"
-  | "support_user";
+  | "support_user"
+  | "external_agent"
+  | "university_partner";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   platform_super_admin: "Platform Super Admin",
@@ -25,6 +27,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   student: "Student / Applicant",
   auditor: "Auditor / Read-only",
   support_user: "Support User",
+  external_agent: "External Referral Agent",
+  university_partner: "University Admissions Partner",
 };
 
 // Roles with dedicated application modules.
@@ -39,6 +43,8 @@ export const ACTIVE_ROLES: UserRole[] = [
   "student",
   "support_user",
   "auditor",
+  "external_agent",
+  "university_partner",
 ];
 
 export interface AppUser {
@@ -49,4 +55,6 @@ export interface AppUser {
   createdAt: number;
   office?: string;
   team?: string;
+  agencyName?: string;
+  universityName?: string;
 }

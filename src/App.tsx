@@ -52,6 +52,19 @@ import { SuperAdminGlobalSettingsPage } from "./pages/superadmin/GlobalSettings"
 import { SuperAdminAuditLogsPage } from "./pages/superadmin/AuditLogs";
 import { SuperAdminNotificationsPage } from "./pages/superadmin/Notifications";
 
+// Agent Module Imports
+import { AgentDashboardPage } from "./pages/agent/Dashboard";
+import { AgentReferralsPage } from "./pages/agent/Referrals";
+import { AgentReferLeadPage } from "./pages/agent/ReferLead";
+import { AgentCommissionsPage } from "./pages/agent/Commissions";
+import { AgentNotificationsPage } from "./pages/agent/Notifications";
+
+// University Module Imports
+import { UniversityDashboardPage } from "./pages/university/Dashboard";
+import { UniversityApplicationsPage } from "./pages/university/Applications";
+import { UniversityCASIssuancePage } from "./pages/university/CASIssuance";
+import { UniversityNotificationsPage } from "./pages/university/Notifications";
+
 // Finance Module Imports
 import { FinanceDashboard } from "./pages/finance/Dashboard";
 import { FinanceInvoices } from "./pages/finance/Invoices";
@@ -209,6 +222,23 @@ export const App: React.FC = () => {
                   <Route path="documents" element={<RolePortal role="student" page="documents" />} />
                   <Route path="requests" element={<RolePortal role="student" page="requests" />} />
                   <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />
+                </Route>
+
+                {/* External Agent Portal Routes */}
+                <Route path="/agent" element={<RoleRoute role="external_agent" />}>
+                  <Route path="dashboard" element={<AgentDashboardPage />} />
+                  <Route path="referrals" element={<AgentReferralsPage />} />
+                  <Route path="refer-lead" element={<AgentReferLeadPage />} />
+                  <Route path="commissions" element={<AgentCommissionsPage />} />
+                  <Route path="notifications" element={<AgentNotificationsPage />} />
+                </Route>
+
+                {/* University Partner Portal Routes */}
+                <Route path="/university" element={<RoleRoute role="university_partner" />}>
+                  <Route path="dashboard" element={<UniversityDashboardPage />} />
+                  <Route path="applications" element={<UniversityApplicationsPage />} />
+                  <Route path="cas-issuance" element={<UniversityCASIssuancePage />} />
+                  <Route path="notifications" element={<UniversityNotificationsPage />} />
                 </Route>
 
                 {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}

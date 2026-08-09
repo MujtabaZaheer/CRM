@@ -34,6 +34,10 @@ export const Login: React.FC = () => {
       navigate("/visa-officer/dashboard");
     } else if (role === "student") {
       navigate("/student/dashboard");
+    } else if (role === "external_agent") {
+      navigate("/agent/dashboard");
+    } else if (role === "university_partner") {
+      navigate("/university/dashboard");
     } else {
       navigate("/");
     }
@@ -165,6 +169,20 @@ export const Login: React.FC = () => {
               className="px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
             >
               <span>Student Portal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoLogin("external_agent")}
+              className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>External Agent</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoLogin("university_partner")}
+              className="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <span>University Partner</span>
             </button>
           </div>
         </div>

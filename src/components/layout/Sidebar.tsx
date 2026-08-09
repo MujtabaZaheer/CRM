@@ -163,6 +163,21 @@ const studentNavItems: NavItem[] = [
   { label: "Support Requests", path: "/student/requests", icon: <MessageSquare className="w-4 h-4" /> },
 ];
 
+const agentNavItems: NavItem[] = [
+  { label: "Agent Dashboard", path: "/agent/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Referred Students", path: "/agent/referrals", icon: <Users2 className="w-4 h-4" /> },
+  { label: "Refer New Student", path: "/agent/refer-lead", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "Commission Ledger", path: "/agent/commissions", icon: <CircleDollarSign className="w-4 h-4" /> },
+  { label: "Notifications", path: "/agent/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+
+const universityNavItems: NavItem[] = [
+  { label: "University Portal", path: "/university/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Received Applications", path: "/university/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "CAS / COE Release", path: "/university/cas-issuance", icon: <ShieldCheck className="w-4 h-4" /> },
+  { label: "Notifications", path: "/university/notifications", icon: <Bell className="w-4 h-4" /> },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
@@ -186,6 +201,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
       ? visaNavItems
       : currentRole === "student"
       ? studentNavItems
+      : currentRole === "external_agent"
+      ? agentNavItems
+      : currentRole === "university_partner"
+      ? universityNavItems
       : navItems.filter((item) => {
           if (!item.rolesAllowed) return true;
           return currentRole && item.rolesAllowed.includes(currentRole);
