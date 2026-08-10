@@ -17,6 +17,8 @@ import { Student } from "../types/student";
 import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { logAuditEvent } from "../utils/auditLogger";
 
+import { DEMO_APPLICATIONS, DEMO_LEADS, DEMO_STUDENTS, DEMO_USERS } from "../data/demoData";
+
 export const useTeamLeaderData = () => {
   const { appUser } = useAuth();
   
@@ -38,13 +40,21 @@ export const useTeamLeaderData = () => {
     const loadedSources = new Set<string>();
     const markSourceLoaded = (source: string) => {
       loadedSources.add(source);
-      if (loadedSources.size === 5) setLoading(false);
+      if (loadedSources.size >= 5) setLoading(false);
     };
     const handleSourceError = (source: string, err: Error) => {
       console.error(`Error loading ${source}:`, err);
       setError("Some team data could not be loaded. Check your connection and permissions, then try again.");
       markSourceLoaded(source);
     };
+    
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
+      setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
+      setLeads((prev) => (prev.length === 0 ? DEMO_LEADS : prev));
+      setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
+    }, 1000);
     
     // Subscribe to Users
     const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
@@ -113,6 +123,7 @@ export const useTeamLeaderData = () => {
     );
 
     return () => {
+      clearTimeout(timeoutId);
       unsubUsers();
       unsubApps();
       unsubLeads();

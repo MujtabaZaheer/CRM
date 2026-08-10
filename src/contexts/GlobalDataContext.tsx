@@ -34,6 +34,8 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
   error: null,
 });
 
+import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_USERS } from "../data/demoData";
+
 export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { appUser } = useAuth();
 
@@ -68,9 +70,14 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       markSourceLoaded(source);
     };
 
-    // Safety timeout: Never keep the UI stuck on loading for more than 1 second
+    // Safety timeout: Never keep the UI stuck on loading for more than 1 second & populate DEMO data
     const timeoutId = setTimeout(() => {
       setInitialLoading(false);
+      setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
+      setLeads((prev) => (prev.length === 0 ? DEMO_LEADS : prev));
+      setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
+      setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
+      setDocuments((prev) => (prev.length === 0 ? DEMO_DOCUMENTS : prev));
     }, 1000);
 
     // 1. Users
@@ -79,10 +86,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: AppUser[] = [];
         snap.forEach((d) => list.push({ uid: d.id, ...d.data() } as AppUser));
-        setUsers(list);
+        setUsers(list.length > 0 ? list : DEMO_USERS);
         markSourceLoaded("users");
       },
-      (err) => handleSourceError("users", err)
+      (err) => { handleSourceError("users", err); setUsers(DEMO_USERS); }
     );
 
     // 2. Leads
@@ -91,10 +98,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Lead[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Lead));
-        setLeads(list);
+        setLeads(list.length > 0 ? list : DEMO_LEADS);
         markSourceLoaded("leads");
       },
-      (err) => handleSourceError("leads", err)
+      (err) => { handleSourceError("leads", err); setLeads(DEMO_LEADS); }
     );
 
     // 3. Students
@@ -103,10 +110,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Student[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Student));
-        setStudents(list);
+        setStudents(list.length > 0 ? list : DEMO_STUDENTS);
         markSourceLoaded("students");
       },
-      (err) => handleSourceError("students", err)
+      (err) => { handleSourceError("students", err); setStudents(DEMO_STUDENTS); }
     );
 
     // 4. Applications
@@ -115,10 +122,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Application[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Application));
-        setApplications(list);
+        setApplications(list.length > 0 ? list : DEMO_APPLICATIONS);
         markSourceLoaded("applications");
       },
-      (err) => handleSourceError("applications", err)
+      (err) => { handleSourceError("applications", err); setApplications(DEMO_APPLICATIONS); }
     );
 
     // 5. Student Documents
@@ -127,10 +134,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: StudentDocument[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as StudentDocument));
-        setDocuments(list);
+        setDocuments(list.length > 0 ? list : DEMO_DOCUMENTS);
         markSourceLoaded("documents");
       },
-      (err) => handleSourceError("documents", err)
+      (err) => { handleSourceError("documents", err); setDocuments(DEMO_DOCUMENTS); }
     );
 
     // 6. Tasks

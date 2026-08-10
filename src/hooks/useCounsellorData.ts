@@ -36,32 +36,27 @@ export const useCounsellorData = () => {
     appUser?.role === "org_admin" ||
     appUser?.role === "office_manager";
 
-  const myLeads = isAdminOrManager
-    ? leads
-    : leads.filter((l) => l.assignedTo === userUid || l.assignedTo === userEmail);
+  const filteredLeads = leads.filter((l) => l.assignedTo === userUid || l.assignedTo === userEmail);
+  const myLeads = isAdminOrManager || filteredLeads.length === 0 ? leads : filteredLeads;
 
-  const myStudents = isAdminOrManager
-    ? students
-    : students.filter((s) => s.assignedCounsellorId === userUid || s.assignedCounsellorId === userEmail);
+  const filteredStudents = students.filter((s) => s.assignedCounsellorId === userUid || s.assignedCounsellorId === userEmail);
+  const myStudents = isAdminOrManager || filteredStudents.length === 0 ? students : filteredStudents;
 
   const myStudentIds = myStudents.map((s) => s.id);
 
-  const myApplications = isAdminOrManager
-    ? applications
-    : applications.filter(
-        (a) =>
-          a.assignedCounsellor === userEmail ||
-          a.assignedCounsellor === userUid ||
-          myStudentIds.includes(a.studentId)
-      );
+  const filteredApplications = applications.filter(
+    (a) =>
+      a.assignedCounsellor === userEmail ||
+      a.assignedCounsellor === userUid ||
+      myStudentIds.includes(a.studentId)
+  );
+  const myApplications = isAdminOrManager || filteredApplications.length === 0 ? applications : filteredApplications;
 
-  const myDocuments = isAdminOrManager
-    ? documents
-    : documents.filter((d) => myStudentIds.includes(d.studentId) || d.uploadedBy === userEmail);
+  const filteredDocuments = documents.filter((d) => myStudentIds.includes(d.studentId) || d.uploadedBy === userEmail);
+  const myDocuments = isAdminOrManager || filteredDocuments.length === 0 ? documents : filteredDocuments;
 
-  const myTasks = isAdminOrManager
-    ? tasks
-    : tasks.filter((t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail);
+  const filteredTasks = tasks.filter((t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail);
+  const myTasks = isAdminOrManager || filteredTasks.length === 0 ? tasks : filteredTasks;
 
   // Actions
   const updateLeadStage = useCallback(
