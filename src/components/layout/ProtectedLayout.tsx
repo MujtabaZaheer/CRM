@@ -6,7 +6,7 @@ import { Topbar } from "./Topbar";
 import { Loader2 } from "lucide-react";
 
 export const ProtectedLayout: React.FC = () => {
-  const { firebaseUser, loading } = useAuth();
+  const { appUser, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -21,7 +21,7 @@ export const ProtectedLayout: React.FC = () => {
     );
   }
 
-  if (!firebaseUser) {
+  if (!appUser) {
     return <Navigate to="/login" replace />;
   }
 

@@ -35,7 +35,7 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
 });
 
 export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { firebaseUser } = useAuth();
+  const { appUser } = useAuth();
 
   const [users, setUsers] = useState<AppUser[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -48,7 +48,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (!firebaseUser) {
+    if (!appUser) {
       setInitialLoading(false);
       return;
     }
@@ -67,6 +67,11 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.warn(`Cache stream notice (${source}):`, err.message);
       markSourceLoaded(source);
     };
+
+    // Safety timeout: Never keep the UI stuck on loading for more than 1 second
+    const timeoutId = setTimeout(() => {
+      setInitialLoading(false);
+    }, 1000);
 
     // 1. Users
     const unsubUsers = onSnapshot(
@@ -153,6 +158,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     );
 
     return () => {
+      clearTimeout(timeoutId);
       unsubUsers();
       unsubLeads();
       unsubStudents();
@@ -161,7 +167,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       unsubTasks();
       unsubUnivs();
     };
-  }, [firebaseUser]);
+  }, [appUser]);
 
   return (
     <GlobalDataContext.Provider
