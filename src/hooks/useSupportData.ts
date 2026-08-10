@@ -13,6 +13,8 @@ import {
   TicketStatus,
 } from "../types/support";
 
+import { DEMO_ARTICLES, DEMO_TICKETS } from "../data/demoData";
+
 export const useSupportData = () => {
   const { appUser } = useAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -26,14 +28,22 @@ export const useSupportData = () => {
       if (loaded >= 2) setLoading(false);
     };
 
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setTickets((prev) => (prev.length === 0 ? DEMO_TICKETS : prev));
+      setArticles((prev) => (prev.length === 0 ? DEMO_ARTICLES : prev));
+    }, 1000);
+
     const unsubTickets = onSnapshot(
       query(collection(db, "support_tickets"), orderBy("createdAt", "desc")),
       (snap) => {
-        setTickets(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SupportTicket));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SupportTicket);
+        setTickets(list.length > 0 ? list : DEMO_TICKETS);
         finish();
       },
       (err) => {
         console.warn("Tickets subscription error:", err.message);
+        setTickets(DEMO_TICKETS);
         finish();
       }
     );
@@ -41,16 +51,19 @@ export const useSupportData = () => {
     const unsubArticles = onSnapshot(
       query(collection(db, "support_articles"), orderBy("createdAt", "desc")),
       (snap) => {
-        setArticles(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SupportArticle));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SupportArticle);
+        setArticles(list.length > 0 ? list : DEMO_ARTICLES);
         finish();
       },
       (err) => {
         console.warn("Articles subscription error:", err.message);
+        setArticles(DEMO_ARTICLES);
         finish();
       }
     );
 
     return () => {
+      clearTimeout(timeoutId);
       unsubTickets();
       unsubArticles();
     };

@@ -13,6 +13,8 @@ import {
   TenantStatus,
 } from "../types/superadmin";
 
+import { DEMO_TENANTS, DEMO_USERS } from "../data/demoData";
+
 export const useSuperAdminData = () => {
   const { appUser } = useAuth();
   const globalData = useGlobalData();
@@ -29,14 +31,31 @@ export const useSuperAdminData = () => {
       if (loaded >= 3) setLoading(false);
     };
 
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setTenants((prev) => (prev.length === 0 ? DEMO_TENANTS : prev));
+      setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
+      setGlobalSettings((prev) => prev || {
+        id: "default",
+        maintenanceMode: false,
+        allowPublicRegistration: true,
+        enforceMFA: false,
+        defaultTimezone: "UTC",
+        defaultCurrency: "USD",
+        updatedAt: Date.now(),
+      });
+    }, 1000);
+
     const unsubTenants = onSnapshot(
       collection(db, "tenants"),
       (snap) => {
-        setTenants(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TenantOrganization));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TenantOrganization);
+        setTenants(list.length > 0 ? list : DEMO_TENANTS);
         finish();
       },
       (err) => {
         console.warn("Tenants subscription warning:", err.message);
+        setTenants(DEMO_TENANTS);
         finish();
       }
     );
@@ -44,11 +63,13 @@ export const useSuperAdminData = () => {
     const unsubUsers = onSnapshot(
       collection(db, "users"),
       (snap) => {
-        setUsers(snap.docs.map((d) => ({ uid: d.id, ...d.data() }) as AppUser));
+        const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() }) as AppUser);
+        setUsers(list.length > 0 ? list : DEMO_USERS);
         finish();
       },
       (err) => {
         console.warn("Users subscription warning:", err.message);
+        setUsers(DEMO_USERS);
         finish();
       }
     );
@@ -79,6 +100,7 @@ export const useSuperAdminData = () => {
     );
 
     return () => {
+      clearTimeout(timeoutId);
       unsubTenants();
       unsubUsers();
       unsubSettings();

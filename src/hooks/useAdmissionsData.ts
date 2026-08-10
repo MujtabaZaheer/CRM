@@ -8,6 +8,8 @@ import { StudentDocument } from "../pages/Documents";
 import { AdmissionsDecision, AdmissionsMetrics, DocumentVerificationStatus } from "../types/admissions";
 import { Task } from "../types/task";
 
+import { DEMO_APPLICATIONS, DEMO_DOCUMENTS } from "../data/demoData";
+
 export const useAdmissionsData = () => {
   const { appUser } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
@@ -28,22 +30,36 @@ export const useAdmissionsData = () => {
       finish();
     };
 
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
+      setDocuments((prev) => (prev.length === 0 ? DEMO_DOCUMENTS : prev));
+    }, 1000);
+
     const unsubApps = onSnapshot(
       query(collection(db, "applications"), orderBy("createdAt", "desc")),
       (snap) => {
-        setApplications(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Application));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Application);
+        setApplications(list.length > 0 ? list : DEMO_APPLICATIONS);
         finish();
       },
-      () => fail("Failed to subscribe to applications.")
+      () => {
+        setApplications(DEMO_APPLICATIONS);
+        fail("Failed to subscribe to applications.");
+      }
     );
 
     const unsubDocs = onSnapshot(
       query(collection(db, "student_documents"), orderBy("createdAt", "desc")),
       (snap) => {
-        setDocuments(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudentDocument));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudentDocument);
+        setDocuments(list.length > 0 ? list : DEMO_DOCUMENTS);
         finish();
       },
-      () => fail("Failed to subscribe to student documents.")
+      () => {
+        setDocuments(DEMO_DOCUMENTS);
+        fail("Failed to subscribe to student documents.");
+      }
     );
 
     const unsubDecisions = onSnapshot(
@@ -65,6 +81,7 @@ export const useAdmissionsData = () => {
     );
 
     return () => {
+      clearTimeout(timeoutId);
       unsubApps();
       unsubDocs();
       unsubDecisions();
