@@ -7,6 +7,8 @@ import { Invoice, Payment, Refund, Commission } from "../types/finance";
 import { SupportTicket, SupportArticle } from "../types/support";
 import { TenantOrganization } from "../types/superadmin";
 import { VisaCase } from "../types/portal";
+import { Task } from "../types/task";
+import { University } from "../types/university";
 
 export const DEMO_USERS: AppUser[] = [
   { uid: "usr_1", email: "admin@educrm.com", displayName: "Alex Mercer", role: "platform_super_admin", office: "Global HQ", createdAt: Date.now() - 1000000 },
@@ -85,4 +87,50 @@ export const DEMO_DOCUMENTS: StudentDocument[] = [
   { id: "doc_1", studentId: "stu_1", studentName: "Aarav Patel", fileName: "Passport Bio Page.pdf", docType: "Passport", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 8 },
   { id: "doc_2", studentId: "stu_1", studentName: "Aarav Patel", fileName: "IELTS Official Test Report.pdf", docType: "IELTS / English Test", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 7 },
   { id: "doc_3", studentId: "stu_2", studentName: "Li Wei", fileName: "Bachelor Degree Transcript.pdf", docType: "Academic Transcript", fileUrl: "#", status: "Pending", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 4 },
+];
+
+export const DEMO_TASKS: Task[] = [
+  { id: "tsk_1", title: "Verify Aarav Patel Academic Transcripts", description: "Review 12th & Semester mark sheets", linkedEntityType: "student", linkedEntityId: "stu_1", linkedEntityName: "Aarav Patel", dueDate: "2026-08-20", priority: "High", status: "Open", assignedTo: "admissions@educrm.demo", createdBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 2, updatedAt: Date.now() - 86400000 * 2 },
+  { id: "tsk_2", title: "Schedule Visa Interview Practice for Fatima", description: "Mock interview preparation for Canadian SDS study permit", linkedEntityType: "student", linkedEntityId: "stu_3", linkedEntityName: "Fatima Al-Mansoor", dueDate: "2026-08-16", priority: "Urgent", status: "In Progress", assignedTo: "visa@educrm.demo", createdBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 3, updatedAt: Date.now() - 86400000 * 1 },
+  { id: "tsk_3", title: "Follow up with University of Sydney for Li Wei Offer", description: "Check status of pending conditional offer conditions", linkedEntityType: "application", linkedEntityId: "app_2", linkedEntityName: "Li Wei - Bachelor of Commerce", dueDate: "2026-08-22", priority: "Medium", status: "Open", assignedTo: "counsellor@educrm.demo", createdBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 1, updatedAt: Date.now() - 86400000 * 1 },
+];
+
+export const DEMO_UNIVERSITIES: University[] = [
+  {
+    id: "univ_mcr",
+    name: "University of Manchester",
+    country: "UK",
+    city: "Manchester",
+    website: "https://manchester.ac.uk",
+    programmes: [
+      { id: "prog_cs", title: "MSc Advanced Computer Science", level: "Postgraduate", durationMonths: 12, tuitionFeeAnnual: 31500, currency: "GBP", intakes: ["September"], minIeltsScore: 7.0, entryRequirements: "Upper Second Class Honors (2:1) in CS or related quantitative discipline." },
+      { id: "prog_mba", title: "Global Executive MBA", level: "Postgraduate", durationMonths: 18, tuitionFeeAnnual: 45000, currency: "GBP", intakes: ["September", "January"], minIeltsScore: 7.5, entryRequirements: "Minimum 3 years managerial experience." },
+    ],
+    createdAt: Date.now() - 86400000 * 100,
+    updatedAt: Date.now() - 86400000 * 100,
+  },
+  {
+    id: "univ_syd",
+    name: "University of Sydney",
+    country: "Australia",
+    city: "Sydney",
+    website: "https://sydney.edu.au",
+    programmes: [
+      { id: "prog_bcom", title: "Bachelor of Commerce", level: "Undergraduate", durationMonths: 36, tuitionFeeAnnual: 48000, currency: "AUD", intakes: ["July", "February"], minIeltsScore: 6.5, entryRequirements: "ATAR 85 or equivalent international high school diploma." },
+    ],
+    createdAt: Date.now() - 86400000 * 90,
+    updatedAt: Date.now() - 86400000 * 90,
+  },
+  {
+    id: "univ_uoft",
+    name: "University of Toronto",
+    country: "Canada",
+    city: "Toronto",
+    website: "https://utoronto.ca",
+    programmes: [
+      { id: "prog_rotman_mba", title: "Full-Time MBA", level: "Postgraduate", durationMonths: 24, tuitionFeeAnnual: 62000, currency: "CAD", intakes: ["September"], minIeltsScore: 7.5, entryRequirements: "GMAT 650+ and 2 years relevant work experience." },
+    ],
+    createdAt: Date.now() - 86400000 * 80,
+    updatedAt: Date.now() - 86400000 * 80,
+  },
 ];

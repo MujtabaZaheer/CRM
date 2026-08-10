@@ -34,7 +34,7 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
   error: null,
 });
 
-import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_USERS } from "../data/demoData";
+import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_TASKS, DEMO_UNIVERSITIES, DEMO_USERS } from "../data/demoData";
 
 export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { appUser } = useAuth();
@@ -78,6 +78,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
       setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
       setDocuments((prev) => (prev.length === 0 ? DEMO_DOCUMENTS : prev));
+      setTasks((prev) => (prev.length === 0 ? DEMO_TASKS : prev));
+      setUniversities((prev) => (prev.length === 0 ? DEMO_UNIVERSITIES : prev));
     }, 1000);
 
     // 1. Users
@@ -146,10 +148,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Task[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Task));
-        setTasks(list);
+        setTasks(list.length > 0 ? list : DEMO_TASKS);
         markSourceLoaded("tasks");
       },
-      (err) => handleSourceError("tasks", err)
+      (err) => { handleSourceError("tasks", err); setTasks(DEMO_TASKS); }
     );
 
     // 7. Universities
@@ -158,10 +160,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: University[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as University));
-        setUniversities(list);
+        setUniversities(list.length > 0 ? list : DEMO_UNIVERSITIES);
         markSourceLoaded("universities");
       },
-      (err) => handleSourceError("universities", err)
+      (err) => { handleSourceError("universities", err); setUniversities(DEMO_UNIVERSITIES); }
     );
 
     return () => {
