@@ -1,168 +1,33 @@
 {
-  "nodes": [
-    {
-      "id": "overview",
-      "type": "text",
-      "text": "# 🎓 EduCRM Master System Graph & Architecture\n\n- **Live Web App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Visual Status Legend\n- 🟢 **Green**: 100% Implemented & Live in Production (All 13 Roles & Portals)",
-      "x": 0,
-      "y": -520,
-      "width": 640,
-      "height": 220,
-      "color": "4"
-    },
-    {
-      "id": "superadmin_role",
-      "type": "file",
-      "file": "Platform Super Admin Role.md",
-      "x": -750,
-      "y": -240,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "orgadmin_role",
-      "type": "file",
-      "file": "Organization Admin Role.md",
-      "x": -380,
-      "y": -240,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "admissions_role",
-      "type": "file",
-      "file": "Admissions Officer Role.md",
-      "x": 0,
-      "y": -240,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "visa_role",
-      "type": "file",
-      "file": "Visa Officer Role.md",
-      "x": 380,
-      "y": -240,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "finance_role",
-      "type": "file",
-      "file": "Finance Officer Role.md",
-      "x": 750,
-      "y": -240,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "support_role",
-      "type": "file",
-      "file": "Support User Role.md",
-      "x": -750,
-      "y": 60,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "officemanager_role",
-      "type": "file",
-      "file": "Office Manager Role.md",
-      "x": -380,
-      "y": 60,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "teamleader_role",
-      "type": "file",
-      "file": "Team Leader Role.md",
-      "x": 0,
-      "y": 60,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "counsellor_role",
-      "type": "file",
-      "file": "Counsellor Role.md",
-      "x": 380,
-      "y": 60,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "auditor_role",
-      "type": "file",
-      "file": "Auditor Role.md",
-      "x": 750,
-      "y": 60,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "student_portal",
-      "type": "file",
-      "file": "Student Self-Service Portal.md",
-      "x": -560,
-      "y": 360,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "agent_portal",
-      "type": "file",
-      "file": "External Agent Portal.md",
-      "x": -180,
-      "y": 360,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "university_portal",
-      "type": "file",
-      "file": "University Partner Portal.md",
-      "x": 200,
-      "y": 360,
-      "width": 340,
-      "height": 240,
-      "color": "4"
-    },
-    {
-      "id": "ai_counsellor",
-      "type": "file",
-      "file": "AI Counsellor & Recommendation Engine.md",
-      "x": 580,
-      "y": 360,
-      "width": 340,
-      "height": 240,
-      "color": "3"
-    }
-  ],
-  "edges": [
-    { "id": "e1", "fromNode": "overview", "toNode": "superadmin_role", "label": "Multi-Tenant Root" },
-    { "id": "e2", "fromNode": "superadmin_role", "toNode": "orgadmin_role", "label": "Manages Orgs" },
-    { "id": "e3", "fromNode": "orgadmin_role", "toNode": "officemanager_role", "label": "Manages Branches" },
-    { "id": "e4", "fromNode": "officemanager_role", "toNode": "teamleader_role", "label": "Oversees Teams" },
-    { "id": "e5", "fromNode": "teamleader_role", "toNode": "counsellor_role", "label": "Assigns Workloads" },
-    { "id": "e6", "fromNode": "counsellor_role", "toNode": "admissions_role", "label": "Submits Applications" },
-    { "id": "e7", "fromNode": "admissions_role", "toNode": "visa_role", "label": "Visa Verification" },
-    { "id": "e8", "fromNode": "admissions_role", "toNode": "finance_role", "label": "Triggers Invoicing" },
-    { "id": "e9", "fromNode": "overview", "toNode": "student_portal", "label": "Live Student Portal" },
-    { "id": "e10", "fromNode": "overview", "toNode": "agent_portal", "label": "Live External Agent Portal" },
-    { "id": "e11", "fromNode": "overview", "toNode": "university_portal", "label": "Live University Partner Portal" },
-    { "id": "e12", "fromNode": "overview", "toNode": "ai_counsellor", "label": "Future AI Engine" }
-  ]
+	"nodes":[
+		{"id":"overview","type":"text","text":"# 🎓 EduCRM Master System Graph & Architecture\n\n- **Live Web App**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)\n- **Git Remote**: `MujtabaZaheer/CRM.git` (`main`)\n\n### 🎨 Visual Status Legend\n- 🟢 **Green**: 100% Implemented & Live in Production (All 13 Roles & Portals)","x":0,"y":-520,"width":640,"height":220,"color":"4"},
+		{"id":"superadmin_role","type":"file","file":"Platform Super Admin Role.md","x":-750,"y":-240,"width":340,"height":240,"color":"4"},
+		{"id":"orgadmin_role","type":"file","file":"Organization Admin Role.md","x":-380,"y":-240,"width":340,"height":240,"color":"4"},
+		{"id":"admissions_role","type":"file","file":"Admissions Officer Role.md","x":0,"y":-240,"width":340,"height":240,"color":"4"},
+		{"id":"visa_role","type":"file","file":"Visa Officer Role.md","x":380,"y":-240,"width":340,"height":240,"color":"4"},
+		{"id":"finance_role","type":"file","file":"Finance Officer Role.md","x":750,"y":-240,"width":340,"height":240,"color":"4"},
+		{"id":"support_role","type":"file","file":"Support User Role.md","x":-750,"y":60,"width":340,"height":240,"color":"4"},
+		{"id":"officemanager_role","type":"file","file":"Office Manager Role.md","x":-380,"y":60,"width":340,"height":240,"color":"4"},
+		{"id":"teamleader_role","type":"file","file":"Team Leader Role.md","x":0,"y":60,"width":340,"height":240,"color":"4"},
+		{"id":"counsellor_role","type":"file","file":"Counsellor Role.md","x":380,"y":60,"width":340,"height":240,"color":"4"},
+		{"id":"auditor_role","type":"file","file":"Auditor Role.md","x":750,"y":60,"width":340,"height":240,"color":"4"},
+		{"id":"student_portal","type":"file","file":"Student Self-Service Portal.md","x":-560,"y":360,"width":340,"height":240,"color":"4"},
+		{"id":"agent_portal","type":"file","file":"External Agent Portal.md","x":-180,"y":360,"width":340,"height":240,"color":"4"},
+		{"id":"university_portal","type":"file","file":"University Partner Portal.md","x":200,"y":360,"width":340,"height":240,"color":"4"},
+		{"id":"ai_counsellor","type":"file","file":"AI Counsellor & Recommendation Engine.md","x":580,"y":360,"width":340,"height":240,"color":"3"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"overview","toNode":"superadmin_role","label":"Multi-Tenant Root","fromSide":"left","toSide":"right"},
+		{"id":"e2","fromNode":"superadmin_role","toNode":"orgadmin_role","label":"Manages Orgs","fromSide":"right","toSide":"left"},
+		{"id":"e3","fromNode":"orgadmin_role","toNode":"officemanager_role","label":"Manages Branches","fromSide":"bottom","toSide":"top"},
+		{"id":"e4","fromNode":"officemanager_role","toNode":"teamleader_role","label":"Oversees Teams","fromSide":"right","toSide":"left"},
+		{"id":"e5","fromNode":"teamleader_role","toNode":"counsellor_role","label":"Assigns Workloads","fromSide":"right","toSide":"left"},
+		{"id":"e6","fromNode":"counsellor_role","toNode":"admissions_role","label":"Submits Applications","fromSide":"top","toSide":"bottom"},
+		{"id":"e7","fromNode":"admissions_role","toNode":"visa_role","label":"Visa Verification","fromSide":"right","toSide":"left"},
+		{"id":"e8","fromNode":"admissions_role","toNode":"finance_role","label":"Triggers Invoicing","fromSide":"right","toSide":"left"},
+		{"id":"e9","fromNode":"overview","toNode":"student_portal","label":"Live Student Portal","fromSide":"bottom","toSide":"top"},
+		{"id":"e10","fromNode":"overview","toNode":"agent_portal","label":"Live External Agent Portal","fromSide":"bottom","toSide":"top"},
+		{"id":"e11","fromNode":"overview","toNode":"university_portal","label":"Live University Partner Portal","fromSide":"bottom","toSide":"top"},
+		{"id":"e12","fromNode":"overview","toNode":"ai_counsellor","label":"Future AI Engine","fromSide":"bottom","toSide":"top"}
+	]
 }
