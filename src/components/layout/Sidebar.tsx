@@ -222,7 +222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] transition-all duration-300 flex flex-col justify-between
+        className={`fixed top-0 left-0 z-50 h-screen glass-sidebar transition-all duration-300 flex flex-col justify-between
           ${collapsed ? "w-16" : "w-64"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
@@ -230,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
         {/* Top Header & Logo */}
         <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="w-8 h-8 bg-gradient-to-tr from-emerald-500 to-teal-400 sq-badge flex items-center justify-center text-zinc-950 font-heading font-extrabold text-lg flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-tr from-emerald-500 to-teal-400 sq-badge flex items-center justify-center text-zinc-950 font-heading font-extrabold text-lg flex-shrink-0 shadow-md shadow-emerald-500/20">
               E
             </div>
             {!collapsed && (
@@ -255,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
             </button>
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="hidden lg:flex p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] sq-btn"
+              className="hidden lg:flex p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] sq-btn transition-colors"
             >
               {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
@@ -272,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
               className={({ isActive }) => `
                 flex items-center space-x-3 px-3 py-2.5 sq-btn text-xs font-medium transition-all group relative
                 ${isActive 
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold" 
+                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold backdrop-blur-md shadow-sm" 
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border border-transparent"
                 }
               `}
@@ -282,7 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
 
               {/* Tooltip for Collapsed State */}
               {collapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-zinc-900 text-white text-xs sq-card opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-zinc-800">
+                <div className="absolute left-full ml-2 px-2 py-1 bg-zinc-900/90 text-white text-xs sq-card opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-zinc-800 backdrop-blur-md">
                   {item.label}
                 </div>
               )}
@@ -291,7 +291,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, col
         </div>
 
         {/* Footer Info */}
-        <div className="p-3 border-t border-[var(--border-default)] bg-[var(--bg-card)]">
+        <div className="p-3 border-t border-[var(--border-default)] bg-transparent">
           {!collapsed ? (
             <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
               <span>System v2.4</span>

@@ -25,7 +25,7 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
   const isSuperAdmin = appUser?.role === "platform_super_admin";
 
   return (
-    <header className="h-16 bg-[var(--bg-card)] border-b border-[var(--border-default)] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 bg-[var(--bg-card)]/80 backdrop-blur-md border-b border-[var(--border-default)] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center space-x-3">
         <button
           onClick={() => setMobileOpen(true)}
