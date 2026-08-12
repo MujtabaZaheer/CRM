@@ -51,7 +51,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "tag:#tech-stack",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -76,7 +76,7 @@
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -182,8 +182,9 @@
       "bases:Create new base": false
     }
   },
-  "active": "aed7ee5876f425ea",
+  "active": "6ce64d1263ef60cc",
   "lastOpenFiles": [
+    "Core Architecture.md",
     "EduCRM System Graph.canvas",
     "Implementation Status Dashboard.md",
     "Invoice Entity.md"
