@@ -16,14 +16,16 @@ import { Tasks } from "./pages/Tasks";
 import { AuditLogPage } from "./pages/AuditLog";
 import { NotificationsPage } from "./pages/Notifications";
 import { Users } from "./pages/Users";
-import { SuperAdmin } from "./pages/SuperAdmin";
 import { ProgrammeSearch } from "./pages/ProgrammeSearch";
 import { Communications } from "./pages/Communications";
+import { CalendarPage } from "./pages/Calendar";
+import { ReportsPage } from "./pages/Reports";
+import { EmailTemplatesPage } from "./pages/EmailTemplates";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
+import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";
 import { FinanceRoute } from "./components/layout/FinanceRoute";
-import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
 import { SupportRoute } from "./components/layout/SupportRoute";
 import { AuditorRoute } from "./components/layout/AuditorRoute";
 import { SuperAdminRoute } from "./components/layout/SuperAdminRoute";
@@ -125,13 +127,13 @@ export const App: React.FC = () => {
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/applications" element={<Applications />} />
+                <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/documents" element={<Documents />} />
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/universities" element={<Universities />} />
                 <Route path="/audit-log" element={<AuditLogPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/users" element={<Users />} />
-                <Route path="/super-admin" element={<SuperAdmin />} />
 
                 {/* Team Leader Module Routes */}
                 <Route path="/team-leader" element={<TeamLeaderRoute />}>
@@ -250,6 +252,7 @@ export const App: React.FC = () => {
                   path="/programme-search"
                   element={<ProgrammeSearch />}
                 />
+                <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route
                   path="/communications"
                   element={<Communications />}
@@ -263,15 +266,7 @@ export const App: React.FC = () => {
                     />
                   }
                 />
-                <Route
-                  path="/reports"
-                  element={
-                    <StubPage
-                      title="Reports & Funnel Analytics"
-                      description="Executive reporting, conversion funnels, and performance forecasts."
-                    />
-                  }
-                />
+                <Route path="/reports" element={<ReportsPage />} />
               </Route>
 
               {/* Catch-all fallback */}

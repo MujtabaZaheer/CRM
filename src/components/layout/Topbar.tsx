@@ -1,8 +1,11 @@
 import React from "react";
-import { Menu, LogOut, Sun, Moon, Shield, Bell } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Shield } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
+
+import { GlobalSearch } from "../common/GlobalSearch";
+import { NotificationBell } from "../common/NotificationBell";
 
 interface TopbarProps {
   setMobileOpen: (open: boolean) => void;
@@ -40,18 +43,13 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
             <span>Super Admin Mode</span>
           </div>
         )}
+
+        <GlobalSearch />
       </div>
 
       <div className="flex items-center space-x-3">
-        {/* Notifications Icon */}
-        <button
-          onClick={() => navigate("/notifications")}
-          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] sq-btn transition-colors relative"
-          title="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-        </button>
+        {/* Notifications Component */}
+        <NotificationBell />
 
         {/* Theme Toggle */}
         <button

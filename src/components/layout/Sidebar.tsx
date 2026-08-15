@@ -25,7 +25,9 @@ import {
   RefreshCw,
   CircleDollarSign,
   ReceiptText,
-  Plane
+  Plane,
+  Calendar,
+  Mail
 } from "lucide-react";
 
 interface SidebarProps {
@@ -47,6 +49,7 @@ const navItems: NavItem[] = [
   { label: "Leads", path: "/leads", icon: <Users2 className="w-4 h-4" /> },
   { label: "Students", path: "/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Applications", path: "/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "Calendar", path: "/calendar", icon: <Calendar className="w-4 h-4" /> },
   { label: "Admissions Desk", path: "/admissions/dashboard", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "Finance Module", path: "/finance/dashboard", icon: <CircleDollarSign className="w-4 h-4" /> },
   { label: "Documents", path: "/documents", icon: <FolderOpen className="w-4 h-4" /> },
@@ -73,6 +76,7 @@ const navItems: NavItem[] = [
   },
   { label: "Programme Search", path: "/programme-search", icon: <Search className="w-4 h-4" /> },
   { label: "Communications", path: "/communications", icon: <MessageSquare className="w-4 h-4" /> },
+  { label: "Email Templates", path: "/email-templates", icon: <Mail className="w-4 h-4" /> },
   { label: "Agents & Partners", path: "/agents", icon: <UserCheck className="w-4 h-4" /> },
   { label: "Reports", path: "/reports", icon: <BarChart3 className="w-4 h-4" /> },
 ];

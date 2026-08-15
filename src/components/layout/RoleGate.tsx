@@ -8,7 +8,7 @@ interface RoleGateProps {
   allowedRoles: UserRole[];
 }
 
-export const RoleGate: React.FC<RoleGateProps> = ({ children, allowedRoles }) => {
+export const RoleGate = ({ children, allowedRoles }: RoleGateProps): React.ReactElement => {
   const { appUser } = useAuth();
   const currentRole = appUser?.role;
 
