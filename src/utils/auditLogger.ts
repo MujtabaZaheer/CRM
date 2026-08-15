@@ -1,23 +1,26 @@
-import { db } from "../firebase/config";
-import { collection, addDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { functions, isDemoMode } from "../firebase/config";
 
 export const logAuditEvent = async (
   action: string,
-  performedBy: string,
+  _performedBy: string,
   targetEntity: string,
   details: string,
   targetId?: string,
-  performedByRole?: string
+  _performedByRole?: string
 ) => {
+  // The callable function derives actor identity and role from its authenticated profile.
+  // Keep these arguments temporarily for existing callers while intentionally ignoring them.
+  void _performedBy;
+  void _performedByRole;
+  if (isDemoMode) return;
   try {
-    await addDoc(collection(db, "audit_logs"), {
+    const recordAuditEvent = httpsCallable(functions, "recordAuditEvent");
+    await recordAuditEvent({
       action,
-      performedBy,
-      performedByRole: performedByRole || "counsellor",
       targetEntity,
       targetId: targetId || "",
       details,
-      timestamp: Date.now(),
     });
   } catch (err) {
     console.error("Audit log error:", err);
