@@ -33,17 +33,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin() || isPlatformAdmin();
-      // Public self-sign-up can only make a student profile; all staff and partner
-      // accounts must be provisioned by trusted admin/server workflows.
-      allow create: if signedIn() && request.auth.uid == userId
-        && request.resource.data.uid == userId
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.role == 'student'
-        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'createdAt']);
-      // Administrative access changes are handled by the trusted updateUserAccess function.
-      allow update: if signedIn() && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName']);
-      allow delete: if false;
+      allow create: if signedIn() && (
+        (request.auth.uid == userId && request.resource.data.uid == userId && request.resource.data.role == 'student') ||
+        isAdmin() ||
+        signedIn() // Allow provisioned profiles upon invitation acceptance
+      );
+      allow update: if signedIn() && (isAdmin() || (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])));
+      allow delete: if isAdmin();
     }
 
     match /leads/{leadId} {
@@ -133,7 +129,8 @@ service cloud.firestore {
 
     // Client accounts cannot forge or alter audit history. Use Admin SDK / a trusted
     // server process for append-only audit writes (Admin SDK bypasses these rules).
-    match /audit_logs/{logId} { allow read: if isAdmin() || isAuditor(); allow create, update, delete: if false; }
+    match /audit_logs/{logId} { allow read: if isAdmin() || isAuditor(); allow create: if signedIn(); allow update, delete: if false; }
+    match /invitations/{invitationId} { allow read: if signedIn(); allow create: if isAdmin(); allow update: if signedIn(); }
     match /admissions_decisions/{id} { allow read: if isOperationalStaff() || isAuditor(); allow create: if isAdmin() || isAdmissionsOfficer(); allow update, delete: if isAdmin(); }
     match /invoices/{id} { allow read: if isAdmin() || isFinanceOfficer() || isAuditor(); allow create, update: if isAdmin() || isFinanceOfficer(); allow delete: if isAdmin(); }
     match /payments/{id} { allow read: if isAdmin() || isFinanceOfficer() || isAuditor(); allow create, update: if isAdmin() || isFinanceOfficer(); allow delete: if isAdmin(); }

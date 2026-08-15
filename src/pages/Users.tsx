@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { Navigate } from "react-router-dom";
-import { db, functions } from "../firebase/config";
+import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { AppUser, UserRole, ROLE_LABELS } from "../types/role";
 import { ShieldCheck, UserCog, UserCheck, ShieldAlert } from "lucide-react";
@@ -44,8 +43,7 @@ export const Users: React.FC = () => {
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingUid(userId);
     try {
-      const updateUserAccess = httpsCallable(functions, "updateUserAccess");
-      await updateUserAccess({ userId, role: newRole });
+      await updateDoc(doc(db, "users", userId), { role: newRole, updatedAt: Date.now() });
     } catch (err) {
       console.error("Failed to update role:", err);
       alert("Permission denied or error updating user role.");
@@ -60,8 +58,7 @@ export const Users: React.FC = () => {
   const handleOfficeChange = async (userId: string, newOffice: string) => {
     setUpdatingUid(userId);
     try {
-      const updateUserAccess = httpsCallable(functions, "updateUserAccess");
-      await updateUserAccess({ userId, office: newOffice || null });
+      await updateDoc(doc(db, "users", userId), { office: newOffice || null, updatedAt: Date.now() });
     } catch (err) {
       console.error("Failed to update office:", err);
       alert("Permission denied or error updating office.");
@@ -73,8 +70,7 @@ export const Users: React.FC = () => {
   const handleTeamChange = async (userId: string, newTeam: string) => {
     setUpdatingUid(userId);
     try {
-      const updateUserAccess = httpsCallable(functions, "updateUserAccess");
-      await updateUserAccess({ userId, team: newTeam || null });
+      await updateDoc(doc(db, "users", userId), { team: newTeam || null, updatedAt: Date.now() });
     } catch (err) {
       console.error("Failed to update team:", err);
       alert("Permission denied or error updating team.");
