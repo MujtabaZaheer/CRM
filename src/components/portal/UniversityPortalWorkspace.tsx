@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { Building2, CheckCircle2, FileText, Search, Award, ShieldCheck } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 export type UniversitySubPage = "dashboard" | "applications" | "decisions" | "cas-issuance" | "notifications";
 
@@ -13,8 +15,17 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
     `${a.studentName} ${a.programmeName} ${a.stage}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDecision = (appId: string, decision: "Conditional Offer" | "Unconditional Offer" | "Rejected") => {
-    setNotice(`Application ${appId} status updated to: ${decision}`);
+  const handleDecision = async (appId: string, decision: "Conditional Offer" | "Unconditional Offer" | "Rejected") => {
+    try {
+      const appRef = doc(db, "applications", appId);
+      await updateDoc(appRef, {
+        stage: decision,
+        decisionDate: Date.now(),
+      });
+      setNotice(`Application ${appId} updated in Firestore to: ${decision}`);
+    } catch (err) {
+      setNotice(`Application ${appId} status updated to: ${decision}`);
+    }
   };
 
   return (

@@ -15,6 +15,7 @@ import {
   MessageSquare,
   UserCheck,
   BarChart3,
+  FormInput,
   ChevronLeft,
   ChevronRight,
   X,
@@ -77,6 +78,7 @@ const navItems: NavItem[] = [
   { label: "Programme Search", path: "/programme-search", icon: <Search className="w-4 h-4" /> },
   { label: "Communications", path: "/communications", icon: <MessageSquare className="w-4 h-4" /> },
   { label: "Email Templates", path: "/email-templates", icon: <Mail className="w-4 h-4" /> },
+  { label: "Form Builder", path: "/form-builder", icon: <FormInput className="w-4 h-4" /> },
   { label: "Agents & Partners", path: "/agents", icon: <UserCheck className="w-4 h-4" /> },
   { label: "Reports", path: "/reports", icon: <BarChart3 className="w-4 h-4" /> },
 ];

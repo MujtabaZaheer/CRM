@@ -21,6 +21,7 @@ import { Communications } from "./pages/Communications";
 import { CalendarPage } from "./pages/Calendar";
 import { ReportsPage } from "./pages/Reports";
 import { EmailTemplatesPage } from "./pages/EmailTemplates";
+import { FormBuilderPage } from "./pages/FormBuilder";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
@@ -253,6 +254,7 @@ export const App: React.FC = () => {
                   element={<ProgrammeSearch />}
                 />
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
+                <Route path="/form-builder" element={<FormBuilderPage />} />
                 <Route
                   path="/communications"
                   element={<Communications />}

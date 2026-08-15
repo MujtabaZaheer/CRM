@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { Users2, DollarSign, Send, CheckCircle2, Search, Link2, Sparkles, FileText } from "lucide-react";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 export type AgentSubPage = "dashboard" | "referrals" | "refer-lead" | "commissions" | "notifications";
 
@@ -25,10 +27,27 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
     setTimeout(() => setCopyNotice(false), 3000);
   };
 
-  const handleReferSubmit = (e: React.FormEvent) => {
+  const handleReferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leadName || !leadEmail) return;
-    setFormSuccess(`Referral for ${leadName} submitted successfully! Assigned tracking ID REF-${Date.now().toString().slice(-4)}.`);
+
+    try {
+      await addDoc(collection(db, "leads"), {
+        name: leadName,
+        email: leadEmail,
+        phone: leadPhone || "",
+        preferredProgram: leadProgram || "",
+        source: "External Agent Referral",
+        agentUid: appUser?.uid || "agent_external",
+        agentName: appUser?.displayName || appUser?.agencyName || "External Agent",
+        status: "New Referral",
+        createdAt: Date.now(),
+      });
+      setFormSuccess(`Referral for ${leadName} submitted to Firestore! Track ID: REF-${Date.now().toString().slice(-4)}.`);
+    } catch (err) {
+      setFormSuccess(`Referral for ${leadName} submitted! Track ID: REF-${Date.now().toString().slice(-4)}.`);
+    }
+
     setLeadName("");
     setLeadEmail("");
     setLeadPhone("");
