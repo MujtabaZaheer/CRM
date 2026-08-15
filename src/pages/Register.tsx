@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { UserPlus, AlertCircle, User, Mail, Lock } from "lucide-react";
@@ -32,7 +32,9 @@ export const Register: React.FC = () => {
         createdAt: Date.now(),
       });
 
-      navigate("/student/dashboard");
+      await sendEmailVerification(userCredential.user);
+      await signOut(auth);
+      navigate("/login");
     } catch (err: any) {
       console.warn("Registration error:", err);
       setError(err.message || "Failed to create account. Please try again.");
@@ -117,7 +119,7 @@ export const Register: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-zinc-500">
-            Staff, agent, and university-partner accounts are created by an organization administrator.
+            We will email a verification link before you can sign in. Staff, agent, and university-partner accounts are created by an organization administrator.
           </p>
 
           <button

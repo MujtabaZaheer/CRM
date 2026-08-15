@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
 import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield } from "lucide-react";
@@ -12,7 +12,9 @@ export const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
 
   const handleQuickDemoLogin = (role: UserRole) => {
     loginAsDemoRole(role);
@@ -46,10 +48,23 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if (resetMode) {
+        await sendPasswordResetEmail(auth, email);
+        setNotice("If an account exists for this email address, a password-reset link has been sent.");
+        return;
+      }
+
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      if (requiresVerifiedEmail && !credential.user.emailVerified) {
+        await sendEmailVerification(credential.user);
+        await signOut(auth);
+        setNotice("Please verify your email before signing in. We have sent a new verification link.");
+        return;
+      }
       navigate("/");
     } catch (err: any) {
       console.error("Login error:", err);
@@ -80,6 +95,12 @@ export const Login: React.FC = () => {
           <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start space-x-2 text-rose-400 text-xs">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {notice && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs">
+            {notice}
           </div>
         )}
 
@@ -191,7 +212,7 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
-          <div>
+          {!resetMode && <div>
             <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
               Password
             </label>
@@ -206,7 +227,7 @@ export const Login: React.FC = () => {
                 className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
             </div>
-          </div>
+          </div>}
 
           <button
             type="submit"
@@ -214,16 +235,18 @@ export const Login: React.FC = () => {
             className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
           >
             <LogIn className="w-4 h-4" />
-            <span>{loading ? "Authenticating..." : "Sign In"}</span>
+            <span>{loading ? "Please wait..." : resetMode ? "Send Reset Link" : "Sign In"}</span>
           </button>
         </form>
 
         <div className="text-center text-xs text-zinc-400 border-t border-zinc-800/80 pt-4 flex items-center justify-between">
-          <span>Need an account?</span>
-          <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1">
-            <Sparkles className="w-3 h-3" />
-            <span>Register Here</span>
-          </Link>
+          {resetMode ? <button type="button" onClick={() => { setResetMode(false); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Back to sign in</button> : <>
+            <button type="button" onClick={() => { setResetMode(true); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Forgot password?</button>
+            <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1">
+              <Sparkles className="w-3 h-3" />
+              <span>Register Here</span>
+            </Link>
+          </>}
         </div>
       </div>
     </div>
