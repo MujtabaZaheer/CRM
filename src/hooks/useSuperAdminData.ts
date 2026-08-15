@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, doc, addDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
+import { functions } from "../firebase/config";
+import { httpsCallable } from "firebase/functions";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
@@ -162,7 +164,8 @@ export const useSuperAdminData = () => {
   const updateUserRole = useCallback(
     async (userUid: string, newRole: UserRole) => {
       try {
-        await updateDoc(doc(db, "users", userUid), { role: newRole });
+        const updateUserAccess = httpsCallable(functions, "updateUserAccess");
+        await updateUserAccess({ userId: userUid, role: newRole });
 
         await logAuditEvent(
           "SUPER_ADMIN_USER_ROLE_UPDATED",

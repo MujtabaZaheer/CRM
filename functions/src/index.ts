@@ -21,6 +21,7 @@ const STAFF_ROLES = new Set([
   "external_agent",
   "university_partner",
 ]);
+const MANAGED_ROLES = new Set(["student", ...STAFF_ROLES]);
 
 type UserProfile = { role?: string; organizationId?: string; email?: string; displayName?: string };
 
@@ -111,6 +112,42 @@ export const acceptInvitation = onCall({ enforceAppCheck: false }, async (reques
   });
 
   return { organizationId: invitation.organizationId, role: invitation.role };
+});
+
+/** Updates role, office, or team assignment without granting browser clients write access to user profiles. */
+export const updateUserAccess = onCall({ enforceAppCheck: false }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Sign in before updating user access.");
+  const caller = await requireProfile(request.auth.uid);
+  requireAdmin(caller);
+  const userId = asText(request.data?.userId, "user ID", 128);
+  const targetRef = db.collection("users").doc(userId);
+  const targetSnapshot = await targetRef.get();
+  if (!targetSnapshot.exists) throw new HttpsError("not-found", "User profile not found.");
+  const target = targetSnapshot.data() as UserProfile;
+  if (caller.role === "org_admin" && (!caller.organizationId || target.organizationId !== caller.organizationId)) {
+    throw new HttpsError("permission-denied", "Organization administrators can only manage their own organization.");
+  }
+
+  const changes: Record<string, unknown> = { updatedAt: Date.now(), updatedBy: request.auth.uid };
+  if (request.data?.role !== undefined) {
+    const role = asText(request.data.role, "role", 64);
+    if (!MANAGED_ROLES.has(role) || (caller.role === "org_admin" && role === "org_admin")) {
+      throw new HttpsError("permission-denied", "You cannot assign the requested role.");
+    }
+    changes.role = role;
+  }
+  for (const field of ["office", "team"] as const) {
+    if (request.data?.[field] !== undefined) {
+      const value = request.data[field];
+      if (value !== null && (typeof value !== "string" || value.length > 120)) {
+        throw new HttpsError("invalid-argument", `A valid ${field} is required.`);
+      }
+      changes[field] = typeof value === "string" ? value.trim() || null : null;
+    }
+  }
+  if (Object.keys(changes).length === 2) throw new HttpsError("invalid-argument", "At least one access field must be supplied.");
+  await targetRef.update(changes);
+  return { updated: true };
 });
 
 /** Server-authenticated, append-only audit writer used by browser clients. */

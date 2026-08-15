@@ -40,12 +40,10 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == 'student'
         && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'createdAt']);
-      allow update: if isPlatformAdmin() || (isOrgAdmin()
-        && resource.data.role != 'platform_super_admin'
-        && request.resource.data.role != 'platform_super_admin')
-        || (signedIn() && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName']));
-      allow delete: if isPlatformAdmin();
+      // Administrative access changes are handled by the trusted updateUserAccess function.
+      allow update: if signedIn() && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName']);
+      allow delete: if false;
     }
 
     match /leads/{leadId} {
