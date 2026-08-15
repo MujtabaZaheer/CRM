@@ -14,6 +14,7 @@ import { Application, ApplicationStage } from "../types/application";
 import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { StudentDocument, DocumentType } from "../pages/Documents";
 import { logAuditEvent } from "../utils/auditLogger";
+import { uploadStudentDocument } from "../utils/documentStorage";
 
 export const useCounsellorData = () => {
   const { appUser } = useAuth();
@@ -210,13 +211,13 @@ export const useCounsellorData = () => {
   );
 
   const uploadDocument = useCallback(
-    async (studentId: string, studentName: string, docType: DocumentType, fileName: string) => {
+    async (studentId: string, studentName: string, docType: DocumentType, file: File) => {
+      const uploadedFile = await uploadStudentDocument(studentId, file);
       const newDoc: Omit<StudentDocument, "id"> = {
         studentId,
         studentName,
         docType,
-        fileName,
-        fileUrl: "#",
+        ...uploadedFile,
         status: "Received",
         uploadedBy: userEmail || "Counsellor",
         createdAt: Date.now(),
@@ -228,7 +229,7 @@ export const useCounsellorData = () => {
         "DOCUMENT_UPLOADED",
         userEmail || "Counsellor",
         "Document",
-        `Uploaded ${docType} (${fileName}) for ${studentName}`,
+        `Uploaded ${docType} (${file.name}) for ${studentName}`,
         docRef.id,
         appUser?.role
       );

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useCounsellorData } from "../../hooks/useCounsellorData";
 import { DocumentType } from "../Documents";
+import { validateDocumentFile } from "../../utils/documentStorage";
 import {
   Upload,
   Search,
@@ -19,7 +20,9 @@ export const CounsellorDocuments: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [docType, setDocType] = useState<DocumentType>("Passport");
-  const [fileName, setFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const filteredDocs = documents.filter((doc) => {
     const matchesSearch =
@@ -32,15 +35,29 @@ export const CounsellorDocuments: React.FC = () => {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId || !fileName) return;
+    if (!selectedStudentId || !selectedFile) {
+      setError("Please select a student and a document file.");
+      return;
+    }
 
     const student = students.find((s) => s.id === selectedStudentId);
-    if (!student) return;
+    if (!student) {
+      setError("Student not found.");
+      return;
+    }
 
-    await uploadDocument(selectedStudentId, student.fullName, docType, fileName);
-    setIsUploadModalOpen(false);
-    setSelectedStudentId("");
-    setFileName("");
+    try {
+      setUploading(true);
+      await uploadDocument(selectedStudentId, student.fullName, docType, selectedFile);
+      setIsUploadModalOpen(false);
+      setSelectedStudentId("");
+      setSelectedFile(null);
+      setError("");
+    } catch (uploadError: any) {
+      setError(uploadError.message || "Failed to upload document.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -193,6 +210,7 @@ export const CounsellorDocuments: React.FC = () => {
             </h3>
 
             <form onSubmit={handleUploadSubmit} className="space-y-3 text-xs">
+              {error && <div className="p-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 sq-badge">{error}</div>}
               <div>
                 <label className="block text-[var(--text-secondary)] mb-1">Select Student *</label>
                 <select
@@ -230,13 +248,16 @@ export const CounsellorDocuments: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[var(--text-secondary)] mb-1">File Name / Label *</label>
+                <label className="block text-[var(--text-secondary)] mb-1">Document file *</label>
                 <input
-                  type="text"
+                  type="file"
                   required
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  placeholder="e.g. IELTS_Scorecard_Alex.pdf"
+                  accept="application/pdf,image/jpeg,image/png,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setSelectedFile(file);
+                    setError(file ? validateDocumentFile(file) || "" : "");
+                  }}
                   className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
                 />
               </div>
@@ -253,7 +274,7 @@ export const CounsellorDocuments: React.FC = () => {
                   type="submit"
                   className="px-5 py-2 bg-emerald-500 text-zinc-950 font-bold sq-btn shadow-lg shadow-emerald-500/20"
                 >
-                  Save Document
+                  {uploading ? "Uploading..." : "Save Document"}
                 </button>
               </div>
             </form>
