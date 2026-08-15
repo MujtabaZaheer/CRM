@@ -38,7 +38,7 @@ export const usePortalData = () => {
     const stops = [
       subscribe<Student>("students", (x) => { setStudents(x.length > 0 ? x : DEMO_STUDENTS); done(); }, fail, studentRole ? "email" : undefined, studentRole ? appUser?.email : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<Application>("applications", (x) => { setApplications(x.length > 0 ? x : DEMO_APPLICATIONS); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
-      studentRole && !ownStudent ? noSubscription() : subscribe<Task>("tasks", (x) => { setTasks(x); done(); }, fail, studentRole ? "assignedTo" : undefined, studentRole ? appUser?.email : undefined),
+      studentRole && !ownStudentId ? noSubscription() : subscribe<Task>("tasks", (x) => { setTasks(x); done(); }, fail, studentRole ? "assignedTo" : undefined, studentRole ? appUser?.email : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<PortalDocument>("student_documents", (x) => { setDocuments(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<VisaCase>("visa_cases", (x) => { setVisaCases(x.length > 0 ? x : (DEMO_VISA_CASES as unknown as VisaCase[])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<SupportRequest>("support_requests", (x) => { setRequests(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined)
