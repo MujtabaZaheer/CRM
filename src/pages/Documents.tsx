@@ -5,6 +5,7 @@ import { Student } from "../types/student";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
 import { logAuditEvent } from "../utils/auditLogger";
+import { uploadStudentDocument, validateDocumentFile } from "../utils/documentStorage";
 import { Upload, Search, AlertTriangle, X, File } from "lucide-react";
 
 export type DocumentType =
@@ -25,6 +26,9 @@ export interface StudentDocument {
   docType: DocumentType;
   fileName: string;
   fileUrl: string;
+  filePath?: string;
+  fileSize?: number;
+  fileType?: string;
   status: "Received" | "Verified" | "Rejected" | "Pending";
   uploadedBy: string;
   createdAt: number;
@@ -41,7 +45,8 @@ export const Documents: React.FC = () => {
   // Form State
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [docType, setDocType] = useState<DocumentType>("Passport");
-  const [simulatedFileName, setSimulatedFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -73,8 +78,8 @@ export const Documents: React.FC = () => {
 
   const handleUploadDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId || !simulatedFileName) {
-      setErrorMsg("Please select a student and provide a file name.");
+    if (!selectedStudentId || !selectedFile) {
+      setErrorMsg("Please select a student and a document file.");
       return;
     }
 
@@ -85,12 +90,13 @@ export const Documents: React.FC = () => {
     }
 
     try {
+      setUploading(true);
+      const uploadedFile = await uploadStudentDocument(selectedStudentId, selectedFile);
       const newDoc: Omit<StudentDocument, "id"> = {
         studentId: selectedStudentId,
         studentName: student.fullName,
         docType,
-        fileName: simulatedFileName,
-        fileUrl: "#", // Simulated document vault URL
+        ...uploadedFile,
         status: "Received",
         uploadedBy: appUser?.email || "Counsellor",
         createdAt: Date.now(),
@@ -101,18 +107,20 @@ export const Documents: React.FC = () => {
         "DOCUMENT_UPLOADED",
         appUser?.email || "Unknown",
         "Document",
-        `Uploaded ${docType} (${simulatedFileName}) for ${student.fullName}`,
+        `Uploaded ${docType} (${selectedFile.name}) for ${student.fullName}`,
         docRef.id,
         appUser?.role
       );
 
       // Reset
       setSelectedStudentId("");
-      setSimulatedFileName("");
+      setSelectedFile(null);
       setErrorMsg("");
       setIsUploadModalOpen(false);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to upload document.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -207,7 +215,7 @@ export const Documents: React.FC = () => {
                       <td className="px-4 py-3 text-xs text-[var(--text-muted)]">{d.uploadedBy}</td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => alert(`Downloading vault record: ${d.fileName}`)}
+                          onClick={() => window.open(d.fileUrl, "_blank", "noopener,noreferrer")}
                           className="p-1.5 bg-[var(--bg-elevated)] hover:bg-emerald-500/10 text-[var(--text-secondary)] hover:text-emerald-400 sq-btn transition-colors border border-[var(--border-default)] text-xs"
                         >
                           Download
@@ -280,13 +288,16 @@ export const Documents: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">File Name / Label *</label>
+                  <label className="block text-[var(--text-secondary)] mb-1">Document file *</label>
                   <input
-                    type="text"
+                    type="file"
                     required
-                    value={simulatedFileName}
-                    onChange={(e) => setSimulatedFileName(e.target.value)}
-                    placeholder="e.g. Passport_Scan_Sarah_2026.pdf"
+                    accept="application/pdf,image/jpeg,image/png,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setSelectedFile(file);
+                      setErrorMsg(file ? validateDocumentFile(file) || "" : "");
+                    }}
                     className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
                   />
                 </div>
@@ -303,7 +314,7 @@ export const Documents: React.FC = () => {
                     type="submit"
                     className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold sq-btn shadow-lg shadow-emerald-500/20"
                   >
-                    Save to Document Vault
+                    {uploading ? "Uploading..." : "Save to Document Vault"}
                   </button>
                 </div>
               </form>
