@@ -8,8 +8,9 @@ import { Task } from "../types/task";
 import { SupportRequest, SupportRequestStatus, VisaCase, VisaCaseStatus } from "../types/portal";
 
 import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_STUDENTS, DEMO_VISA_CASES } from "../data/demoData";
+import { uploadStudentDocument } from "../utils/documentStorage";
 
-export interface PortalDocument { id: string; studentId: string; studentName: string; documentType: string; fileName: string; status: "Missing" | "Pending" | "Verified" | "Rejected"; remarks?: string; deadline?: string; createdAt: number; }
+export interface PortalDocument { id: string; studentId: string; studentName: string; documentType: string; fileName: string; fileUrl?: string; filePath?: string; fileSize?: number; fileType?: string; status: "Missing" | "Pending" | "Verified" | "Rejected"; remarks?: string; deadline?: string; createdAt: number; }
 const subscribe = <T extends { id: string }>(name: string, setData: (items: T[]) => void, fail: () => void, field?: string, value?: string) => onSnapshot(field && value ? query(collection(db, name), where(field, "==", value)) : query(collection(db, name), orderBy("createdAt", "desc")), (snapshot) => setData(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as T)), fail);
 
 export const usePortalData = () => {
@@ -55,6 +56,9 @@ export const usePortalData = () => {
   const createRequest = useCallback(async (data: Omit<SupportRequest, "id" | "status" | "createdAt" | "updatedAt">) => { await addDoc(collection(db, "support_requests"), { ...data, status: "Open", createdAt: Date.now(), updatedAt: Date.now() }); }, []);
   const updateRequest = useCallback(async (request: SupportRequest, status: SupportRequestStatus, notes?: string) => { await updateDoc(doc(db, "support_requests", request.id), { status, notes: notes ?? request.notes ?? "", updatedAt: Date.now() }); }, []);
   const saveProfile = useCallback(async (student: Student, changes: Partial<Student>) => { await updateDoc(doc(db, "students", student.id), { ...changes, updatedAt: Date.now() }); }, []);
-  const uploadDocument = useCallback(async (data: Omit<PortalDocument, "id" | "status" | "createdAt">) => { await addDoc(collection(db, "student_documents"), { ...data, status: "Pending", createdAt: Date.now() }); }, []);
+  const uploadDocument = useCallback(async (data: Omit<PortalDocument, "id" | "status" | "createdAt" | "fileName" | "fileUrl">, file: File) => {
+    const uploadedFile = await uploadStudentDocument(data.studentId, file);
+    await addDoc(collection(db, "student_documents"), { ...data, ...uploadedFile, status: "Pending", createdAt: Date.now() });
+  }, []);
   return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument };
 };
