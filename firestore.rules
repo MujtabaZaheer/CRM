@@ -125,6 +125,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isSupportUser();
     }
 
+    match /communications/{messageId} {
+      allow read: if isOperationalStaff() || isSupportUser() || isAuditor();
+      allow create: if isOperationalStaff() || isSupportUser();
+      allow update, delete: if isAdmin();
+    }
+
     // Client accounts cannot forge or alter audit history. Use Admin SDK / a trusted
     // server process for append-only audit writes (Admin SDK bypasses these rules).
     match /audit_logs/{logId} { allow read: if isAdmin() || isAuditor(); allow create, update, delete: if false; }

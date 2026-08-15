@@ -18,6 +18,7 @@ import { NotificationsPage } from "./pages/Notifications";
 import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { ProgrammeSearch } from "./pages/ProgrammeSearch";
+import { Communications } from "./pages/Communications";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";
@@ -251,12 +252,7 @@ export const App: React.FC = () => {
                 />
                 <Route
                   path="/communications"
-                  element={
-                    <StubPage
-                      title="Omnichannel Communications"
-                      description="Unified messaging inbox (Email, WhatsApp, SMS)."
-                    />
-                  }
+                  element={<Communications />}
                 />
                 <Route
                   path="/agents"
