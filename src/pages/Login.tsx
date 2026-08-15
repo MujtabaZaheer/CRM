@@ -8,7 +8,7 @@ import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { loginAsDemoRole } = useAuth();
+  const { isDemoMode, loginAsDemoRole } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -53,21 +53,7 @@ export const Login: React.FC = () => {
       navigate("/");
     } catch (err: any) {
       console.error("Login error:", err);
-      if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
-        let inferredRole: UserRole = "platform_super_admin";
-        if (email.toLowerCase().includes("admissions")) inferredRole = "admissions_officer";
-        else if (email.toLowerCase().includes("finance")) inferredRole = "finance_officer";
-        else if (email.toLowerCase().includes("support")) inferredRole = "support_user";
-        else if (email.toLowerCase().includes("audit")) inferredRole = "auditor";
-        else if (email.toLowerCase().includes("visa")) inferredRole = "visa_officer";
-        else if (email.toLowerCase().includes("student")) inferredRole = "student";
-        else if (email.toLowerCase().includes("team")) inferredRole = "team_leader";
-        else if (email.toLowerCase().includes("counsellor")) inferredRole = "counsellor";
-
-        handleQuickDemoLogin(inferredRole);
-      } else {
-        setError(err.message || "Failed to sign in. Please check your credentials.");
-      }
+      setError(err.message || "Failed to sign in. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -97,8 +83,8 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {/* Quick Local Demo Login Buttons */}
-        <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
+        {/* Demo controls are excluded from production builds. */}
+        {isDemoMode && <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
           <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Local Dev / Quick Demo Login:</span>
@@ -185,7 +171,7 @@ export const Login: React.FC = () => {
               <span>University Partner</span>
             </button>
           </div>
-        </div>
+        </div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

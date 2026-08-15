@@ -17,3 +17,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Demo accounts are intentionally limited to the local Vite development server.
+// A production build can never enable them, even if an environment variable is set.
+export const isDemoMode = import.meta.env.DEV && import.meta.env.VITE_DEMO_MODE === "true";

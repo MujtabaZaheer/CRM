@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { auth, db } from "../firebase/config";
+import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 
 interface AuthContextType {
   firebaseUser: User | null;
   appUser: AppUser | null;
   loading: boolean;
+  isDemoMode: boolean;
   loginAsDemoRole: (role: UserRole) => void;
   logout: () => void;
 }
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   firebaseUser: null,
   appUser: null,
   loading: true,
+  isDemoMode: false,
   loginAsDemoRole: () => {},
   logout: () => {},
 });
@@ -23,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(() => {
+    if (!isDemoMode) return null;
     try {
       const stored = localStorage.getItem("educrm_demo_user");
       if (stored) return JSON.parse(stored) as AppUser;
@@ -34,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   const loginAsDemoRole = (role: UserRole) => {
+    if (!isDemoMode) return;
     const demoUser: AppUser = {
       uid: `demo_${role}`,
       email: `${role}@educrm.demo`,
@@ -54,7 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     try {
       localStorage.removeItem("educrm_demo_user");
-    } catch (e) {}
+    } catch (error) {
+      console.warn("Failed to clear demo session:", error);
+    }
     setAppUser(null);
     auth.signOut();
   };
@@ -78,13 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (docSnap.exists()) {
               setAppUser(docSnap.data() as AppUser);
             } else {
-              setAppUser({
-                uid: user.uid,
-                email: user.email || "",
-                displayName: user.displayName || "Admin User",
-                role: "platform_super_admin",
-                createdAt: Date.now(),
-              });
+              // A Firebase account without a provisioned profile has no application role.
+              // Never infer administrative access on the client.
+              console.warn("Signed-in account has no EduCRM profile:", user.uid);
+              setAppUser(null);
             }
             setLoading(false);
           },
@@ -95,11 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
       } else {
         // If not logged in via Firebase Auth, check if demo user is stored
-        const storedDemo = localStorage.getItem("educrm_demo_user");
+        const storedDemo = isDemoMode ? localStorage.getItem("educrm_demo_user") : null;
         if (storedDemo) {
           try {
             setAppUser(JSON.parse(storedDemo) as AppUser);
-          } catch (e) {
+          } catch (error) {
+            console.warn("Failed to restore demo session:", error);
             setAppUser(null);
           }
         }
@@ -116,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ firebaseUser, appUser, loading, loginAsDemoRole, logout }}>
+    <AuthContext.Provider value={{ firebaseUser, appUser, loading, isDemoMode, loginAsDemoRole, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,20 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
-import { UserRole, ROLE_LABELS } from "../types/role";
-import { useAuth } from "../contexts/AuthContext";
-import { UserPlus, AlertCircle, User, Mail, Lock, ShieldCheck } from "lucide-react";
+import { UserPlus, AlertCircle, User, Mail, Lock } from "lucide-react";
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("counsellor");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const { loginAsDemoRole } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,41 +28,14 @@ export const Register: React.FC = () => {
         uid,
         email,
         displayName: displayName || email.split("@")[0],
-        role,
+        role: "student",
         createdAt: Date.now(),
       });
 
-      if (role === "team_leader") navigate("/team-leader/dashboard");
-      else if (role === "counsellor") navigate("/counsellor/dashboard");
-      else if (role === "admissions_officer") navigate("/admissions/dashboard");
-      else if (role === "finance_officer") navigate("/finance/dashboard");
-      else navigate("/");
+      navigate("/student/dashboard");
     } catch (err: any) {
       console.warn("Registration error:", err);
-      if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
-        // Fallback for demo mode / invalid API key environment
-        loginAsDemoRole(role);
-        const demoUid = `demo-${role}-${Date.now()}`;
-        try {
-          await setDoc(doc(db, "users", demoUid), {
-            uid: demoUid,
-            email,
-            displayName: displayName || email.split("@")[0],
-            role,
-            createdAt: Date.now(),
-          });
-        } catch (dbErr) {
-          console.warn("Firestore record save warning:", dbErr);
-        }
-
-        if (role === "team_leader") navigate("/team-leader/dashboard");
-        else if (role === "counsellor") navigate("/counsellor/dashboard");
-        else if (role === "admissions_officer") navigate("/admissions/dashboard");
-        else if (role === "finance_officer") navigate("/finance/dashboard");
-        else navigate("/");
-      } else {
-        setError(err.message || "Failed to create account. Please try again.");
-      }
+      setError(err.message || "Failed to create account. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +53,7 @@ export const Register: React.FC = () => {
             E
           </div>
           <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Create Account</h1>
-          <p className="text-zinc-400 text-sm">Register for EduCRM Platform Access</p>
+          <p className="text-zinc-400 text-sm">Create your student application account</p>
         </div>
 
         {error && (
@@ -148,28 +116,9 @@ export const Register: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
-              Select Role *
-            </label>
-            <div className="relative">
-              <ShieldCheck className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as UserRole)}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-              >
-                {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[11px] text-zinc-500 mt-1">
-              Active today: Platform Super Admin, Organization Admin, Counsellor.
-            </p>
-          </div>
+          <p className="text-[11px] text-zinc-500">
+            Staff, agent, and university-partner accounts are created by an organization administrator.
+          </p>
 
           <button
             type="submit"

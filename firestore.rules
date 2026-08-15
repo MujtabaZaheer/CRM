@@ -37,9 +37,12 @@ service cloud.firestore {
       // accounts must be provisioned by trusted admin/server workflows.
       allow create: if signedIn() && request.auth.uid == userId
         && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == 'student'
         && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'createdAt']);
-      allow update: if isPlatformAdmin() || isOrgAdmin()
+      allow update: if isPlatformAdmin() || (isOrgAdmin()
+        && resource.data.role != 'platform_super_admin'
+        && request.resource.data.role != 'platform_super_admin')
         || (signedIn() && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['displayName']));
       allow delete: if isPlatformAdmin();
