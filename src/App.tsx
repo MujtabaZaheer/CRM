@@ -5,6 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ProtectedLayout } from "./components/layout/ProtectedLayout";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { AcceptInvitation } from "./pages/AcceptInvitation";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Students } from "./pages/Students";
@@ -114,6 +115,7 @@ export const App: React.FC = () => {
               {/* Public Authentication Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
               {/* Protected Application Routes */}
               <Route element={<ProtectedLayout />}>

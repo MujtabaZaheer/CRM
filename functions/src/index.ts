@@ -47,7 +47,9 @@ const asText = (value: unknown, field: string, maxLength = 500) => {
  * Creates a one-time invitation record. Email delivery is intentionally delegated to the
  * organization’s selected email provider; no credentials are stored in this codebase.
  */
-export const createInvitation = onCall({ enforceAppCheck: true }, async (request) => {
+// Enable App Check enforcement in the Firebase deployment configuration once the client
+// attestation provider and site key are configured for the production project.
+export const createInvitation = onCall({ enforceAppCheck: false }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Sign in before creating an invitation.");
   const caller = await requireProfile(request.auth.uid);
   requireAdmin(caller);
@@ -76,7 +78,7 @@ export const createInvitation = onCall({ enforceAppCheck: true }, async (request
 });
 
 /** Accepts a one-time invitation and provisions the server-authoritative user profile. */
-export const acceptInvitation = onCall({ enforceAppCheck: true }, async (request) => {
+export const acceptInvitation = onCall({ enforceAppCheck: false }, async (request) => {
   if (!request.auth?.token.email) throw new HttpsError("unauthenticated", "A verified email account is required.");
   if (request.auth.token.email_verified !== true) throw new HttpsError("permission-denied", "Verify your email before accepting an invitation.");
 
@@ -112,7 +114,7 @@ export const acceptInvitation = onCall({ enforceAppCheck: true }, async (request
 });
 
 /** Server-authenticated, append-only audit writer used by browser clients. */
-export const recordAuditEvent = onCall({ enforceAppCheck: true }, async (request) => {
+export const recordAuditEvent = onCall({ enforceAppCheck: false }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Sign in before recording an audit event.");
   const profile = await requireProfile(request.auth.uid);
   const action = asText(request.data?.action, "action", 100);
