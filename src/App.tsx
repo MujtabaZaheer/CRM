@@ -17,6 +17,7 @@ import { AuditLogPage } from "./pages/AuditLog";
 import { NotificationsPage } from "./pages/Notifications";
 import { Users } from "./pages/Users";
 import { SuperAdmin } from "./pages/SuperAdmin";
+import { ProgrammeSearch } from "./pages/ProgrammeSearch";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";
@@ -246,12 +247,7 @@ export const App: React.FC = () => {
                 {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}
                 <Route
                   path="/programme-search"
-                  element={
-                    <StubPage
-                      title="Programme Search Engine"
-                      description="Global university course finder and entry requirement matcher."
-                    />
-                  }
+                  element={<ProgrammeSearch />}
                 />
                 <Route
                   path="/communications"
