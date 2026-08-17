@@ -22,6 +22,7 @@ export interface Lead {
   fullName: string;
   email: string;
   phone: string;
+  passportNumber?: string;
   nationality?: string;
   countryOfResidence?: string;
   programInterest?: string;

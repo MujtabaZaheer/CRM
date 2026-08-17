@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, X, Loader2, Copy, CheckCircle2, FileEdit } from "lucide-react";
+import { Sparkles, X, Loader2, Copy, FileEdit } from "lucide-react";
 import { generatePersonalStatement, PersonalStatementDraft } from "../../utils/geminiClient";
 
 interface PersonalStatementModalProps {

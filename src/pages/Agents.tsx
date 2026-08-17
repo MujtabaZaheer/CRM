@@ -1,23 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { collection, onSnapshot, addDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { useAuth } from "../contexts/AuthContext";
 import { RoleGate } from "../components/layout/RoleGate";
 import {
   UserCheck,
   Plus,
   Search,
   Filter,
-  CheckCircle2,
-  XCircle,
   Link,
   DollarSign,
   Users,
   Building,
-  Mail,
-  Phone,
-  Globe,
-  ShieldCheck,
   X
 } from "lucide-react";
 
@@ -36,7 +29,6 @@ export interface ExternalAgent {
 }
 
 export const AgentsContent: React.FC = () => {
-  const { appUser } = useAuth();
   const [agents, setAgents] = useState<ExternalAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");

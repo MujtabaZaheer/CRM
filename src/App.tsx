@@ -26,7 +26,6 @@ import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
 import { ImportExportPage } from "./pages/ImportExport";
 import { MasterDataConfigPage } from "./pages/MasterDataConfig";
-import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
 import { CounsellorRoute } from "./components/layout/CounsellorRoute";

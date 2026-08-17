@@ -8,13 +8,9 @@ import { Application } from "../types/application";
 import { detectDuplicateLeads } from "../utils/dataQuality";
 import {
   ShieldAlert,
-  AlertTriangle,
   CheckCircle2,
-  Users,
-  FileText,
   AlertCircle,
   Search,
-  RefreshCw,
   UserX,
   FileWarning
 } from "lucide-react";

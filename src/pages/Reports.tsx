@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { BarChart3, Download, Printer, TrendingUp, Users, FileText, CircleDollarSign, Sparkles, Loader2, Search } from "lucide-react";
+import { BarChart3, Download, Printer, TrendingUp, Users, FileText, CircleDollarSign, Sparkles, Loader2 } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -36,8 +36,6 @@ export const ReportsPage: React.FC = () => {
       const totalApps = applications.length;
       const totalRevenue = financeData.summary?.paidRevenue || 0;
 
-      // Import gemini call dynamically
-      const { hasGeminiApiKey } = await import("../utils/geminiClient");
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("EDUC_CRM_GEMINI_API_KEY");
 
       if (!apiKey) {

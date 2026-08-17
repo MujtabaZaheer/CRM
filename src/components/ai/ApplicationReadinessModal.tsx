@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, X, Loader2, Award, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Sparkles, X, Loader2, Award } from "lucide-react";
 import { auditApplicationReadiness, ApplicationReadinessReport } from "../../utils/geminiClient";
 
 interface ApplicationReadinessModalProps {
@@ -10,8 +10,8 @@ interface ApplicationReadinessModalProps {
 export const ApplicationReadinessModal: React.FC<ApplicationReadinessModalProps> = ({ isOpen, onClose }) => {
   const [studentName, setStudentName] = useState("Jane Smith");
   const [programmeName, setProgrammeName] = useState("MSc Data Science & Artificial Intelligence");
-  const [gpa, setGpa] = useState("3.6 / 4.0");
-  const [englishScore, setEnglishScore] = useState("IELTS 7.5");
+  const [gpa] = useState("3.6 / 4.0");
+  const [englishScore] = useState("IELTS 7.5");
 
   const [hasPassport, setHasPassport] = useState(true);
   const [hasTranscript, setHasTranscript] = useState(true);

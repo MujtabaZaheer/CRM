@@ -7,13 +7,8 @@ import { logAuditEvent } from "../utils/auditLogger";
 import {
   FileSpreadsheet,
   Upload,
-  Download,
   CheckCircle2,
-  AlertCircle,
-  ArrowRight,
   Database,
-  RefreshCw,
-  FileText,
   FileDown
 } from "lucide-react";
 
@@ -22,7 +17,6 @@ export type ImportTarget = "leads" | "students" | "universities";
 export const ImportExportContent: React.FC = () => {
   const { appUser } = useAuth();
   const [targetCollection, setTargetCollection] = useState<ImportTarget>("leads");
-  const [rawCsvText, setRawCsvText] = useState("");
   const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
@@ -36,7 +30,6 @@ export const ImportExportContent: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      setRawCsvText(text);
       parseCSV(text);
     };
     reader.readAsText(file);
@@ -134,7 +127,6 @@ export const ImportExportContent: React.FC = () => {
 
       setNotice(`Successfully imported ${count} records into Firestore target collection '${targetCollection}'.`);
       setParsedRows([]);
-      setRawCsvText("");
     } catch (err: any) {
       setError(`Batch write failed: ${err.message}`);
     } finally {

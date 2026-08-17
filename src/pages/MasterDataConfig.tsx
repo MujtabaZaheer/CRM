@@ -7,7 +7,6 @@ import { logAuditEvent } from "../utils/auditLogger";
 import {
   Sliders,
   Globe,
-  Globe2,
   DollarSign,
   GraduationCap,
   FileCheck,
