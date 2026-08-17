@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { ShieldCheck, AlertTriangle, X, Loader2, CheckCircle2, Key } from "lucide-react";
 import { calculateVisaProbability, VisaRiskAnalysis, hasGeminiApiKey, setRuntimeGeminiApiKey } from "../../utils/geminiClient";
 
@@ -58,9 +59,9 @@ export const VisaProbabilityModal: React.FC<VisaProbabilityModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-fade-in">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] my-auto">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between bg-sky-500/5">
           <div className="flex items-center space-x-3">
@@ -252,6 +253,7 @@ export const VisaProbabilityModal: React.FC<VisaProbabilityModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

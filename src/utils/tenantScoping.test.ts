@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { scopeDocumentWithTenant, getTenantQueryConstraints } from "./tenantScoping";
-import { AppUser } from "../types/user";
+import { AppUser } from "../types/role";
 
 describe("Multi-Tenant Scoping Utility", () => {
   it("should attach tenantId and officeId to new documents for org users", () => {
-    const user: AppUser = {
+    const user: any = {
       uid: "user-123",
       email: "counsellor@org.com",
       displayName: "Jane Counsellor",
