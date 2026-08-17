@@ -15,6 +15,7 @@ import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { StudentDocument, DocumentType } from "../pages/Documents";
 import { logAuditEvent } from "../utils/auditLogger";
 import { uploadStudentDocument } from "../utils/documentStorage";
+import { scopeDocumentWithTenant } from "../utils/tenantScoping";
 
 export const useCounsellorData = () => {
   const { appUser } = useAuth();
@@ -106,7 +107,7 @@ export const useCounsellorData = () => {
         updatedAt: Date.now(),
       };
 
-      const docRef = await addDoc(collection(db, "students"), newStudent);
+      const docRef = await addDoc(collection(db, "students"), scopeDocumentWithTenant(newStudent, appUser));
 
       const leadRef = doc(db, "leads", lead.id);
       await updateDoc(leadRef, {

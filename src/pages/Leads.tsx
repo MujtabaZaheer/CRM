@@ -3,7 +3,8 @@ import { collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "
 import { db } from "../firebase/config";
 import { Lead, LeadSource, LeadStage } from "../types/lead";
 import { RoleGate } from "../components/layout/RoleGate";
-import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye } from "lucide-react";
+import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye, Copy, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { detectDuplicateLeads, mergeDuplicateLeads, DuplicateCluster, LeadRecord } from "../utils/dataQuality";
 
 const LEAD_STAGES: LeadStage[] = [
   "New",
@@ -49,6 +50,46 @@ export const LeadsContent: React.FC = () => {
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("All");
+
+  // Deduplication State
+  const [isDedupModalOpen, setIsDedupModalOpen] = useState(false);
+  const [dedupClusters, setDedupClusters] = useState<DuplicateCluster[]>([]);
+  const [mergingId, setMergingId] = useState<string | null>(null);
+
+  const handleScanDuplicates = () => {
+    const formattedRecords: LeadRecord[] = leads.map((l) => ({
+      id: l.id,
+      name: l.fullName,
+      email: l.email,
+      phone: l.phone,
+      passportNumber: l.passportNumber,
+      status: l.stage,
+      countryInterest: l.destinationCountry,
+      createdAt: l.createdAt,
+    }));
+    const clusters = detectDuplicateLeads(formattedRecords);
+    setDedupClusters(clusters);
+    setIsDedupModalOpen(true);
+  };
+
+  const handleMergeCluster = async (masterId: string, duplicateId: string) => {
+    try {
+      setMergingId(duplicateId);
+      await mergeDuplicateLeads(masterId, duplicateId, { status: "Merged" });
+      setDedupClusters((prev) =>
+        prev
+          .map((c) => ({
+            ...c,
+            duplicateLeads: c.duplicateLeads.filter((d) => d.id !== duplicateId),
+          }))
+          .filter((c) => c.duplicateLeads.length > 0)
+      );
+    } catch (e) {
+      console.error("Merge error:", e);
+    } finally {
+      setMergingId(null);
+    }
+  };
 
   useEffect(() => {
     const leadsRef = collection(db, "leads");
@@ -183,6 +224,14 @@ export const LeadsContent: React.FC = () => {
           <p className="text-sm text-[var(--text-secondary)] mt-1">Manage student inquiries, lead stages, and quick actions</p>
         </div>
         <div className="flex items-center space-x-3 self-start sm:self-auto">
+          <button
+            onClick={handleScanDuplicates}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-semibold sq-btn transition-all"
+            title="Scan for Duplicate Leads"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Deduplicate</span>
+          </button>
           <button
             onClick={exportToCSV}
             disabled={leads.length === 0}
@@ -592,6 +641,88 @@ export const LeadsContent: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Deduplication Engine Modal */}
+      {isDedupModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+            <div className="p-4 sm:p-5 border-b border-[var(--border-default)] flex items-center justify-between bg-amber-500/10">
+              <div className="flex items-center space-x-2">
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+                <h3 className="font-heading font-bold text-base text-[var(--text-primary)]">
+                  Data Quality & Deduplication Engine
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDedupModalOpen(false)}
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded-lg hover:bg-[var(--bg-hover)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {dedupClusters.length === 0 ? (
+                <div className="text-center py-10 space-y-3">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
+                  <h4 className="font-bold text-sm text-[var(--text-primary)]">No Duplicate Leads Detected</h4>
+                  <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto">
+                    All lead records have unique emails, phone numbers, and passport identifiers. Your dataset is clean!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Found <strong className="text-amber-400">{dedupClusters.length}</strong> duplicate clusters matching by email, phone, or passport. You can merge duplicates into the master record.
+                  </p>
+                  {dedupClusters.map((cluster, idx) => (
+                    <div key={idx} className="bg-[var(--bg-input)] border border-[var(--border-default)] p-4 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-400">Master Record: {cluster.masterLead.name}</span>
+                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded text-[10px] font-mono">
+                          {cluster.matchReason}
+                        </span>
+                      </div>
+                      <div className="text-xs text-[var(--text-secondary)] space-y-1">
+                        <div>Email: {cluster.masterLead.email} | Phone: {cluster.masterLead.phone || "N/A"}</div>
+                      </div>
+
+                      <div className="border-t border-[var(--border-default)] pt-2 space-y-2">
+                        <div className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                          Duplicate Records ({cluster.duplicateLeads.length})
+                        </div>
+                        {cluster.duplicateLeads.map((dup) => (
+                          <div key={dup.id} className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-lg border border-[var(--border-default)] text-xs">
+                            <div>
+                              <div className="font-medium text-[var(--text-primary)]">{dup.name}</div>
+                              <div className="text-[11px] text-[var(--text-secondary)]">{dup.email} • {dup.phone || "No phone"}</div>
+                            </div>
+                            <button
+                              onClick={() => handleMergeCluster(cluster.masterLead.id, dup.id)}
+                              disabled={mergingId === dup.id}
+                              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {mergingId === dup.id ? "Merging..." : "Merge into Master"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-[var(--border-default)] bg-[var(--bg-elevated)] flex justify-end">
+              <button
+                onClick={() => setIsDedupModalOpen(false)}
+                className="px-4 py-2 bg-[var(--bg-hover)] text-[var(--text-primary)] text-xs font-bold rounded-lg"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

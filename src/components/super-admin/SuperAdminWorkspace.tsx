@@ -11,8 +11,12 @@ import {
   Search,
   ShieldAlert,
   Sparkles,
-  Users
+  Users,
+  Download,
+  Trash2,
+  Lock
 } from "lucide-react";
+import { exportStudentGdprData, anonymizeStudentGdprData } from "../../utils/gdprPrivacy";
 
 export type SuperAdminSubPage =
   | "dashboard"
@@ -46,6 +50,53 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
   // User Role Editing Modal
   const [editingUserUid, setEditingUserUid] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>("counsellor");
+
+  // GDPR State
+  const [gdprEmail, setGdprEmail] = useState("");
+  const [gdprLoading, setGdprLoading] = useState(false);
+
+  const handleGdprExport = async () => {
+    if (!gdprEmail.trim()) {
+      setNotice("Please enter a student email for GDPR export.");
+      return;
+    }
+    try {
+      setGdprLoading(true);
+      const payload = await exportStudentGdprData(gdprEmail.trim());
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `GDPR_Data_Export_${gdprEmail.trim().replace(/[^a-zA-Z0-9]/g, "_")}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setNotice(`GDPR JSON Data Export generated for ${gdprEmail}.`);
+    } catch (e: any) {
+      setNotice(`GDPR Export error: ${e.message}`);
+    } finally {
+      setGdprLoading(false);
+    }
+  };
+
+  const handleGdprAnonymize = async () => {
+    if (!gdprEmail.trim()) {
+      setNotice("Please enter a student email to anonymize.");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to PERMANENTLY ANONYMIZE all PII for ${gdprEmail}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      setGdprLoading(true);
+      const count = await anonymizeStudentGdprData(gdprEmail.trim());
+      setNotice(`Successfully anonymized PII across ${count} records for ${gdprEmail}.`);
+      setGdprEmail("");
+    } catch (e: any) {
+      setNotice(`GDPR Anonymization error: ${e.message}`);
+    } finally {
+      setGdprLoading(false);
+    }
+  };
 
   const filteredTenants = superAdmin.tenants.filter((t) =>
     `${t.name} ${t.domain} ${t.adminEmail} ${t.tier}`
@@ -362,6 +413,46 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                 onChange={(e) => superAdmin.updateGlobalSettings({ maintenanceMode: e.target.checked })}
               />
             </label>
+          </div>
+
+          {/* GDPR & Data Privacy Compliance Engine */}
+          <div className="pt-4 border-t border-[var(--border-default)] space-y-3">
+            <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+              <Lock className="w-4 h-4" />
+              <span>GDPR & Data Privacy Engine (EU GDPR / UK DPA 2018)</span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Execute Right of Access data dumps (JSON) or Right to be Forgotten PII anonymization across all Firestore collections.
+            </p>
+            <div className="space-y-2">
+              <input
+                type="email"
+                placeholder="Enter student email address..."
+                value={gdprEmail}
+                onChange={(e) => setGdprEmail(e.target.value)}
+                className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleGdprExport}
+                  disabled={gdprLoading || !gdprEmail}
+                  className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export JSON Dump</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGdprAnonymize}
+                  disabled={gdprLoading || !gdprEmail}
+                  className="flex items-center space-x-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Anonymize PII Data</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
