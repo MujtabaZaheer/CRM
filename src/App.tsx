@@ -23,6 +23,8 @@ import { ReportsPage } from "./pages/Reports";
 import { EmailTemplatesPage } from "./pages/EmailTemplates";
 import { FormBuilderPage } from "./pages/FormBuilder";
 import { AgentsPage } from "./pages/Agents";
+import { ImportExportPage } from "./pages/ImportExport";
+import { MasterDataConfigPage } from "./pages/MasterDataConfig";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
@@ -261,6 +263,8 @@ export const App: React.FC = () => {
                   element={<Communications />}
                 />
                 <Route path="/agents" element={<AgentsPage />} />
+                <Route path="/import-export" element={<ImportExportPage />} />
+                <Route path="/master-data" element={<MasterDataConfigPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
               </Route>
 
