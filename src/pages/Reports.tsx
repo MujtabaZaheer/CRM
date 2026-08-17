@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { BarChart3, Download, Printer, TrendingUp, Users, FileText, CircleDollarSign } from "lucide-react";
+import { BarChart3, Download, Printer, TrendingUp, Users, FileText, CircleDollarSign, Sparkles, Loader2, Search } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -20,6 +20,57 @@ export const ReportsPage: React.FC = () => {
   const { leads, students, applications } = useGlobalData();
   const financeData = useFinanceData();
   const [timeframe, setTimeframe] = useState("all");
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleRunAiReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiQuery.trim()) return;
+
+    try {
+      setAiLoading(true);
+      setAiResponse(null);
+      const totalLeads = leads.length;
+      const totalStudents = students.length;
+      const totalApps = applications.length;
+      const totalRevenue = financeData.summary?.paidRevenue || 0;
+
+      // Import gemini call dynamically
+      const { hasGeminiApiKey } = await import("../utils/geminiClient");
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("EDUC_CRM_GEMINI_API_KEY");
+
+      if (!apiKey) {
+        setAiResponse("Gemini API key is required to execute AI reporting queries.");
+        return;
+      }
+
+      const prompt = `You are a CRM Business Intelligence Analyst. Answer the following user question based on CRM data summary:
+User Question: "${aiQuery}"
+CRM Data Summary:
+- Total Leads: ${totalLeads}
+- Total Students: ${totalStudents}
+- Total Applications: ${totalApps}
+- Paid Revenue: $${totalRevenue} USD
+- Leads by stage: ${JSON.stringify(leads.reduce((acc, l) => ({ ...acc, [l.stage]: (acc[l.stage] || 0) + 1 }), {} as Record<string, number>))}
+
+Provide a concise, 2-3 sentence executive data insight answering the user's question directly.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      });
+
+      const data = await response.json();
+      const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No insights returned.";
+      setAiResponse(answer);
+    } catch (err: any) {
+      setAiResponse(`Query error: ${err.message}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // 1. Funnel Data
   const funnelData = useMemo(() => {
@@ -123,6 +174,40 @@ export const ReportsPage: React.FC = () => {
             <span>Print Report</span>
           </button>
         </div>
+      </div>
+
+      {/* AI Natural Language BI Query Bar */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-default)] p-4 sq-card space-y-3">
+        <form onSubmit={handleRunAiReport} className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
+            <Sparkles className="w-4 h-4 absolute left-3 top-3 text-emerald-400" />
+            <input
+              type="text"
+              placeholder="Ask AI a natural-language question about your CRM data (e.g. 'What is our lead conversion rate?')"
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={aiLoading || !aiQuery.trim()}
+            className="flex items-center space-x-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold sq-btn disabled:opacity-50 w-full sm:w-auto justify-center"
+          >
+            {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            <span>{aiLoading ? "Analyzing..." : "Ask AI BI"}</span>
+          </button>
+        </form>
+
+        {aiResponse && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-medium space-y-1">
+            <div className="font-bold flex items-center space-x-1 text-emerald-400">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Executive Insight:</span>
+            </div>
+            <p className="text-[var(--text-primary)] text-xs leading-relaxed">{aiResponse}</p>
+          </div>
+        )}
       </div>
 
       {/* Overview Stat Badges */}

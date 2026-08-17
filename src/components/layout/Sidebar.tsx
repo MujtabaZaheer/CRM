@@ -82,6 +82,7 @@ const navItems: NavItem[] = [
   { label: "Email Templates", path: "/email-templates", icon: <Mail className="w-4 h-4" /> },
   { label: "Form Builder", path: "/form-builder", icon: <FormInput className="w-4 h-4" /> },
   { label: "Agents & Partners", path: "/agents", icon: <UserCheck className="w-4 h-4" /> },
+  { label: "Data Quality Control", path: "/data-quality", icon: <ShieldAlert className="w-4 h-4" />, rolesAllowed: ["platform_super_admin", "org_admin", "office_manager"] },
   { label: "CSV Import / Export", path: "/import-export", icon: <FileSpreadsheet className="w-4 h-4" /> },
   { label: "Master Data Config", path: "/master-data", icon: <Sliders className="w-4 h-4" />, rolesAllowed: ["platform_super_admin", "org_admin"] },
   { label: "Reports", path: "/reports", icon: <BarChart3 className="w-4 h-4" /> },
