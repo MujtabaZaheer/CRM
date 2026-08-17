@@ -17,10 +17,12 @@ export function getTenantQueryConstraints(appUser: AppUser | null): QueryConstra
   return [where("tenantId", "==", tenantId)];
 }
 
-export function scopeDocumentWithTenant<T extends Record<string, any>>(data: T, appUser: AppUser | null): T & { tenantId: string } {
+export function scopeDocumentWithTenant<T extends Record<string, any>>(data: T, appUser: AppUser | null): T & { tenantId: string; officeId?: string } {
   const tenantId = (appUser as any)?.tenantId || appUser?.office || "default_tenant";
+  const officeId = (appUser as any)?.officeId || appUser?.office;
   return {
     ...data,
     tenantId,
+    ...(officeId ? { officeId } : {}),
   };
 }
