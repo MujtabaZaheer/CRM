@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EduCRM — Complete System & Component Sequence Diagrams (UML)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 15mm;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #090d16;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border: 1px solid #334155;
+      padding: 24px;
+      border-rounded: 12px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .header-banner h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #38bdf8;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .header-banner p {
+      margin: 6px 0 0 0;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #334155;
+      font-size: 11px;
+    }
+
+    .meta-item span {
+      display: block;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .meta-item font {
+      color: #34d399;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .diagram-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      page-break-inside: avoid;
+    }
+
+    .diagram-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: #38bdf8;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-card p {
+      margin: 0 0 16px 0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .mermaid {
+      background: #020617;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+      display: flex;
+      justify-content: center;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(56, 189, 248, 0.1);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-banner">
+    <h1>EduCRM — Complete System & Component Sequence Diagrams (UML)</h1>
+    <p>Comprehensive Architectural Specification & Flow Diagrams covering all 27 Requirement Sections (CRM.pdf)</p>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span>System Version</span>
+        <font>v2.4.0 Production</font>
+      </div>
+      <div class="meta-item">
+        <span>Storage Engine</span>
+        <font>Google Drive API (Apps Script)</font>
+      </div>
+      <div class="meta-item">
+        <span>AI Intelligence</span>
+        <font>Gemini 2.0 Flash REST API</font>
+      </div>
+      <div class="meta-item">
+        <span>Security Tier</span>
+        <font>Spark Free Tier (0 Cost)</font>
+      </div>
+    </div>
+  </div>
+
+  <!-- SSD -->
+  <div class="diagram-card">
+    <h2><span class="badge">SSD</span> System Sequence Diagram — High-Level Boundary</h2>
+    <p>High-level interactions between external actors (Student, Agent, Counsellor, Admissions, SuperAdmin) and the EduCRM platform boundary.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Lead as Student / Lead
+    actor Agent as External Agent
+    actor Counsellor as Education Counsellor
+    actor Admissions as Admissions Officer
+    actor Admin as Super Admin / Org Admin
+    participant System as EduCRM Platform Boundary
+    participant Drive as Google Drive Storage API
+    participant Gemini as Google Gemini 2.0 AI API
+
+    rect rgb(15, 23, 42)
+    note right of Lead: Stage 1: Lead Ingestion & Registration
+    Lead->>System: Submit Web Form / Self-Register
+    System-->>Lead: Send Confirmation & Provision Portal Access
+    Agent->>System: Register Referral Lead (Student Info + Ref Code)
+    System-->>Agent: Generate Referral Code & Commission Ledger Entry
+    end
+
+    rect rgb(16, 35, 30)
+    note right of Counsellor: Stage 2: AI Counselling & Eligibility
+    Counsellor->>System: Run AI Course Recommendation Query
+    System->>Gemini: POST Prompt (GPA, IELTS, Budget, Country Preferences)
+    Gemini-->>System: Return Ranked Programmes & Rationale
+    System-->>Counsellor: Display Ranked Course Matches
+
+    Counsellor->>System: Request AI Personal Statement (SOP)
+    System->>Gemini: POST Prompt (Academic Background, Career Goals)
+    Gemini-->>System: Return Formatted SOP Text
+    System-->>Counsellor: Display SOP Draft with Copy Action
+    end
+
+    rect rgb(30, 20, 45)
+    note right of Lead: Stage 3: Document Upload & Vision OCR
+    Lead->>System: Upload Passport / Transcript File
+    System->>Drive: POST Base64 File to Apps Script Web App Endpoint
+    Drive-->>System: Save File in Drive & Return Download URL
+    System->>Gemini: POST Image for Vision OCR Extraction
+    Gemini-->>System: Return Name, DOB, Passport #, GPA, Test Score
+    System-->>Counsellor: Pre-populate Profile & Save Metadata
+    end
+
+    rect rgb(35, 25, 15)
+    note right of Admissions: Stage 4: Application Workflow & Decisioning
+    Admissions->>System: Review Application & Verify Checklist Documents
+    Admissions->>System: Issue Conditional / Unconditional Offer
+    System-->>Lead: Notify Offer Status in Student Portal
+    end
+
+    rect rgb(30, 15, 25)
+    note right of Admin: Stage 5: Financial Ledger & GDPR Governance
+    Admin->>System: Run Lead Deduplication Scan
+    System-->>Admin: Display Flagged Duplicates & Execute Merge
+    Admin->>System: Request GDPR Right of Access Data Export
+    System-->>Admin: Download Structured Student JSON Data Dump
+    end
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SD-1: Authentication & Impersonation -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-1</span> Authentication, Session Management & User Impersonation</h2>
+    <p>User registration, email/password & demo role login, session timeout enforcement, and administrative user impersonation with audit logging.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as User / Admin
+    participant UI as Login.tsx / Topbar.tsx
+    participant AuthContext as AuthContext.tsx
+    participant FirebaseAuth as Firebase Auth SDK
+    participant Firestore as Cloud Firestore SDK
+
+    User->>UI: Select Role or Enter Email/Password
+    UI->>AuthContext: login(email, password) / demoLogin(role)
+    AuthContext->>FirebaseAuth: signInWithEmailAndPassword(auth, email, password)
+    FirebaseAuth-->>AuthContext: Return UserCredential (uid, token)
+    AuthContext->>Firestore: getDoc(doc(db, "users", uid))
+    Firestore-->>AuthContext: Return User Profile (role, permissions, tenantId)
+    AuthContext-->>UI: Update appUser State & Set Session Token
+    UI-->>User: Navigate to Role-Scoped Dashboard
+
+    note over User,Firestore: Administrative Impersonation Flow
+    Admin->>UI: Select User & Click "Impersonate User"
+    UI->>AuthContext: startImpersonation(targetUserUid)
+    AuthContext->>Firestore: addDoc("audit_logs", { action: "USER_IMPERSONATED", adminUid, targetUid })
+    AuthContext-->>UI: Swap appUser context to Target User
+    UI-->>Admin: Display Impersonation Notice Banner
+    </div>
+  </div>
+
+  <!-- SD-2: Lead Management & Deduplication -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-2</span> Lead Lifecycle Management & Deduplication Engine</h2>
+    <p>Lead creation, stage updates, fuzzy duplicate detection across email, phone, and passport, and master lead merging.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Counsellor as Counsellor / Admin
+    participant UI as Leads.tsx
+    participant DedupEngine as dataQuality.ts
+    participant Firestore as Cloud Firestore SDK
+
+    Counsellor->>UI: Submit "Add New Lead" Form
+    UI->>Firestore: addDoc("leads", scopeDocumentWithTenant(newLead, appUser))
+    Firestore-->>UI: Return leadId
+    UI-->>Counsellor: Display Lead in Pipeline
+
+    note over Counsellor,Firestore: Lead Deduplication Scan Flow
+    Counsellor->>UI: Click "Deduplicate" Button
+    UI->>Firestore: getDocs(collection(db, "leads"))
+    Firestore-->>UI: Return all Lead records
+    UI->>DedupEngine: detectDuplicateLeads(leads)
+    DedupEngine->>DedupEngine: Match fuzzy email, normalized phone, passport
+    DedupEngine-->>UI: Return DuplicateCluster[]
+    UI-->>Counsellor: Render Duplicate Clusters Modal
+    Counsellor->>UI: Click "Merge into Master"
+    UI->>DedupEngine: mergeDuplicateLeads(masterId, duplicateId, mergedData)
+    DedupEngine->>Firestore: updateDoc("leads", masterId, { mergedAt })
+    DedupEngine->>Firestore: deleteDoc("leads", duplicateId)
+    DedupEngine-->>UI: Update Deduplication UI
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SD-3: AI Counsellor Suite -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-3</span> Gemini 2.0 AI Counsellor Suite Execution</h2>
+    <p>Client-side integration calling Google Gemini 2.0 Flash for Course Recommendation, Visa Probability Risk, OCR Document Vision, SOP Drafting, and Readiness Audits.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Counsellor as Counsellor / Student
+    participant UI as AI Modals (Topbar.tsx)
+    participant GeminiClient as geminiClient.ts
+    participant GeminiAPI as Gemini 2.0 REST API Endpoint
+
+    note over UI,GeminiAPI: 1. Course Recommendation Engine
+    Counsellor->>UI: Enter GPA, IELTS, Country, Budget
+    UI->>GeminiClient: getCourseRecommendations({ gpa, ielts, budget, country })
+    GeminiClient->>GeminiAPI: POST https://generativelanguage.googleapis.com/... (Prompt)
+    GeminiAPI-->>GeminiClient: Return JSON [{ universityName, matchScore, reasoning }]
+    GeminiClient-->>UI: Render Ranked Course Cards
+
+    note over UI,GeminiAPI: 2. AI SOP & Personal Statement Drafter
+    Counsellor->>UI: Submit Target Programme & Career Ambitions
+    UI->>GeminiClient: generatePersonalStatement({ studentName, targetUni, goals })
+    GeminiClient->>GeminiAPI: POST Prompt for Structured 500-word SOP
+    GeminiAPI-->>GeminiClient: Return JSON { title, statementContent, wordCount }
+    GeminiClient-->>UI: Display SOP Draft with Copy Action
+
+    note over UI,GeminiAPI: 3. AI Application Readiness Auditor
+    Counsellor->>UI: Select Uploaded Checklist Status
+    UI->>GeminiClient: auditApplicationReadiness({ studentName, checklist })
+    GeminiClient->>GeminiAPI: POST Prompt for Completeness & Risk Analysis
+    GeminiAPI-->>GeminiClient: Return JSON { readinessScore, missingRequirements, recommendations }
+    GeminiClient-->>UI: Display Readiness Gauge (0-100%) & Checklist
+    </div>
+  </div>
+
+  <!-- SD-4: Zero-Cost Document Upload -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-4</span> Zero-Cost Document Upload & Verification (Google Drive)</h2>
+    <p>Client-side validation, Base64 conversion, upload to Google Apps Script Web App endpoint, Google Drive storage, and metadata persistence in Firestore.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Student as Student / Counsellor
+    participant UI as Documents.tsx
+    participant DocStorage as documentStorage.ts
+    participant AppsScript as Google Apps Script Endpoint
+    participant GoogleDrive as Google Drive Storage
+    participant Firestore as Cloud Firestore SDK
+
+    Student->>UI: Select File & Document Type (Passport/Transcript)
+    UI->>DocStorage: uploadStudentDocument(studentId, file)
+    DocStorage->>DocStorage: validateDocumentFile(file) (Format & Size <= 15MB)
+    DocStorage->>DocStorage: fileToBase64(file)
+    DocStorage->>AppsScript: POST VITE_STORAGE_SCRIPT_URL { fileName, fileBase64, mimeType, studentId }
+    AppsScript->>GoogleDrive: DriveApp.createFolder(studentId).createFile(blob)
+    GoogleDrive-->>AppsScript: Return fileId & Direct View URL
+    AppsScript-->>DocStorage: Return { success: true, fileUrl, viewUrl, filePath }
+    DocStorage-->>UI: Return Upload Result
+    UI->>Firestore: addDoc("student_documents", { studentId, fileUrl, status: "Received" })
+    UI->>Firestore: addDoc("audit_logs", { action: "DOCUMENT_UPLOADED", ... })
+    UI-->>Student: Display Document Status Badge ("Received")
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SD-5: Application Pipeline & Admissions -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-5</span> 20-Stage Application Pipeline & Admissions Decisioning</h2>
+    <p>Application creation, 20-stage status progression, required document checklists, conditional/unconditional offer generation, and submission field locking.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admissions as Admissions Officer / Counsellor
+    participant UI as Applications.tsx
+    participant Firestore as Cloud Firestore SDK
+
+    Admissions->>UI: Select Student & Target Programme
+    UI->>Firestore: addDoc("applications", { applicationNumber: "APP-2026-XXXX", stage: "Draft" })
+    Firestore-->>UI: Return applicationDocId
+
+    Admissions->>UI: Progress Stage to "Documents Pending"
+    UI->>Firestore: updateDoc("applications", id, { stage: "Documents Pending" })
+    Firestore-->>UI: Trigger Document Checklist Requirement
+
+    Admissions->>UI: Upload Offer Letter & Update Stage to "Conditional Offer"
+    UI->>Firestore: updateDoc("applications", id, { stage: "Conditional Offer", offerLetterUrl })
+    UI->>Firestore: addDoc("notifications", { recipient: studentEmail, title: "Offer Issued" })
+    UI->>Firestore: addDoc("audit_logs", { action: "APPLICATION_STAGE_UPDATED", ... })
+    UI-->>Admissions: Lock Submission Fields & Notify Student
+    </div>
+  </div>
+
+  <!-- SD-6: Partner Agent Network & Commissions -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-6</span> External Agent Network, Referral Tracking & Commission Ledger</h2>
+    <p>Agent onboarding, referral code generation, referral link tracking, enrolment confirmation, commission calculation, and disbursement logging.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Agent as External Recruitment Agent
+    actor Admin as Office Manager / Org Admin
+    participant UI as Agents.tsx / Register.tsx
+    participant Firestore as Cloud Firestore SDK
+
+    Admin->>UI: Onboard New External Agency
+    UI->>Firestore: addDoc("agents", { agencyName, referralCode: "REF-APX-4821", status: "Active" })
+    Firestore-->>UI: Return Agent Record
+
+    Agent->>UI: Share Referral Link (crm.app/register?ref=REF-APX-4821)
+    Student->>UI: Register via Referral Link
+    UI->>Firestore: addDoc("leads", { source: "Agent", referralCode: "REF-APX-4821" })
+
+    note over Admin,Firestore: Commission Calculation & Disbursement
+    Admin->>UI: Mark Student Application as "Enrolled"
+    UI->>Firestore: addDoc("commissions", { agentName, studentName, amount: 1500, status: "Pending" })
+    Admin->>UI: Approve Commission Payout
+    UI->>Firestore: updateDoc("commissions", id, { status: "Paid", paidAt: Date.now() })
+    UI->>Firestore: updateDoc("agents", agentId, { totalCommissionPaidUSD: total + 1500 })
+    UI-->>Admin: Display Updated Agent Ledger
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SD-7: Data Migration & Master Config -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-7</span> CSV Data Migration & Master Data Configuration Center</h2>
+    <p>Bulk CSV parsing, column mapping preview, dry-run schema validation, Firestore batch writing, and master data dropdown administration.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admin as SuperAdmin / Org Admin
+    participant UI as ImportExport.tsx / MasterDataConfig.tsx
+    participant Firestore as Cloud Firestore SDK
+
+    note over Admin,Firestore: 1. Bulk CSV Import Workflow
+    Admin->>UI: Select Target Collection ("leads") & Upload CSV File
+    UI->>UI: parseCSV(text) -> Extract headers & rows
+    UI-->>Admin: Display Data Validation Preview Table (Dry-run)
+    Admin->>UI: Click "Commit Rows to Firestore"
+    UI->>Firestore: writeBatch() -> Set multiple documents atomically
+    Firestore-->>UI: Batch Commit Success
+    UI->>Firestore: addDoc("audit_logs", { action: "DATA_BULK_IMPORTED", count })
+    UI-->>Admin: Display Success Banner
+
+    note over Admin,Firestore: 2. Master Data Configuration Workflow
+    Admin->>UI: Add Target Country ("Germany") / Currency ("EUR")
+    UI->>Firestore: setDoc(doc(db, "config", "master_data"), updatedMasterSchema)
+    Firestore-->>UI: Save Success
+    UI-->>Admin: Update Dropdown Master Lists Globally
+    </div>
+  </div>
+
+  <!-- SD-8: GDPR & Data Quality Governance -->
+  <div class="diagram-card">
+    <h2><span class="badge">SD-8</span> GDPR Privacy Compliance & Data Quality Audit Engine</h2>
+    <p>Right of Access structured JSON data exports, Right to be Forgotten PII anonymization, automated data quality rule checking, and natural-language AI reporting.</p>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admin as SuperAdmin / Auditor
+    participant UI as DataQualityDashboard.tsx / SuperAdminWorkspace.tsx / Reports.tsx
+    participant GdprEngine as gdprPrivacy.ts
+    participant GeminiAPI as Gemini 2.0 REST API
+    participant Firestore as Cloud Firestore SDK
+
+    note over Admin,Firestore: 1. GDPR Right to Access JSON Export
+    Admin->>UI: Enter Student Email & Click "Export JSON Dump"
+    UI->>GdprEngine: exportStudentGdprData(studentEmail)
+    GdprEngine->>Firestore: Query "students", "leads", "applications", "documents"
+    Firestore-->>GdprEngine: Return all entity records for student
+    GdprEngine-->>UI: Return Structured JSON Payload
+    UI-->>Admin: Trigger Browser Download ("GDPR_Export_student.json")
+
+    note over Admin,Firestore: 2. GDPR Right to be Forgotten Anonymization
+    Admin->>UI: Click "Anonymize PII Data"
+    UI->>GdprEngine: anonymizeStudentGdprData(studentEmail)
+    GdprEngine->>Firestore: Wipe names, emails, phones, passports across collections
+    GdprEngine-->>UI: Return count of anonymized documents
+    UI-->>Admin: Display Anonymization Success Banner
+
+    note over Admin,GeminiAPI: 3. AI Natural Language BI Query
+    Admin->>UI: Enter Question ("What is our lead conversion rate by country?")
+    UI->>GeminiAPI: POST Prompt (CRM Summary Metrics + Question)
+    GeminiAPI-->>UI: Return Executive Insights Rationale
+    UI-->>Admin: Render AI Executive Insight Card
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      sequence: {
+        diagramMarginX: 10,
+        diagramMarginY: 10,
+        actorMargin: 50,
+        width: 150,
+        height: 65,
+        boxMargin: 10,
+        boxTextMargin: 5,
+        noteMargin: 10,
+        messageMargin: 35,
+        mirrorActors: false
+      }
+    });
+  </script>
+</body>
+</html>
