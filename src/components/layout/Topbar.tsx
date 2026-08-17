@@ -9,6 +9,8 @@ import { NotificationBell } from "../common/NotificationBell";
 import { CourseRecommendationModal } from "../ai/CourseRecommendationModal";
 import { VisaProbabilityModal } from "../ai/VisaProbabilityModal";
 import { DocumentExtractionModal } from "../ai/DocumentExtractionModal";
+import { PersonalStatementModal } from "../ai/PersonalStatementModal";
+import { ApplicationReadinessModal } from "../ai/ApplicationReadinessModal";
 
 interface TopbarProps {
   setMobileOpen: (open: boolean) => void;
@@ -23,6 +25,8 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
   const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [visaModalOpen, setVisaModalOpen] = useState(false);
   const [ocrModalOpen, setOcrModalOpen] = useState(false);
+  const [sopModalOpen, setSopModalOpen] = useState(false);
+  const [readinessModalOpen, setReadinessModalOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -105,6 +109,28 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
                 <FileText className="w-4 h-4 text-purple-400" />
                 <span>Document OCR Extractor</span>
               </button>
+
+              <button
+                onClick={() => {
+                  setShowAiMenu(false);
+                  setSopModalOpen(true);
+                }}
+                className="w-full flex items-center space-x-2 px-3 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-amber-500/10 hover:text-amber-400 rounded-lg text-left transition-colors"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Personal Statement Drafter</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowAiMenu(false);
+                  setReadinessModalOpen(true);
+                }}
+                className="w-full flex items-center space-x-2 px-3 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500/10 hover:text-emerald-400 rounded-lg text-left transition-colors"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Application Readiness Auditor</span>
+              </button>
             </div>
           )}
         </div>
@@ -155,6 +181,14 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
       <DocumentExtractionModal
         isOpen={ocrModalOpen}
         onClose={() => setOcrModalOpen(false)}
+      />
+      <PersonalStatementModal
+        isOpen={sopModalOpen}
+        onClose={() => setSopModalOpen(false)}
+      />
+      <ApplicationReadinessModal
+        isOpen={readinessModalOpen}
+        onClose={() => setReadinessModalOpen(false)}
       />
     </header>
   );

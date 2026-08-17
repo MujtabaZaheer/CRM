@@ -185,3 +185,88 @@ Return JSON with exact schema:
   const responseText = await callGeminiApi(prompt, { mimeType, dataBase64: base64Data });
   return JSON.parse(responseText);
 }
+
+export interface PersonalStatementDraft {
+  title: string;
+  statementContent: string;
+  keyHighlights: string[];
+  wordCount: number;
+}
+
+export interface ApplicationReadinessReport {
+  readinessScore: number; // 0-100
+  status: "Ready for Submission" | "Action Required" | "Incomplete";
+  missingRequirements: string[];
+  strengths: string[];
+  recommendations: string[];
+}
+
+/**
+ * 4. AI Personal Statement / Statement of Purpose Drafter
+ */
+export async function generatePersonalStatement(details: {
+  studentName: string;
+  targetUniversity: string;
+  targetProgramme: string;
+  academicBackground: string;
+  workExperience: string;
+  careerGoals: string;
+}): Promise<PersonalStatementDraft> {
+  const prompt = `Draft a compelling, highly professional Personal Statement / Statement of Purpose (SOP) for an international university application.
+Applicant Name: ${details.studentName}
+Target Institution: ${details.targetUniversity}
+Target Programme: ${details.targetProgramme}
+Academic Background: ${details.academicBackground}
+Work / Research Experience: ${details.workExperience}
+Career Ambitions: ${details.careerGoals}
+
+Return JSON with exact schema:
+{
+  "title": "String title",
+  "statementContent": "Full formatted SOP text (approx 400-500 words, structured into Introduction, Academic Preparation, Why this University/Programme, and Future Goals)",
+  "keyHighlights": ["3-4 key bullet points emphasized in the SOP"],
+  "wordCount": number
+}`;
+
+  const responseText = await callGeminiApi(prompt);
+  return JSON.parse(responseText);
+}
+
+/**
+ * 5. AI Application Readiness & Missing Document Auditor
+ */
+export async function auditApplicationReadiness(details: {
+  studentName: string;
+  programmeName: string;
+  hasPassport: boolean;
+  hasTranscript: boolean;
+  hasEnglishTest: boolean;
+  hasSOP: boolean;
+  hasFinancialProof: boolean;
+  gpa: string;
+  englishScore: string;
+}): Promise<ApplicationReadinessReport> {
+  const prompt = `Evaluate application readiness and document completeness for this student:
+Applicant: ${details.studentName}
+Programme: ${details.programmeName}
+Passport Uploaded: ${details.hasPassport}
+Transcript Uploaded: ${details.hasTranscript}
+English Test Uploaded: ${details.hasEnglishTest}
+SOP Uploaded: ${details.hasSOP}
+Financial Proof Uploaded: ${details.hasFinancialProof}
+GPA / Qualification: ${details.gpa}
+English Score: ${details.englishScore}
+
+Return JSON with exact schema:
+{
+  "readinessScore": number (0-100),
+  "status": "Ready for Submission" | "Action Required" | "Incomplete",
+  "missingRequirements": ["Array of missing items or documents"],
+  "strengths": ["Array of profile strengths"],
+  "recommendations": ["Actionable steps before submitting"]
+}`;
+
+  const responseText = await callGeminiApi(prompt);
+  return JSON.parse(responseText);
+}
+
