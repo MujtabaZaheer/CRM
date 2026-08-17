@@ -22,6 +22,7 @@ import { CalendarPage } from "./pages/Calendar";
 import { ReportsPage } from "./pages/Reports";
 import { EmailTemplatesPage } from "./pages/EmailTemplates";
 import { FormBuilderPage } from "./pages/FormBuilder";
+import { AgentsPage } from "./pages/Agents";
 import { StubPage } from "./components/layout/StubPage";
 import { TeamLeaderRoute } from "./components/layout/TeamLeaderRoute";
 import { AdmissionsRoute } from "./components/layout/AdmissionsRoute";
@@ -259,15 +260,7 @@ export const App: React.FC = () => {
                   path="/communications"
                   element={<Communications />}
                 />
-                <Route
-                  path="/agents"
-                  element={
-                    <StubPage
-                      title="Agents & Sub-Agent Network"
-                      description="External agent management, referral links, and commission statements."
-                    />
-                  }
-                />
+                <Route path="/agents" element={<AgentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
               </Route>
 
