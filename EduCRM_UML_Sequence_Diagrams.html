@@ -14,26 +14,25 @@
 
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #090d16;
-      color: #e2e8f0;
+      background-color: #ffffff;
+      color: #0f172a;
       margin: 0;
       padding: 20px;
       line-height: 1.5;
     }
 
     .header-banner {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       padding: 24px;
-      border-rounded: 12px;
       border-radius: 12px;
       margin-bottom: 24px;
     }
 
     .header-banner h1 {
       margin: 0;
-      font-size: 24px;
-      color: #38bdf8;
+      font-size: 22px;
+      color: #0369a1;
       font-weight: 800;
       letter-spacing: -0.5px;
     }
@@ -41,7 +40,7 @@
     .header-banner p {
       margin: 6px 0 0 0;
       font-size: 13px;
-      color: #94a3b8;
+      color: #475569;
     }
 
     .meta-grid {
@@ -50,7 +49,7 @@
       gap: 12px;
       margin-top: 16px;
       padding-top: 16px;
-      border-top: 1px solid #334155;
+      border-top: 1px solid #e2e8f0;
       font-size: 11px;
     }
 
@@ -62,24 +61,25 @@
     }
 
     .meta-item font {
-      color: #34d399;
+      color: #0284c7;
       font-weight: 700;
       font-family: 'JetBrains Mono', monospace;
     }
 
     .diagram-card {
-      background: #0f172a;
-      border: 1px solid #1e293b;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 24px;
       page-break-inside: avoid;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     .diagram-card h2 {
       margin: 0 0 8px 0;
       font-size: 16px;
-      color: #38bdf8;
+      color: #0369a1;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -89,14 +89,14 @@
     .diagram-card p {
       margin: 0 0 16px 0;
       font-size: 12px;
-      color: #94a3b8;
+      color: #475569;
     }
 
     .mermaid {
-      background: #020617;
+      background: #ffffff;
       padding: 16px;
       border-radius: 8px;
-      border: 1px solid #1e293b;
+      border: 1px solid #e2e8f0;
       display: flex;
       justify-content: center;
     }
@@ -112,9 +112,9 @@
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      background: rgba(56, 189, 248, 0.1);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      background: rgba(3, 105, 161, 0.1);
+      color: #0369a1;
+      border: 1px solid rgba(3, 105, 161, 0.2);
     }
   </style>
 </head>
@@ -122,7 +122,7 @@
 
   <div class="header-banner">
     <h1>EduCRM — Complete System & Component Sequence Diagrams (UML)</h1>
-    <p>Comprehensive Architectural Specification & Flow Diagrams covering all 27 Requirement Sections (CRM.pdf)</p>
+    <p>Comprehensive Architectural Specification & Plain-White UML Sequence Diagrams (CRM.pdf)</p>
 
     <div class="meta-grid">
       <div class="meta-item">
@@ -160,7 +160,7 @@ sequenceDiagram
     participant Drive as Google Drive Storage API
     participant Gemini as Google Gemini 2.0 AI API
 
-    rect rgb(15, 23, 42)
+    rect rgb(240, 244, 248)
     note right of Lead: Stage 1: Lead Ingestion & Registration
     Lead->>System: Submit Web Form / Self-Register
     System-->>Lead: Send Confirmation & Provision Portal Access
@@ -168,7 +168,7 @@ sequenceDiagram
     System-->>Agent: Generate Referral Code & Commission Ledger Entry
     end
 
-    rect rgb(16, 35, 30)
+    rect rgb(240, 248, 240)
     note right of Counsellor: Stage 2: AI Counselling & Eligibility
     Counsellor->>System: Run AI Course Recommendation Query
     System->>Gemini: POST Prompt (GPA, IELTS, Budget, Country Preferences)
@@ -181,7 +181,7 @@ sequenceDiagram
     System-->>Counsellor: Display SOP Draft with Copy Action
     end
 
-    rect rgb(30, 20, 45)
+    rect rgb(248, 240, 248)
     note right of Lead: Stage 3: Document Upload & Vision OCR
     Lead->>System: Upload Passport / Transcript File
     System->>Drive: POST Base64 File to Apps Script Web App Endpoint
@@ -191,14 +191,14 @@ sequenceDiagram
     System-->>Counsellor: Pre-populate Profile & Save Metadata
     end
 
-    rect rgb(35, 25, 15)
+    rect rgb(255, 248, 240)
     note right of Admissions: Stage 4: Application Workflow & Decisioning
     Admissions->>System: Review Application & Verify Checklist Documents
     Admissions->>System: Issue Conditional / Unconditional Offer
     System-->>Lead: Notify Offer Status in Student Portal
     end
 
-    rect rgb(30, 15, 25)
+    rect rgb(248, 240, 240)
     note right of Admin: Stage 5: Financial Ledger & GDPR Governance
     Admin->>System: Run Lead Deduplication Scan
     System-->>Admin: Display Flagged Duplicates & Execute Merge
@@ -469,7 +469,7 @@ sequenceDiagram
   <script>
     mermaid.initialize({
       startOnLoad: true,
-      theme: 'dark',
+      theme: 'default',
       sequence: {
         diagramMarginX: 10,
         diagramMarginY: 10,
