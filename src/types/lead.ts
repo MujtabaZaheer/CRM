@@ -17,6 +17,14 @@ export type LeadSource =
   | "Agent"
   | "Other";
 
+export interface LeadInteraction {
+  id: string;
+  timestamp: number;
+  type: "Call" | "Email" | "WhatsApp" | "Meeting" | "Note" | "Stage Change";
+  summary: string;
+  performedBy: string;
+}
+
 export interface Lead {
   id: string;
   fullName: string;
@@ -27,12 +35,19 @@ export interface Lead {
   countryOfResidence?: string;
   programInterest?: string;
   destinationCountry?: string;
+  preferredIntake?: string;
+  budgetRangeUSD?: string;
   source: LeadSource;
   stage: LeadStage;
   notes?: string;
-  assignedTo?: string; // uid, optional for now
+  assignedTo?: string; // uid or email
+  assignedCounsellor?: string;
+  assignedAt?: number;
+  leadScore?: number; // 0-100
+  interactionLog?: LeadInteraction[];
   lastContactedAt?: number;
   lostReason?: string;
   createdAt: number;
   updatedAt: number;
 }
+

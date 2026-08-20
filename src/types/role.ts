@@ -55,6 +55,7 @@ export interface AppUser {
   createdAt: number;
   office?: string;
   team?: string;
+  branchId?: string;
   agencyName?: string;
   universityName?: string;
 }

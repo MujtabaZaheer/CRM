@@ -21,6 +21,52 @@ export interface EnglishTestScore {
   expiryDate?: string;
 }
 
+export interface EmploymentRecord {
+  employer: string;
+  jobTitle: string;
+  country: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+export interface FinancialSponsor {
+  name: string;
+  relationship: string;
+  annualIncomeUSD: number;
+  bankStatementUploaded: boolean;
+}
+
+export interface VisaRefusal {
+  country: string;
+  date: string;
+  reason: string;
+  appealOutcome?: string;
+}
+
+export interface Dependant {
+  name: string;
+  relationship: string;
+  dateOfBirth: string;
+  accompanyingStudent: boolean;
+}
+
+export interface Reference {
+  name: string;
+  designation: string;
+  institution: string;
+  email: string;
+  phone: string;
+  letterUploaded: boolean;
+}
+
+export interface ResearchProposal {
+  title: string;
+  abstract: string;
+  supervisorPreference: string;
+  fileUrl?: string;
+}
+
 export interface Student {
   id: string;
   leadId?: string;
@@ -37,6 +83,25 @@ export interface Student {
   academicHistory: AcademicRecord[];
   englishProficiency?: EnglishTestScore;
   
+  // Employment & Gap
+  employmentHistory?: EmploymentRecord[];
+  studyGapJustification?: string;
+
+  // Financial
+  financialSponsor?: FinancialSponsor;
+
+  // Visa History
+  visaRefusalHistory?: VisaRefusal[];
+
+  // Dependants
+  dependants?: Dependant[];
+
+  // References
+  references?: Reference[];
+
+  // Research (for PhD applicants)
+  researchProposal?: ResearchProposal;
+
   preferredDestination?: string;
   preferredIntake?: string;
   budgetAnnualUsd?: number;
@@ -45,6 +110,11 @@ export interface Student {
   assignedCounsellorId?: string;
   notes?: string;
 
+  // Consent
+  consentGivenAt?: number;
+  consentVersion?: string;
+
   createdAt: number;
   updatedAt: number;
 }
+
