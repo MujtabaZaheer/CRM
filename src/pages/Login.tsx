@@ -80,7 +80,7 @@ export const Login: React.FC = () => {
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-md">
+      <div className="w-full max-w-lg bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-5 sm:p-8 space-y-6 relative z-10 backdrop-blur-md">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-zinc-950 font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
             E
@@ -110,11 +110,11 @@ export const Login: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5" />
             <span>Local Dev / Quick Demo Login:</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("counsellor")}
-              className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <GraduationCap className="w-3.5 h-3.5" />
               <span>Counsellor</span>
@@ -122,7 +122,7 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("team_leader")}
-              className="px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <Users2 className="w-3.5 h-3.5" />
               <span>Team Leader</span>
@@ -130,21 +130,21 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("admissions_officer")}
-              className="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <span>Admissions</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("finance_officer")}
-              className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <span>Finance</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("platform_super_admin")}
-              className="px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <Shield className="w-3.5 h-3.5" />
               <span>Super Admin</span>
@@ -152,42 +152,42 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("support_user")}
-              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
-              <span>Support User</span>
+              <span>Support</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("auditor")}
-              className="px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <span>Auditor</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("visa_officer")}
-              className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <span>Visa Officer</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("student")}
-              className="px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
-              <span>Student Portal</span>
+              <span>Student</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("external_agent")}
-              className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
-              <span>External Agent</span>
+              <span>Agent</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("university_partner")}
-              className="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors"
+              className="col-span-2 sm:col-span-1 px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
               <span>University Partner</span>
             </button>
