@@ -5,7 +5,8 @@ import { Student, QualificationLevel } from "../types/student";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
 import { logAuditEvent } from "../utils/auditLogger";
-import { Plus, Search, Eye, GraduationCap, Mail, Phone, Globe, BookOpen, Award, AlertCircle, X } from "lucide-react";
+import { getStudentJourneyFeed, JourneyEvent, STANDARD_JOURNEY_MILESTONES } from "../utils/studentJourney";
+import { Plus, Search, Eye, GraduationCap, Mail, Phone, Globe, BookOpen, Award, AlertCircle, X, History } from "lucide-react";
 
 export const Students: React.FC = () => {
   const { appUser } = useAuth();
@@ -14,6 +15,9 @@ export const Students: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [studentModalTab, setStudentModalTab] = useState<"overview" | "journey">("overview");
+  const [journeyEvents, setJourneyEvents] = useState<JourneyEvent[]>([]);
+  const [loadingJourney, setLoadingJourney] = useState(false);
 
   // Form State
   const [fullName, setFullName] = useState("");
@@ -106,6 +110,20 @@ export const Students: React.FC = () => {
       setIsAddModalOpen(false);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to create student.");
+    }
+  };
+
+  const handleOpenStudentModal = async (student: Student) => {
+    setSelectedStudent(student);
+    setStudentModalTab("overview");
+    setLoadingJourney(true);
+    try {
+      const feed = await getStudentJourneyFeed(student.id);
+      setJourneyEvents(feed);
+    } catch (err) {
+      console.warn("Error fetching student journey:", err);
+    } finally {
+      setLoadingJourney(false);
     }
   };
 
@@ -227,9 +245,9 @@ export const Students: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => setSelectedStudent(student)}
+                          onClick={() => handleOpenStudentModal(student)}
                           className="p-1.5 bg-[var(--bg-elevated)] hover:bg-emerald-500/10 text-[var(--text-secondary)] hover:text-emerald-400 sq-btn transition-colors border border-[var(--border-default)]"
-                          title="View Full Profile"
+                          title="View Profile & Journey"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -399,13 +417,13 @@ export const Students: React.FC = () => {
           </div>
         )}
 
-        {/* Modal: View Student Detail */}
+        {/* Modal: View Student Detail & Journey Timeline */}
         {selectedStudent && (
           <div className="fixed inset-0 z-50 bg-[var(--backdrop)] backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal w-full max-w-xl p-6 space-y-6 shadow-2xl">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl w-full max-w-2xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 sq-avatar bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-lg">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-lg">
                     {selectedStudent.fullName.charAt(0)}
                   </div>
                   <div>
@@ -418,62 +436,159 @@ export const Students: React.FC = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card space-y-1">
-                  <div className="text-[var(--text-muted)] flex items-center space-x-1">
-                    <Mail className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Email</span>
-                  </div>
-                  <div className="font-semibold text-[var(--text-primary)]">{selectedStudent.email}</div>
-                </div>
-                <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card space-y-1">
-                  <div className="text-[var(--text-muted)] flex items-center space-x-1">
-                    <Phone className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Phone</span>
-                  </div>
-                  <div className="font-semibold text-[var(--text-primary)]">{selectedStudent.phone}</div>
-                </div>
-                <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card space-y-1">
-                  <div className="text-[var(--text-muted)] flex items-center space-x-1">
-                    <Globe className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Nationality</span>
-                  </div>
-                  <div className="font-semibold text-[var(--text-primary)]">{selectedStudent.nationality}</div>
-                </div>
-                <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card space-y-1">
-                  <div className="text-[var(--text-muted)] flex items-center space-x-1">
-                    <Award className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Profile Score</span>
-                  </div>
-                  <div className="font-semibold text-emerald-400">{selectedStudent.profileCompleteness}% Complete</div>
-                </div>
+              {/* Modal Tabs */}
+              <div className="flex space-x-2 border-b border-[var(--border-default)] pb-2 text-xs">
+                <button
+                  onClick={() => setStudentModalTab("overview")}
+                  className={`px-3 py-1.5 rounded-xl font-semibold transition-all ${
+                    studentModalTab === "overview"
+                      ? "bg-emerald-500 text-slate-950 font-bold"
+                      : "text-[var(--text-secondary)] hover:text-white"
+                  }`}
+                >
+                  Profile Overview
+                </button>
+                <button
+                  onClick={() => setStudentModalTab("journey")}
+                  className={`px-3 py-1.5 rounded-xl font-semibold flex items-center space-x-1.5 transition-all ${
+                    studentModalTab === "journey"
+                      ? "bg-emerald-500 text-slate-950 font-bold"
+                      : "text-[var(--text-secondary)] hover:text-white"
+                  }`}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  <span>Student Journey & Timeline ({journeyEvents.length})</span>
+                </button>
               </div>
 
-              {/* Academic Details */}
-              <div className="space-y-2">
-                <span className="font-bold text-[var(--text-primary)] text-xs flex items-center space-x-1.5">
-                  <BookOpen className="w-4 h-4 text-emerald-400" />
-                  <span>Academic History</span>
-                </span>
-                {selectedStudent.academicHistory && selectedStudent.academicHistory.length > 0 ? (
-                  selectedStudent.academicHistory.map((rec, i) => (
-                    <div key={i} className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card text-xs flex justify-between items-center">
-                      <div>
-                        <div className="font-bold text-[var(--text-primary)]">{rec.degreeTitle} ({rec.qualification})</div>
-                        <div className="text-[var(--text-muted)]">{rec.institution} • {rec.completionYear}</div>
+              {studentModalTab === "overview" ? (
+                <div className="space-y-4 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-1">
+                      <div className="text-[var(--text-muted)] flex items-center space-x-1">
+                        <Mail className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Email</span>
                       </div>
-                      <div className="text-emerald-400 font-mono font-bold">{rec.gradeGpa}</div>
+                      <div className="font-semibold text-[var(--text-primary)] truncate">{selectedStudent.email}</div>
                     </div>
-                  ))
-                ) : (
-                  <div className="p-3 text-[var(--text-muted)] text-xs">No academic records specified.</div>
-                )}
-              </div>
+                    <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-1">
+                      <div className="text-[var(--text-muted)] flex items-center space-x-1">
+                        <Phone className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Phone</span>
+                      </div>
+                      <div className="font-semibold text-[var(--text-primary)]">{selectedStudent.phone}</div>
+                    </div>
+                    <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-1">
+                      <div className="text-[var(--text-muted)] flex items-center space-x-1">
+                        <Globe className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Nationality</span>
+                      </div>
+                      <div className="font-semibold text-[var(--text-primary)]">{selectedStudent.nationality}</div>
+                    </div>
+                    <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-1">
+                      <div className="text-[var(--text-muted)] flex items-center space-x-1">
+                        <Award className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Profile Score</span>
+                      </div>
+                      <div className="font-semibold text-emerald-400 font-mono">{selectedStudent.profileCompleteness || 30}% Complete</div>
+                    </div>
+                  </div>
 
-              <div className="flex justify-end pt-2">
+                  {/* Financial Sponsor & Study Preferences */}
+                  <div className="p-4 bg-[var(--bg-main)] border border-[var(--border-default)] rounded-xl space-y-2">
+                    <span className="font-bold text-[var(--text-primary)] block text-xs">Admissions Profile Summary</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-[var(--text-muted)] block">Target Destination:</span>
+                        <span className="font-semibold text-[var(--text-primary)]">{selectedStudent.preferredDestination || "United Kingdom"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[var(--text-muted)] block">Target Intake:</span>
+                        <span className="font-semibold text-[var(--text-primary)]">{selectedStudent.preferredIntake || "Fall 2026"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[var(--text-muted)] block">Annual Budget:</span>
+                        <span className="font-semibold text-emerald-400 font-mono">${(selectedStudent.budgetAnnualUsd || 25000).toLocaleString()} USD</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Academic Details */}
+                  <div className="space-y-2">
+                    <span className="font-bold text-[var(--text-primary)] text-xs flex items-center space-x-1.5">
+                      <BookOpen className="w-4 h-4 text-emerald-400" />
+                      <span>Academic Credentials</span>
+                    </span>
+                    {selectedStudent.academicHistory && selectedStudent.academicHistory.length > 0 ? (
+                      selectedStudent.academicHistory.map((rec, i) => (
+                        <div key={i} className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl text-xs flex justify-between items-center">
+                          <div>
+                            <div className="font-bold text-[var(--text-primary)]">{rec.degreeTitle} ({rec.qualification})</div>
+                            <div className="text-[var(--text-muted)] text-[11px]">{rec.institution} • Completed {rec.completionYear}</div>
+                          </div>
+                          <div className="text-emerald-400 font-mono font-bold">{rec.gradeGpa}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-3 text-[var(--text-muted)] text-xs bg-[var(--bg-elevated)] rounded-xl">No academic records specified.</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Journey Timeline Tab */
+                <div className="space-y-4 text-xs">
+                  {/* Journey Milestones Progress Bar */}
+                  <div className="p-4 bg-[var(--bg-main)] border border-[var(--border-default)] rounded-xl space-y-3">
+                    <span className="font-bold text-[var(--text-primary)] block text-xs">Standard Admissions Milestones</span>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {STANDARD_JOURNEY_MILESTONES.slice(0, 5).map((m, idx) => (
+                        <div key={m.key} className="p-2 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg text-center">
+                          <span className="text-[9px] text-[var(--text-muted)] block">Step {idx + 1}</span>
+                          <span className="font-bold text-[10px] text-emerald-400 block truncate">{m.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Chronological Event Stream */}
+                  {loadingJourney ? (
+                    <div className="p-8 text-center text-[var(--text-muted)]">
+                      Loading unified student journey events...
+                    </div>
+                  ) : journeyEvents.length === 0 ? (
+                    <div className="p-6 text-center text-[var(--text-muted)] bg-[var(--bg-elevated)] rounded-xl">
+                      No tracked events in journey history yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-80 overflow-y-auto pl-1">
+                      {journeyEvents.map((evt) => (
+                        <div key={evt.id} className="flex items-start space-x-3 p-3 bg-[var(--bg-main)] border border-[var(--border-default)] rounded-xl">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0 mt-0.5">
+                            <History className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex-1 space-y-0.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-[var(--text-primary)] text-xs">{evt.title}</span>
+                              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                                {new Date(evt.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[var(--text-secondary)]">{evt.description}</p>
+                            <span className="text-[9px] text-[var(--text-muted)] block">
+                              Recorded by: {evt.author}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="px-4 py-2 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] font-medium sq-btn text-xs"
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold rounded-xl text-xs"
                 >
                   Close
                 </button>
