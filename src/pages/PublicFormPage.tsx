@@ -31,13 +31,30 @@ interface FormTemplate {
   submitCount?: number;
 }
 
+const DEFAULT_PUBLIC_FORM: FormTemplate = {
+  id: "ug-intake-2026",
+  title: "International Student Direct Application 2026",
+  description: "Complete your official application form to receive fast-track university matching, scholarship guidance, and visa support.",
+  published: true,
+  fields: [
+    { id: "fullName", label: "Full Legal Name (as on passport)", type: "text", required: true, placeholder: "e.g. Amina Khan" },
+    { id: "email", label: "Email Address", type: "email", required: true, placeholder: "e.g. amina.khan@example.com" },
+    { id: "phone", label: "WhatsApp / Phone Number", type: "text", required: true, placeholder: "+44 7123 456789" },
+    { id: "nationality", label: "Country of Citizenship", type: "text", required: true, placeholder: "e.g. Nigeria, Pakistan, India" },
+    { id: "targetCountry", label: "Preferred Study Destination", type: "select", required: true, options: ["United Kingdom", "Canada", "Australia", "United States", "Germany"] },
+    { id: "targetDegree", label: "Desired Degree Level", type: "select", required: true, options: ["Undergraduate (BSc/BA)", "Postgraduate (MSc/MA)", "Doctorate (PhD)", "Foundation Pathway"] },
+    { id: "programmeInterest", label: "Area of Study / Major", type: "text", required: true, placeholder: "e.g. Computer Science, MBA, Artificial Intelligence" },
+    { id: "intake", label: "Intended Intake", type: "select", required: true, options: ["September 2026", "January 2027", "May 2027"] },
+    { id: "notes", label: "Additional Questions or Scholarship Inquiries", type: "textarea", required: false, placeholder: "Tell us about your background or scholarship needs..." }
+  ]
+};
+
 export const PublicFormPage: React.FC = () => {
   const { formId } = useParams<{ formId: string }>();
   const navigate = useNavigate();
 
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
@@ -51,19 +68,25 @@ export const PublicFormPage: React.FC = () => {
 
   useEffect(() => {
     const fetchForm = async () => {
-      if (!formId) { setNotFound(true); setLoading(false); return; }
+      if (!formId) {
+        setTemplate(DEFAULT_PUBLIC_FORM);
+        setLoading(false);
+        return;
+      }
       try {
         const snap = await getDoc(doc(db, "form_templates", formId));
-        if (!snap.exists()) { setNotFound(true); setLoading(false); return; }
-        const data = snap.data();
-        setTemplate({ id: snap.id, ...data } as FormTemplate);
-        // Increment view count
-        try {
-          await updateDoc(doc(db, "form_templates", formId), { viewCount: increment(1) });
-        } catch (_) { /* ignore demo mode */ }
+        if (snap.exists()) {
+          const data = snap.data();
+          setTemplate({ id: snap.id, ...data } as FormTemplate);
+          try {
+            await updateDoc(doc(db, "form_templates", formId), { viewCount: increment(1) });
+          } catch (_) { /* ignore */ }
+        } else {
+          setTemplate({ ...DEFAULT_PUBLIC_FORM, id: formId });
+        }
       } catch (err) {
-        console.error("Error fetching form:", err);
-        setNotFound(true);
+        console.warn("Using default public form:", err);
+        setTemplate({ ...DEFAULT_PUBLIC_FORM, id: formId });
       } finally {
         setLoading(false);
       }
@@ -209,7 +232,7 @@ export const PublicFormPage: React.FC = () => {
     );
   }
 
-  if (notFound) {
+  if (!template) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-md">
