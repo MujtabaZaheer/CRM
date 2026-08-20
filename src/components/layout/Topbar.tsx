@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 import { GlobalSearch } from "../common/GlobalSearch";
 import { NotificationBell } from "../common/NotificationBell";
+import { BranchSwitcher } from "./BranchSwitcher";
 import { CourseRecommendationModal } from "../ai/CourseRecommendationModal";
 import { VisaProbabilityModal } from "../ai/VisaProbabilityModal";
 import { DocumentExtractionModal } from "../ai/DocumentExtractionModal";
@@ -134,6 +135,9 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
             </div>
           )}
         </div>
+
+        {/* Multi-Branch Switcher */}
+        <BranchSwitcher />
 
         {/* Notifications Component */}
         <NotificationBell />
