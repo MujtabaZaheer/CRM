@@ -1,68 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Bell, CheckCheck } from "lucide-react";
-import { collection, doc, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
+import React, { useState } from "react";
+import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { db } from "../../firebase/config";
-
-export interface AppNotification {
-  id: string;
-  title: string;
-  description: string;
-  userEmail?: string;
-  read: boolean;
-  type: "info" | "success" | "alert" | "warning";
-  createdAt: number;
-}
+import { useNotifications } from "../../contexts/NotificationProvider";
 
 export const NotificationBell: React.FC = () => {
-  const { appUser } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
-
-  useEffect(() => {
-    if (!appUser?.email) return;
-
-    const unsub = onSnapshot(
-      query(
-        collection(db, "notifications"),
-        where("userEmail", "in", [appUser.email, "all"]),
-        orderBy("createdAt", "desc")
-      ),
-      (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AppNotification);
-        setNotifications(list);
-      },
-      () => {
-        // Fallback for missing composite index or demo mode
-      }
-    );
-
-    return () => unsub();
-  }, [appUser?.email]);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const markAsRead = async (id: string) => {
-    try {
-      await updateDoc(doc(db, "notifications", id), { read: true });
-    } catch {
-      // Ignored in offline mode
-    }
-  };
-
-  const markAllAsRead = async () => {
-    notifications
-      .filter((n) => !n.read)
-      .forEach(async (n) => {
-        try {
-          await updateDoc(doc(db, "notifications", n.id), { read: true });
-        } catch {
-          // Ignored
-        }
-      });
-  };
 
   return (
     <div className="relative">
@@ -98,26 +42,40 @@ export const NotificationBell: React.FC = () => {
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-[var(--text-muted)]">No active notifications</div>
             ) : (
-              notifications.slice(0, 8).map((n) => (
+              notifications.slice(0, 10).map((n) => (
                 <div
                   key={n.id}
-                  onClick={() => markAsRead(n.id)}
-                  className={`p-3 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors flex items-start space-x-2.5 ${
+                  onClick={() => n.id && markAsRead(n.id)}
+                  className={`p-3 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors flex items-start justify-between space-x-2.5 ${
                     !n.read ? "bg-emerald-500/5" : ""
                   }`}
                 >
-                  <div
-                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                      !n.read ? "bg-emerald-400" : "bg-transparent"
-                    }`}
-                  />
-                  <div className="flex-1">
-                    <div className="font-semibold text-[var(--text-primary)]">{n.title}</div>
-                    <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">{n.description}</div>
-                    <div className="text-[9px] text-[var(--text-muted)] mt-1 font-mono">
-                      {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  <div className="flex items-start space-x-2.5 flex-1">
+                    <div
+                      className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                        !n.read ? "bg-emerald-400" : "bg-transparent"
+                      }`}
+                    />
+                    <div>
+                      <div className="font-semibold text-[var(--text-primary)]">{n.title}</div>
+                      <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">{n.message}</div>
+                      <div className="text-[9px] text-[var(--text-muted)] mt-1 font-mono">
+                        {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
                     </div>
                   </div>
+
+                  {n.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(n.id!);
+                      }}
+                      className="text-zinc-600 hover:text-rose-400 p-1 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -139,3 +97,4 @@ export const NotificationBell: React.FC = () => {
     </div>
   );
 };
+

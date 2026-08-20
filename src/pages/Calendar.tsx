@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
-import { addDoc, collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Trash2, Clock, MapPin } from "lucide-react";
+import { addDoc, collection, onSnapshot, orderBy, query, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
@@ -14,6 +14,8 @@ export interface Appointment {
   time: string;
   type: "Consultation" | "Visa Interview Prep" | "Document Review" | "University Briefing" | "Other";
   location?: string;
+  recurrence?: "none" | "daily" | "weekly" | "monthly";
+  reminderMinutes?: number;
   notes?: string;
   createdAt: number;
   createdBy: string;
@@ -25,6 +27,7 @@ export const CalendarPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Appointment | null>(null);
   const [form, setForm] = useState({
     title: "",
     studentName: "",
@@ -32,6 +35,8 @@ export const CalendarPage: React.FC = () => {
     time: "10:00",
     type: "Consultation" as Appointment["type"],
     location: "Online Zoom Call",
+    recurrence: "none" as Appointment["recurrence"],
+    reminderMinutes: 30,
     notes: "",
   });
 
@@ -71,6 +76,8 @@ export const CalendarPage: React.FC = () => {
         time: form.time,
         type: form.type,
         location: form.location.trim(),
+        recurrence: form.recurrence,
+        reminderMinutes: form.reminderMinutes,
         notes: form.notes.trim(),
         createdAt: Date.now(),
         createdBy: appUser?.email || "Staff",
@@ -94,10 +101,21 @@ export const CalendarPage: React.FC = () => {
         time: "10:00",
         type: "Consultation",
         location: "Online Zoom Call",
+        recurrence: "none",
+        reminderMinutes: 30,
         notes: "",
       });
     } catch (err) {
       console.error("Failed to schedule appointment:", err);
+    }
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "appointments", id));
+      setSelectedEvent(null);
+    } catch (err) {
+      console.error("Failed to delete appointment:", err);
     }
   };
 
@@ -206,7 +224,8 @@ export const CalendarPage: React.FC = () => {
                   {dayAppointments.map((apt) => (
                     <div
                       key={apt.id}
-                      className="p-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded text-[10px] space-y-0.5 font-medium"
+                      onClick={() => setSelectedEvent(apt)}
+                      className="p-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 cursor-pointer border border-emerald-500/30 text-emerald-300 rounded text-[10px] space-y-0.5 font-medium transition-colors"
                     >
                       <div className="font-semibold truncate">{apt.title}</div>
                       <div className="text-[9px] text-[var(--text-muted)] truncate flex items-center justify-between">
@@ -320,6 +339,36 @@ export const CalendarPage: React.FC = () => {
                 </label>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-[var(--text-secondary)] font-medium">
+                  Recurrence
+                  <select
+                    value={form.recurrence}
+                    onChange={(e) => setForm({ ...form, recurrence: e.target.value as any })}
+                    className="w-full mt-1 p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input"
+                  >
+                    <option value="none">One-off (No recurrence)</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </label>
+
+                <label className="block text-[var(--text-secondary)] font-medium">
+                  Reminder SLA
+                  <select
+                    value={form.reminderMinutes}
+                    onChange={(e) => setForm({ ...form, reminderMinutes: Number(e.target.value) })}
+                    className="w-full mt-1 p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input"
+                  >
+                    <option value={15}>15 minutes before</option>
+                    <option value={30}>30 minutes before</option>
+                    <option value={60}>1 hour before</option>
+                    <option value={1440}>1 day before</option>
+                  </select>
+                </label>
+              </div>
+
               <label className="block text-[var(--text-secondary)] font-medium">
                 Notes
                 <textarea
@@ -347,6 +396,79 @@ export const CalendarPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Event Details View Modal */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <CalendarIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-sm text-[var(--text-primary)]">{selectedEvent.title}</h3>
+                  <span className="text-[10px] text-emerald-400 font-semibold">{selectedEvent.type}</span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedEvent(null)} className="text-[var(--text-muted)] hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="p-3 bg-[var(--bg-elevated)] rounded-xl space-y-1">
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Student / Attendee</span>
+                <span className="text-[var(--text-primary)] font-bold">{selectedEvent.studentName}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 bg-[var(--bg-elevated)] rounded-xl space-y-0.5">
+                  <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block flex items-center space-x-1">
+                    <Clock className="w-3 h-3" />
+                    <span>Time & Date</span>
+                  </span>
+                  <span className="text-[var(--text-primary)] font-medium">{selectedEvent.date} @ {selectedEvent.time}</span>
+                </div>
+
+                <div className="p-3 bg-[var(--bg-elevated)] rounded-xl space-y-0.5">
+                  <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block flex items-center space-x-1">
+                    <MapPin className="w-3 h-3" />
+                    <span>Location</span>
+                  </span>
+                  <span className="text-[var(--text-primary)] font-medium truncate block">{selectedEvent.location || "Online"}</span>
+                </div>
+              </div>
+
+              {selectedEvent.notes && (
+                <div className="p-3 bg-[var(--bg-elevated)] rounded-xl space-y-1">
+                  <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Agenda Notes</span>
+                  <p className="text-[var(--text-secondary)] italic">{selectedEvent.notes}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-[var(--border-default)]">
+              <button
+                type="button"
+                onClick={() => handleDeleteAppointment(selectedEvent.id)}
+                className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs rounded-xl flex items-center space-x-1 border border-rose-500/20 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedEvent(null)}
+                className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-xl"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

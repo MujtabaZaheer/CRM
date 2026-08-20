@@ -20,6 +20,8 @@ export const Tasks: React.FC = () => {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
   const [priority, setPriority] = useState<TaskPriority>("Medium");
+  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [reminderMinutes, setReminderMinutes] = useState(30);
   const [linkedEntityType] = useState<"lead" | "student" | "application">("student");
   const [linkedEntityName, setLinkedEntityName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -52,6 +54,8 @@ export const Tasks: React.FC = () => {
         dueDate,
         priority,
         status: "Open",
+        recurrence,
+        reminderMinutes,
         linkedEntityType,
         linkedEntityName: linkedEntityName || "General",
         assignedTo: appUser?.email || "Counsellor",
@@ -73,6 +77,8 @@ export const Tasks: React.FC = () => {
       // Reset
       setTitle("");
       setDescription("");
+      setRecurrence("none");
+      setReminderMinutes(30);
       setLinkedEntityName("");
       setErrorMsg("");
       setIsAddModalOpen(false);
@@ -86,8 +92,37 @@ export const Tasks: React.FC = () => {
     try {
       await updateDoc(doc(db, "tasks", task.id), {
         status: newStatus,
+        completedAt: newStatus === "Completed" ? Date.now() : undefined,
         updatedAt: Date.now(),
       });
+
+      // If completing a recurring task, automatically generate the next occurrence
+      if (newStatus === "Completed" && task.recurrence && task.recurrence !== "none") {
+        const currentDue = new Date(task.dueDate);
+        let nextDueDate = new Date(currentDue);
+        if (task.recurrence === "daily") {
+          nextDueDate.setDate(nextDueDate.getDate() + 1);
+        } else if (task.recurrence === "weekly") {
+          nextDueDate.setDate(nextDueDate.getDate() + 7);
+        } else if (task.recurrence === "monthly") {
+          nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        }
+
+        await addDoc(collection(db, "tasks"), {
+          title: task.title,
+          description: task.description,
+          dueDate: nextDueDate.toISOString().slice(0, 10),
+          priority: task.priority,
+          status: "Open",
+          recurrence: task.recurrence,
+          linkedEntityType: task.linkedEntityType,
+          linkedEntityName: task.linkedEntityName,
+          assignedTo: task.assignedTo,
+          createdBy: "Recurring Schedule Engine",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
     } catch (err) {
       console.error("Failed to toggle task status:", err);
     }
@@ -242,17 +277,17 @@ export const Tasks: React.FC = () => {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-[var(--text-secondary)] mb-1">Due Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Due Date *</label>
-                    <input
-                      type="date"
-                      required
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
-                    />
-                  </div>
                   <div>
                     <label className="block text-[var(--text-secondary)] mb-1">Priority</label>
                     <select
@@ -266,6 +301,34 @@ export const Tasks: React.FC = () => {
                       <option value="Urgent">Urgent</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-[var(--text-secondary)] mb-1">Recurrence</label>
+                    <select
+                      value={recurrence}
+                      onChange={(e) => setRecurrence(e.target.value as any)}
+                      className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
+                    >
+                      <option value="none">One-time Task</option>
+                      <option value="daily">Daily Recurring</option>
+                      <option value="weekly">Weekly Recurring</option>
+                      <option value="monthly">Monthly Recurring</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[var(--text-secondary)] mb-1">Reminder Notification</label>
+                  <select
+                    value={reminderMinutes}
+                    onChange={(e) => setReminderMinutes(Number(e.target.value))}
+                    className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
+                  >
+                    <option value={15}>15 minutes before due</option>
+                    <option value={30}>30 minutes before due</option>
+                    <option value={60}>1 hour before due</option>
+                    <option value={1440}>1 day before due</option>
+                  </select>
                 </div>
 
                 <div>
