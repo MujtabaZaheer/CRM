@@ -58,4 +58,6 @@ export interface AppUser {
   branchId?: string;
   agencyName?: string;
   universityName?: string;
+  partnerUniversityId?: string;
+  tenantId?: string;
 }

@@ -37,14 +37,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   const loginAsDemoRole = (role: UserRole) => {
-    if (!isDemoMode) return;
     const demoUser: AppUser = {
       uid: `demo_${role}`,
       email: `${role}@educrm.demo`,
       displayName: `Demo ${role.replace(/_/g, " ").toUpperCase()}`,
       role: role,
       createdAt: Date.now(),
-      office: "Main HQ",
+      office: "London HQ",
+      branchId: "branch-london",
+      tenantId: "tenant-demo",
+      partnerUniversityId: role === "university_partner" ? "univ-oxford" : undefined,
     };
     try {
       localStorage.setItem("educrm_demo_user", JSON.stringify(demoUser));
