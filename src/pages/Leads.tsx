@@ -3,8 +3,10 @@ import { collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "
 import { db } from "../firebase/config";
 import { Lead, LeadSource, LeadStage } from "../types/lead";
 import { RoleGate } from "../components/layout/RoleGate";
-import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye, Copy, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye, Copy, ShieldAlert, CheckCircle2, MessageSquarePlus, Clock, Flame } from "lucide-react";
 import { detectDuplicateLeads, mergeDuplicateLeads, DuplicateCluster, LeadRecord } from "../utils/dataQuality";
+import { autoAssignLead } from "../utils/leadRouter";
+import { calculateLeadScore } from "../utils/leadScoring";
 
 const LEAD_STAGES: LeadStage[] = [
   "New",
@@ -55,6 +57,45 @@ export const LeadsContent: React.FC = () => {
   const [isDedupModalOpen, setIsDedupModalOpen] = useState(false);
   const [dedupClusters, setDedupClusters] = useState<DuplicateCluster[]>([]);
   const [mergingId, setMergingId] = useState<string | null>(null);
+
+  // Interaction State
+  const [interactionType, setInteractionType] = useState<"Call" | "Email" | "WhatsApp" | "Meeting" | "Note">("Call");
+  const [interactionSummary, setInteractionSummary] = useState("");
+  const [addingInteraction, setAddingInteraction] = useState(false);
+
+  const handleAddInteraction = async (leadId: string) => {
+    if (!interactionSummary.trim()) return;
+    setAddingInteraction(true);
+    try {
+      const current = leads.find((l) => l.id === leadId);
+      const existingLogs = current?.interactionLog || [];
+      const newEntry = {
+        id: `int_${Date.now()}`,
+        timestamp: Date.now(),
+        type: interactionType,
+        summary: interactionSummary.trim(),
+        performedBy: "Counsellor",
+      };
+      const updatedLogs = [newEntry, ...existingLogs];
+      const recalculated = calculateLeadScore({ ...current, interactionLog: updatedLogs });
+
+      await updateDoc(doc(db, "leads", leadId), {
+        interactionLog: updatedLogs,
+        leadScore: recalculated.totalScore,
+        lastContactedAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      if (selectedLead && selectedLead.id === leadId) {
+        setSelectedLead((prev) => prev ? { ...prev, interactionLog: updatedLogs, leadScore: recalculated.totalScore } : null);
+      }
+      setInteractionSummary("");
+    } catch (err) {
+      console.error("Error adding interaction:", err);
+    } finally {
+      setAddingInteraction(false);
+    }
+  };
 
   const handleScanDuplicates = () => {
     const formattedRecords: LeadRecord[] = leads.map((l) => ({
@@ -133,6 +174,34 @@ export const LeadsContent: React.FC = () => {
     setSubmitting(true);
 
     try {
+      // 1. Calculate Initial Lead Score
+      const tempLead = {
+        fullName,
+        email,
+        phone,
+        nationality,
+        countryOfResidence,
+        programInterest,
+        destinationCountry,
+        source,
+        stage,
+        createdAt: Date.now(),
+      };
+      const scoreResult = calculateLeadScore(tempLead);
+
+      // 2. Auto-Assign Counsellor
+      let assignedCounsellorName: string | undefined = undefined;
+      let assignedToUid: string | undefined = undefined;
+      try {
+        const assigned = await autoAssignLead(tempLead);
+        if (assigned) {
+          assignedToUid = assigned.counsellorId;
+          assignedCounsellorName = assigned.counsellorName;
+        }
+      } catch (e) {
+        console.warn("Auto-assignment failed:", e);
+      }
+
       await addDoc(collection(db, "leads"), {
         fullName,
         email,
@@ -144,7 +213,21 @@ export const LeadsContent: React.FC = () => {
         source,
         stage,
         notes: notes || undefined,
+        leadScore: scoreResult.totalScore,
+        assignedTo: assignedToUid || undefined,
+        assignedCounsellor: assignedCounsellorName || undefined,
+        assignedAt: assignedToUid ? Date.now() : undefined,
+        interactionLog: [
+          {
+            id: `init_${Date.now()}`,
+            timestamp: Date.now(),
+            type: "Stage Change",
+            summary: "Lead entered system in 'New' stage.",
+            performedBy: "System",
+          },
+        ],
         createdAt: Date.now(),
+        updatedAt: Date.now(),
       });
 
       // Reset Form
@@ -304,10 +387,12 @@ export const LeadsContent: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <th className="py-3.5 px-4">Score</th>
                 <th className="py-3.5 px-4">Student Name</th>
                 <th className="py-3.5 px-4">Contact Info</th>
                 <th className="py-3.5 px-4">Preferences</th>
-                <th className="py-3.5 px-4">Stage (Quick Switch)</th>
+                <th className="py-3.5 px-4">Assigned To</th>
+                <th className="py-3.5 px-4">Stage</th>
                 <th className="py-3.5 px-4">Source</th>
                 <th className="py-3.5 px-4">Actions</th>
               </tr>
@@ -315,79 +400,104 @@ export const LeadsContent: React.FC = () => {
             <tbody className="divide-y divide-[var(--border-default)] text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={8} className="py-8 text-center text-[var(--text-muted)]">
                     Loading lead records from Firestore...
                   </td>
                 </tr>
               ) : filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={8} className="py-8 text-center text-[var(--text-muted)]">
                     No leads found matching criteria.
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-[var(--bg-hover)] transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-[var(--text-primary)]">
-                      {lead.fullName}
-                      {lead.nationality && (
-                        <span className="block text-[11px] text-[var(--text-muted)] font-normal">
-                          {lead.nationality}
+                filteredLeads.map((lead) => {
+                  const score = lead.leadScore ?? 50;
+                  const scoreBadge =
+                    score >= 70
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                      : score >= 40
+                      ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                      : "bg-rose-500/20 text-rose-400 border-rose-500/30";
+
+                  return (
+                    <tr key={lead.id} className="hover:bg-[var(--bg-hover)] transition-colors">
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold font-mono border ${scoreBadge}`}>
+                          {score >= 70 && <Flame className="w-3 h-3 mr-1 text-emerald-400" />}
+                          {score}
                         </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs space-y-0.5">
-                      <div className="text-[var(--text-primary)] font-medium flex items-center space-x-1">
-                        <Mail className="w-3 h-3 text-[var(--text-muted)]" />
-                        <span>{lead.email}</span>
-                      </div>
-                      <div className="text-[var(--text-secondary)] flex items-center space-x-1">
-                        <Phone className="w-3 h-3 text-[var(--text-muted)]" />
-                        <span>{lead.phone}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs">
-                      {lead.programInterest ? (
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-[var(--text-primary)]">
+                        {lead.fullName}
+                        {lead.nationality && (
+                          <span className="block text-[11px] text-[var(--text-muted)] font-normal">
+                            {lead.nationality}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs space-y-0.5">
                         <div className="text-[var(--text-primary)] font-medium flex items-center space-x-1">
-                          <BookOpen className="w-3 h-3 text-emerald-400" />
-                          <span>{lead.programInterest}</span>
+                          <Mail className="w-3 h-3 text-[var(--text-muted)]" />
+                          <span>{lead.email}</span>
                         </div>
-                      ) : (
-                        <span className="text-[var(--text-muted)]">—</span>
-                      )}
-                      {lead.destinationCountry && (
-                        <div className="text-[var(--text-secondary)] text-[11px] flex items-center space-x-1">
-                          <Globe className="w-3 h-3 text-[var(--text-muted)]" />
-                          <span>{lead.destinationCountry}</span>
+                        <div className="text-[var(--text-secondary)] flex items-center space-x-1">
+                          <Phone className="w-3 h-3 text-[var(--text-muted)]" />
+                          <span>{lead.phone}</span>
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {/* Inline Quick Stage Changer */}
-                      <select
-                        value={lead.stage}
-                        onChange={(e) => handleStageQuickChange(lead.id, e.target.value as LeadStage)}
-                        className="px-2.5 py-1 sq-pill text-[11px] font-semibold border bg-[var(--bg-input)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      >
-                        {LEAD_STAGES.map((s) => (
-                          <option key={s} value={s} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">{lead.source}</td>
-                    <td className="py-3.5 px-4">
-                      <button
-                        onClick={() => setSelectedLead(lead)}
-                        className="p-1.5 text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-500/10 sq-btn transition-colors"
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        {lead.programInterest ? (
+                          <div className="text-[var(--text-primary)] font-medium flex items-center space-x-1">
+                            <BookOpen className="w-3 h-3 text-emerald-400" />
+                            <span>{lead.programInterest}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[var(--text-muted)]">—</span>
+                        )}
+                        {lead.destinationCountry && (
+                          <div className="text-[var(--text-secondary)] text-[11px] flex items-center space-x-1">
+                            <Globe className="w-3 h-3 text-[var(--text-muted)]" />
+                            <span>{lead.destinationCountry}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        {lead.assignedCounsellor ? (
+                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-medium">
+                            {lead.assignedCounsellor}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--text-muted)] italic">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {/* Inline Quick Stage Changer */}
+                        <select
+                          value={lead.stage}
+                          onChange={(e) => handleStageQuickChange(lead.id, e.target.value as LeadStage)}
+                          className="px-2.5 py-1 sq-pill text-[11px] font-semibold border bg-[var(--bg-input)] border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          {LEAD_STAGES.map((s) => (
+                            <option key={s} value={s} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">{lead.source}</td>
+                      <td className="py-3.5 px-4">
+                        <button
+                          onClick={() => setSelectedLead(lead)}
+                          className="p-1.5 text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-500/10 sq-btn transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -397,47 +507,119 @@ export const LeadsContent: React.FC = () => {
       {/* Lead Details Modal */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 bg-[var(--backdrop)] backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] w-full max-w-lg sq-modal shadow-2xl p-6 space-y-5">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] w-full max-w-2xl sq-modal shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
-              <div>
-                <h2 className="font-heading text-lg font-bold text-[var(--text-primary)]">{selectedLead.fullName}</h2>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">Lead Record #{selectedLead.id.slice(0, 8)}</p>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                  <Flame className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-[var(--text-primary)] flex items-center space-x-2">
+                    <span>{selectedLead.fullName}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Score: {selectedLead.leadScore ?? 50}/100
+                    </span>
+                  </h2>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Lead #{selectedLead.id.slice(0, 8)} • Stage: <span className="font-semibold text-emerald-400">{selectedLead.stage}</span>
+                  </p>
+                </div>
               </div>
               <button onClick={() => setSelectedLead(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 sq-btn">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-1">
-                <span className="text-[var(--text-muted)] block">EMAIL ADDRESS</span>
-                <span className="text-[var(--text-primary)] font-medium">{selectedLead.email}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-0.5">
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Email</span>
+                <span className="text-[var(--text-primary)] font-medium truncate block">{selectedLead.email}</span>
               </div>
-              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-1">
-                <span className="text-[var(--text-muted)] block">PHONE NUMBER</span>
-                <span className="text-[var(--text-primary)] font-medium">{selectedLead.phone}</span>
+              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-0.5">
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Phone</span>
+                <span className="text-[var(--text-primary)] font-medium truncate block">{selectedLead.phone}</span>
               </div>
-              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-1">
-                <span className="text-[var(--text-muted)] block">NATIONALITY</span>
-                <span className="text-[var(--text-primary)] font-medium">{selectedLead.nationality || "Not specified"}</span>
+              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-0.5">
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Destination</span>
+                <span className="text-[var(--text-primary)] font-medium">{selectedLead.destinationCountry || "Unset"}</span>
               </div>
-              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-1">
-                <span className="text-[var(--text-muted)] block">RESIDENCE</span>
-                <span className="text-[var(--text-primary)] font-medium">{selectedLead.countryOfResidence || "Not specified"}</span>
+              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-0.5">
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Counsellor</span>
+                <span className="text-emerald-400 font-medium">{selectedLead.assignedCounsellor || "Unassigned"}</span>
               </div>
             </div>
 
-            {selectedLead.notes && (
-              <div className="p-3 bg-[var(--bg-elevated)] sq-card border border-[var(--border-default)] space-y-1 text-xs">
-                <span className="text-[var(--text-muted)] block">NOTES</span>
-                <p className="text-[var(--text-secondary)] italic">{selectedLead.notes}</p>
+            {/* Interaction Log Timeline */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center space-x-1.5">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <span>Interaction Timeline ({selectedLead.interactionLog?.length || 0})</span>
+                </h4>
               </div>
-            )}
 
-            <div className="flex justify-end pt-2">
+              {/* Add Interaction Form */}
+              <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-3">
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={interactionType}
+                    onChange={(e) => setInteractionType(e.target.value as any)}
+                    className="px-2.5 py-1.5 text-xs bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] focus:outline-none"
+                  >
+                    <option value="Call">📞 Phone Call</option>
+                    <option value="Email">✉️ Email Sent</option>
+                    <option value="WhatsApp">💬 WhatsApp</option>
+                    <option value="Meeting">🤝 Meeting / Video</option>
+                    <option value="Note">📝 Internal Note</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Log interaction notes or discussion summary..."
+                    value={interactionSummary}
+                    onChange={(e) => setInteractionSummary(e.target.value)}
+                    className="flex-1 px-3 py-1.5 text-xs bg-[var(--bg-card)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddInteraction(selectedLead.id)}
+                    disabled={addingInteraction || !interactionSummary.trim()}
+                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg flex items-center space-x-1 transition-all disabled:opacity-50"
+                  >
+                    <MessageSquarePlus className="w-3.5 h-3.5" />
+                    <span>Log</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Timeline Items */}
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {selectedLead.interactionLog && selectedLead.interactionLog.length > 0 ? (
+                  selectedLead.interactionLog.map((log) => (
+                    <div key={log.id} className="p-2.5 bg-[var(--bg-main)] border border-[var(--border-default)] rounded-lg flex items-start justify-between text-xs">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 font-bold rounded text-[10px]">
+                            {log.type}
+                          </span>
+                          <span className="text-[var(--text-secondary)] text-[10px]">by {log.performedBy}</span>
+                        </div>
+                        <p className="text-[var(--text-primary)] mt-1">{log.summary}</p>
+                      </div>
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono whitespace-nowrap ml-2">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-[var(--text-muted)] italic py-2 text-center">No interactions logged yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
               <button
                 onClick={() => setSelectedLead(null)}
-                className="px-4 py-2 bg-emerald-500 text-zinc-950 text-xs font-bold sq-btn"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold sq-btn"
               >
                 Close Profile
               </button>
