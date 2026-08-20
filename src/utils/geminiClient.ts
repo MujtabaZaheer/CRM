@@ -1,7 +1,7 @@
 /**
  * EduCRM Client-Side Gemini AI Engine
- * Uses free Google Gemini API (gemini-2.0-flash) for client-side AI recommendation,
- * visa risk evaluation, and document OCR data extraction.
+ * Uses Google Gemini API (gemini-3.5-flash-lite with multi-model fallback) for client-side AI recommendation,
+ * visa risk evaluation, document OCR data extraction, and personal statement generation.
  */
 
 export interface CourseRecommendation {
@@ -34,6 +34,21 @@ export interface ExtractedDocumentData {
   documentType: "Transcript" | "Passport" | "IELTS/TOEFL" | "Other";
 }
 
+export interface PersonalStatementDraft {
+  title: string;
+  statementContent: string;
+  keyHighlights: string[];
+  wordCount: number;
+}
+
+export interface ApplicationReadinessReport {
+  readinessScore: number; // 0-100
+  status: "Ready for Submission" | "Action Required" | "Incomplete";
+  missingRequirements: string[];
+  strengths: string[];
+  recommendations: string[];
+}
+
 export const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 function getApiKey(): string {
@@ -52,6 +67,40 @@ export function setRuntimeGeminiApiKey(key: string) {
 
 export function hasGeminiApiKey(): boolean {
   return getApiKey() !== "";
+}
+
+/**
+ * Robust JSON extraction from LLM response (strips markdown code blocks and finds valid JSON boundaries)
+ */
+export function cleanAndParseJson<T = any>(text: string): T {
+  let cleaned = text.trim();
+
+  // Strip markdown code fences ```json ... ``` or ``` ... ```
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  // Find the start of JSON object or array
+  const firstBrace = cleaned.indexOf("{");
+  const firstBracket = cleaned.indexOf("[");
+
+  let startIdx = -1;
+  let isArray = false;
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+    isArray = false;
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+    isArray = true;
+  }
+
+  if (startIdx !== -1) {
+    const endIdx = isArray ? cleaned.lastIndexOf("]") : cleaned.lastIndexOf("}");
+    if (endIdx !== -1 && endIdx > startIdx) {
+      cleaned = cleaned.substring(startIdx, endIdx + 1);
+    }
+  }
+
+  return JSON.parse(cleaned) as T;
 }
 
 export async function callGeminiApi(prompt: string, inlineImageData?: { mimeType: string; dataBase64: string }): Promise<string> {
@@ -156,17 +205,17 @@ Return a JSON array of objects with the exact schema:
 ]`;
 
   const responseText = await callGeminiApi(prompt);
-  return JSON.parse(responseText);
+  return cleanAndParseJson<CourseRecommendation[]>(responseText);
 }
 
 /**
- * 2. AI Visa Success Probability Calculator
+ * 2. AI Visa Approval Probability Calculator
  */
 export async function calculateVisaProbability(details: {
   studentName: string;
   country: string;
-  financialProofUSD: string;
-  studyGapYears: string;
+  financialProofUSD: number | string;
+  studyGapYears: number | string;
   previousRejections: string;
   interviewReadiness: string;
 }): Promise<VisaRiskAnalysis> {
@@ -188,7 +237,7 @@ Evaluate visa approval probability and risk factors. Return JSON with exact sche
 }`;
 
   const responseText = await callGeminiApi(prompt);
-  return JSON.parse(responseText);
+  return cleanAndParseJson<VisaRiskAnalysis>(responseText);
 }
 
 /**
@@ -196,7 +245,7 @@ Evaluate visa approval probability and risk factors. Return JSON with exact sche
  */
 export async function extractDocumentData(mimeType: string, base64Data: string): Promise<ExtractedDocumentData> {
   const prompt = `Extract all key student details from this document (transcript, passport, certificate, test score report).
-Return JSON with exact schema:
+Return ONLY a valid JSON object with the exact schema:
 {
   "fullName": "Extracted student name or empty string",
   "dateOfBirth": "YYYY-MM-DD or empty string",
@@ -210,22 +259,7 @@ Return JSON with exact schema:
 }`;
 
   const responseText = await callGeminiApi(prompt, { mimeType, dataBase64: base64Data });
-  return JSON.parse(responseText);
-}
-
-export interface PersonalStatementDraft {
-  title: string;
-  statementContent: string;
-  keyHighlights: string[];
-  wordCount: number;
-}
-
-export interface ApplicationReadinessReport {
-  readinessScore: number; // 0-100
-  status: "Ready for Submission" | "Action Required" | "Incomplete";
-  missingRequirements: string[];
-  strengths: string[];
-  recommendations: string[];
+  return cleanAndParseJson<ExtractedDocumentData>(responseText);
 }
 
 /**
@@ -250,17 +284,17 @@ Career Ambitions: ${details.careerGoals}
 Return JSON with exact schema:
 {
   "title": "String title",
-  "statementContent": "Full formatted SOP text (approx 400-500 words, structured into Introduction, Academic Preparation, Why this University/Programme, and Future Goals)",
-  "keyHighlights": ["3-4 key bullet points emphasized in the SOP"],
+  "statementContent": "Full draft multi-paragraph personal statement",
+  "keyHighlights": ["Array of 3-4 bullet points highlighted in the statement"],
   "wordCount": number
 }`;
 
   const responseText = await callGeminiApi(prompt);
-  return JSON.parse(responseText);
+  return cleanAndParseJson<PersonalStatementDraft>(responseText);
 }
 
 /**
- * 5. AI Application Readiness & Missing Document Auditor
+ * 5. AI Application Dossier Readiness Checker
  */
 export async function auditApplicationReadiness(details: {
   studentName: string;
@@ -294,6 +328,7 @@ Return JSON with exact schema:
 }`;
 
   const responseText = await callGeminiApi(prompt);
-  return JSON.parse(responseText);
+  return cleanAndParseJson<ApplicationReadinessReport>(responseText);
 }
 
+export const evaluateApplicationReadiness = auditApplicationReadiness;
