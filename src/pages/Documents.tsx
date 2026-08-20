@@ -46,6 +46,8 @@ export interface StudentDocument {
   expiryAlertSent?: boolean;
   qualityReport?: DocumentQualityReport;
   status: "Received" | "Verified" | "Rejected" | "Pending";
+  remarks?: string;
+  feedback?: string;
   uploadedBy: string;
   createdAt: number;
 }

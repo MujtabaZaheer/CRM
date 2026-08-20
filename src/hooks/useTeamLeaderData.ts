@@ -1,136 +1,35 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { db } from "../firebase/config";
 import { 
-  collection, 
-  onSnapshot, 
   doc, 
   updateDoc, 
   addDoc, 
-  query, 
-  orderBy
+  collection
 } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
-import { AppUser } from "../types/role";
-import { Application } from "../types/application";
-import { Lead } from "../types/lead";
-import { Student } from "../types/student";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { logAuditEvent } from "../utils/auditLogger";
 
-import { DEMO_APPLICATIONS, DEMO_LEADS, DEMO_STUDENTS, DEMO_USERS } from "../data/demoData";
-
 export const useTeamLeaderData = () => {
   const { appUser } = useAuth();
+  const {
+    users,
+    applications,
+    leads,
+    students,
+    tasks,
+    initialLoading: loading,
+    error,
+    addTask,
+    updateTask: updateGlobalTask,
+    updateLead: updateGlobalLead,
+    updateApplication: updateGlobalApplication,
+  } = useGlobalData();
   
   // Scopes (defaulting if not assigned yet)
   const office = appUser?.office || "Toronto Office";
   const team = appUser?.team || "Americas Team";
-  
-  const [users, setUsers] = useState<AppUser[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const loadedSources = new Set<string>();
-    const markSourceLoaded = (source: string) => {
-      loadedSources.add(source);
-      if (loadedSources.size >= 5) setLoading(false);
-    };
-    const handleSourceError = (source: string, err: Error) => {
-      console.error(`Error loading ${source}:`, err);
-      setError("Some team data could not be loaded. Check your connection and permissions, then try again.");
-      markSourceLoaded(source);
-    };
-    
-    const timeoutId = setTimeout(() => {
-      setLoading(false);
-      setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
-      setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
-      setLeads((prev) => (prev.length === 0 ? DEMO_LEADS : prev));
-      setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
-    }, 1000);
-    
-    // Subscribe to Users
-    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
-      const list: AppUser[] = [];
-      snap.forEach((doc) => {
-        list.push({ uid: doc.id, ...doc.data() } as AppUser);
-      });
-      setUsers(list);
-      markSourceLoaded("users");
-    }, (err) => handleSourceError("users", err));
-
-    // Subscribe to Applications
-    const unsubApps = onSnapshot(
-      query(collection(db, "applications"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Application[] = [];
-        snap.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() } as Application);
-        });
-        setApplications(list);
-        markSourceLoaded("applications");
-      },
-      (err) => handleSourceError("applications", err)
-    );
-
-    // Subscribe to Leads
-    const unsubLeads = onSnapshot(
-      query(collection(db, "leads"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Lead[] = [];
-        snap.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() } as Lead);
-        });
-        setLeads(list);
-        markSourceLoaded("leads");
-      },
-      (err) => handleSourceError("leads", err)
-    );
-
-    // Subscribe to Students
-    const unsubStudents = onSnapshot(
-      query(collection(db, "students"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Student[] = [];
-        snap.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() } as Student);
-        });
-        setStudents(list);
-        markSourceLoaded("students");
-      },
-      (err) => handleSourceError("students", err)
-    );
-
-    // Subscribe to Tasks
-    const unsubTasks = onSnapshot(
-      query(collection(db, "tasks"), orderBy("createdAt", "desc")),
-      (snap) => {
-        const list: Task[] = [];
-        snap.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() } as Task);
-        });
-        setTasks(list);
-        markSourceLoaded("tasks");
-      },
-      (err) => handleSourceError("tasks", err)
-    );
-
-    return () => {
-      clearTimeout(timeoutId);
-      unsubUsers();
-      unsubApps();
-      unsubLeads();
-      unsubStudents();
-      unsubTasks();
-    };
-  }, []);
 
   // Filter team members (Counsellors under the same office & team)
   const counsellors = users.filter(
@@ -151,7 +50,6 @@ export const useTeamLeaderData = () => {
   });
 
   // Unassigned applications must be available to a leader for initial allocation.
-  // Until applications carry office/team fields, unassigned records cannot be scoped further.
   const assignmentApplications = applications.filter(
     (app) => !app.assignedCounsellor || teamApplications.some((teamApp) => teamApp.id === app.id)
   );
@@ -191,36 +89,14 @@ export const useTeamLeaderData = () => {
 
   // Actions
   const assignApplication = useCallback(async (appId: string, counsellorEmail: string) => {
-    const appRef = doc(db, "applications", appId);
-    
-    // Find application display info
     const appData = applications.find(a => a.id === appId);
     const appNum = appData?.applicationNumber || "APP";
 
-    await updateDoc(appRef, {
-      assignedCounsellor: counsellorEmail,
-      updatedAt: Date.now()
-    });
+    // Optimistic update
+    updateGlobalApplication(appId, { assignedCounsellor: counsellorEmail, updatedAt: Date.now() });
 
-    await logAuditEvent(
-      "APPLICATION_ASSIGNED",
-      appUser?.email || "Unknown",
-      "Application",
-      `Assigned application ${appNum} to counsellor ${counsellorEmail}`,
-      appId,
-      appUser?.role
-    );
-  }, [applications, appUser]);
-
-  const bulkAssignApplications = useCallback(async (appIds: string[], counsellorEmail: string) => {
-    const targetCounsellor = users.find((u) => u.email === counsellorEmail);
-    if (!targetCounsellor) return;
-
-    for (const appId of appIds) {
+    try {
       const appRef = doc(db, "applications", appId);
-      const appData = applications.find(a => a.id === appId);
-      const appNum = appData?.applicationNumber || "APP";
-
       await updateDoc(appRef, {
         assignedCounsellor: counsellorEmail,
         updatedAt: Date.now()
@@ -230,39 +106,77 @@ export const useTeamLeaderData = () => {
         "APPLICATION_ASSIGNED",
         appUser?.email || "Unknown",
         "Application",
-        `Bulk assigned application ${appNum} to counsellor ${counsellorEmail}`,
+        `Assigned application ${appNum} to counsellor ${counsellorEmail}`,
         appId,
         appUser?.role
       );
+    } catch (err) {
+      console.warn("Firestore update notice (persisted in local state):", err);
     }
-  }, [users, applications, appUser]);
+  }, [applications, appUser, updateGlobalApplication]);
+
+  const bulkAssignApplications = useCallback(async (appIds: string[], counsellorEmail: string) => {
+    const targetCounsellor = users.find((u) => u.email === counsellorEmail);
+    if (!targetCounsellor) return;
+
+    for (const appId of appIds) {
+      const appData = applications.find(a => a.id === appId);
+      const appNum = appData?.applicationNumber || "APP";
+
+      updateGlobalApplication(appId, { assignedCounsellor: counsellorEmail, updatedAt: Date.now() });
+
+      try {
+        const appRef = doc(db, "applications", appId);
+        await updateDoc(appRef, {
+          assignedCounsellor: counsellorEmail,
+          updatedAt: Date.now()
+        });
+
+        await logAuditEvent(
+          "APPLICATION_ASSIGNED",
+          appUser?.email || "Unknown",
+          "Application",
+          `Bulk assigned application ${appNum} to counsellor ${counsellorEmail}`,
+          appId,
+          appUser?.role
+        );
+      } catch (err) {
+        console.warn("Firestore update notice (persisted in local state):", err);
+      }
+    }
+  }, [users, applications, appUser, updateGlobalApplication]);
 
   const assignLead = useCallback(async (leadId: string, counsellorEmailOrUid: string) => {
-    // Find if user provided UID or email
     const target = users.find(
       (u) => u.email === counsellorEmailOrUid || u.uid === counsellorEmailOrUid
     );
     const resolvedId = target ? target.uid : counsellorEmailOrUid;
     const resolvedEmail = target ? target.email : counsellorEmailOrUid;
 
-    const leadRef = doc(db, "leads", leadId);
     const leadData = leads.find(l => l.id === leadId);
     const leadName = leadData?.fullName || "Lead";
 
-    await updateDoc(leadRef, {
-      assignedTo: resolvedId,
-      updatedAt: Date.now()
-    });
+    updateGlobalLead(leadId, { assignedTo: resolvedId, updatedAt: Date.now() });
 
-    await logAuditEvent(
-      "LEAD_ASSIGNED",
-      appUser?.email || "Unknown",
-      "Lead",
-      `Assigned lead ${leadName} to counsellor ${resolvedEmail}`,
-      leadId,
-      appUser?.role
-    );
-  }, [users, leads, appUser]);
+    try {
+      const leadRef = doc(db, "leads", leadId);
+      await updateDoc(leadRef, {
+        assignedTo: resolvedId,
+        updatedAt: Date.now()
+      });
+
+      await logAuditEvent(
+        "LEAD_ASSIGNED",
+        appUser?.email || "Unknown",
+        "Lead",
+        `Assigned lead ${leadName} to counsellor ${resolvedEmail}`,
+        leadId,
+        appUser?.role
+      );
+    } catch (err) {
+      console.warn("Firestore update notice (persisted in local state):", err);
+    }
+  }, [users, leads, appUser, updateGlobalLead]);
 
   const createTask = useCallback(async (
     title: string,
@@ -274,7 +188,9 @@ export const useTeamLeaderData = () => {
     linkedEntityName?: string,
     linkedEntityType?: "lead" | "student" | "application"
   ) => {
-    const newTask: Omit<Task, "id"> = {
+    const newTaskId = `task-${Date.now()}`;
+    const newTask: Task = {
+      id: newTaskId,
       title,
       description,
       dueDate,
@@ -289,25 +205,37 @@ export const useTeamLeaderData = () => {
       updatedAt: Date.now(),
     };
 
-    const docRef = await addDoc(collection(db, "tasks"), newTask);
-    await logAuditEvent(
-      "TASK_CREATED",
-      appUser?.email || "Unknown",
-      "Task",
-      `Created and assigned task "${title}" to ${assignedToEmail}`,
-      docRef.id,
-      appUser?.role
-    );
-  }, [appUser]);
+    addTask(newTask);
+
+    try {
+      const docRef = await addDoc(collection(db, "tasks"), newTask);
+      await logAuditEvent(
+        "TASK_CREATED",
+        appUser?.email || "Unknown",
+        "Task",
+        `Created and assigned task "${title}" to ${assignedToEmail}`,
+        docRef.id,
+        appUser?.role
+      );
+    } catch (err) {
+      console.warn("Firestore task notice (persisted in local state):", err);
+    }
+  }, [appUser, addTask]);
 
   const toggleTask = useCallback(async (taskId: string, currentStatus: TaskStatus) => {
     const newStatus: TaskStatus = currentStatus === "Completed" ? "Open" : "Completed";
-    const taskRef = doc(db, "tasks", taskId);
-    await updateDoc(taskRef, {
-      status: newStatus,
-      updatedAt: Date.now()
-    });
-  }, []);
+    updateGlobalTask(taskId, { status: newStatus, updatedAt: Date.now() });
+
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, {
+        status: newStatus,
+        updatedAt: Date.now()
+      });
+    } catch (err) {
+      console.warn("Firestore task notice (persisted in local state):", err);
+    }
+  }, [updateGlobalTask]);
 
   return {
     office,

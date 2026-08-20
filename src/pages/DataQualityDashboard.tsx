@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "../firebase/config";
 import { RoleGate } from "../components/layout/RoleGate";
-import { Lead } from "../types/lead";
-import { Student } from "../types/student";
-import { Application } from "../types/application";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { detectDuplicateLeads } from "../utils/dataQuality";
 import {
   ShieldAlert,
@@ -25,41 +21,9 @@ export interface QualityIssue {
 }
 
 export const DataQualityContent: React.FC = () => {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { leads, students, applications, initialLoading: loading } = useGlobalData();
   const [issues, setIssues] = useState<QualityIssue[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    let loaded = 0;
-    const finish = () => {
-      loaded += 1;
-      if (loaded >= 3) setLoading(false);
-    };
-
-    const unsubLeads = onSnapshot(collection(db, "leads"), (snap) => {
-      setLeads(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Lead));
-      finish();
-    });
-
-    const unsubStudents = onSnapshot(collection(db, "students"), (snap) => {
-      setStudents(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Student));
-      finish();
-    });
-
-    const unsubApps = onSnapshot(collection(db, "applications"), (snap) => {
-      setApplications(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Application));
-      finish();
-    });
-
-    return () => {
-      unsubLeads();
-      unsubStudents();
-      unsubApps();
-    };
-  }, []);
 
   useEffect(() => {
     if (loading) return;

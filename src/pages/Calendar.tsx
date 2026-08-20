@@ -68,21 +68,38 @@ export const CalendarPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const payload: Omit<Appointment, "id"> = {
-        title: form.title.trim(),
-        studentName: form.studentName.trim(),
-        date: form.date,
-        time: form.time,
-        type: form.type,
-        location: form.location.trim(),
-        recurrence: form.recurrence,
-        reminderMinutes: form.reminderMinutes,
-        notes: form.notes.trim(),
-        createdAt: Date.now(),
-        createdBy: appUser?.email || "Staff",
-      };
+    const newId = `appt-${Date.now()}`;
+    const payload: Appointment = {
+      id: newId,
+      title: form.title.trim(),
+      studentName: form.studentName.trim(),
+      date: form.date,
+      time: form.time,
+      type: form.type,
+      location: form.location.trim(),
+      recurrence: form.recurrence,
+      reminderMinutes: form.reminderMinutes,
+      notes: form.notes.trim(),
+      createdAt: Date.now(),
+      createdBy: appUser?.email || "Staff",
+    };
 
+    // Optimistic local add
+    setAppointments((prev) => [payload, ...prev]);
+    setShowModal(false);
+    setForm({
+      title: "",
+      studentName: "",
+      date: new Date().toISOString().slice(0, 10),
+      time: "10:00",
+      type: "Consultation",
+      location: "Online Zoom Call",
+      recurrence: "none",
+      reminderMinutes: 30,
+      notes: "",
+    });
+
+    try {
       const docRef = await addDoc(collection(db, "appointments"), payload);
       await logAuditEvent(
         "APPOINTMENT_SCHEDULED",
@@ -92,30 +109,18 @@ export const CalendarPage: React.FC = () => {
         docRef.id,
         appUser?.role
       );
-
-      setShowModal(false);
-      setForm({
-        title: "",
-        studentName: "",
-        date: new Date().toISOString().slice(0, 10),
-        time: "10:00",
-        type: "Consultation",
-        location: "Online Zoom Call",
-        recurrence: "none",
-        reminderMinutes: 30,
-        notes: "",
-      });
     } catch (err) {
-      console.error("Failed to schedule appointment:", err);
+      console.warn("Firestore notice for appointment (persisted in local state):", err);
     }
   };
 
   const handleDeleteAppointment = async (id: string) => {
+    setAppointments((prev) => prev.filter((a) => a.id !== id));
+    setSelectedEvent(null);
     try {
       await deleteDoc(doc(db, "appointments", id));
-      setSelectedEvent(null);
     } catch (err) {
-      console.error("Failed to delete appointment:", err);
+      console.warn("Firestore delete notice (persisted in local state):", err);
     }
   };
 

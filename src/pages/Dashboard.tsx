@@ -1,50 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { db } from "../firebase/config";
-import { collection, onSnapshot } from "firebase/firestore";
-import { Lead } from "../types/lead";
-import { Student } from "../types/student";
-import { Application } from "../types/application";
+import React, { useState } from "react";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Navigate } from "react-router-dom";
 import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw } from "lucide-react";
 
 export const Dashboard: React.FC = () => {
   const { appUser } = useAuth();
-  
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
+  const { leads, students, applications } = useGlobalData();
 
   // Filters
   const [stageFilter, setStageFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
-
-  useEffect(() => {
-    const unsubLeads = onSnapshot(collection(db, "leads"), (snap) => {
-      const docs: Lead[] = [];
-      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Lead));
-      setLeads(docs);
-    });
-
-    const unsubStudents = onSnapshot(collection(db, "students"), (snap) => {
-      const docs: Student[] = [];
-      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Student));
-      setStudents(docs);
-    });
-
-    const unsubApps = onSnapshot(collection(db, "applications"), (snap) => {
-      const docs: Application[] = [];
-      snap.forEach((doc) => docs.push({ id: doc.id, ...doc.data() } as Application));
-      setApplications(docs);
-    });
-
-    return () => {
-      unsubLeads();
-      unsubStudents();
-      unsubApps();
-    };
-  }, []);
 
   const roleHome: Partial<Record<NonNullable<typeof appUser>["role"], string>> = {
     team_leader: "/team-leader/dashboard",

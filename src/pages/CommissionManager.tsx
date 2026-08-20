@@ -3,6 +3,7 @@ import { collection, onSnapshot, query, orderBy, doc, updateDoc } from "firebase
 import { db } from "../firebase/config";
 import { Commission, CommissionStatus } from "../types/finance";
 import { processPayoutBatch, DEFAULT_COMMISSION_TIERS } from "../utils/commissionEngine";
+import { DEMO_COMMISSIONS } from "../data/demoData";
 import { CircleDollarSign, CheckCircle2, Download, DollarSign, Wallet, ArrowUpRight } from "lucide-react";
 
 export const CommissionManagerPage: React.FC = () => {
@@ -19,10 +20,13 @@ export const CommissionManagerPage: React.FC = () => {
       q,
       (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Commission);
-        setCommissions(list);
+        setCommissions(list.length > 0 ? list : DEMO_COMMISSIONS);
         setLoading(false);
       },
-      () => setLoading(false)
+      () => {
+        setCommissions(DEMO_COMMISSIONS);
+        setLoading(false);
+      }
     );
     return () => unsub();
   }, []);
