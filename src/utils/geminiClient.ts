@@ -54,7 +54,7 @@ export function hasGeminiApiKey(): boolean {
   return getApiKey() !== "";
 }
 
-async function callGeminiApi(prompt: string, inlineImageData?: { mimeType: string; dataBase64: string }): Promise<string> {
+export async function callGeminiApi(prompt: string, inlineImageData?: { mimeType: string; dataBase64: string }): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("Gemini API key not configured. Please set VITE_GEMINI_API_KEY in .env or enter your free Google Gemini API Key.");
