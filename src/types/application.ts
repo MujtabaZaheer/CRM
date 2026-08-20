@@ -27,19 +27,41 @@ export interface ApplicationHistoryItem {
   note?: string;
 }
 
+export interface ApplicationDocumentRequirement {
+  docType: string;
+  required: boolean;
+  uploaded: boolean;
+  verifiedAt?: number;
+}
+
+export interface ApplicationCondition {
+  id: string;
+  condition: string;
+  fulfilled: boolean;
+  fulfilledAt?: number;
+  evidence?: string;
+}
+
 export interface Application {
   id: string;
   applicationNumber: string; // e.g. APP-2026-0042
   studentId: string;
   studentName: string;
+  studentEmail?: string;
   universityId: string;
   universityName: string;
   programmeId: string;
   programmeName: string;
   intake: string; // e.g. "Fall 2026"
+  targetCountry?: string;
   stage: ApplicationStage;
   assignedCounsellor?: string;
-  history: ApplicationHistoryItem[];
+  requiredDocuments?: ApplicationDocumentRequirement[];
+  conditions?: ApplicationCondition[];
+  lockedAt?: number; // timestamp when locked for submission
+  clonedFrom?: string; // applicationId this was cloned from
+  history?: ApplicationHistoryItem[];
   createdAt: number;
   updatedAt: number;
 }
+

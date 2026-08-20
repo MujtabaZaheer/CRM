@@ -388,7 +388,7 @@ export const TeamLeaderApplications: React.FC = () => {
                     {viewApp.history && viewApp.history.length > 0 ? (
                       viewApp.history.map((h, i) => (
                         <div key={i} className="flex items-start space-x-3 relative">
-                          {i !== viewApp.history.length - 1 && (
+                          {i !== (viewApp.history?.length || 0) - 1 && (
                             <div className="absolute left-3 top-5 bottom-[-16px] w-[1px] bg-[var(--border-default)]" />
                           )}
                           <div className="w-6 h-6 sq-avatar bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center flex-shrink-0 text-teal-400">
