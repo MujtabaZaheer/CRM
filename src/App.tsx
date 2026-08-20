@@ -6,6 +6,9 @@ import { ProtectedLayout } from "./components/layout/ProtectedLayout";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { AcceptInvitation } from "./pages/AcceptInvitation";
+import { PublicFormPage } from "./pages/PublicFormPage";
+import { PublicFormSuccess } from "./pages/PublicFormSuccess";
+import { StudentRegister } from "./pages/StudentRegister";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Students } from "./pages/Students";
@@ -22,6 +25,12 @@ import { CalendarPage } from "./pages/Calendar";
 import { ReportsPage } from "./pages/Reports";
 import { EmailTemplatesPage } from "./pages/EmailTemplates";
 import { FormBuilderPage } from "./pages/FormBuilder";
+import { LeadRoutingConfigPage } from "./pages/LeadRoutingConfig";
+import { LeadScoringConfigPage } from "./pages/LeadScoringConfig";
+import { WorkflowRulesConfigPage } from "./pages/WorkflowRulesConfig";
+import { CommissionManagerPage } from "./pages/CommissionManager";
+import { StudentProfileSelfEdit } from "./pages/portal/StudentProfileSelfEdit";
+import { AgentSubAgentManager } from "./pages/portal/AgentSubAgentManager";
 import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
 import { ImportExportPage } from "./pages/ImportExport";
@@ -112,18 +121,25 @@ import { CounsellorTasks } from "./pages/counsellor/Tasks";
 import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
 
 import { GlobalDataProvider } from "./contexts/GlobalDataContext";
+import { NotificationProvider } from "./contexts/NotificationProvider";
 
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
         <GlobalDataProvider>
-          <BrowserRouter>
+          <NotificationProvider>
+            <BrowserRouter>
             <Routes>
               {/* Public Authentication Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/student-register" element={<StudentRegister />} />
               <Route path="/accept-invitation" element={<AcceptInvitation />} />
+
+              {/* Public Form Routes (Unauthenticated) */}
+              <Route path="/public/forms/:formId" element={<PublicFormPage />} />
+              <Route path="/public/form-success" element={<PublicFormSuccess />} />
 
               {/* Protected Application Routes */}
               <Route element={<ProtectedLayout />}>
@@ -258,6 +274,12 @@ export const App: React.FC = () => {
                 />
                 <Route path="/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="/form-builder" element={<FormBuilderPage />} />
+                <Route path="/lead-routing" element={<LeadRoutingConfigPage />} />
+                <Route path="/lead-scoring" element={<LeadScoringConfigPage />} />
+                <Route path="/workflow-rules" element={<WorkflowRulesConfigPage />} />
+                <Route path="/commission-manager" element={<CommissionManagerPage />} />
+                <Route path="/student-portal/profile" element={<StudentProfileSelfEdit />} />
+                <Route path="/agent-portal/sub-agents" element={<AgentSubAgentManager />} />
                 <Route
                   path="/communications"
                   element={<Communications />}
@@ -273,6 +295,7 @@ export const App: React.FC = () => {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
+          </NotificationProvider>
         </GlobalDataProvider>
       </AuthProvider>
     </ThemeProvider>

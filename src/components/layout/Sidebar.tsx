@@ -30,7 +30,8 @@ import {
   Calendar,
   Mail,
   FileSpreadsheet,
-  Sliders
+  Sliders,
+  Zap,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -81,6 +82,12 @@ const navItems: NavItem[] = [
   { label: "Communications", path: "/communications", icon: <MessageSquare className="w-4 h-4" /> },
   { label: "Email Templates", path: "/email-templates", icon: <Mail className="w-4 h-4" /> },
   { label: "Form Builder", path: "/form-builder", icon: <FormInput className="w-4 h-4" /> },
+  { label: "Lead Routing Engine", path: "/lead-routing", icon: <Users2 className="w-4 h-4 text-emerald-400" />, rolesAllowed: ["platform_super_admin", "org_admin", "team_leader"] },
+  { label: "Lead Scoring Config", path: "/lead-scoring", icon: <Sliders className="w-4 h-4 text-emerald-400" />, rolesAllowed: ["platform_super_admin", "org_admin", "team_leader"] },
+  { label: "Workflow Automation", path: "/workflow-rules", icon: <Zap className="w-4 h-4 text-amber-400" />, rolesAllowed: ["platform_super_admin", "org_admin"] },
+  { label: "Partner Commissions", path: "/commission-manager", icon: <CircleDollarSign className="w-4 h-4 text-emerald-400" />, rolesAllowed: ["platform_super_admin", "org_admin", "finance_officer"] },
+  { label: "My Profile & Credentials", path: "/student-portal/profile", icon: <UserCheck className="w-4 h-4 text-emerald-400" />, rolesAllowed: ["student"] },
+  { label: "Sub-Agent Network", path: "/agent-portal/sub-agents", icon: <Users2 className="w-4 h-4 text-emerald-400" />, rolesAllowed: ["external_agent", "org_admin", "platform_super_admin"] },
   { label: "Agents & Partners", path: "/agents", icon: <UserCheck className="w-4 h-4" /> },
   { label: "Data Quality Control", path: "/data-quality", icon: <ShieldAlert className="w-4 h-4" />, rolesAllowed: ["platform_super_admin", "org_admin", "office_manager"] },
   { label: "CSV Import / Export", path: "/import-export", icon: <FileSpreadsheet className="w-4 h-4" /> },
