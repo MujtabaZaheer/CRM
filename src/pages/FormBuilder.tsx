@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Code, Eye, Save, MoveUp, MoveDown, FormInput, Copy, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Code, Eye, Save, MoveUp, MoveDown, FormInput, Copy, CheckCircle2, Globe, BarChart3, Link2 } from "lucide-react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 
@@ -31,7 +31,10 @@ export const FormBuilderPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<"builder" | "preview" | "embed">("builder");
   const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [published, setPublished] = useState(false);
+  const [savedFormId, setSavedFormId] = useState<string | null>(null);
 
   // New Field Form State
   const [newLabel, setNewLabel] = useState("");
@@ -74,24 +77,40 @@ export const FormBuilderPage: React.FC = () => {
 
   const handleSaveFormTemplate = async () => {
     try {
-      await addDoc(collection(db, "form_templates"), {
+      const docRef = await addDoc(collection(db, "form_templates"), {
         title: formTitle,
         description: formDescription,
         fields,
+        published,
+        viewCount: 0,
+        startCount: 0,
+        submitCount: 0,
         createdAt: Date.now(),
       });
+      setSavedFormId(docRef.id);
       setSaveNotice("Form Template saved to Firestore successfully!");
     } catch (err) {
       setSaveNotice("Saved Form Template locally!");
     }
   };
 
-  const embedCodeSnippet = `<iframe src="https://educrm-portal.web.app/public/forms/${formTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}" width="100%" height="700px" frameborder="0"></iframe>`;
+  const publicFormUrl = savedFormId ? `${window.location.origin}/public/forms/${savedFormId}` : null;
+  const embedCodeSnippet = publicFormUrl
+    ? `<iframe src="${publicFormUrl}" width="100%" height="700px" frameborder="0"></iframe>`
+    : `<iframe src="https://your-domain.com/public/forms/{form-id}" width="100%" height="700px" frameborder="0"></iframe>`;
 
   const copyEmbedCode = () => {
     navigator.clipboard.writeText(embedCodeSnippet);
     setCopiedEmbed(true);
     setTimeout(() => setCopiedEmbed(false), 2000);
+  };
+
+  const copyPublicUrl = () => {
+    if (publicFormUrl) {
+      navigator.clipboard.writeText(publicFormUrl);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    }
   };
 
   return (
@@ -186,6 +205,42 @@ export const FormBuilderPage: React.FC = () => {
                   className="w-full px-3 py-2 text-xs bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
                 />
               </div>
+
+              {/* Published Toggle */}
+              <div className="flex items-center justify-between p-3 bg-[var(--bg-main)] rounded-lg border border-[var(--border-color)]">
+                <div className="flex items-center space-x-2">
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">Published</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPublished(!published)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${published ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${published ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {/* Public URL */}
+              {published && savedFormId && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Shareable Public URL</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={publicFormUrl || ""}
+                      className="flex-1 px-3 py-2 text-xs bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-emerald-400 font-mono focus:outline-none"
+                    />
+                    <button
+                      onClick={copyPublicUrl}
+                      className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      {copiedUrl ? <CheckCircle2 className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-[var(--bg-card)] p-5 border border-[var(--border-color)] rounded-xl space-y-4">
@@ -386,6 +441,25 @@ export const FormBuilderPage: React.FC = () => {
             Copy and paste this HTML snippet into any university website, landing page, or WordPress post to capture inquiry leads directly into EduCRM.
           </p>
 
+          {/* Public URL Section */}
+          {publicFormUrl && (
+            <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-2">
+              <p className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
+                <Globe className="w-3.5 h-3.5" />
+                <span>Direct Public Link</span>
+              </p>
+              <div className="flex items-center space-x-2">
+                <code className="flex-1 text-xs text-emerald-300 font-mono bg-zinc-950/50 px-3 py-2 rounded-lg truncate">{publicFormUrl}</code>
+                <button
+                  onClick={copyPublicUrl}
+                  className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-lg transition-all"
+                >
+                  {copiedUrl ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="relative bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
             <code>{embedCodeSnippet}</code>
           </div>
@@ -406,6 +480,41 @@ export const FormBuilderPage: React.FC = () => {
               </>
             )}
           </button>
+
+          {/* Conversion Analytics Funnel */}
+          <div className="mt-6 p-5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl space-y-4">
+            <h4 className="font-heading font-bold text-sm text-[var(--text-primary)] flex items-center space-x-2">
+              <BarChart3 className="w-4 h-4 text-emerald-400" />
+              <span>Conversion Analytics</span>
+            </h4>
+            <p className="text-[11px] text-[var(--text-secondary)]">
+              Track how visitors interact with your public form. Counters update when a saved form is live.
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] text-center">
+                <p className="text-2xl font-bold text-emerald-400">0</p>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider mt-1">Page Views</p>
+              </div>
+              <div className="p-3 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] text-center">
+                <p className="text-2xl font-bold text-teal-400">0</p>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider mt-1">Form Starts</p>
+              </div>
+              <div className="p-3 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] text-center">
+                <p className="text-2xl font-bold text-cyan-400">0</p>
+                <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider mt-1">Submissions</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 text-[10px] text-[var(--text-secondary)]">
+              <span>Views → Starts:</span>
+              <span className="text-emerald-400 font-bold">0%</span>
+              <span className="mx-1">|</span>
+              <span>Starts → Submissions:</span>
+              <span className="text-emerald-400 font-bold">0%</span>
+              <span className="mx-1">|</span>
+              <span>Overall Conversion:</span>
+              <span className="text-emerald-400 font-bold">0%</span>
+            </div>
+          </div>
         </div>
       )}
     </div>
