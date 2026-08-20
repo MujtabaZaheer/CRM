@@ -34,7 +34,7 @@ export interface ExtractedDocumentData {
   documentType: "Transcript" | "Passport" | "IELTS/TOEFL" | "Other";
 }
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+export const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 function getApiKey(): string {
   const envKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -57,10 +57,18 @@ export function hasGeminiApiKey(): boolean {
 export async function callGeminiApi(prompt: string, inlineImageData?: { mimeType: string; dataBase64: string }): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error("Gemini API key not configured. Please set VITE_GEMINI_API_KEY in .env or enter your free Google Gemini API Key.");
+    throw new Error("Gemini API key not configured. Please set VITE_GEMINI_API_KEY in .env or enter your Google Gemini API Key.");
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const candidateModels = [
+    GEMINI_MODEL,
+    "gemini-3.5-flash-lite",
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash"
+  ];
+  // Remove duplicates while preserving order
+  const modelsToTry = Array.from(new Set(candidateModels));
 
   const parts: any[] = [{ text: prompt }];
   if (inlineImageData) {
@@ -72,28 +80,47 @@ export async function callGeminiApi(prompt: string, inlineImageData?: { mimeType
     });
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
+  let lastError: any = null;
 
-  if (!response.ok) {
-    const errorJson = await response.json().catch(() => ({}));
-    throw new Error(errorJson?.error?.message || `Gemini API call failed with status ${response.status}`);
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      } else {
+        const errorJson = await response.json().catch(() => ({}));
+        lastError = new Error(errorJson?.error?.message || `Gemini API call to ${model} failed with status ${response.status}`);
+        // If 404 model not found, try next model in fallback list
+        if (response.status === 404) {
+          console.warn(`Model ${model} not available, falling back to next candidate...`);
+          continue;
+        }
+        throw lastError;
+      }
+    } catch (err: any) {
+      lastError = err;
+      if (err.message && err.message.includes("404")) {
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Empty response returned from Gemini AI.");
-
-  return text;
+  throw lastError || new Error("All Gemini models failed to respond.");
 }
 
 /**

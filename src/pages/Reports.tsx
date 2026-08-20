@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { useFinanceData } from "../hooks/useFinanceData";
+import { callGeminiApi } from "../utils/geminiClient";
 
 export const ReportsPage: React.FC = () => {
   const { leads, students, applications } = useGlobalData();
@@ -35,14 +36,6 @@ export const ReportsPage: React.FC = () => {
       const totalStudents = students.length;
       const totalApps = applications.length;
       const totalRevenue = financeData.summary?.paidRevenue || 0;
-
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("EDUC_CRM_GEMINI_API_KEY");
-
-      if (!apiKey) {
-        setAiResponse("Gemini API key is required to execute AI reporting queries.");
-        return;
-      }
-
       const prompt = `You are a CRM Business Intelligence Analyst. Answer the following user question based on CRM data summary:
 User Question: "${aiQuery}"
 CRM Data Summary:
@@ -54,14 +47,7 @@ CRM Data Summary:
 
 Provide a concise, 2-3 sentence executive data insight answering the user's question directly.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      });
-
-      const data = await response.json();
-      const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No insights returned.";
+      const answer = await callGeminiApi(prompt);
       setAiResponse(answer);
     } catch (err: any) {
       setAiResponse(`Query error: ${err.message}`);
