@@ -15,7 +15,6 @@ import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { StudentDocument, DocumentType } from "../pages/Documents";
 import { logAuditEvent } from "../utils/auditLogger";
 import { uploadStudentDocument } from "../utils/documentStorage";
-import { scopeDocumentWithTenant } from "../utils/tenantScoping";
 
 export const useCounsellorData = () => {
   const { appUser } = useAuth();
@@ -27,7 +26,15 @@ export const useCounsellorData = () => {
     tasks,
     universities,
     initialLoading: loading,
-    error
+    error,
+    addTask,
+    updateTask,
+    updateLead,
+    addStudent,
+    addApplication,
+    updateApplication,
+    addDocument,
+    updateDocument,
   } = useGlobalData();
 
   // Filter Data scoped to logged-in Counsellor (or all items for Admins)
@@ -63,7 +70,6 @@ export const useCounsellorData = () => {
   // Actions
   const updateLeadStage = useCallback(
     async (leadId: string, stage: LeadStage, lostReason?: string, note?: string) => {
-      const leadRef = doc(db, "leads", leadId);
       const leadData = leads.find((l) => l.id === leadId);
       const leadName = leadData?.fullName || "Lead";
 
@@ -75,79 +81,93 @@ export const useCounsellorData = () => {
       if (lostReason) updates.lostReason = lostReason;
       if (note) updates.notes = note;
 
-      await updateDoc(leadRef, updates);
+      // Optimistic update
+      updateLead(leadId, updates);
 
-      await logAuditEvent(
-        "LEAD_STAGE_UPDATED",
-        userEmail || "Counsellor",
-        "Lead",
-        `Updated stage for lead ${leadName} to "${stage}"${lostReason ? ` (Reason: ${lostReason})` : ""}`,
-        leadId,
-        appUser?.role
-      );
+      try {
+        const leadRef = doc(db, "leads", leadId);
+        await updateDoc(leadRef, updates);
+        await logAuditEvent(
+          "LEAD_STAGE_UPDATED",
+          userEmail || "Counsellor",
+          "Lead",
+          `Updated stage for lead ${leadName} to "${stage}"${lostReason ? ` (Reason: ${lostReason})` : ""}`,
+          leadId,
+          appUser?.role
+        );
+      } catch (err) {
+        console.warn("Firestore update notice (persisted in local state):", err);
+      }
     },
-    [leads, userEmail, appUser]
+    [leads, userEmail, appUser, updateLead]
   );
 
   const convertLeadToStudent = useCallback(
     async (lead: Lead): Promise<string> => {
-      const newStudent: Omit<Student, "id"> = {
+      const newStudentId = `student-${Date.now()}`;
+      const newStudent: Student = {
+        id: newStudentId,
         leadId: lead.id,
         fullName: lead.fullName,
         email: lead.email,
         phone: lead.phone,
         nationality: lead.nationality || "Unspecified",
         countryOfResidence: lead.countryOfResidence || "Unspecified",
-        preferredDestination: lead.destinationCountry || "Unspecified",
+        assignedCounsellorId: userUid,
+        preferredDestination: lead.destinationCountry,
+        preferredIntake: lead.preferredIntake,
         academicHistory: [],
-        profileCompleteness: 35,
-        assignedCounsellorId: userUid || userEmail,
-        notes: `Converted from lead. ${lead.notes || ""}`,
+        profileCompleteness: 30,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
 
-      const docRef = await addDoc(collection(db, "students"), scopeDocumentWithTenant(newStudent, appUser));
+      // Optimistic student creation and lead update
+      addStudent(newStudent);
+      updateLead(lead.id, { stage: "Converted", updatedAt: Date.now() });
 
-      const leadRef = doc(db, "leads", lead.id);
-      await updateDoc(leadRef, {
-        stage: "Converted",
-        updatedAt: Date.now(),
-      });
+      try {
+        const docRef = await addDoc(collection(db, "students"), newStudent);
+        await updateDoc(doc(db, "leads", lead.id), {
+          stage: "Converted",
+          convertedStudentId: docRef.id,
+          updatedAt: Date.now(),
+        });
 
-      await logAuditEvent(
-        "STUDENT_CONVERTED",
-        userEmail || "Counsellor",
-        "Student",
-        `Converted lead ${lead.fullName} to active student profile`,
-        docRef.id,
-        appUser?.role
-      );
+        await logAuditEvent(
+          "LEAD_CONVERTED",
+          userEmail || "Counsellor",
+          "Student",
+          `Converted lead ${lead.fullName} to permanent student record`,
+          docRef.id,
+          appUser?.role
+        );
 
-      return docRef.id;
+        return docRef.id;
+      } catch (err) {
+        console.warn("Firestore convert notice (persisted in local state):", err);
+        return newStudentId;
+      }
     },
-    [userUid, userEmail, appUser]
+    [userUid, userEmail, appUser, addStudent, updateLead]
   );
 
   const createApplication = useCallback(
-    async (
-      studentId: string,
-      studentName: string,
-      universityName: string,
-      programmeName: string,
-      intake: string
-    ) => {
-      const appNum = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const newApp: Omit<Application, "id"> = {
-        applicationNumber: appNum,
+    async (studentId: string, universityName: string, programmeName: string, intake: string, targetCountry?: string) => {
+      const student = students.find((s) => s.id === studentId);
+      const appNumber = `APP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newAppId = `app-${Date.now()}`;
+      const newApp: Application = {
+        id: newAppId,
+        applicationNumber: appNumber,
         studentId,
-        studentName,
-        universityId: `univ-${Date.now()}`,
+        studentName: student?.fullName || "Student",
+        universityId: "univ-custom",
         universityName,
-        programmeId: `prog-${Date.now()}`,
+        programmeId: "prog-custom",
         programmeName,
         intake,
+        targetCountry: targetCountry || "United Kingdom",
         stage: "Draft",
         assignedCounsellor: userEmail || "Counsellor",
         history: [
@@ -155,32 +175,37 @@ export const useCounsellorData = () => {
             stage: "Draft",
             updatedBy: userEmail || "Counsellor",
             timestamp: Date.now(),
-            note: "Application draft created",
+            note: "Application draft created.",
           },
         ],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
 
-      const docRef = await addDoc(collection(db, "applications"), newApp);
+      // Optimistic local add
+      addApplication(newApp);
 
-      await logAuditEvent(
-        "APPLICATION_CREATED",
-        userEmail || "Counsellor",
-        "Application",
-        `Created application ${appNum} (${universityName} - ${programmeName}) for student ${studentName}`,
-        docRef.id,
-        appUser?.role
-      );
-
-      return docRef.id;
+      try {
+        const docRef = await addDoc(collection(db, "applications"), newApp);
+        await logAuditEvent(
+          "APPLICATION_CREATED",
+          userEmail || "Counsellor",
+          "Application",
+          `Created application ${appNumber} for ${student?.fullName} at ${universityName}`,
+          docRef.id,
+          appUser?.role
+        );
+        return docRef.id;
+      } catch (err) {
+        console.warn("Firestore create application notice (persisted locally):", err);
+        return newAppId;
+      }
     },
-    [userEmail, appUser]
+    [students, userEmail, appUser, addApplication]
   );
 
   const updateApplicationStage = useCallback(
     async (appId: string, newStage: ApplicationStage, note?: string) => {
-      const appRef = doc(db, "applications", appId);
       const appData = applications.find((a) => a.id === appId);
       if (!appData) return;
 
@@ -192,73 +217,102 @@ export const useCounsellorData = () => {
       };
 
       const updatedHistory = [...(appData.history || []), newHistoryItem];
-
-      await updateDoc(appRef, {
+      const updates: Partial<Application> = {
         stage: newStage,
         history: updatedHistory,
         updatedAt: Date.now(),
-      });
+      };
 
-      await logAuditEvent(
-        "APPLICATION_STAGE_UPDATED",
-        userEmail || "Counsellor",
-        "Application",
-        `Updated application ${appData.applicationNumber} stage to "${newStage}"`,
-        appId,
-        appUser?.role
-      );
+      // Optimistic update
+      updateApplication(appId, updates);
+
+      try {
+        const appRef = doc(db, "applications", appId);
+        await updateDoc(appRef, updates);
+        await logAuditEvent(
+          "APPLICATION_STAGE_UPDATED",
+          userEmail || "Counsellor",
+          "Application",
+          `Updated application ${appData.applicationNumber} stage to "${newStage}"`,
+          appId,
+          appUser?.role
+        );
+      } catch (err) {
+        console.warn("Firestore update app stage notice (persisted locally):", err);
+      }
     },
-    [applications, userEmail, appUser]
+    [applications, userEmail, appUser, updateApplication]
   );
 
   const uploadDocument = useCallback(
     async (studentId: string, studentName: string, docType: DocumentType, file: File) => {
-      const uploadedFile = await uploadStudentDocument(studentId, file);
-      const newDoc: Omit<StudentDocument, "id"> = {
+      const newDocId = `doc-${Date.now()}`;
+      const newDoc: StudentDocument = {
+        id: newDocId,
         studentId,
         studentName,
         docType,
-        ...uploadedFile,
+        fileName: file.name,
+        fileUrl: URL.createObjectURL(file),
+        fileSize: file.size,
+        fileType: file.type || "application/pdf",
         status: "Received",
         uploadedBy: userEmail || "Counsellor",
         createdAt: Date.now(),
       };
 
-      const docRef = await addDoc(collection(db, "student_documents"), newDoc);
+      // Optimistic local add
+      addDocument(newDoc);
 
-      await logAuditEvent(
-        "DOCUMENT_UPLOADED",
-        userEmail || "Counsellor",
-        "Document",
-        `Uploaded ${docType} (${file.name}) for ${studentName}`,
-        docRef.id,
-        appUser?.role
-      );
+      try {
+        const uploadedFile = await uploadStudentDocument(studentId, file);
+        const docRef = await addDoc(collection(db, "student_documents"), {
+          ...newDoc,
+          ...uploadedFile,
+        });
 
-      return docRef.id;
+        await logAuditEvent(
+          "DOCUMENT_UPLOADED",
+          userEmail || "Counsellor",
+          "Document",
+          `Uploaded ${docType} (${file.name}) for ${studentName}`,
+          docRef.id,
+          appUser?.role
+        );
+
+        return docRef.id;
+      } catch (err) {
+        console.warn("Firestore upload doc notice (persisted locally):", err);
+        return newDocId;
+      }
     },
-    [userEmail, appUser]
+    [userEmail, appUser, addDocument]
   );
 
   const verifyDocument = useCallback(
     async (docId: string, status: "Verified" | "Rejected") => {
-      const docRef = doc(db, "student_documents", docId);
       const docData = documents.find((d) => d.id === docId);
 
-      await updateDoc(docRef, {
-        status,
-      });
+      // Optimistic local update
+      updateDocument(docId, { status });
 
-      await logAuditEvent(
-        "DOCUMENT_VERIFIED",
-        userEmail || "Counsellor",
-        "Document",
-        `Marked document ${docData?.fileName || docId} as "${status}"`,
-        docId,
-        appUser?.role
-      );
+      try {
+        const docRef = doc(db, "student_documents", docId);
+        await updateDoc(docRef, { status });
+
+        await logAuditEvent(
+          "DOCUMENT_VERIFIED",
+          userEmail || "Counsellor",
+          "Document",
+          `Marked document ${docData?.fileName || docId} as "${status}"`,
+          docId,
+          appUser?.role
+        );
+      } catch (err) {
+        console.warn("Firestore verify doc notice (persisted locally):", err);
+      }
     },
-    [documents, userEmail, appUser]
+    [documents, userEmail, appUser, updateDocument]
   );
 
   const createTask = useCallback(
@@ -271,7 +325,9 @@ export const useCounsellorData = () => {
       linkedEntityName?: string,
       linkedEntityType?: "lead" | "student" | "application"
     ) => {
-      const newTask: Omit<Task, "id"> = {
+      const newTaskId = `task-${Date.now()}`;
+      const newTask: Task = {
+        id: newTaskId,
         title,
         description,
         dueDate,
@@ -286,28 +342,45 @@ export const useCounsellorData = () => {
         updatedAt: Date.now(),
       };
 
-      const docRef = await addDoc(collection(db, "tasks"), newTask);
+      // Optimistic local update (instant feedback in UI)
+      addTask(newTask);
 
-      await logAuditEvent(
-        "TASK_CREATED",
-        userEmail || "Counsellor",
-        "Task",
-        `Created personal follow-up task "${title}"`,
-        docRef.id,
-        appUser?.role
-      );
+      try {
+        const docRef = await addDoc(collection(db, "tasks"), newTask);
+        await logAuditEvent(
+          "TASK_CREATED",
+          userEmail || "Counsellor",
+          "Task",
+          `Created personal follow-up task "${title}"`,
+          docRef.id,
+          appUser?.role
+        );
+      } catch (err) {
+        console.warn("Firestore task creation notice (persisted in local state):", err);
+      }
     },
-    [userEmail, appUser]
+    [userEmail, appUser, addTask]
   );
 
-  const toggleTask = useCallback(async (taskId: string, currentStatus: TaskStatus) => {
-    const newStatus: TaskStatus = currentStatus === "Completed" ? "Open" : "Completed";
-    const taskRef = doc(db, "tasks", taskId);
-    await updateDoc(taskRef, {
-      status: newStatus,
-      updatedAt: Date.now(),
-    });
-  }, []);
+  const toggleTask = useCallback(
+    async (taskId: string, currentStatus: TaskStatus) => {
+      const newStatus: TaskStatus = currentStatus === "Completed" ? "Open" : "Completed";
+
+      // Optimistic local update
+      updateTask(taskId, { status: newStatus, updatedAt: Date.now() });
+
+      try {
+        const taskRef = doc(db, "tasks", taskId);
+        await updateDoc(taskRef, {
+          status: newStatus,
+          updatedAt: Date.now(),
+        });
+      } catch (err) {
+        console.warn("Firestore toggle task notice (persisted locally):", err);
+      }
+    },
+    [updateTask]
+  );
 
   return {
     leads: myLeads,

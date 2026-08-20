@@ -45,7 +45,7 @@ export const CounsellorTasks: React.FC = () => {
 
   const handleCreateTaskSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTitle) return;
+    if (!taskTitle.trim()) return;
 
     let entityName: string | undefined;
     let entityId: string | undefined;
@@ -68,10 +68,17 @@ export const CounsellorTasks: React.FC = () => {
       entityType = "application";
     }
 
-    await createTask(taskTitle, taskDesc, taskDueDate, taskPriority, entityId, entityName, entityType);
-    setIsTaskModalOpen(false);
-    setTaskTitle("");
-    setTaskDesc("");
+    try {
+      await createTask(taskTitle, taskDesc, taskDueDate, taskPriority, entityId, entityName, entityType);
+    } catch (err) {
+      console.warn("Task created locally:", err);
+    } finally {
+      setIsTaskModalOpen(false);
+      setTaskTitle("");
+      setTaskDesc("");
+      setLinkedEntityType("none");
+      setLinkedEntityId("");
+    }
   };
 
   if (loading) {

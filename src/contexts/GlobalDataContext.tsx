@@ -20,6 +20,17 @@ interface GlobalDataContextType {
   universities: University[];
   initialLoading: boolean;
   error: string | null;
+  addTask: (task: Task) => void;
+  updateTask: (taskId: string, updates: Partial<Task>) => void;
+  deleteTask: (taskId: string) => void;
+  addLead: (lead: Lead) => void;
+  updateLead: (leadId: string, updates: Partial<Lead>) => void;
+  addStudent: (student: Student) => void;
+  updateStudent: (studentId: string, updates: Partial<Student>) => void;
+  addApplication: (app: Application) => void;
+  updateApplication: (appId: string, updates: Partial<Application>) => void;
+  addDocument: (doc: StudentDocument) => void;
+  updateDocument: (docId: string, updates: Partial<StudentDocument>) => void;
 }
 
 const GlobalDataContext = createContext<GlobalDataContextType>({
@@ -32,6 +43,17 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
   universities: [],
   initialLoading: true,
   error: null,
+  addTask: () => {},
+  updateTask: () => {},
+  deleteTask: () => {},
+  addLead: () => {},
+  updateLead: () => {},
+  addStudent: () => {},
+  updateStudent: () => {},
+  addApplication: () => {},
+  updateApplication: () => {},
+  addDocument: () => {},
+  updateDocument: () => {},
 });
 
 import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_TASKS, DEMO_UNIVERSITIES, DEMO_USERS } from "../data/demoData";
@@ -178,6 +200,51 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [appUser]);
 
+  // Optimistic Mutation Handlers
+  const addTask = (newTask: Task) => {
+    setTasks((prev) => [newTask, ...prev.filter((t) => t.id !== newTask.id)]);
+  };
+
+  const updateTask = (taskId: string, updates: Partial<Task>) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+  };
+
+  const deleteTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  };
+
+  const addLead = (newLead: Lead) => {
+    setLeads((prev) => [newLead, ...prev.filter((l) => l.id !== newLead.id)]);
+  };
+
+  const updateLead = (leadId: string, updates: Partial<Lead>) => {
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, ...updates } : l)));
+  };
+
+  const addStudent = (newStudent: Student) => {
+    setStudents((prev) => [newStudent, ...prev.filter((s) => s.id !== newStudent.id)]);
+  };
+
+  const updateStudent = (studentId: string, updates: Partial<Student>) => {
+    setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, ...updates } : s)));
+  };
+
+  const addApplication = (newApp: Application) => {
+    setApplications((prev) => [newApp, ...prev.filter((a) => a.id !== newApp.id)]);
+  };
+
+  const updateApplication = (appId: string, updates: Partial<Application>) => {
+    setApplications((prev) => prev.map((a) => (a.id === appId ? { ...a, ...updates } : a)));
+  };
+
+  const addDocument = (newDoc: StudentDocument) => {
+    setDocuments((prev) => [newDoc, ...prev.filter((d) => d.id !== newDoc.id)]);
+  };
+
+  const updateDocument = (docId: string, updates: Partial<StudentDocument>) => {
+    setDocuments((prev) => prev.map((d) => (d.id === docId ? { ...d, ...updates } : d)));
+  };
+
   return (
     <GlobalDataContext.Provider
       value={{
@@ -190,6 +257,17 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         universities,
         initialLoading,
         error: null,
+        addTask,
+        updateTask,
+        deleteTask,
+        addLead,
+        updateLead,
+        addStudent,
+        updateStudent,
+        addApplication,
+        updateApplication,
+        addDocument,
+        updateDocument,
       }}
     >
       {children}

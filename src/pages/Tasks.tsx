@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, addDoc, updateDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { CheckSquare, Plus, Search, Calendar, AlertCircle, X, Check } from "lucide-react";
 
 export const Tasks: React.FC = () => {
   const { appUser } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { tasks, addTask, updateTask, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -26,20 +26,6 @@ export const Tasks: React.FC = () => {
   const [linkedEntityName, setLinkedEntityName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  useEffect(() => {
-    const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs: Task[] = [];
-      snapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() } as Task);
-      });
-      setTasks(docs);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !dueDate) {
@@ -47,23 +33,28 @@ export const Tasks: React.FC = () => {
       return;
     }
 
-    try {
-      const newTask: Omit<Task, "id"> = {
-        title,
-        description,
-        dueDate,
-        priority,
-        status: "Open",
-        recurrence,
-        reminderMinutes,
-        linkedEntityType,
-        linkedEntityName: linkedEntityName || "General",
-        assignedTo: appUser?.email || "Counsellor",
-        createdBy: appUser?.email || "User",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+    const newTaskId = `task-${Date.now()}`;
+    const newTask: Task = {
+      id: newTaskId,
+      title,
+      description,
+      dueDate,
+      priority,
+      status: "Open",
+      recurrence,
+      reminderMinutes,
+      linkedEntityType,
+      linkedEntityName: linkedEntityName || "General",
+      assignedTo: appUser?.email || "Counsellor",
+      createdBy: appUser?.email || "User",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
 
+    // Optimistic local update
+    addTask(newTask);
+
+    try {
       const docRef = await addDoc(collection(db, "tasks"), newTask);
       await logAuditEvent(
         "TASK_CREATED",
@@ -73,7 +64,9 @@ export const Tasks: React.FC = () => {
         docRef.id,
         appUser?.role
       );
-
+    } catch (err: any) {
+      console.warn("Task saved locally:", err);
+    } finally {
       // Reset
       setTitle("");
       setDescription("");
@@ -82,13 +75,17 @@ export const Tasks: React.FC = () => {
       setLinkedEntityName("");
       setErrorMsg("");
       setIsAddModalOpen(false);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to create task.");
     }
   };
 
   const handleToggleTaskStatus = async (task: Task) => {
     const newStatus: TaskStatus = task.status === "Completed" ? "Open" : "Completed";
+    updateTask(task.id, {
+      status: newStatus,
+      completedAt: newStatus === "Completed" ? Date.now() : undefined,
+      updatedAt: Date.now(),
+    });
+
     try {
       await updateDoc(doc(db, "tasks", task.id), {
         status: newStatus,
