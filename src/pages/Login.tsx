@@ -22,6 +22,10 @@ export const Login: React.FC = () => {
       navigate("/team-leader/dashboard");
     } else if (role === "counsellor") {
       navigate("/counsellor/dashboard");
+    } else if (role === "org_admin") {
+      navigate("/");
+    } else if (role === "office_manager") {
+      navigate("/users");
     } else if (role === "admissions_officer") {
       navigate("/admissions/dashboard");
     } else if (role === "finance_officer") {
@@ -104,11 +108,11 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {/* Demo controls are excluded from production builds. */}
+        {/* Quick Role Access for seamless live presentations and role evaluation */}
         {isDemoMode && <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
           <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Local Dev / Quick Demo Login:</span>
+            <span>Role Quick-Access Login:</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
             <button
@@ -126,6 +130,14 @@ export const Login: React.FC = () => {
             >
               <Users2 className="w-3.5 h-3.5" />
               <span>Team Leader</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoLogin("org_admin")}
+              className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Org Admin</span>
             </button>
             <button
               type="button"
@@ -187,9 +199,9 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => handleQuickDemoLogin("university_partner")}
-              className="col-span-2 sm:col-span-1 px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
             >
-              <span>University Partner</span>
+              <span>University</span>
             </button>
           </div>
         </div>}

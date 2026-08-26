@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 
@@ -36,11 +36,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [loading, setLoading] = useState<boolean>(true);
 
-  const loginAsDemoRole = (role: UserRole) => {
+  const loginAsDemoRole = async (role: UserRole) => {
     const demoUser: AppUser = {
       uid: `demo_${role}`,
       email: `${role}@educrm.demo`,
-      displayName: `Demo ${role.replace(/_/g, " ").toUpperCase()}`,
+      displayName: `Demo ${role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`,
       role: role,
       createdAt: Date.now(),
       office: "London HQ",
@@ -55,6 +55,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setAppUser(demoUser);
     setLoading(false);
+
+    // Write the demo user profile to Firestore so that queries, hooks, and
+    // any residual security-rule lookups can resolve the user's role.
+    try {
+      await setDoc(doc(db, "users", demoUser.uid), {
+        uid: demoUser.uid,
+        email: demoUser.email,
+        displayName: demoUser.displayName,
+        role: demoUser.role,
+        office: demoUser.office,
+        branchId: demoUser.branchId,
+        tenantId: demoUser.tenantId,
+        createdAt: demoUser.createdAt,
+        ...(demoUser.partnerUniversityId ? { partnerUniversityId: demoUser.partnerUniversityId } : {}),
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Could not write demo user profile to Firestore (app will still work locally):", err);
+    }
   };
 
   const logout = () => {

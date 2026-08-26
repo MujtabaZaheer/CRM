@@ -1,0 +1,1327 @@
+Comprehensive Education CRM and Student Application Management Platform
+The proposed system should be a multi-tenant, role-based Education CRM for managing
+student leads, counselling, university applications, documents, partner universities, external
+agents, communication, reporting, and operational performance.
+1. System Objectives
+The web application should enable education consultants, universities, recruitment agencies,
+counsellors, students, and external agents to:
+· Capture and manage prospective-student leads.
+· Convert leads into university applications.
+· Track applications through configurable workflows.
+· Manage student documents and compliance requirements.
+· Maintain university, campus, programme, intake, fee, and eligibility data.
+· Coordinate work among counsellors, agents, offices, and teams.
+· Communicate with students through email, WhatsApp, SMS, and internal messaging.
+· Use AI to analyse documents, identify missing information, recommend programmes,
+and prepare applications.
+· Generate operational, financial, conversion, and performance reports.
+· Maintain security, privacy, auditability, and regulatory compliance.
+2. User Roles
+The system should support configurable roles rather than relying only on fixed roles.
+Role Main Responsibilities
+Platform Super
+Admin
+Manage tenants, subscriptions, system settings, security, global
+configuration, and platform monitoring
+Organization Admin Configure the organization, offices, users, roles, workflows,
+integrations, and master data
+Office Manager Manage a branch office, counsellors, leads, workloads, and
+performance
+Team Leader Assign applications and monitor team activity
+Counsellor Manage leads, students, documents, applications, communication, and
+follow-ups
+
+-- 1 of 43 --
+
+Admissions Officer Review applications, verify documents, and update application
+decisions
+Compliance Officer Verify identity, finances, academic documents, and regulatory
+compliance
+Finance Officer Manage fees, invoices, commissions, refunds, and payments
+External Agent Submit and track applications for referred students
+University Partner Review submitted applications and update decisions where portal
+access is enabled
+Student/Applicant Complete profile, upload documents, select programmes,
+communicate, and track application progress
+Auditor/Read-only
+User
+Review records, reports, actions, and audit history without editing
+Support User Handle technical and operational support cases
+A user may hold multiple roles across different offices, teams, or organizations.
+3. Functional Requirements
+3.1 Authentication and Account Management
+The system shall:
+1. Allow users to register through invitation, self-registration, agent onboarding, or student
+signup.
+2. Support login using:
+o Email and password
+o Google
+o Microsoft
+o University or organization SSO
+3. Support multi-factor authentication.
+4. Support password reset and account recovery.
+5. Lock accounts after configurable failed login attempts.
+6. Allow admins to activate, suspend, deactivate, or archive users.
+7. Maintain login history, session history, IP address, browser, and device information.
+8. Allow users to view and terminate active sessions.
+
+-- 2 of 43 --
+
+9. Support configurable password policies.
+10. Support session timeout and automatic logout.
+11. Require acceptance of privacy policy, terms, and consent notices.
+12. Support user impersonation by authorized platform administrators with full audit logging.
+3.2 Multi-Tenant Organization Management
+The system shall:
+1. Support multiple independent organizations on the same platform.
+2. Isolate each organization’s users, students, applications, documents, reports, and settings.
+3. Allow each organization to configure:
+o Name
+o Logo
+o Theme
+o Domain or subdomain
+o Contact details
+o Time zone
+o Currency
+o Language
+o Date format
+o Academic cycle
+4. Support multiple branch offices.
+5. Allow one office to be marked as head office.
+6. Assign users to one or multiple offices.
+7. Allow organization-specific terms, privacy policies, email templates, and workflows.
+8. Support custom branding and white-labelling.
+9. Allow organizations to define business hours and holidays.
+10. Maintain subscription plan, usage limits, storage, users, applications, and AI credits.
+3.3 Role and Permission Management
+The system shall:
+
+-- 3 of 43 --
+
+1. Provide predefined roles.
+2. Allow custom roles to be created.
+3. Support permissions at:
+o Module level
+o Screen level
+o Record level
+o Field level
+o Action level
+4. Control permissions for create, read, update, delete, export, import, approve, assign, and
+archive.
+5. Restrict users to:
+o Assigned office
+o Assigned team
+o Assigned applications
+o Assigned countries
+o Assigned universities
+6. Support approval-based permissions for sensitive actions.
+7. Maintain a role-change audit trail.
+8. Allow temporary access with an expiry date.
+9. Prevent users from granting permissions higher than their own.
+10. Support segregation of duties.
+3.4 Dashboard and Analytics
+The dashboard shall provide:
+· Total leads
+· Fresh leads
+· Active applications
+· Pending documents
+· Submitted applications
+· Offers received
+
+-- 4 of 43 --
+
+· Unconditional offers
+· Visa applications
+· Enrolments
+· Withdrawn or rejected applications
+· Conversion percentages
+· Weekly and monthly applications
+· Team size and workload
+· University distribution
+· Country distribution
+· Lead-source distribution
+· Office performance
+· Agent performance
+· Counsellor performance
+· Application ageing
+· Pending reminders
+· Upcoming deadlines
+· Financial overview
+· Commission forecast
+Users shall be able to:
+1. Filter dashboards by date, office, team, user, source, country, university, programme,
+intake, and application status.
+2. Drill down from dashboard metrics to underlying records.
+3. Save personal dashboard views.
+4. Rearrange dashboard widgets.
+5. Export dashboard data.
+6. Compare current performance against previous periods.
+7. View trends, targets, rankings, and exceptions.
+8. Configure performance-score formulas.
+9. View only data allowed by their permissions.
+
+-- 5 of 43 --
+
+10. Receive alerts for unusual drops, spikes, delays, or missed targets.
+3.5 Lead Management
+The system shall:
+1. Capture leads manually or automatically.
+2. Accept leads from:
+o Website forms
+o Facebook and Instagram
+o Google Ads
+o Google Sheets
+o CSV or Excel
+o API
+o WhatsApp
+o Email
+o Referral links
+o Walk-ins
+o Events and education fairs
+3. Store:
+o Personal details
+o Contact details
+o Nationality
+o Country of residence
+o Education history
+o Programme interest
+o Destination preference
+o Budget
+o Intake preference
+o Lead source and campaign
+4. Detect duplicate leads using email, phone, passport, or configurable matching rules.
+
+-- 6 of 43 --
+
+5. Merge duplicate records.
+6. Assign leads automatically or manually.
+7. Support round-robin, workload-based, geographic, office-based, and programme-based
+assignment.
+8. Maintain lead stages such as:
+o New
+o Contacted
+o Qualified
+o Counselling
+o Documents pending
+o Application initiated
+o Converted
+o Lost
+o Unresponsive
+9. Record lead score and conversion probability.
+10. Schedule calls, meetings, follow-ups, and reminders.
+11. Maintain complete lead activity history.
+12. Record lost-lead reasons.
+13. Support lead reactivation.
+14. Allow bulk assignment, tagging, messaging, archiving, and status updates.
+15. Track response time, first contact time, and lead ageing.
+16. Support custom fields and tags.
+3.6 Student and Applicant Profile
+Each applicant profile shall include:
+Personal Information
+· Full legal name
+· Preferred name
+· Date of birth
+· Gender
+
+-- 7 of 43 --
+
+· Nationality
+· Country of residence
+· Passport and national ID details
+· Marital status
+· Disability or accessibility requirements
+· Emergency contact
+Contact Information
+· Email
+· Mobile number
+· WhatsApp number
+· Current and permanent address
+· Preferred contact method
+Academic Information
+· School, college, and university history
+· Qualification level
+· Degree title
+· Institution
+· Country
+· Attendance dates
+· Completion date
+· Grades, GPA, percentage, and classification
+· Subjects studied
+· Backlogs, gaps, and failed courses
+English-Language Information
+· IELTS
+· PTE
+· TOEFL
+· Duolingo
+
+-- 8 of 43 --
+
+· Medium-of-instruction evidence
+· Test date, scores, and expiry
+Employment Information
+· Employer
+· Job title
+· Employment period
+· Responsibilities
+· Salary
+· Gap explanations
+Financial Information
+· Sponsor
+· Relationship to sponsor
+· Available funds
+· Bank details
+· Scholarships
+· Loan information
+Additional Information
+· Study gaps
+· Previous visa refusals
+· Immigration history
+· Criminal or disciplinary declarations
+· Medical declarations where legally justified
+· Dependants
+· Previous applications
+· Personal statement
+· Research proposal
+· References
+The system shall calculate profile completeness and identify missing or inconsistent data.
+
+-- 9 of 43 --
+
+3.7 Application Management
+The application module shall:
+1. Allow one student to have multiple applications.
+2. Generate unique application numbers.
+3. Link each application to:
+o Student
+o University
+o Campus
+o Programme
+o Intake
+o Study mode
+o Application type
+o Office
+o Team
+o Counsellor
+o Agent
+4. Support configurable application workflows.
+5. Maintain application stages, such as:
+o Draft
+o Initial review
+o Documents pending
+o Ready for submission
+o Submitted
+o University reviewing
+o Additional information requested
+o Conditional offer
+o Unconditional offer
+o Deposit pending
+
+-- 10 of 43 --
+
+o CAS or COE pending
+o Visa preparation
+o Visa submitted
+o Visa granted
+o Enrolled
+o Deferred
+o Withdrawn
+o Rejected
+6. Maintain status history with timestamps and responsible users.
+7. Allow users to configure custom statuses.
+8. Apply required-document checklists based on programme and stage.
+9. Highlight overdue applications.
+10. Allow applications to be reassigned.
+11. Support comments, internal notes, tags, and mentions.
+12. Maintain an application timeline.
+13. Support application copying for another programme or intake.
+14. Detect duplicate applications.
+15. Allow bulk status updates, reassignment, export, reminders, and communication.
+16. Support tabs and saved application views.
+17. Support user-defined columns.
+18. Allow applications to be archived and restored.
+19. Record rejection, withdrawal, cancellation, and deferral reasons.
+20. Support university-specific application forms.
+21. Allow internal approval before external submission.
+22. Lock approved fields after submission unless reopened by an authorized user.
+23. Maintain submission evidence, reference numbers, and acknowledgements.
+24. Support conditional-offer tracking and condition completion.
+25. Track deposits, tuition deadlines, CAS, visa, and enrolment milestones.
+
+-- 11 of 43 --
+
+26. Support application checklists and progress percentages.
+3.8 Document Management
+The system shall:
+1. Support upload through browser, mobile, email, API, and student portal.
+2. Accept common file formats including PDF, image, document, and spreadsheet formats.
+3. Categorize documents, including:
+o Passport
+o National ID
+o Photograph
+o Academic transcript
+o Degree certificate
+o English test
+o CV
+o Personal statement
+o Reference letter
+o Financial evidence
+o Sponsor documents
+o Visa document
+o Offer letter
+o CAS or COE
+4. Apply programme-specific and country-specific document requirements.
+5. Display received, missing, rejected, expired, and approved documents.
+6. Support document verification.
+7. Record verification comments and verified-by details.
+8. Support document versioning.
+9. Preserve the original uploaded file.
+10. Support preview, download, rename, replace, archive, and delete permissions.
+11. Extract text using OCR where appropriate.
+
+-- 12 of 43 --
+
+12. Extract structured information using AI.
+13. Detect:
+· Missing pages
+· Blurred files
+· Expired passports
+· Inconsistent names
+· Conflicting dates
+· Incomplete transcripts
+14. Detect duplicate files.
+15. Support electronic signature.
+16. Support document expiry alerts.
+17. Watermark downloaded documents where required.
+18. Encrypt documents at rest and in transit.
+19. Scan uploaded files for malware.
+20. Maintain document access and download logs.
+21. Allow secure document sharing through expiring links.
+22. Support configurable retention and deletion policies.
+23. Restrict highly sensitive documents to authorized roles.
+3.9 University and Programme Management
+The academic hierarchy shall support:
+· Country
+· City
+· University
+· Campus
+· Faculty or school
+· Department
+· Subject area
+· Degree type
+
+-- 13 of 43 --
+
+· Programme
+· Intake
+· Study mode
+· Session
+· Currency
+· Fee category
+· Scholarship
+· Document requirement
+· Application deadline
+The system shall:
+1. Allow manual and bulk creation of academic records.
+2. Import academic data through Excel or CSV.
+3. Validate imports before committing records.
+4. Show created, matched, skipped, duplicate, and failed records.
+5. Provide downloadable error reports.
+6. Make imports idempotent.
+7. Support rollback of failed or incorrect imports.
+8. Maintain import history.
+9. Store programme information including:
+o Title
+o Award
+o Duration
+o Level
+o Study mode
+o Campus
+o Tuition fee
+o Application fee
+o Deposit
+
+-- 14 of 43 --
+
+o Scholarship
+o Entry requirements
+o English-language requirements
+o Work-experience requirements
+o Portfolio requirements
+o Start dates
+o Deadlines
+o Programme URL
+10. Store country-specific entry requirements.
+11. Support programme versioning.
+12. Archive expired programmes and intakes.
+13. Support course-data feeds or APIs.
+14. Record the source and last verification date of programme data.
+15. Flag programme data requiring review.
+16. Support equivalency rules for academic qualifications.
+17. Support progression and pathway programmes.
+18. Support partner-specific commission arrangements.
+19. Support programme availability and capacity indicators.
+3.10 Programme Search and Recommendation
+A comprehensive system should include a programme-matching engine.
+The system shall:
+1. Allow users to search programmes by:
+o Country
+o University
+o Subject
+o Qualification
+o Intake
+o Fee
+
+-- 15 of 43 --
+
+o Scholarship
+o Duration
+o Study mode
+o English requirement
+o Academic requirement
+2. Compare multiple programmes.
+3. Allow programmes to be shortlisted.
+4. Match applicants against entry requirements.
+5. Show eligibility as:
+o Likely eligible
+o Potentially eligible
+o Additional review required
+o Unlikely eligible
+6. Explain why a programme was recommended.
+7. Identify missing eligibility information.
+8. Allow counsellors to override recommendations with justification.
+9. Avoid making final admissions decisions automatically.
+10. Record recommendation history.
+11. Support alternative and pathway recommendations.
+3.11 AI Counsellor
+The AI Counsellor shall:
+1. Guide users through application creation.
+2. Analyse uploaded academic, identity, and financial documents.
+3. Extract applicant information.
+4. Prepopulate application forms.
+5. Identify missing documents.
+6. Detect information conflicts.
+
+-- 16 of 43 --
+
+7. Recommend suitable universities and programmes.
+8. Draft:
+o Personal statements
+o Student summaries
+o Application cover notes
+o Follow-up messages
+o Document requests
+9. Summarize student profiles.
+10. Generate application-readiness scores.
+11. Explain AI recommendations.
+12. Require human approval before submitting or changing critical data.
+13. Clearly label AI-generated content.
+14. Allow users to edit AI-generated content.
+15. Maintain AI request and decision logs.
+16. Prevent sensitive data from being used for unrelated model training without
+authorization.
+17. Allow organizations to disable specific AI functions.
+18. Apply usage limits and AI-credit tracking.
+19. Detect low-confidence extraction and request human review.
+20. Avoid presenting legal, immigration, or admission outcomes as guaranteed.
+3.12 Communication Management
+The system shall support:
+· Email
+· SMS
+· WhatsApp
+· Internal messaging
+· Portal notifications
+· Push notifications
+· Automated reminders
+
+-- 17 of 43 --
+
+Functional requirements include:
+1. Send individual and bulk messages.
+2. Use reusable message templates.
+3. Support merge fields.
+4. Maintain communication history.
+5. Associate messages with a student, lead, or application.
+6. Track delivered, opened, failed, and replied statuses where supported.
+7. Support two-way communication.
+8. Allow messages to be scheduled.
+9. Trigger automated messages based on workflow events.
+10. Support communication preferences and opt-outs.
+11. Prevent duplicate or excessive automated messaging.
+12. Allow counsellors to create follow-up tasks from messages.
+13. Support attachments.
+14. Support shared team inboxes.
+15. Allow internal notes that are not visible to students or agents.
+16. Support escalation of unanswered messages.
+17. Store consent evidence for marketing communication.
+3.13 Tasks, Calendar, Reminders, and Workflow Automation
+The system shall:
+1. Allow users to create tasks against leads, students, and applications.
+2. Set owner, due date, priority, status, and reminder.
+3. Support recurring tasks.
+4. Display daily, weekly, and monthly calendars.
+5. Synchronize with Google Calendar and Microsoft Outlook.
+6. Allow appointment booking.
+7. Support counsellor availability and meeting slots.
+8. Trigger tasks automatically when:
+
+-- 18 of 43 --
+
+o A lead is created
+o A document is uploaded
+o An application changes stage
+o A university requests information
+o A deadline approaches
+o A payment becomes due
+9. Escalate overdue tasks.
+10. Notify team leaders of unresolved high-priority tasks.
+11. Support workflow rules based on conditions and actions.
+12. Allow administrators to configure workflow rules without coding.
+13. Prevent circular or conflicting workflow automation.
+14. Maintain workflow-execution logs.
+3.14 Agent Management
+The system shall:
+1. Allow admins to add agents manually.
+2. Support agent self-registration.
+3. Review and approve pending agents.
+4. Store:
+o Legal business name
+o Contact person
+o Address
+o Countries of operation
+o Registration details
+o Tax details
+o Bank details
+o Agreements
+o Compliance documents
+5. Assign institutions, territories, and programmes to agents.
+
+-- 19 of 43 --
+
+6. Generate unique referral links or codes.
+7. Allow agents to submit applications.
+8. Restrict agents to their own students and applications.
+9. Track agent leads, applications, conversion, enrolments, and commissions.
+10. Support agent contracts and expiry alerts.
+11. Support commission rules by university, programme, intake, or country.
+12. Generate commission statements.
+13. Allow commission disputes and approvals.
+14. Suspend or deactivate agents.
+15. Maintain agent performance ratings.
+16. Support sub-agents where permitted.
+17. Detect potential duplicate or fraudulent agent submissions.
+3.15 Student Portal
+The student portal shall allow applicants to:
+1. Register and verify their account.
+2. Complete their personal and academic profile.
+3. Upload and replace documents.
+4. View missing-document requirements.
+5. Search and shortlist programmes.
+6. Approve programme selections.
+7. Review application information before submission.
+8. Provide declarations and electronic signatures.
+9. Track application status.
+10. View university requests.
+11. Download offer letters and other documents.
+12. Pay application fees, deposits, or service fees.
+13. View receipts and invoices.
+14. Communicate with counsellors.
+
+-- 20 of 43 --
+
+15. Schedule appointments.
+16. Receive reminders.
+17. Update contact information.
+18. Submit feedback or complaints.
+19. Request correction or deletion of personal data.
+20. View consent and privacy settings.
+3.16 University Partner Portal
+Where universities are given portal access, they shall be able to:
+1. View assigned applications.
+2. Search and filter applications.
+3. Review applicant profiles and documents.
+4. Request additional documents.
+5. Add internal or applicant-visible comments.
+6. Update application status.
+7. Upload offer letters and decisions.
+8. Record scholarship decisions.
+9. Export application data.
+10. View source-agent and recruitment performance.
+11. Manage programme and intake information subject to approval.
+12. Access only authorized institutional data.
+3.17 Form Creator
+The form builder shall:
+1. Allow drag-and-drop form creation.
+2. Support:
+o Text fields
+o Number fields
+o Email
+o Phone
+
+-- 21 of 43 --
+
+o Date
+o Dropdown
+o Radio button
+o Checkbox
+o File upload
+o Address
+o Consent
+o Signature
+o Repeating education or employment sections
+3. Support conditional fields.
+4. Support validation rules.
+5. Support multilingual forms.
+6. Allow forms to be linked to a university, programme, campaign, or source.
+7. Publish forms through:
+o Public link
+o Embedded code
+o QR code
+8. Apply organization branding.
+9. Send submission confirmations.
+10. Prevent spam through CAPTCHA and rate limiting.
+11. Detect duplicates.
+12. Automatically create leads or applications.
+13. Track views, starts, completions, and drop-offs.
+14. Allow form cloning and versioning.
+15. Preserve the version used for each submission.
+16. Allow forms to be unpublished without deleting prior responses.
+3.18 Integrations
+The system should integrate with:
+
+-- 22 of 43 --
+
+· Facebook Lead Ads
+· Instagram
+· Google Sheets
+· Website forms
+· Gmail
+· Microsoft Outlook
+· WhatsApp Business
+· SMS gateways
+· Google Calendar
+· Microsoft Calendar
+· Cloud storage
+· Payment gateways
+· Accounting systems
+· University APIs
+· Identity-verification services
+· Electronic-signature services
+· Learning or student information systems
+· Visa or immigration-status services where legally permitted
+For each integration, the system shall:
+1. Support secure OAuth or API credentials.
+2. Show connection status.
+3. Allow connection testing.
+4. Maintain synchronization logs.
+5. Show failed items.
+6. Support retry and reprocessing.
+7. Allow field mapping.
+8. Prevent duplicate imports.
+9. Notify admins when credentials expire.
+
+-- 23 of 43 --
+
+10. Allow integrations to be disabled.
+11. Log data sent to and received from third parties.
+12. Support webhooks.
+13. Validate webhook signatures.
+14. Apply rate limiting and retry policies.
+3.19 Reporting and Business Intelligence
+Standard Reports
+The system shall provide:
+· Leads by source
+· Lead conversion
+· Applications by status
+· Applications by university
+· Applications by country
+· Applications by intake
+· Applications by office
+· Applications by counsellor
+· Applications by agent
+· Offer rate
+· Visa success rate
+· Enrolment rate
+· Rejection reasons
+· Withdrawal reasons
+· Pending-document ageing
+· Application turnaround time
+· Counsellor productivity
+· Team workload
+· Agent performance
+· University performance
+
+-- 24 of 43 --
+
+· Campaign performance
+· Revenue and commissions
+· Outstanding payments
+· Forecasted enrolments
+· Data-quality issues
+· User activity
+· Audit reports
+Reporting Capabilities
+The system shall:
+1. Support pivot-style reports.
+2. Support AI-assisted natural-language reporting.
+3. Translate user questions into validated report queries.
+4. Display filters and calculation logic used by AI reports.
+5. Allow reports to be saved.
+6. Allow report templates to be shared.
+7. Schedule reports for email delivery.
+8. Export reports to CSV, Excel, and PDF.
+9. Support tables and visual charts.
+10. Allow drill-down to source records.
+11. Apply role-based data restrictions.
+12. Support configurable KPIs.
+13. Compare offices, teams, counsellors, and time periods.
+14. Support report snapshots.
+15. Prevent unauthorized exposure of personal data through reporting.
+16. Limit AI reporting to available and authorized data.
+3.20 Finance, Payments, and Commissions
+The system shall:
+1. Create invoices for:
+
+-- 25 of 43 --
+
+o Application fees
+o Service charges
+o Deposits
+o Tuition payments
+o Visa support
+o Other configurable services
+2. Accept online and offline payments.
+3. Record payment method, reference, date, currency, and amount.
+4. Generate receipts.
+5. Support discounts, scholarships, waivers, and refunds.
+6. Support multi-currency transactions.
+7. Store historical exchange rates used for calculations.
+8. Track unpaid and partially paid invoices.
+9. Send payment reminders.
+10. Reconcile gateway transactions.
+11. Calculate agent commissions.
+12. Support commission approvals.
+13. Generate agent statements.
+14. Track commissions as pending, eligible, approved, paid, disputed, or reversed.
+15. Record university receivables.
+16. Export financial records to accounting systems.
+17. Restrict financial information to authorized roles.
+18. Maintain complete financial audit logs.
+3.21 Notifications
+The system shall notify users about:
+· New lead assignment
+· New application assignment
+· Missing documents
+
+-- 26 of 43 --
+
+· Document rejection
+· Upcoming deadline
+· Overdue task
+· New student message
+· University request
+· Offer received
+· Payment due
+· Visa milestone
+· Agent approval
+· Commission approval
+· Integration failure
+· Import completion
+· Storage threshold
+· AI-credit threshold
+· Security events
+Users shall be able to configure notification preferences by channel and event type.
+3.22 Search
+The system shall provide global search across:
+· Students
+· Leads
+· Applications
+· Universities
+· Programmes
+· Documents
+· Agents
+· Users
+· Tasks
+· Messages
+
+-- 27 of 43 --
+
+· Reports
+Search should support:
+· Typo tolerance
+· Partial matching
+· Filters
+· Recent searches
+· Saved searches
+· Permission-aware results
+· Highlighted matches
+· Advanced query conditions
+Sensitive fields should be masked in search results where appropriate.
+3.23 Import, Export, and Data Migration
+The system shall:
+1. Import data from Excel and CSV.
+2. Provide downloadable templates.
+3. Validate column mapping and formats.
+4. Show a preview before import.
+5. Support dry-run validation.
+6. Detect duplicates.
+7. Allow users to choose create, skip, update, or merge behaviour.
+8. Produce detailed error reports.
+9. Allow failed rows to be corrected and re-uploaded.
+10. Maintain import history.
+11. Allow authorized users to rollback imports.
+12. Export permitted data.
+13. Mask sensitive information in exports where required.
+14. Add an export reason and approval workflow for bulk sensitive-data exports.
+15. Log every export.
+
+-- 28 of 43 --
+
+3.24 Data Quality Management
+The system shall identify:
+· Missing mandatory fields
+· Invalid email or phone formats
+· Duplicate students
+· Duplicate applications
+· Expired documents
+· Inconsistent names
+· Impossible or conflicting dates
+· Invalid academic scores
+· Missing programme information
+· Stale university data
+· Unassigned applications
+· Applications without recent activity
+A data-quality dashboard shall show issues, ownership, priority, and resolution status.
+3.25 Audit Trail
+The system shall log:
+· Login and logout
+· Failed login attempts
+· Record creation
+· Field changes
+· Status changes
+· Assignment changes
+· Document upload, view, download, and deletion
+· Exports and imports
+· Role and permission changes
+· AI-generated recommendations
+· Communication
+
+-- 29 of 43 --
+
+· Payment activity
+· Agent commission actions
+· Configuration changes
+· Integration activity
+Audit logs shall show who, what, when, where, previous value, new value, and reason where
+required.
+Audit records shall not be editable by ordinary users.
+3.26 Support and Case Management
+The application should include:
+1. Technical-support tickets.
+2. Student complaints and service cases.
+3. Ticket categories, priorities, ownership, and SLA.
+4. Internal notes and attachments.
+5. Escalation rules.
+6. Status tracking.
+7. Satisfaction rating.
+8. Knowledge-base articles.
+9. Frequently asked questions.
+10. Support analytics.
+3.27 Configuration and Master Data
+Administrators shall configure:
+· Countries
+· Cities
+· Nationalities
+· Currencies
+· Degree levels
+· Qualification types
+· Grading systems
+· Subjects
+
+-- 30 of 43 --
+
+· Intake periods
+· Application types
+· Application statuses
+· Document types
+· Lead sources
+· Rejection reasons
+· Withdrawal reasons
+· Payment types
+· Communication templates
+· Workflow rules
+· Custom fields
+· Tags
+· Holidays
+· SLA thresholds
+· Retention policies
+Changes to critical master data should support approval and version history.
+4. Non-Functional Requirements
+4.1 Performance
+1. Standard pages should load within two seconds under normal operating conditions.
+2. Search results should appear within two seconds for commonly used queries.
+3. Standard save and update operations should complete within three seconds.
+4. Dashboard loading should complete within five seconds.
+5. Large reports may be processed asynchronously.
+6. Bulk imports should display progress.
+7. Long-running operations should not block the user interface.
+8. Pagination or virtualization should be used for large datasets.
+9. The system should support caching for frequently accessed reference data.
+10. Application performance should be monitored continuously.
+
+-- 31 of 43 --
+
+4.2 Scalability
+The architecture should support:
+· Thousands of organizations
+· Tens of thousands of concurrent users
+· Millions of leads and applications
+· Large document repositories
+· Horizontal scaling
+· Independent scaling of web, background-processing, reporting, search, storage, and AI
+services
+The system should support queue-based processing for imports, notifications, OCR, AI analysis,
+and report generation.
+4.3 Availability and Reliability
+1. Target availability should be at least 99.9%, excluding approved maintenance.
+2. No single server failure should cause complete service interruption.
+3. Critical background jobs should support automatic retry.
+4. Failed integrations should enter a retry or exception queue.
+5. Data writes should be transactional.
+6. The system shall prevent partial application updates.
+7. Health checks should monitor major system components.
+8. Maintenance periods should be announced.
+9. Users should see a meaningful service-status message during outages.
+4.4 Security
+The system shall:
+1. Use HTTPS for all communication.
+2. Encrypt sensitive data at rest.
+3. Apply secure password hashing.
+4. Support MFA.
+5. Implement least-privilege access.
+6. Protect against:
+
+-- 32 of 43 --
+
+o SQL injection
+o Cross-site scripting
+o Cross-site request forgery
+o Broken access control
+o Insecure file upload
+o Session fixation
+o Brute-force attacks
+o API abuse
+7. Use secure, HTTP-only, and same-site cookies.
+8. Apply rate limiting.
+9. Validate all inputs on both client and server.
+10. Use anti-malware scanning for files.
+11. Use secure secrets management.
+12. Rotate API keys and credentials.
+13. Mask sensitive data in logs.
+14. Conduct vulnerability scanning and penetration testing.
+15. Support immediate account and token revocation.
+16. Maintain security-event logs.
+17. Alert admins about suspicious login activity.
+18. Separate production, test, and development data.
+19. Prohibit use of live personal data in testing unless appropriately anonymized.
+20. Apply tenant isolation at both application and database-access levels.
+4.5 Privacy and Data Protection
+The system should support applicable privacy obligations, including:
+1. Explicit consent collection.
+2. Purpose-based data processing.
+3. Data minimization.
+4. Right of access.
+
+-- 33 of 43 --
+
+5. Right of correction.
+6. Right of deletion, subject to lawful retention.
+7. Consent withdrawal.
+8. Data-portability requests.
+9. Marketing opt-out.
+10. Configurable retention schedules.
+11. Automated anonymization or deletion.
+12. Data-processing agreements.
+13. Third-party processor records.
+14. Cross-border data-transfer controls.
+15. Privacy notices by organization.
+16. Data-breach management.
+17. Data-subject request tracking.
+18. Restricted access to highly sensitive data.
+19. Privacy-aware test and analytics environments.
+4.6 Backup and Disaster Recovery
+1. Automated backups shall be taken regularly.
+2. Backups shall be encrypted.
+3. Backups shall be stored in geographically separate locations where appropriate.
+4. Restore procedures shall be tested.
+5. The system should define:
+o Recovery Point Objective
+o Recovery Time Objective
+6. Documents and database records should be recoverable consistently.
+7. Authorized admins should be able to view backup status.
+8. Deletion of backups should require restricted privileges.
+9. Business-continuity procedures should be documented.
+A reasonable initial target would be an RPO of one hour and an RTO of four hours, subject to
+business needs.
+
+-- 34 of 43 --
+
+4.7 Usability
+1. Navigation should remain consistent throughout the application.
+2. Frequently used operations should require minimal clicks.
+3. Forms should provide inline validation.
+4. Error messages should clearly explain what happened and how to correct it.
+5. Unsaved changes should trigger a warning.
+6. Long forms should support autosave.
+7. Users should be able to resume incomplete work.
+8. Bulk actions should show confirmation and impact.
+9. Destructive actions should require confirmation.
+10. The system should provide contextual help and onboarding guidance.
+11. Empty states should guide the user toward the next action.
+12. Terminology should be configurable for different markets.
+4.8 Accessibility
+The interface should target WCAG 2.2 AA compliance.
+It should support:
+· Keyboard navigation
+· Screen readers
+· Visible focus indicators
+· Sufficient colour contrast
+· Form labels
+· Accessible error messages
+· Alternative text for meaningful images
+· Scalable text
+· Reduced-motion settings
+· Non-colour status indicators
+· Accessible charts and tables
+4.9 Responsiveness
+
+-- 35 of 43 --
+
+The system shall work on:
+· Desktop
+· Laptop
+· Tablet
+· Mobile browser
+Key student and agent workflows should be optimized for mobile devices, particularly document
+upload, status tracking, communication, and lead submission.
+4.10 Compatibility
+The application should support the latest stable versions of:
+· Google Chrome
+· Microsoft Edge
+· Mozilla Firefox
+· Apple Safari
+The system should provide graceful degradation when an unsupported browser is used.
+4.11 Maintainability
+1. The application should use modular architecture.
+2. Business logic should be separated from the user interface.
+3. APIs should be versioned.
+4. Code should follow agreed standards.
+5. Automated unit, integration, security, and end-to-end tests should be maintained.
+6. Database changes should use controlled migrations.
+7. Configuration should be externalized.
+8. System modules should be deployable with minimal disruption.
+9. Technical documentation should be maintained.
+10. Deprecated features should follow a formal removal process.
+4.12 Observability
+The system should provide:
+
+-- 36 of 43 --
+
+· Centralized logs
+· Performance metrics
+· Error tracking
+· Background-job monitoring
+· Integration monitoring
+· API monitoring
+· Security-event monitoring
+· Usage analytics
+· Alerting
+· Correlation identifiers for tracing a transaction across services
+Logs must not expose passwords, tokens, financial details, or unnecessary personal data.
+4.13 Localization
+The system should support:
+· Multiple languages
+· Right-to-left languages
+· Local date formats
+· Local time zones
+· Multiple currencies
+· Country-specific address formats
+· Country-specific academic grading systems
+· Localized templates and notifications
+All stored timestamps should use a consistent standard and display according to the user’s
+configured time zone.
+4.14 Data Integrity
+1. Required relationships should be enforced.
+2. Unique application and student identifiers should be maintained.
+3. Referential integrity should be protected.
+
+-- 37 of 43 --
+
+4. Duplicate-prevention rules should be configurable.
+5. Historical records should not be overwritten without versioning.
+6. Financial transactions should use precise decimal calculations.
+7. Critical operations should be idempotent.
+8. Concurrent updates should be safely handled.
+9. Approved or submitted applications should have controlled editing.
+4.15 API Requirements
+The platform should expose secure APIs for authorized integration.
+The APIs shall:
+1. Use token-based authentication.
+2. Apply scopes and permissions.
+3. Be versioned.
+4. Provide consistent errors.
+5. Support pagination, filtering, and sorting.
+6. Enforce rate limits.
+7. Maintain request logs.
+8. Support idempotency keys for create operations.
+9. Offer webhooks for major events.
+10. Provide developer documentation and a sandbox environment.
+11. Mask or omit unauthorized fields.
+12. Validate webhook signatures and retry failed deliveries.
+5. Important Gaps Filled Beyond the Screenshots
+The attached application presents a strong operational foundation, but the following functions are
+essential for a holistic solution:
+1. Full lead-management lifecycle.
+2. Student self-service portal.
+3. University partner portal.
+
+-- 38 of 43 --
+
+4. Document verification, versioning, expiry, and compliance controls.
+5. Programme eligibility and recommendation engine.
+6. Finance, payments, refunds, and agent commissions.
+7. Configurable workflow automation.
+8. Tasks, calendars, appointments, and SLA escalation.
+9. Privacy, consent, retention, and data-subject request management.
+10. Complete audit trail.
+11. Data-quality dashboard.
+12. Application checklists and readiness scoring.
+13. Visa, deposit, CAS, and enrolment tracking.
+14. Internal support and complaint management.
+15. Commission and contract management for external agents.
+16. Secure public APIs and webhooks.
+17. AI governance and human approval.
+18. Backup, disaster recovery, monitoring, and business continuity.
+19. Accessibility and multilingual support.
+20. Configurable role, field, office, and record-level permissions.
+6. Recommended Application Modules
+A comprehensive menu structure could be:
+1. Dashboard
+2. Leads
+3. Students
+4. Applications
+5. Tasks and Calendar
+6. Documents
+7. Programme Search
+8. AI Counsellor
+
+-- 39 of 43 --
+
+9. Communications
+10. Universities and Courses
+11. Agents and Partners
+12. Finance and Commissions
+13. Forms and Campaigns
+14. Reports and Analytics
+15. Data Quality
+16. Integrations
+17. Organization and Offices
+18. Teams, Roles, and Permissions
+19. Support Cases
+20. Audit Logs
+21. Notifications
+22. System Settings
+7. Suggested Core Data Entities
+The primary database entities should include:
+· Organization
+· Office
+· User
+· Role
+· Permission
+· Team
+· Agent
+· Agent Agreement
+· Student
+· Lead
+· Lead Source
+
+-- 40 of 43 --
+
+· Campaign
+· Application
+· Application Status
+· Application History
+· University
+· Campus
+· Faculty
+· Programme
+· Intake
+· Entry Requirement
+· Scholarship
+· Document
+· Document Type
+· Document Verification
+· Task
+· Reminder
+· Appointment
+· Message
+· Communication Template
+· Form
+· Form Submission
+· Invoice
+· Payment
+· Refund
+· Commission
+· Workflow
+· Workflow Execution
+· Integration
+
+-- 41 of 43 --
+
+· Import Job
+· Export Job
+· Notification
+· Consent
+· Support Ticket
+· Audit Log
+· AI Request
+· AI Recommendation
+· Subscription
+· Usage Record
+8. Recommended Delivery Priorities
+Phase 1: Core CRM
+· Authentication and roles
+· Organization and office management
+· Lead management
+· Student profiles
+· Application management
+· University and programme master data
+· Document upload
+· Basic dashboards
+· Tasks and reminders
+· Import and export
+· Audit logging
+Phase 2: Operational Automation
+· Student portal
+· Agent portal
+· Communication integrations
+
+-- 42 of 43 --
+
+· Workflow automation
+· Advanced document verification
+· Programme eligibility matching
+· Advanced reporting
+· Calendar integrations
+· Form builder
+Phase 3: Advanced Platform
+· AI Counsellor
+· University portal
+· Finance and commissions
+· Visa and enrolment management
+· Natural-language reporting
+· Data-quality intelligence
+· Mobile application
+· Advanced APIs and partner ecosystem
+
+-- 43 of 43 --
+

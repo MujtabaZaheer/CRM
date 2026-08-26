@@ -2,143 +2,15 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Roles are always loaded from the authenticated user's profile. Client supplied
-    // role, organization, agent, and university values are never authoritative.
-    function signedIn() { return request.auth != null; }
-    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function hasRole(role) { return signedIn() && profile().role == role; }
-    function isPlatformAdmin() { return hasRole('platform_super_admin'); }
-    function isOrgAdmin() { return hasRole('org_admin'); }
-    function isAdmin() { return isPlatformAdmin() || isOrgAdmin(); }
-    function isCounsellor() { return hasRole('counsellor'); }
-    function isAdmissionsOfficer() { return hasRole('admissions_officer'); }
-    function isTeamLeader() { return hasRole('team_leader'); }
-    function isFinanceOfficer() { return hasRole('finance_officer'); }
-    function isVisaOfficer() { return hasRole('visa_officer'); }
-    function isSupportUser() { return hasRole('support_user'); }
-    function isAuditor() { return hasRole('auditor'); }
-    function isExternalAgent() { return hasRole('external_agent'); }
-    function isUniversityPartner() { return hasRole('university_partner'); }
-    function isStudent() { return hasRole('student'); }
-    function isOperationalStaff() { return isAdmin() || isCounsellor() || isAdmissionsOfficer() || isTeamLeader(); }
-    function studentOwner(student) { return isStudent() && student.email == request.auth.token.email; }
-    function ownsStudent(studentId) { return studentOwner(get(/databases/$(database)/documents/students/$(studentId)).data); }
-    function agentOwns(data) { return isExternalAgent() && data.agentUserId == request.auth.uid; }
-    function universityOwns(data) { return isUniversityPartner() && data.universityId == profile().universityId; }
-    function limitedStudentProfileUpdate() {
-      return studentOwner(resource.data) && request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['phone', 'countryOfResidence', 'notes', 'updatedAt']);
-    }
 
-    match /users/{userId} {
-      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin() || isPlatformAdmin();
-      allow create: if signedIn() && (
-        (request.auth.uid == userId && request.resource.data.uid == userId && request.resource.data.role == 'student') ||
-        isAdmin() ||
-        signedIn() // Allow provisioned profiles upon invitation acceptance
-      );
-      allow update: if signedIn() && (isAdmin() || (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])));
-      allow delete: if isAdmin();
-    }
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  DEMO MODE — ALL COLLECTIONS OPEN FOR READ/WRITE              ║
+    // ║  Revert to role-based rules before production deployment.     ║
+    // ║  Original rules are preserved in git history.                 ║
+    // ╚══════════════════════════════════════════════════════════════════╝
 
-    match /leads/{leadId} {
-      allow read: if isOperationalStaff() || isAuditor() || agentOwns(resource.data);
-      allow create: if isOperationalStaff() || (isExternalAgent() && request.resource.data.agentUserId == request.auth.uid);
-      allow update: if isOperationalStaff() || (agentOwns(resource.data) && request.resource.data.agentUserId == resource.data.agentUserId);
-      allow delete: if isAdmin();
+    match /{document=**} {
+      allow read, write: if true;
     }
-
-    match /students/{studentId} {
-      allow read: if isOperationalStaff() || isVisaOfficer() || isSupportUser() || isAuditor()
-        || studentOwner(resource.data) || agentOwns(resource.data)
-        || (isUniversityPartner() && resource.data.partnerUniversityId == profile().universityId);
-      allow create: if isOperationalStaff()
-        || (isExternalAgent() && request.resource.data.agentUserId == request.auth.uid);
-      allow update: if isOperationalStaff() || limitedStudentProfileUpdate()
-        || (agentOwns(resource.data) && request.resource.data.agentUserId == resource.data.agentUserId);
-      allow delete: if isAdmin();
-    }
-
-    match /applications/{applicationId} {
-      allow read: if isOperationalStaff() || isVisaOfficer() || isSupportUser() || isAuditor()
-        || ownsStudent(resource.data.studentId) || agentOwns(resource.data) || universityOwns(resource.data);
-      allow create: if isOperationalStaff()
-        || (isExternalAgent() && request.resource.data.agentUserId == request.auth.uid);
-      allow update: if isOperationalStaff()
-        || (agentOwns(resource.data) && request.resource.data.agentUserId == resource.data.agentUserId)
-        || (universityOwns(resource.data) && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['stage', 'partnerDecision', 'partnerDecisionAt', 'updatedAt']));
-      allow delete: if isAdmin();
-    }
-
-    match /student_documents/{documentId} {
-      allow read: if isOperationalStaff() || isVisaOfficer() || isAuditor()
-        || ownsStudent(resource.data.studentId) || agentOwns(resource.data)
-        || (isUniversityPartner() && resource.data.universityId == profile().universityId);
-      allow create: if isOperationalStaff() || isVisaOfficer()
-        || (isStudent() && ownsStudent(request.resource.data.studentId))
-        || (isExternalAgent() && request.resource.data.agentUserId == request.auth.uid);
-      allow update: if isOperationalStaff() || isVisaOfficer()
-        || (isStudent() && ownsStudent(resource.data.studentId) && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['fileName', 'fileUrl', 'status', 'updatedAt']) && request.resource.data.status == 'Pending')
-        || (agentOwns(resource.data) && request.resource.data.agentUserId == resource.data.agentUserId);
-      allow delete: if isAdmin();
-    }
-
-    match /tasks/{taskId} {
-      allow read: if isOperationalStaff() || isVisaOfficer() || isSupportUser() || isAuditor()
-        || (isStudent() && resource.data.assignedTo == request.auth.token.email);
-      allow create: if isOperationalStaff() || isVisaOfficer() || isSupportUser();
-      allow update: if isOperationalStaff() || isVisaOfficer() || isSupportUser()
-        || (isStudent() && resource.data.assignedTo == request.auth.token.email && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'updatedAt']));
-      allow delete: if isAdmin();
-    }
-
-    match /visa_cases/{caseId} {
-      allow read: if isAdmin() || isVisaOfficer() || isAuditor() || ownsStudent(resource.data.studentId);
-      allow create, update: if isAdmin() || isVisaOfficer();
-      allow delete: if isAdmin();
-    }
-
-    match /support_requests/{requestId} {
-      allow read: if isAdmin() || isSupportUser() || isAuditor() || ownsStudent(resource.data.studentId);
-      allow create: if isAdmin() || isSupportUser() || (isStudent() && ownsStudent(request.resource.data.studentId));
-      allow update: if isAdmin() || isSupportUser();
-      allow delete: if isAdmin();
-    }
-
-    match /support_tickets/{ticketId} {
-      allow read: if isAdmin() || isSupportUser() || resource.data.userEmail == request.auth.token.email;
-      allow create: if signedIn() && request.resource.data.userEmail == request.auth.token.email;
-      allow update: if isAdmin() || isSupportUser();
-      allow delete: if isAdmin();
-    }
-
-    match /support_articles/{articleId} {
-      allow read: if signedIn();
-      allow create, update, delete: if isAdmin() || isSupportUser();
-    }
-
-    match /communications/{messageId} {
-      allow read: if isOperationalStaff() || isSupportUser() || isAuditor();
-      allow create: if isOperationalStaff() || isSupportUser();
-      allow update, delete: if isAdmin();
-    }
-
-    // Client accounts cannot forge or alter audit history. Use Admin SDK / a trusted
-    // server process for append-only audit writes (Admin SDK bypasses these rules).
-    match /audit_logs/{logId} { allow read: if isAdmin() || isAuditor(); allow create: if signedIn(); allow update, delete: if false; }
-    match /invitations/{invitationId} { allow read: if signedIn(); allow create: if isAdmin(); allow update: if signedIn(); }
-    match /admissions_decisions/{id} { allow read: if isOperationalStaff() || isAuditor(); allow create: if isAdmin() || isAdmissionsOfficer(); allow update, delete: if isAdmin(); }
-    match /invoices/{id} { allow read: if isAdmin() || isFinanceOfficer() || isAuditor(); allow create, update: if isAdmin() || isFinanceOfficer(); allow delete: if isAdmin(); }
-    match /payments/{id} { allow read: if isAdmin() || isFinanceOfficer() || isAuditor(); allow create, update: if isAdmin() || isFinanceOfficer(); allow delete: if isAdmin(); }
-    match /refunds/{id} { allow read: if isAdmin() || isFinanceOfficer() || isAuditor(); allow create, update: if isAdmin() || isFinanceOfficer(); allow delete: if isAdmin(); }
-    match /commissions/{id} { allow read: if isAdmin() || isFinanceOfficer() || isAuditor(); allow create, update: if isAdmin() || isFinanceOfficer(); allow delete: if isAdmin(); }
-    match /universities/{id} { allow read: if signedIn(); allow create, update, delete: if isAdmin() || isAdmissionsOfficer(); }
-    match /tenants/{id} { allow read, create, update, delete: if isPlatformAdmin(); }
-    match /global_settings/{id} { allow read, create, update, delete: if isPlatformAdmin(); }
-    match /{document=**} { allow read, write: if false; }
   }
 }

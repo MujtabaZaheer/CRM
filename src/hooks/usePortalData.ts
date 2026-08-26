@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDoc, collection, doc, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Application } from "../types/application";
 import { Student } from "../types/student";
 import { Task } from "../types/task";
@@ -15,6 +16,7 @@ const subscribe = <T extends { id: string }>(name: string, setData: (items: T[])
 
 export const usePortalData = () => {
   const { appUser } = useAuth();
+  const { showDemoData } = useGlobalData();
   const [students, setStudents] = useState<Student[]>([]); const [applications, setApplications] = useState<Application[]>([]); const [tasks, setTasks] = useState<Task[]>([]); const [documents, setDocuments] = useState<PortalDocument[]>([]); const [visaCases, setVisaCases] = useState<VisaCase[]>([]); const [requests, setRequests] = useState<SupportRequest[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   const ownStudent = useMemo(() => students.find((student) => student.email === appUser?.email || student.id === appUser?.uid) || DEMO_STUDENTS[0], [appUser, students]);
@@ -29,25 +31,25 @@ export const usePortalData = () => {
 
     const timeoutId = setTimeout(() => {
       setLoading(false);
-      setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
-      setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
-      setDocuments((prev) => (prev.length === 0 ? (DEMO_DOCUMENTS as unknown as PortalDocument[]) : prev));
-      setVisaCases((prev) => (prev.length === 0 ? (DEMO_VISA_CASES as unknown as VisaCase[]) : prev));
+      setStudents((prev) => (prev.length === 0 && showDemoData ? DEMO_STUDENTS : prev));
+      setApplications((prev) => (prev.length === 0 && showDemoData ? DEMO_APPLICATIONS : prev));
+      setDocuments((prev) => (prev.length === 0 && showDemoData ? (DEMO_DOCUMENTS as unknown as PortalDocument[]) : prev));
+      setVisaCases((prev) => (prev.length === 0 && showDemoData ? (DEMO_VISA_CASES as unknown as VisaCase[]) : prev));
     }, 1000);
 
     const stops = [
-      subscribe<Student>("students", (x) => { setStudents(x.length > 0 ? x : DEMO_STUDENTS); done(); }, fail, studentRole ? "email" : undefined, studentRole ? appUser?.email : undefined),
-      studentRole && !ownStudentId ? noSubscription() : subscribe<Application>("applications", (x) => { setApplications(x.length > 0 ? x : DEMO_APPLICATIONS); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
+      subscribe<Student>("students", (x) => { setStudents(x.length > 0 ? x : (showDemoData ? DEMO_STUDENTS : [])); done(); }, fail, studentRole ? "email" : undefined, studentRole ? appUser?.email : undefined),
+      studentRole && !ownStudentId ? noSubscription() : subscribe<Application>("applications", (x) => { setApplications(x.length > 0 ? x : (showDemoData ? DEMO_APPLICATIONS : [])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<Task>("tasks", (x) => { setTasks(x); done(); }, fail, studentRole ? "assignedTo" : undefined, studentRole ? appUser?.email : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<PortalDocument>("student_documents", (x) => { setDocuments(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
-      studentRole && !ownStudentId ? noSubscription() : subscribe<VisaCase>("visa_cases", (x) => { setVisaCases(x.length > 0 ? x : (DEMO_VISA_CASES as unknown as VisaCase[])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
+      studentRole && !ownStudentId ? noSubscription() : subscribe<VisaCase>("visa_cases", (x) => { setVisaCases(x.length > 0 ? x : (showDemoData ? (DEMO_VISA_CASES as unknown as VisaCase[]) : [])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<SupportRequest>("support_requests", (x) => { setRequests(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined)
     ];
     return () => {
       clearTimeout(timeoutId);
       stops.forEach((stop) => stop());
     };
-  }, [appUser?.email, appUser?.role, ownStudentId]);
+  }, [appUser?.email, appUser?.role, ownStudentId, showDemoData]);
   const ownApplications = useMemo(() => applications.filter((application) => application.studentId === ownStudent?.id), [applications, ownStudent]);
   const ownDocuments = useMemo(() => documents.filter((item) => item.studentId === ownStudent?.id), [documents, ownStudent]);
   const ownTasks = useMemo(() => tasks.filter((task) => task.assignedTo === appUser?.email || task.assignedTo === appUser?.uid || task.linkedEntityId === ownStudent?.id), [appUser, ownStudent, tasks]);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { AppUser } from "../types/role";
@@ -10,6 +10,8 @@ import { Task } from "../types/task";
 import { University } from "../types/university";
 import { useAuth } from "./AuthContext";
 
+import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_TASKS, DEMO_UNIVERSITIES, DEMO_USERS } from "../data/demoData";
+
 interface GlobalDataContextType {
   users: AppUser[];
   leads: Lead[];
@@ -20,6 +22,8 @@ interface GlobalDataContextType {
   universities: University[];
   initialLoading: boolean;
   error: string | null;
+  showDemoData: boolean;
+  toggleDemoData: () => void;
   addTask: (task: Task) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
@@ -43,6 +47,8 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
   universities: [],
   initialLoading: true,
   error: null,
+  showDemoData: true,
+  toggleDemoData: () => {},
   addTask: () => {},
   updateTask: () => {},
   deleteTask: () => {},
@@ -56,8 +62,6 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
   updateDocument: () => {},
 });
 
-import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_TASKS, DEMO_UNIVERSITIES, DEMO_USERS } from "../data/demoData";
-
 export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { appUser } = useAuth();
 
@@ -70,6 +74,30 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [universities, setUniversities] = useState<University[]>([]);
 
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
+
+  // Demo data toggle — persisted in localStorage
+  const [showDemoData, setShowDemoData] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("educrm_show_demo_data");
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleDemoData = useCallback(() => {
+    setShowDemoData((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("educrm_show_demo_data", String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Helper: returns demo fallback or empty array depending on toggle
+  const demoOr = <T,>(demoData: T[], liveData: T[]): T[] => {
+    if (liveData.length > 0) return liveData;
+    return showDemoData ? demoData : [];
+  };
 
   useEffect(() => {
     if (!appUser) {
@@ -92,16 +120,16 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       markSourceLoaded(source);
     };
 
-    // Safety timeout: Never keep the UI stuck on loading for more than 1 second & populate DEMO data
+    // Safety timeout: Never keep the UI stuck on loading for more than 1 second & populate demo data if toggle is on
     const timeoutId = setTimeout(() => {
       setInitialLoading(false);
-      setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
-      setLeads((prev) => (prev.length === 0 ? DEMO_LEADS : prev));
-      setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
-      setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
-      setDocuments((prev) => (prev.length === 0 ? DEMO_DOCUMENTS : prev));
-      setTasks((prev) => (prev.length === 0 ? DEMO_TASKS : prev));
-      setUniversities((prev) => (prev.length === 0 ? DEMO_UNIVERSITIES : prev));
+      setUsers((prev) => (prev.length === 0 && showDemoData ? DEMO_USERS : prev));
+      setLeads((prev) => (prev.length === 0 && showDemoData ? DEMO_LEADS : prev));
+      setStudents((prev) => (prev.length === 0 && showDemoData ? DEMO_STUDENTS : prev));
+      setApplications((prev) => (prev.length === 0 && showDemoData ? DEMO_APPLICATIONS : prev));
+      setDocuments((prev) => (prev.length === 0 && showDemoData ? DEMO_DOCUMENTS : prev));
+      setTasks((prev) => (prev.length === 0 && showDemoData ? DEMO_TASKS : prev));
+      setUniversities((prev) => (prev.length === 0 && showDemoData ? DEMO_UNIVERSITIES : prev));
     }, 1000);
 
     // 1. Users
@@ -110,10 +138,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: AppUser[] = [];
         snap.forEach((d) => list.push({ uid: d.id, ...d.data() } as AppUser));
-        setUsers(list.length > 0 ? list : DEMO_USERS);
+        setUsers(list.length > 0 ? list : (showDemoData ? DEMO_USERS : []));
         markSourceLoaded("users");
       },
-      (err) => { handleSourceError("users", err); setUsers(DEMO_USERS); }
+      (err) => { handleSourceError("users", err); setUsers(showDemoData ? DEMO_USERS : []); }
     );
 
     // 2. Leads
@@ -122,10 +150,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Lead[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Lead));
-        setLeads(list.length > 0 ? list : DEMO_LEADS);
+        setLeads(list.length > 0 ? list : (showDemoData ? DEMO_LEADS : []));
         markSourceLoaded("leads");
       },
-      (err) => { handleSourceError("leads", err); setLeads(DEMO_LEADS); }
+      (err) => { handleSourceError("leads", err); setLeads(showDemoData ? DEMO_LEADS : []); }
     );
 
     // 3. Students
@@ -134,10 +162,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Student[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Student));
-        setStudents(list.length > 0 ? list : DEMO_STUDENTS);
+        setStudents(list.length > 0 ? list : (showDemoData ? DEMO_STUDENTS : []));
         markSourceLoaded("students");
       },
-      (err) => { handleSourceError("students", err); setStudents(DEMO_STUDENTS); }
+      (err) => { handleSourceError("students", err); setStudents(showDemoData ? DEMO_STUDENTS : []); }
     );
 
     // 4. Applications
@@ -146,10 +174,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Application[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Application));
-        setApplications(list.length > 0 ? list : DEMO_APPLICATIONS);
+        setApplications(list.length > 0 ? list : (showDemoData ? DEMO_APPLICATIONS : []));
         markSourceLoaded("applications");
       },
-      (err) => { handleSourceError("applications", err); setApplications(DEMO_APPLICATIONS); }
+      (err) => { handleSourceError("applications", err); setApplications(showDemoData ? DEMO_APPLICATIONS : []); }
     );
 
     // 5. Student Documents
@@ -158,10 +186,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: StudentDocument[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as StudentDocument));
-        setDocuments(list.length > 0 ? list : DEMO_DOCUMENTS);
+        setDocuments(list.length > 0 ? list : (showDemoData ? DEMO_DOCUMENTS : []));
         markSourceLoaded("documents");
       },
-      (err) => { handleSourceError("documents", err); setDocuments(DEMO_DOCUMENTS); }
+      (err) => { handleSourceError("documents", err); setDocuments(showDemoData ? DEMO_DOCUMENTS : []); }
     );
 
     // 6. Tasks
@@ -170,10 +198,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Task[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Task));
-        setTasks(list.length > 0 ? list : DEMO_TASKS);
+        setTasks(list.length > 0 ? list : (showDemoData ? DEMO_TASKS : []));
         markSourceLoaded("tasks");
       },
-      (err) => { handleSourceError("tasks", err); setTasks(DEMO_TASKS); }
+      (err) => { handleSourceError("tasks", err); setTasks(showDemoData ? DEMO_TASKS : []); }
     );
 
     // 7. Universities
@@ -182,10 +210,10 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: University[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as University));
-        setUniversities(list.length > 0 ? list : DEMO_UNIVERSITIES);
+        setUniversities(list.length > 0 ? list : (showDemoData ? DEMO_UNIVERSITIES : []));
         markSourceLoaded("universities");
       },
-      (err) => { handleSourceError("universities", err); setUniversities(DEMO_UNIVERSITIES); }
+      (err) => { handleSourceError("universities", err); setUniversities(showDemoData ? DEMO_UNIVERSITIES : []); }
     );
 
     return () => {
@@ -198,7 +226,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       unsubTasks();
       unsubUnivs();
     };
-  }, [appUser]);
+  }, [appUser, showDemoData]);
 
   // Optimistic Mutation Handlers
   const addTask = (newTask: Task) => {
@@ -257,6 +285,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         universities,
         initialLoading,
         error: null,
+        showDemoData,
+        toggleDemoData,
         addTask,
         updateTask,
         deleteTask,

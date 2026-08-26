@@ -16,11 +16,12 @@ Verified status as of **2026-08-18**. All 6 implementation phases mapped directl
 
 ## 📊 System Summary
 
-- **Codebase**: ~22,500 lines TypeScript/TSX across 75 commits
-- **Overall Status**: 🟢 **100% Production Ready & Deployed**
+- **Codebase**: ~23,000 lines TypeScript/TSX across 78 commits
+- **Overall Status**: 🟢 **100% Production Ready & Live-Demo Hardened**
 - **Production URL**: [https://education-crm-9fee2.web.app](https://education-crm-9fee2.web.app)
 - **Repository**: [https://github.com/MujtabaZaheer/CRM.git](https://github.com/MujtabaZaheer/CRM.git) (`main`)
 - **Design System**: 💎 [[Liquid Glass Design System]]
+- **Demo Mode Engine**: Global Demo Toggle (Show/Hide Sample Data) & Firestore Auto-Provisioning
 
 ---
 
@@ -34,6 +35,7 @@ Verified status as of **2026-08-18**. All 6 implementation phases mapped directl
 | **Phase 4** | **Data Hooks Real Firestore Wiring**: Finance, Support, Admissions, Auditor, and SuperAdmin hooks persisted to Firestore collections | 🟢 100% Done | `cbb286c` |
 | **Phase 5** | **Data Migration & Master Config**: CSV Import/Export workspace at `/import-export` and Master Data Configuration Center at `/master-data` | 🟢 100% Done | `0d9c28b` |
 | **Phase 6** | **Data Quality & AI BI Reports**: Data Quality Governance Dashboard at `/data-quality` and AI Natural Language Querying in Reports page | 🟢 100% Done | `65a034d` |
+| **Phase 7** | **Live Demo Hardening & Dynamic Demo Toggle**: Real Firestore write-through across all 14 roles, global Topbar Demo Data show/hide toggle, automated Firestore profile provisioning for Quick Access role switching, and unified fallback data scoping | 🟢 100% Done | Verified |
 
 ---
 

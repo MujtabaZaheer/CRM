@@ -3,6 +3,7 @@ import { addDoc, collection, doc, onSnapshot, orderBy, query, updateDoc } from "
 import { db } from "../firebase/config";
 import { logAuditEvent } from "../utils/auditLogger";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Commission, CommissionStatus, Invoice, InvoiceStatus, Payment, Refund, RefundStatus } from "../types/finance";
 
 import { DEMO_COMMISSIONS, DEMO_INVOICES, DEMO_PAYMENTS, DEMO_REFUNDS } from "../data/demoData";
@@ -12,6 +13,7 @@ const readCollection = <T extends { id: string }>(name: string, setValue: (data:
 
 export const useFinanceData = () => {
   const { appUser } = useAuth();
+  const { showDemoData } = useGlobalData();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
@@ -26,23 +28,23 @@ export const useFinanceData = () => {
 
     const timeoutId = setTimeout(() => {
       setLoading(false);
-      setInvoices((prev) => (prev.length === 0 ? DEMO_INVOICES : prev));
-      setPayments((prev) => (prev.length === 0 ? DEMO_PAYMENTS : prev));
-      setRefunds((prev) => (prev.length === 0 ? DEMO_REFUNDS : prev));
-      setCommissions((prev) => (prev.length === 0 ? DEMO_COMMISSIONS : prev));
+      setInvoices((prev) => (prev.length === 0 && showDemoData ? DEMO_INVOICES : prev));
+      setPayments((prev) => (prev.length === 0 && showDemoData ? DEMO_PAYMENTS : prev));
+      setRefunds((prev) => (prev.length === 0 && showDemoData ? DEMO_REFUNDS : prev));
+      setCommissions((prev) => (prev.length === 0 && showDemoData ? DEMO_COMMISSIONS : prev));
     }, 1000);
 
     const subscriptions = [
-      readCollection<Invoice>("invoices", (value) => { setInvoices(value.length > 0 ? value : DEMO_INVOICES); finish(); }, () => { setInvoices(DEMO_INVOICES); fail(); }),
-      readCollection<Payment>("payments", (value) => { setPayments(value.length > 0 ? value : DEMO_PAYMENTS); finish(); }, () => { setPayments(DEMO_PAYMENTS); fail(); }),
-      readCollection<Refund>("refunds", (value) => { setRefunds(value.length > 0 ? value : DEMO_REFUNDS); finish(); }, () => { setRefunds(DEMO_REFUNDS); fail(); }),
-      readCollection<Commission>("commissions", (value) => { setCommissions(value.length > 0 ? value : DEMO_COMMISSIONS); finish(); }, () => { setCommissions(DEMO_COMMISSIONS); fail(); }),
+      readCollection<Invoice>("invoices", (value) => { setInvoices(value.length > 0 ? value : (showDemoData ? DEMO_INVOICES : [])); finish(); }, () => { setInvoices(showDemoData ? DEMO_INVOICES : []); fail(); }),
+      readCollection<Payment>("payments", (value) => { setPayments(value.length > 0 ? value : (showDemoData ? DEMO_PAYMENTS : [])); finish(); }, () => { setPayments(showDemoData ? DEMO_PAYMENTS : []); fail(); }),
+      readCollection<Refund>("refunds", (value) => { setRefunds(value.length > 0 ? value : (showDemoData ? DEMO_REFUNDS : [])); finish(); }, () => { setRefunds(showDemoData ? DEMO_REFUNDS : []); fail(); }),
+      readCollection<Commission>("commissions", (value) => { setCommissions(value.length > 0 ? value : (showDemoData ? DEMO_COMMISSIONS : [])); finish(); }, () => { setCommissions(showDemoData ? DEMO_COMMISSIONS : []); fail(); }),
     ];
     return () => {
       clearTimeout(timeoutId);
       subscriptions.forEach((unsubscribe) => unsubscribe());
     };
-  }, []);
+  }, [showDemoData]);
 
   const record = useCallback(async (collectionName: string, data: Record<string, unknown>, action: string, details: string) => {
     const created = await addDoc(collection(db, collectionName), { ...data, createdAt: Date.now(), updatedAt: Date.now() });

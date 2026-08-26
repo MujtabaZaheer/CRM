@@ -46,9 +46,10 @@ EduCRM utilizes a 3-tier Context Provider hierarchy wrapped inside `src/App.tsx`
 2. **`AuthProvider` (`src/contexts/AuthContext.tsx`)**:
    - Subscribes to `onAuthStateChanged(auth)`.
    - Fetches the active `AppUser` document from `users/{uid}` in Firestore.
-   - Provides `loginAsDemoRole(role)` for instant local testing and demo logins.
+   - Provides `loginAsDemoRole(role)` for instant role evaluation, automatically provisioning server-side user profiles to Firestore so security rules and queries resolve correctly.
 3. **`GlobalDataProvider` (`src/contexts/GlobalDataContext.tsx`)**:
    - Subscribes to real-time `onSnapshot` streams across core collections: `leads`, `students`, `applications`, `student_documents`, `tasks`, `invoices`, `payments`, `refunds`, `commissions`, and `audit_logs`.
+   - Provides `showDemoData` & `toggleDemoData()` state to dynamically switch between pre-seeded demo records and clean, real-time live data during presentations.
    - Provides instant global state accessibility across all role workspaces without re-fetching.
 
 ---

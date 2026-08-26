@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { collection, doc, addDoc, updateDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import {
   SupportArticle,
@@ -17,6 +18,7 @@ import { DEMO_ARTICLES, DEMO_TICKETS } from "../data/demoData";
 
 export const useSupportData = () => {
   const { appUser } = useAuth();
+  const { showDemoData } = useGlobalData();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [articles, setArticles] = useState<SupportArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,20 +32,20 @@ export const useSupportData = () => {
 
     const timeoutId = setTimeout(() => {
       setLoading(false);
-      setTickets((prev) => (prev.length === 0 ? DEMO_TICKETS : prev));
-      setArticles((prev) => (prev.length === 0 ? DEMO_ARTICLES : prev));
+      setTickets((prev) => (prev.length === 0 && showDemoData ? DEMO_TICKETS : prev));
+      setArticles((prev) => (prev.length === 0 && showDemoData ? DEMO_ARTICLES : prev));
     }, 1000);
 
     const unsubTickets = onSnapshot(
       query(collection(db, "support_tickets"), orderBy("createdAt", "desc")),
       (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SupportTicket);
-        setTickets(list.length > 0 ? list : DEMO_TICKETS);
+        setTickets(list.length > 0 ? list : (showDemoData ? DEMO_TICKETS : []));
         finish();
       },
       (err) => {
         console.warn("Tickets subscription error:", err.message);
-        setTickets(DEMO_TICKETS);
+        setTickets(showDemoData ? DEMO_TICKETS : []);
         finish();
       }
     );
@@ -52,12 +54,12 @@ export const useSupportData = () => {
       query(collection(db, "support_articles"), orderBy("createdAt", "desc")),
       (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SupportArticle);
-        setArticles(list.length > 0 ? list : DEMO_ARTICLES);
+        setArticles(list.length > 0 ? list : (showDemoData ? DEMO_ARTICLES : []));
         finish();
       },
       (err) => {
         console.warn("Articles subscription error:", err.message);
-        setArticles(DEMO_ARTICLES);
+        setArticles(showDemoData ? DEMO_ARTICLES : []);
         finish();
       }
     );
@@ -67,7 +69,7 @@ export const useSupportData = () => {
       unsubTickets();
       unsubArticles();
     };
-  }, []);
+  }, [showDemoData]);
 
   const createTicket = useCallback(
     async (ticketData: {

@@ -31,16 +31,17 @@ export const useTeamLeaderData = () => {
   const office = appUser?.office || "Toronto Office";
   const team = appUser?.team || "Americas Team";
 
-  // Filter team members (Counsellors under the same office & team)
-  const counsellors = users.filter(
+  // Filter team members (Counsellors under the same office & team, with fallback to all counsellors)
+  const scopedCounsellors = users.filter(
     (u) => u.role === "counsellor" && u.office === office && u.team === team
   );
+  const counsellors = scopedCounsellors.length > 0 ? scopedCounsellors : users.filter((u) => u.role === "counsellor");
 
   const teamCounsellorEmails = counsellors.map((c) => c.email);
   const teamCounsellorUids = counsellors.map((c) => c.uid);
 
   // Filter Applications
-  const teamApplications = applications.filter((app) => {
+  const filteredTeamApplications = applications.filter((app) => {
     if (!app.assignedCounsellor) return false;
     // Check if the application is assigned to one of the team's counsellors or the leader themselves
     return (
@@ -48,6 +49,7 @@ export const useTeamLeaderData = () => {
       app.assignedCounsellor === appUser?.email
     );
   });
+  const teamApplications = filteredTeamApplications.length > 0 ? filteredTeamApplications : applications;
 
   // Unassigned applications must be available to a leader for initial allocation.
   const assignmentApplications = applications.filter(
@@ -55,7 +57,7 @@ export const useTeamLeaderData = () => {
   );
 
   // Filter Leads (including unassigned leads in the same office/team context, or assigned to counsellors/leader)
-  const teamLeads = leads.filter((lead) => {
+  const filteredTeamLeads = leads.filter((lead) => {
     if (!lead.assignedTo) return true; // Show unassigned leads so they can be assigned
     return (
       teamCounsellorUids.includes(lead.assignedTo) ||
@@ -64,6 +66,7 @@ export const useTeamLeaderData = () => {
       lead.assignedTo === appUser?.email
     );
   });
+  const teamLeads = filteredTeamLeads.length > 0 ? filteredTeamLeads : leads;
 
   // Filter Students
   const teamStudents = students.filter((student) => {

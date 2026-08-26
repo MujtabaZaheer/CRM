@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Menu, LogOut, Sun, Moon, Shield, Sparkles, ShieldCheck, FileText } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Shield, Sparkles, ShieldCheck, FileText, Database } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useNavigate } from "react-router-dom";
 
 import { GlobalSearch } from "../common/GlobalSearch";
@@ -20,6 +21,7 @@ interface TopbarProps {
 export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
   const { appUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { showDemoData, toggleDemoData } = useGlobalData();
   const navigate = useNavigate();
 
   const [showAiMenu, setShowAiMenu] = useState(false);
@@ -138,6 +140,20 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
 
         {/* Multi-Branch Switcher */}
         <BranchSwitcher />
+
+        {/* Demo Data Visibility Toggle */}
+        <button
+          onClick={toggleDemoData}
+          className={`flex items-center space-x-1.5 px-2.5 py-1.5 sq-btn text-xs font-bold transition-all border ${
+            showDemoData
+              ? "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 shadow-sm shadow-amber-500/10"
+              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 shadow-sm shadow-emerald-500/10"
+          }`}
+          title={showDemoData ? "Demo Data is ON. Click to hide demo records & view live/clean data only." : "Demo Data is OFF (Clean/Live mode). Click to display demo records."}
+        >
+          <Database className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline">{showDemoData ? "Demo Data: ON" : "Live Only"}</span>
+        </button>
 
         {/* Notifications Component */}
         <NotificationBell />

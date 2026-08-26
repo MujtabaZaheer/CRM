@@ -18,6 +18,7 @@ import { DEMO_TENANTS, DEMO_USERS } from "../data/demoData";
 export const useSuperAdminData = () => {
   const { appUser } = useAuth();
   const globalData = useGlobalData();
+  const { showDemoData } = globalData;
 
   const [tenants, setTenants] = useState<TenantOrganization[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -33,8 +34,8 @@ export const useSuperAdminData = () => {
 
     const timeoutId = setTimeout(() => {
       setLoading(false);
-      setTenants((prev) => (prev.length === 0 ? DEMO_TENANTS : prev));
-      setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
+      setTenants((prev) => (prev.length === 0 && showDemoData ? DEMO_TENANTS : prev));
+      setUsers((prev) => (prev.length === 0 && showDemoData ? DEMO_USERS : prev));
       setGlobalSettings((prev) => prev || {
         id: "default",
         maintenanceMode: false,
@@ -50,12 +51,12 @@ export const useSuperAdminData = () => {
       collection(db, "tenants"),
       (snap) => {
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TenantOrganization);
-        setTenants(list.length > 0 ? list : DEMO_TENANTS);
+        setTenants(list.length > 0 ? list : (showDemoData ? DEMO_TENANTS : []));
         finish();
       },
       (err) => {
         console.warn("Tenants subscription warning:", err.message);
-        setTenants(DEMO_TENANTS);
+        setTenants(showDemoData ? DEMO_TENANTS : []);
         finish();
       }
     );
@@ -64,12 +65,12 @@ export const useSuperAdminData = () => {
       collection(db, "users"),
       (snap) => {
         const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() }) as AppUser);
-        setUsers(list.length > 0 ? list : DEMO_USERS);
+        setUsers(list.length > 0 ? list : (showDemoData ? DEMO_USERS : []));
         finish();
       },
       (err) => {
         console.warn("Users subscription warning:", err.message);
-        setUsers(DEMO_USERS);
+        setUsers(showDemoData ? DEMO_USERS : []);
         finish();
       }
     );
