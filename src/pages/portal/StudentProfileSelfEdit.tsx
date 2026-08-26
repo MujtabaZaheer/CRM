@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { Student, QualificationLevel } from "../../types/student";
+import { DEMO_STUDENTS } from "../../data/demoData";
 import { User, GraduationCap, Globe, Phone, FileCheck, Save, CheckCircle2, AlertCircle, Plus, Trash2 } from "lucide-react";
 
 export const StudentProfileSelfEdit: React.FC = () => {
@@ -38,8 +39,8 @@ export const StudentProfileSelfEdit: React.FC = () => {
       if (!appUser?.uid) return;
       try {
         const snap = await getDoc(doc(db, "students", appUser.uid));
-        if (snap.exists()) {
-          const data = snap.data() as Student;
+        const data = snap.exists() ? (snap.data() as Student) : DEMO_STUDENTS[0];
+        if (data) {
           setStudent(data);
           setFullName(data.fullName || "");
           setPhone(data.phone || "");
@@ -140,7 +141,7 @@ export const StudentProfileSelfEdit: React.FC = () => {
     };
 
     try {
-      await updateDoc(doc(db, "students", appUser.uid), updatedData);
+      await setDoc(doc(db, "students", appUser.uid), updatedData, { merge: true });
       setNotice("Your student profile has been updated successfully!");
     } catch (err: any) {
       console.error("Profile save error:", err);
