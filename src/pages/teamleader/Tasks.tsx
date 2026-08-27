@@ -120,7 +120,7 @@ export const TeamLeaderTasks: React.FC = () => {
 
   // Filter tasks
   const filteredTasks = tasks.filter((t) => {
-    const matchSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchSearch = (t.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
                         (t.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
                         (t.linkedEntityName || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchCounsellor = selectedCounsellor === "All" || t.assignedTo === selectedCounsellor;

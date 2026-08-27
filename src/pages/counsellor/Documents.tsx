@@ -26,9 +26,9 @@ export const CounsellorDocuments: React.FC = () => {
 
   const filteredDocs = documents.filter((doc) => {
     const matchesSearch =
-      doc.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.docType.toLowerCase().includes(searchQuery.toLowerCase());
+      (doc.studentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (doc.fileName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (doc.docType || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "All" || doc.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

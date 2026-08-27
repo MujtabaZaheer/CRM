@@ -112,9 +112,9 @@ export const TeamLeaderAssignApplications: React.FC = () => {
 
   // Filter applications
   const filteredApps = assignmentApplications.filter((app) => {
-    const name = app.studentName.toLowerCase();
-    const num = app.applicationNumber.toLowerCase();
-    const uni = app.universityName.toLowerCase();
+    const name = (app.studentName || "").toLowerCase();
+    const num = (app.applicationNumber || "").toLowerCase();
+    const uni = (app.universityName || "").toLowerCase();
     const queryStr = searchQuery.toLowerCase();
     
     const matchesSearch = name.includes(queryStr) || num.includes(queryStr) || uni.includes(queryStr);

@@ -121,9 +121,9 @@ export const Students: React.FC = () => {
 
   const filteredStudents = students.filter(
     (s) =>
-      s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.nationality.toLowerCase().includes(searchQuery.toLowerCase())
+      (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.nationality || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

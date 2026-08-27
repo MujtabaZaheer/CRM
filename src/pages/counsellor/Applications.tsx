@@ -25,10 +25,10 @@ export const CounsellorApplications: React.FC = () => {
 
   const filteredApps = applications.filter((app) => {
     const matchesSearch =
-      app.applicationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.universityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.programmeName.toLowerCase().includes(searchQuery.toLowerCase());
+      (app.applicationNumber || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (app.studentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (app.universityName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (app.programmeName || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStage = selectedStage === "All" || app.stage === selectedStage;
     return matchesSearch && matchesStage;
   });

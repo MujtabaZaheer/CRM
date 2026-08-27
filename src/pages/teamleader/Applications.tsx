@@ -75,9 +75,9 @@ export const TeamLeaderApplications: React.FC = () => {
   const filteredApps = applications
     .filter((app) => {
       const studentCountry = getStudentCountry(app.studentId);
-      const name = app.studentName.toLowerCase();
-      const num = app.applicationNumber.toLowerCase();
-      const uni = app.universityName.toLowerCase();
+      const name = (app.studentName || "").toLowerCase();
+      const num = (app.applicationNumber || "").toLowerCase();
+      const uni = (app.universityName || "").toLowerCase();
       const queryStr = searchQuery.toLowerCase();
 
       const matchesSearch = name.includes(queryStr) || num.includes(queryStr) || uni.includes(queryStr);

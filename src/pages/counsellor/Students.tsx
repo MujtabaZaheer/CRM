@@ -23,9 +23,9 @@ export const CounsellorStudents: React.FC = () => {
   const [intake, setIntake] = useState("Fall 2026");
 
   const filteredStudents = students.filter((s) =>
-    s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.nationality.toLowerCase().includes(searchQuery.toLowerCase())
+    (s.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.nationality || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleLaunchAppSubmit = async (e: React.FormEvent) => {

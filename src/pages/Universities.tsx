@@ -77,9 +77,9 @@ export const Universities: React.FC = () => {
 
   const filteredUnivs = universities.filter(
     (u) =>
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.city.toLowerCase().includes(searchQuery.toLowerCase())
+      (u.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.country || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.city || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

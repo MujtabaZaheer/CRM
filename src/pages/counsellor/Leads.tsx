@@ -23,9 +23,9 @@ export const CounsellorLeads: React.FC = () => {
 
   const filteredLeads = leads.filter((l) => {
     const matchesSearch =
-      l.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.phone.includes(searchQuery);
+      (l.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.phone || "").includes(searchQuery);
     const matchesStage = selectedStage === "All" || l.stage === selectedStage;
     return matchesSearch && matchesStage;
   });

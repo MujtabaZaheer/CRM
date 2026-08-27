@@ -93,11 +93,6 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   }, []);
 
-  // Helper: returns demo fallback or empty array depending on toggle
-  const demoOr = <T,>(demoData: T[], liveData: T[]): T[] => {
-    if (liveData.length > 0) return liveData;
-    return showDemoData ? demoData : [];
-  };
 
   useEffect(() => {
     if (!appUser) {

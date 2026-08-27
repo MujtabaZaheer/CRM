@@ -127,7 +127,7 @@ export const Tasks: React.FC = () => {
 
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (t.linkedEntityName && t.linkedEntityName.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === "All" || t.status === statusFilter;
     return matchesSearch && matchesStatus;

@@ -159,10 +159,10 @@ export function filterProgrammes(
   criteria: ProgrammeFilterCriteria
 ): UniversityProgramme[] {
   return programmes.filter((p) => {
-    if (criteria.country && criteria.country !== "All" && p.country.toLowerCase() !== criteria.country.toLowerCase()) {
+    if (criteria.country && criteria.country !== "All" && (p.country || "").toLowerCase() !== criteria.country.toLowerCase()) {
       return false;
     }
-    if (criteria.discipline && criteria.discipline !== "All" && !p.discipline.toLowerCase().includes(criteria.discipline.toLowerCase())) {
+    if (criteria.discipline && criteria.discipline !== "All" && !(p.discipline || "").toLowerCase().includes(criteria.discipline.toLowerCase())) {
       return false;
     }
     if (criteria.studyLevel && p.studyLevel !== criteria.studyLevel) {

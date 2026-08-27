@@ -30,7 +30,7 @@ export const CounsellorTasks: React.FC = () => {
   const todayStr = new Date().toISOString().split("T")[0];
 
   const filteredTasks = tasks.filter((t) => {
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (t.title || "").toLowerCase().includes(searchQuery.toLowerCase());
     const isOverdue = t.status === "Open" && t.dueDate < todayStr;
     const isToday = t.status === "Open" && t.dueDate === todayStr;
 
