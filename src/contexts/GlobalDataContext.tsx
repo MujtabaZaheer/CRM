@@ -93,7 +93,6 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   }, []);
 
-
   useEffect(() => {
     if (!appUser) {
       setInitialLoading(false);
