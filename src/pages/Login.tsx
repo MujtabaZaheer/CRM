@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth, requiresVerifiedEmail } from "../firebase/config";
+import { auth, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
 import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield } from "lucide-react";
