@@ -36,6 +36,7 @@ Verified status as of **2026-08-18**. All 6 implementation phases mapped directl
 | **Phase 5** | **Data Migration & Master Config**: CSV Import/Export workspace at `/import-export` and Master Data Configuration Center at `/master-data` | 🟢 100% Done | `0d9c28b` |
 | **Phase 6** | **Data Quality & AI BI Reports**: Data Quality Governance Dashboard at `/data-quality` and AI Natural Language Querying in Reports page | 🟢 100% Done | `65a034d` |
 | **Phase 7** | **Live Demo Hardening & Dynamic Demo Toggle**: Real Firestore write-through across all 14 roles, global Topbar Demo Data show/hide toggle, automated Firestore profile provisioning for Quick Access role switching, and unified fallback data scoping | 🟢 100% Done | Verified |
+| **Phase 8** | **Student Self-Service Registration & Application Submission**: Student self-registration at `/student-register` with email verification, direct application submission from student portal at `/student/new-application`, Login page student CTA, sidebar & dashboard quick-action, and RolePortal "New Application" button. Applications enter 20-stage pipeline at `Draft` for staff processing. | 🟢 100% Done | Latest |
 
 ---
 

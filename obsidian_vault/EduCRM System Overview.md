@@ -28,7 +28,7 @@ Quick summary of all 13 user roles operating across the platform:
 | 💳 **Finance Officer** | Invoicing, payment receipts, refunds & commissions | Financial collections only | Revenue collection, agent payout approval |
 | 🎧 **Support User** | Technical support tickets & knowledge base articles | Support ticket queue & KB | Ticket resolution, SLA compliance tracking |
 | 🕵️ **Auditor / Compliance** | Compliance verification & immutable audit trails | System-wide Read-Only | Compliance inspection pass/flag certification |
-| 🎓 **Student Applicant** | Self-service profile management & application tracking | Self Student Record only | Profile completion, document self-upload |
+| 🎓 **Student Applicant** | Self-registration, application submission & tracking | Self Student Record only | Profile completion, direct application submission, document self-upload |
 | 🤝 **External Agent** | Student referral submissions & commission tracking | Referred Students only | Referral links, referral lead creation |
 | 🏛️ **University Partner** | Direct university admissions review & offer issuance | University Applications only | 1-Click offer issuance, CAS reference release |
 
@@ -159,14 +159,17 @@ Quick summary of all 13 user roles operating across the platform:
 ---
 
 ### 11. 🎓 Student Applicant (`student`)
-- **Primary Workspace**: `/student/*` (`RolePortal.tsx` `role="student"`)
-- **Description**: Dedicated self-service portal for student applicants to complete profiles, track applications, upload documents, and contact counsellors.
+- **Primary Workspace**: `/student/*` (`RolePortal.tsx` `role="student"`) + `/student-register` (public registration)
+- **Description**: Dedicated self-service portal for student applicants to register accounts, complete profiles, submit new university applications directly, track applications, upload documents, and contact counsellors.
 - **Detailed Responsibilities**:
+  - **Self-Registration**: Students create accounts at `/student-register` with email verification, password strength validation, nationality selection, and GDPR data processing consent.
+  - **Direct Application Submission**: Students submit new university applications via `/student/new-application` specifying university, programme, intake, target country, personal statement, and supporting documents. Applications enter the 20-stage pipeline at `Draft` and are visible to Counsellors, Admissions Officers, and Team Leaders for processing.
   - **My Profile**: Update personal details, phone number, country of residence, and emergency contacts.
-  - **My Applications**: Track real-time progress across all submitted university applications in the 20-stage pipeline.
+  - **My Applications**: Track real-time progress across all submitted university applications in the 20-stage pipeline via Firestore `onSnapshot`.
   - **My Documents**: Upload replacement transcripts, passports, and English test certificates.
   - **Support Requests**: Submit inquiries to assigned agency counsellors.
 - **Security Rules**: Access strictly limited to records matching their authenticated email (`ownsStudent(studentId)`).
+
 
 ---
 

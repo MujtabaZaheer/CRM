@@ -63,5 +63,27 @@ export const usePortalData = () => {
     const uploadedFile = await uploadStudentDocument(data.studentId, file);
     await addDoc(collection(db, "student_documents"), { ...data, ...uploadedFile, status: "Pending", createdAt: Date.now() });
   }, []);
-  return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument };
+  const createApplication = useCallback(async (data: { universityName: string; programmeName: string; intake: string; targetCountry: string; personalStatement?: string }) => {
+    if (!ownStudent) throw new Error("Student profile not found. Please complete your profile first.");
+    const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    await addDoc(collection(db, "applications"), {
+      applicationNumber: appNumber,
+      studentId: ownStudent.id,
+      studentName: ownStudent.fullName,
+      studentEmail: ownStudent.email,
+      universityId: "univ-self",
+      universityName: data.universityName,
+      programmeId: "prog-self",
+      programmeName: data.programmeName,
+      intake: data.intake,
+      targetCountry: data.targetCountry,
+      stage: "Draft",
+      assignedCounsellor: ownStudent.assignedCounsellorId || "",
+      history: [{ stage: "Draft", updatedBy: ownStudent.email || appUser?.email || "Student", timestamp: Date.now(), note: "Application submitted by student via self-service portal." }],
+      ...(data.personalStatement ? { personalStatement: data.personalStatement } : {}),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  }, [ownStudent, appUser]);
+  return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument, createApplication };
 };

@@ -30,6 +30,7 @@ import { LeadScoringConfigPage } from "./pages/LeadScoringConfig";
 import { WorkflowRulesConfigPage } from "./pages/WorkflowRulesConfig";
 import { CommissionManagerPage } from "./pages/CommissionManager";
 import { StudentProfileSelfEdit } from "./pages/portal/StudentProfileSelfEdit";
+import { StudentNewApplication } from "./pages/portal/StudentNewApplication";
 import { AgentSubAgentManager } from "./pages/portal/AgentSubAgentManager";
 import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
@@ -248,6 +249,7 @@ export const App: React.FC = () => {
                   <Route path="documents" element={<RolePortal role="student" page="documents" />} />
                   <Route path="requests" element={<RolePortal role="student" page="requests" />} />
                   <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />
+                  <Route path="new-application" element={<StudentNewApplication />} />
                 </Route>
 
                 {/* External Agent Portal Routes */}

@@ -7,6 +7,11 @@ tags:
 
 Central record connecting a [[Student Entity]] with a University, Programme, Intake, Counsellor, and [[Admissions Officer Module]].
 
+## 📋 Application Origins
+Applications can be created from two sources:
+1. **Staff-Created**: Counsellors, Admissions Officers, or Team Leaders create applications on behalf of students via the `/applications` page.
+2. **Student Self-Submitted**: Students submit applications directly from their portal at `/student/new-application`. These applications enter the pipeline at `Draft` stage with `universityId: "univ-self"` and are tagged with the student's email in the history as "Application submitted by student via self-service portal."
+
 ## 📊 20 Lifecycle Stages (CRM.pdf Section 3.7)
 1. `Draft`
 2. `Initial Review`
@@ -34,3 +39,4 @@ Central record connecting a [[Student Entity]] with a University, Programme, Int
 - [[Counsellor Module]]
 - [[Team Leader Module]]
 - [[Finance Officer Module]]
+- [[Student Self-Service Portal]]

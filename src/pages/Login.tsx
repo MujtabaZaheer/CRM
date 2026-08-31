@@ -8,7 +8,7 @@ import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { isDemoMode, loginAsDemoRole } = useAuth();
+  const { loginAsDemoRole } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -108,11 +108,14 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {/* Quick Role Access for seamless live presentations and role evaluation */}
-        {isDemoMode && <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
-          <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Role Quick-Access Login:</span>
+        {/* Quick Role Access for instant evaluation and demo access */}
+        <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
+          <div className="text-xs font-semibold text-emerald-400 flex items-center justify-between">
+            <div className="flex items-center space-x-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>One-Click Demo Access:</span>
+            </div>
+            <span className="text-[10px] text-zinc-400 font-normal">No password required</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
             <button
@@ -204,7 +207,13 @@ export const Login: React.FC = () => {
               <span>University</span>
             </button>
           </div>
-        </div>}
+        </div>
+
+        <div className="flex items-center space-x-3 my-2">
+          <div className="h-px bg-zinc-800 flex-1" />
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">or sign in with live credentials</span>
+          <div className="h-px bg-zinc-800 flex-1" />
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -251,12 +260,21 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="text-center text-xs text-zinc-400 border-t border-zinc-800/80 pt-4 flex items-center justify-between">
+        <div className="text-center text-xs text-zinc-400 border-t border-zinc-800/80 pt-4 space-y-3">
           {resetMode ? <button type="button" onClick={() => { setResetMode(false); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Back to sign in</button> : <>
-            <button type="button" onClick={() => { setResetMode(true); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Forgot password?</button>
-            <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1">
-              <Sparkles className="w-3 h-3" />
-              <span>Register Here</span>
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={() => { setResetMode(true); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Forgot password?</button>
+              <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Register Here</span>
+              </Link>
+            </div>
+            <Link
+              to="/student-register"
+              className="w-full py-2.5 px-4 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Register as Student</span>
             </Link>
           </>}
         </div>

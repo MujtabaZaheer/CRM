@@ -14,6 +14,7 @@ export const Dashboard: React.FC = () => {
   const [sourceFilter, setSourceFilter] = useState("All");
 
   const roleHome: Partial<Record<NonNullable<typeof appUser>["role"], string>> = {
+    counsellor: "/counsellor/dashboard",
     team_leader: "/team-leader/dashboard",
     finance_officer: "/finance/dashboard",
     visa_officer: "/visa-officer/dashboard",

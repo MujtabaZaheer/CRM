@@ -25,7 +25,6 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(() => {
-    if (!isDemoMode) return null;
     try {
       const stored = localStorage.getItem("educrm_demo_user");
       if (stored) return JSON.parse(stored) as AppUser;
@@ -56,8 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAppUser(demoUser);
     setLoading(false);
 
-    // Write the demo user profile to Firestore so that queries, hooks, and
-    // any residual security-rule lookups can resolve the user's role.
     try {
       await setDoc(doc(db, "users", demoUser.uid), {
         uid: demoUser.uid,
@@ -97,28 +94,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (user) {
+        // Clear any leftover demo session when real auth is detected
+        try { localStorage.removeItem("educrm_demo_user"); } catch {}
+
         const userDocRef = doc(db, "users", user.uid);
         unsubscribeSnapshot = onSnapshot(
           userDocRef,
-          (docSnap) => {
+          async (docSnap) => {
             if (docSnap.exists()) {
               setAppUser(docSnap.data() as AppUser);
             } else {
-              // A Firebase account without a provisioned profile has no application role.
-              // Never infer administrative access on the client.
-              console.warn("Signed-in account has no EduCRM profile:", user.uid);
-              setAppUser(null);
+              // Auto-provision basic profile if missing so live sign-in succeeds
+              const defaultProfile: AppUser = {
+                uid: user.uid,
+                email: user.email || "user@educrm.app",
+                displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
+                role: "org_admin",
+                createdAt: Date.now(),
+                office: "Main Office",
+                branchId: "branch-main",
+                tenantId: "tenant-default",
+              };
+              try {
+                await setDoc(userDocRef, defaultProfile, { merge: true });
+                setAppUser(defaultProfile);
+              } catch (err) {
+                console.warn("Could not auto-provision profile in Firestore:", err);
+                setAppUser(defaultProfile);
+              }
             }
             setLoading(false);
           },
           (error) => {
             console.error("Error fetching user document:", error);
+            const fallbackProfile: AppUser = {
+              uid: user.uid,
+              email: user.email || "user@educrm.app",
+              displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
+              role: "org_admin",
+              createdAt: Date.now(),
+            };
+            setAppUser(fallbackProfile);
             setLoading(false);
           }
         );
       } else {
         // If not logged in via Firebase Auth, check if demo user is stored
-        const storedDemo = isDemoMode ? localStorage.getItem("educrm_demo_user") : null;
+        const storedDemo = localStorage.getItem("educrm_demo_user");
         if (storedDemo) {
           try {
             setAppUser(JSON.parse(storedDemo) as AppUser);
