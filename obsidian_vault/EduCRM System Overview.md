@@ -159,16 +159,17 @@ Quick summary of all 13 user roles operating across the platform:
 ---
 
 ### 11. 🎓 Student Applicant (`student`)
-- **Primary Workspace**: `/student/*` (`RolePortal.tsx` `role="student"`) + `/student-register` (public registration)
+- **Primary Workspace**: `/student/*` (`RolePortal.tsx` `role="student"`) + `/register` (unified public registration)
 - **Description**: Dedicated self-service portal for student applicants to register accounts, complete profiles, submit new university applications directly, track applications, upload documents, and contact counsellors.
 - **Detailed Responsibilities**:
-  - **Self-Registration**: Students create accounts at `/student-register` with email verification, password strength validation, nationality selection, and GDPR data processing consent.
+  - **Self-Registration**: Students create accounts at `/register` by choosing the Student role, featuring email verification, password strength validation, nationality selection, and GDPR data processing consent.
   - **Direct Application Submission**: Students submit new university applications via `/student/new-application` specifying university, programme, intake, target country, personal statement, and supporting documents. Applications enter the 20-stage pipeline at `Draft` and are visible to Counsellors, Admissions Officers, and Team Leaders for processing.
   - **My Profile**: Update personal details, phone number, country of residence, and emergency contacts.
   - **My Applications**: Track real-time progress across all submitted university applications in the 20-stage pipeline via Firestore `onSnapshot`.
   - **My Documents**: Upload replacement transcripts, passports, and English test certificates.
   - **Support Requests**: Submit inquiries to assigned agency counsellors.
 - **Security Rules**: Access strictly limited to records matching their authenticated email (`ownsStudent(studentId)`).
+- **Lifecycle Guide**: See [[Student Application Lifecycle]] for complete 10-phase pipeline from registration to enrollment.
 
 
 ---

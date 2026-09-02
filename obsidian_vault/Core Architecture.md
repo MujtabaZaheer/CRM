@@ -87,7 +87,33 @@ function ownsStudent(studentId) { return isStudent() && get(/databases/$(databas
 
 ---
 
-## 4. 📜 Audit Logging System (`auditLogger.ts`)
+## 4. 🔑 Unified Registration & Role Dashboard Routing
+
+### Registration System (`src/types/registrationConfig.ts`)
+EduCRM uses a unified multi-role registration page at `/register` that allows public self-registration for three external-facing roles:
+
+| Self-Registerable Role | Firestore Profile Collection | Dashboard Path |
+|---|---|---|
+| `student` — Student / Applicant | `students/{uid}` | `/student/dashboard` |
+| `external_agent` — External Referral Agent | `agents/{uid}` | `/agent/dashboard` |
+| `university_partner` — University Admissions Partner | `university_partners/{uid}` | `/university/dashboard` |
+
+Internal staff roles (counsellor, admissions_officer, finance_officer, visa_officer, support_user, auditor, team_leader, office_manager, org_admin, platform_super_admin) are provisioned via admin invitation at `/accept-invitation`.
+
+### `getRoleDashboardPath(role: UserRole): string`
+Centralised utility function mapping each of the 14 user roles to their primary dashboard URL path. Used by:
+- `Login.tsx` — demo login navigation
+- `Register.tsx` — post-registration role messaging
+- All role-aware redirects throughout the system
+
+### Registration Flow
+1. User selects role → fills role-specific form → creates Firebase Auth account
+2. System writes `users/{uid}` + role-specific profile collection + `consent_records`
+3. Verification email sent → user verifies → logs in → routed to role dashboard
+
+---
+
+## 5. 📜 Audit Logging System (`auditLogger.ts`)
 
 Every state mutation (lead created, application stage updated, offer letter issued, payment recorded, ticket status updated) automatically triggers `logAuditEvent`:
 
