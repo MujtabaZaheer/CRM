@@ -7,7 +7,9 @@ date: 2026-08-18
 
 # 📐 EduCRM System Flow & UML Sequence Diagrams
 
-See the complete artifact document: [system_architecture_and_sequence_diagrams.md](file:///home/mujtaba/.gemini/antigravity-ide/brain/4955320d-2c44-400a-a9a7-c4afdad1b728/system_architecture_and_sequence_diagrams.md)
+See also:
+- [[Process Diagrams - SSD Transition BPMN]] — Complete System Sequence Diagram, State Transition Diagram, and BPMN Diagram.
+- [[Student Application Lifecycle]] — Comprehensive 10-phase student pipeline from registration to enrollment.
 
 ---
 
@@ -90,3 +92,56 @@ sequenceDiagram
     CounsellorHook-->>UI: Return studentDocId (Success)
     end
 ```
+
+## 3. Student Self-Registration & Direct Application Submission Sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student as Student Applicant
+    participant UI as React UI (/register & /student/*)
+    participant AuthCtx as AuthContext.tsx
+    participant FireAuth as Firebase Auth
+    participant PortalHook as usePortalData.ts
+    participant DocStorage as documentStorage.ts
+    participant Firestore as Cloud Firestore
+    actor Staff as Counsellor / Admissions Desk
+
+    rect rgb(20, 35, 45)
+    note over Student,Firestore: 1. Self-Registration & Account Activation
+    Student->>UI: Select Student Role & Submit /register form
+    UI->>FireAuth: createUserWithEmailAndPassword(email, password)
+    FireAuth-->>UI: Return user.uid
+    UI->>Firestore: setDoc("users/{uid}", { role: "student", ... })
+    UI->>Firestore: setDoc("students/{uid}", { profileCompleteness: 30, ... })
+    UI->>Firestore: addDoc("consent_records", { consentType: "data_processing", ... })
+    UI->>FireAuth: sendEmailVerification()
+    Student->>FireAuth: Click email link & Verify
+    Student->>UI: Sign in at /login -> Redirect to /student/dashboard
+    end
+
+    rect rgb(30, 45, 30)
+    note over Student,Firestore: 2. Document Upload & Storage
+    Student->>UI: Navigate to /student/documents -> Upload Document (Passport/Transcript)
+    UI->>PortalHook: uploadDocument(metadata, file)
+    PortalHook->>DocStorage: uploadStudentDocument(studentId, file)
+    DocStorage-->>PortalHook: Return download URL / file path
+    PortalHook->>Firestore: addDoc("student_documents", { status: "Pending", ... })
+    Firestore-->>PortalHook: Document record created
+    UI-->>Student: Display "Pending" verification badge
+    end
+
+    rect rgb(45, 35, 20)
+    note over Student,Staff: 3. Direct Application Submission & Pipeline Ingestion
+    Student->>UI: Navigate to /student/new-application
+    Student->>UI: Fill University, Programme, Intake, SOP & Submit
+    UI->>PortalHook: createApplication(applicationData)
+    PortalHook->>Firestore: addDoc("applications", { stage: "Draft", ... })
+    Firestore-->>PortalHook: Return new application reference
+    UI-->>Student: Display "Application Submitted Successfully"
+    Firestore-)Staff: Real-time onSnapshot sync to Counsellor & Admissions Queues
+    Staff->>Firestore: updateDoc("applications/{id}", { stage: "Initial Review" })
+    Firestore-)UI: Real-time onSnapshot update reflects on /student/applications
+    end
+```
+
