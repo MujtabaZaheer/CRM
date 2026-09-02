@@ -4,7 +4,8 @@ import { sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPasswo
 import { auth, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
-import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield } from "lucide-react";
+import { getRoleDashboardPath } from "../types/registrationConfig";
+import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield, UserPlus } from "lucide-react";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -18,35 +19,7 @@ export const Login: React.FC = () => {
 
   const handleQuickDemoLogin = (role: UserRole) => {
     loginAsDemoRole(role);
-    if (role === "team_leader") {
-      navigate("/team-leader/dashboard");
-    } else if (role === "counsellor") {
-      navigate("/counsellor/dashboard");
-    } else if (role === "org_admin") {
-      navigate("/");
-    } else if (role === "office_manager") {
-      navigate("/users");
-    } else if (role === "admissions_officer") {
-      navigate("/admissions/dashboard");
-    } else if (role === "finance_officer") {
-      navigate("/finance/dashboard");
-    } else if (role === "support_user") {
-      navigate("/support/dashboard");
-    } else if (role === "auditor" || role === "compliance_officer") {
-      navigate("/auditor/dashboard");
-    } else if (role === "platform_super_admin") {
-      navigate("/super-admin/dashboard");
-    } else if (role === "visa_officer") {
-      navigate("/visa-officer/dashboard");
-    } else if (role === "student") {
-      navigate("/student/dashboard");
-    } else if (role === "external_agent") {
-      navigate("/agent/dashboard");
-    } else if (role === "university_partner") {
-      navigate("/university/dashboard");
-    } else {
-      navigate("/");
-    }
+    navigate(getRoleDashboardPath(role));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,6 +52,8 @@ export const Login: React.FC = () => {
           setNotice("Please verify your email before signing in. We have sent a new verification link.");
           return;
         }
+        // Redirect to role-specific dashboard after real Firebase Auth login
+        // The role will be loaded by AuthContext; default to "/" and let ProtectedLayout handle it
         navigate("/");
         return;
       } catch (firebaseErr: any) {
@@ -327,17 +302,14 @@ export const Login: React.FC = () => {
           {resetMode ? <button type="button" onClick={() => { setResetMode(false); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Back to sign in</button> : <>
             <div className="flex items-center justify-between">
               <button type="button" onClick={() => { setResetMode(true); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Forgot password?</button>
-              <Link to="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1">
-                <Sparkles className="w-3 h-3" />
-                <span>Register Here</span>
-              </Link>
+              <Link to="/accept-invitation" className="font-semibold text-zinc-500 hover:text-zinc-300 text-[11px]">Have an invitation?</Link>
             </div>
             <Link
-              to="/student-register"
-              className="w-full py-2.5 px-4 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
+              to="/register"
+              className="w-full py-2.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
             >
-              <GraduationCap className="w-4 h-4" />
-              <span>Register as Student</span>
+              <UserPlus className="w-4 h-4" />
+              <span>Create New Account</span>
             </Link>
           </>}
         </div>

@@ -8,7 +8,6 @@ import { Register } from "./pages/Register";
 import { AcceptInvitation } from "./pages/AcceptInvitation";
 import { PublicFormPage } from "./pages/PublicFormPage";
 import { PublicFormSuccess } from "./pages/PublicFormSuccess";
-import { StudentRegister } from "./pages/StudentRegister";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Students } from "./pages/Students";
@@ -135,7 +134,7 @@ export const App: React.FC = () => {
               {/* Public Authentication Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/student-register" element={<StudentRegister />} />
+              <Route path="/student-register" element={<Navigate to="/register" replace />} />
               <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
               {/* Public Form Routes (Unauthenticated) */}
