@@ -54,6 +54,19 @@ export interface Application {
   programmeName: string;
   intake: string; // e.g. "Fall 2026"
   targetCountry?: string;
+  eligibilityStatus?: "eligible" | "conditional" | "not_eligible" | "not_checked";
+  eligibilityScore?: number;
+  applicationStatus?: ApplicationStage;
+  assignedOfficer?: string;
+  submittedAt?: number;
+  submissionRequested?: boolean;
+  deadline?: string;
+  nextAction?: string;
+  nextActionDueDate?: string;
+  currentStep?: number;
+  completionPercentage?: number;
+  formResponses?: Record<string, string | number | boolean>;
+  declarationAccepted?: boolean;
   stage: ApplicationStage;
   assignedCounsellor?: string;
   requiredDocuments?: ApplicationDocumentRequirement[];
@@ -64,4 +77,3 @@ export interface Application {
   createdAt: number;
   updatedAt: number;
 }
-

@@ -2,15 +2,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function user() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin() { return signedIn() && user().role in ['platform_super_admin', 'organization_admin', 'org_admin']; }
+    function isStaff() { return signedIn() && user().role in ['platform_super_admin', 'organization_admin', 'org_admin', 'office_manager', 'team_leader', 'counsellor', 'admissions_officer', 'compliance_officer', 'finance_officer', 'support_user']; }
+    function ownsStudent() { return signedIn() && (resource.data.studentId == request.auth.uid || resource.data.email == request.auth.token.email || resource.data.studentEmail == request.auth.token.email); }
 
-    // ╔══════════════════════════════════════════════════════════════════╗
-    // ║  DEMO MODE — ALL COLLECTIONS OPEN FOR READ/WRITE              ║
-    // ║  Revert to role-based rules before production deployment.     ║
-    // ║  Original rules are preserved in git history.                 ║
-    // ╚══════════════════════════════════════════════════════════════════╝
-
-    match /{document=**} {
-      allow read, write: if true;
+    match /users/{userId} {
+      allow create: if signedIn() && userId == request.auth.uid;
+      allow get: if signedIn() && (userId == request.auth.uid || isAdmin());
+      allow list: if isStaff();
+      allow update: if isAdmin() || (userId == request.auth.uid && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
     }
+    match /students/{studentId} {
+      allow create: if isStaff() || (signedIn() && (studentId == request.auth.uid || request.resource.data.email == request.auth.token.email));
+      allow get: if isStaff() || (signedIn() && (studentId == request.auth.uid || resource.data.email == request.auth.token.email));
+      allow list: if isStaff();
+      allow update: if isStaff() || (signedIn() && resource.data.email == request.auth.token.email && request.resource.data.email == resource.data.email);
+      allow delete: if isAdmin();
+    }
+    match /applications/{applicationId} {
+      allow create: if isStaff() || (signedIn() && request.resource.data.studentEmail == request.auth.token.email && request.resource.data.stage == 'Draft');
+      allow get, list: if isStaff() || (signedIn() && resource.data.studentEmail == request.auth.token.email);
+      allow update: if isStaff() || (signedIn() && resource.data.studentEmail == request.auth.token.email && request.resource.data.studentEmail == resource.data.studentEmail && request.resource.data.stage in ['Draft', 'Initial Review']);
+      allow delete: if isAdmin();
+    }
+    match /student_documents/{documentId} {
+      allow create: if isStaff() || (signedIn() && (request.resource.data.studentId == request.auth.uid || request.resource.data.studentEmail == request.auth.token.email));
+      allow get, list: if isStaff() || ownsStudent();
+      allow update: if isStaff() || (ownsStudent() && request.resource.data.studentId == resource.data.studentId && request.resource.data.status == resource.data.status);
+      allow delete: if isAdmin() || ownsStudent();
+    }
+    match /support_requests/{requestId} {
+      allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
+      allow get, list: if isStaff() || ownsStudent();
+      allow update: if isStaff() || (ownsStudent() && request.resource.data.studentId == resource.data.studentId);
+      allow delete: if isAdmin();
+    }
+    match /tasks/{taskId} { allow read, write: if isStaff(); }
+    match /visa_cases/{caseId} { allow read: if isStaff() || ownsStudent(); allow create, update, delete: if isStaff(); }
+    match /universities/{universityId} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /notifications/{notificationId} { allow read: if isStaff() || (signedIn() && resource.data.targetUser == request.auth.uid); allow create: if isStaff(); allow update: if isStaff() || (signedIn() && resource.data.targetUser == request.auth.uid); allow delete: if isAdmin(); }
+    match /audit_logs/{logId} { allow read: if isStaff(); allow create: if signedIn(); allow update, delete: if false; }
+    match /{document=**} { allow read, write: if isStaff(); }
   }
 }

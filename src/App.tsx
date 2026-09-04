@@ -5,6 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ProtectedLayout } from "./components/layout/ProtectedLayout";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { VerifyEmail } from "./pages/VerifyEmail";
 import { AcceptInvitation } from "./pages/AcceptInvitation";
 import { PublicFormPage } from "./pages/PublicFormPage";
 import { PublicFormSuccess } from "./pages/PublicFormSuccess";
@@ -30,6 +31,8 @@ import { WorkflowRulesConfigPage } from "./pages/WorkflowRulesConfig";
 import { CommissionManagerPage } from "./pages/CommissionManager";
 import { StudentProfileSelfEdit } from "./pages/portal/StudentProfileSelfEdit";
 import { StudentNewApplication } from "./pages/portal/StudentNewApplication";
+import { StudentApplicationDetail, StudentApplications } from "./pages/portal/StudentApplications";
+import { StudentDashboard, StudentProgramDetail, StudentProgrammes, StudentUniversities, StudentUniversityDetail } from "./pages/portal/StudentExperience";
 import { AgentSubAgentManager } from "./pages/portal/AgentSubAgentManager";
 import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
@@ -134,6 +137,7 @@ export const App: React.FC = () => {
               {/* Public Authentication Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/student-register" element={<Navigate to="/register" replace />} />
               <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
@@ -242,9 +246,14 @@ export const App: React.FC = () => {
 
                 {/* Student Portal Routes (Added by Saad) */}
                 <Route path="/student" element={<RoleRoute role="student" />}>
-                  <Route path="dashboard" element={<RolePortal role="student" page="dashboard" />} />
-                  <Route path="profile" element={<RolePortal role="student" page="profile" />} />
-                  <Route path="applications" element={<RolePortal role="student" page="applications" />} />
+                  <Route path="dashboard" element={<StudentDashboard />} />
+                  <Route path="profile" element={<StudentProfileSelfEdit />} />
+                  <Route path="universities" element={<StudentUniversities />} />
+                  <Route path="universities/:universityId" element={<StudentUniversityDetail />} />
+                  <Route path="programs" element={<StudentProgrammes />} />
+                  <Route path="programs/:programId" element={<StudentProgramDetail />} />
+                  <Route path="applications" element={<StudentApplications />} />
+                  <Route path="applications/:applicationId" element={<StudentApplicationDetail />} />
                   <Route path="documents" element={<RolePortal role="student" page="documents" />} />
                   <Route path="requests" element={<RolePortal role="student" page="requests" />} />
                   <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />

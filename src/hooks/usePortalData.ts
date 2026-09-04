@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { addDoc, collection, doc, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
@@ -11,7 +11,7 @@ import { SupportRequest, SupportRequestStatus, VisaCase, VisaCaseStatus } from "
 import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_STUDENTS, DEMO_VISA_CASES } from "../data/demoData";
 import { uploadStudentDocument } from "../utils/documentStorage";
 
-export interface PortalDocument { id: string; studentId: string; studentName: string; documentType: string; fileName: string; fileUrl?: string; filePath?: string; fileSize?: number; fileType?: string; status: "Missing" | "Pending" | "Verified" | "Rejected"; remarks?: string; deadline?: string; createdAt: number; }
+export interface PortalDocument { id: string; studentId: string; studentName: string; studentEmail?: string; documentType: string; fileName: string; fileUrl?: string; filePath?: string; fileSize?: number; fileType?: string; status: "Missing" | "Pending" | "Verified" | "Rejected"; remarks?: string; deadline?: string; createdAt: number; }
 const subscribe = <T extends { id: string }>(name: string, setData: (items: T[]) => void, fail: () => void, field?: string, value?: string) => onSnapshot(field && value ? query(collection(db, name), where(field, "==", value)) : query(collection(db, name), orderBy("createdAt", "desc")), (snapshot) => setData(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as T)), fail);
 
 export const usePortalData = () => {
@@ -19,7 +19,7 @@ export const usePortalData = () => {
   const { showDemoData } = useGlobalData();
   const [students, setStudents] = useState<Student[]>([]); const [applications, setApplications] = useState<Application[]>([]); const [tasks, setTasks] = useState<Task[]>([]); const [documents, setDocuments] = useState<PortalDocument[]>([]); const [visaCases, setVisaCases] = useState<VisaCase[]>([]); const [requests, setRequests] = useState<SupportRequest[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
-  const ownStudent = useMemo(() => students.find((student) => student.email === appUser?.email || student.id === appUser?.uid) || DEMO_STUDENTS[0], [appUser, students]);
+  const ownStudent = useMemo(() => students.find((student) => student.email === appUser?.email || student.id === appUser?.uid) || (showDemoData ? DEMO_STUDENTS[0] : undefined), [appUser, showDemoData, students]);
   const ownStudentId = ownStudent?.id;
 
   useEffect(() => {
@@ -61,29 +61,55 @@ export const usePortalData = () => {
   const saveProfile = useCallback(async (student: Student, changes: Partial<Student>) => { await updateDoc(doc(db, "students", student.id), { ...changes, updatedAt: Date.now() }); }, []);
   const uploadDocument = useCallback(async (data: Omit<PortalDocument, "id" | "status" | "createdAt" | "fileName" | "fileUrl">, file: File) => {
     const uploadedFile = await uploadStudentDocument(data.studentId, file);
-    await addDoc(collection(db, "student_documents"), { ...data, ...uploadedFile, status: "Pending", createdAt: Date.now() });
-  }, []);
-  const createApplication = useCallback(async (data: { universityName: string; programmeName: string; intake: string; targetCountry: string; personalStatement?: string }) => {
+    await addDoc(collection(db, "student_documents"), { ...data, studentEmail: ownStudent?.email || appUser?.email || "", ...uploadedFile, status: "Pending", createdAt: Date.now() });
+  }, [appUser?.email, ownStudent?.email]);
+  const createApplication = useCallback(async (data: { universityId: string; universityName: string; programmeId: string; programmeName: string; intake: string; targetCountry: string; personalStatement?: string; eligibilityStatus?: Application["eligibilityStatus"]; eligibilityScore?: number; formResponses?: Record<string, string | number | boolean>; declarationAccepted?: boolean; submit?: boolean }) => {
     if (!ownStudent) throw new Error("Student profile not found. Please complete your profile first.");
+    const duplicate = await getDocs(query(collection(db, "applications"), where("studentId", "==", ownStudent.id), where("universityId", "==", data.universityId), where("programmeId", "==", data.programmeId), where("intake", "==", data.intake)));
+    if (!duplicate.empty) throw new Error("You already have an application for this programme and intake. Continue the existing application from My Applications.");
     const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    await addDoc(collection(db, "applications"), {
+    const created = await addDoc(collection(db, "applications"), {
       applicationNumber: appNumber,
       studentId: ownStudent.id,
       studentName: ownStudent.fullName,
       studentEmail: ownStudent.email,
-      universityId: "univ-self",
+      universityId: data.universityId,
       universityName: data.universityName,
-      programmeId: "prog-self",
+      programmeId: data.programmeId,
       programmeName: data.programmeName,
       intake: data.intake,
       targetCountry: data.targetCountry,
+      // A student can request submission, but only staff may advance the
+      // application to an internal/university processing stage.
       stage: "Draft",
+      applicationStatus: "Draft",
+      eligibilityStatus: data.eligibilityStatus || "not_checked",
+      eligibilityScore: data.eligibilityScore || 0,
+      formResponses: data.formResponses || {},
+      declarationAccepted: Boolean(data.declarationAccepted),
+      submittedAt: data.submit ? Date.now() : undefined,
+      submissionRequested: Boolean(data.submit),
+      currentStep: data.submit ? 6 : 1,
+      completionPercentage: data.submit ? 100 : 25,
       assignedCounsellor: ownStudent.assignedCounsellorId || "",
-      history: [{ stage: "Draft", updatedBy: ownStudent.email || appUser?.email || "Student", timestamp: Date.now(), note: "Application submitted by student via self-service portal." }],
+      history: [{ stage: "Draft", updatedBy: ownStudent.email || appUser?.email || "Student", timestamp: Date.now(), note: data.submit ? "Student requested internal review." : "Application draft created by student." }],
       ...(data.personalStatement ? { personalStatement: data.personalStatement } : {}),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+    if (data.submit && appUser?.uid) {
+      await addDoc(collection(db, "notifications"), {
+        targetUser: appUser.uid,
+        type: "application_submitted",
+        title: "Application submitted",
+        message: `Your application for ${data.programmeName} is now awaiting internal review.`,
+        read: false,
+        relatedApplicationId: created.id,
+        actionUrl: `/student/applications/${created.id}`,
+        createdAt: Date.now(),
+      });
+    }
+    return created.id;
   }, [ownStudent, appUser]);
   return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument, createApplication };
 };

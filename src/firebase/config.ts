@@ -21,5 +21,7 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
 export const isDemoMode = import.meta.env.VITE_DEMO_MODE !== "false";
-export const requiresVerifiedEmail = !isDemoMode && import.meta.env.VITE_REQUIRE_VERIFIED_EMAIL === "true";
+// Live Firebase accounts must verify email by default. Local demo-role sessions
+// have no Firebase user and therefore remain available for development previews.
+export const requiresVerifiedEmail = import.meta.env.VITE_REQUIRE_VERIFIED_EMAIL !== "false";
 

@@ -1,7 +1,9 @@
 import React from "react";
 import { ShieldAlert } from "lucide-react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { UserRole } from "../../types/role";
+import { requiresVerifiedEmail } from "../../firebase/config";
 
 interface RoleGateProps {
   children: React.ReactNode;
@@ -9,7 +11,12 @@ interface RoleGateProps {
 }
 
 export const RoleGate = ({ children, allowedRoles }: RoleGateProps): React.ReactElement => {
-  const { appUser } = useAuth();
+  const { appUser, firebaseUser, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <div className="min-h-[50vh] grid place-items-center text-sm text-[var(--text-muted)]">Checking access…</div>;
+  if (allowedRoles.includes("student") && requiresVerifiedEmail && firebaseUser && !firebaseUser.emailVerified) {
+    return <Navigate to="/verify-email" replace state={{ from: location.pathname }} />;
+  }
   const currentRole = appUser?.role;
 
   const isSuperAdmin = currentRole === "platform_super_admin";

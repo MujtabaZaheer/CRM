@@ -11,6 +11,7 @@ interface AuthContextType {
   isDemoMode: boolean;
   loginAsDemoRole: (role: UserRole) => void;
   logout: () => void;
+  refreshFirebaseUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   isDemoMode: false,
   loginAsDemoRole: () => {},
   logout: () => {},
+  refreshFirebaseUser: async () => null,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -82,6 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     auth.signOut();
   };
 
+  const refreshFirebaseUser = async () => {
+    const current = auth.currentUser;
+    if (!current) return null;
+    await current.reload();
+    setFirebaseUser(auth.currentUser);
+    return auth.currentUser;
+  };
+
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | null = null;
 
@@ -109,7 +119,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 uid: user.uid,
                 email: user.email || "user@educrm.app",
                 displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
-                role: "org_admin",
+                // A missing profile must never grant administrative access. Staff are
+                // provisioned by an administrator; a newly discovered account starts
+                // with the least-privileged student role.
+                role: "student",
                 createdAt: Date.now(),
                 office: "Main Office",
                 branchId: "branch-main",
@@ -131,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               uid: user.uid,
               email: user.email || "user@educrm.app",
               displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
-              role: "org_admin",
+              role: "student",
               createdAt: Date.now(),
             };
             setAppUser(fallbackProfile);
@@ -162,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ firebaseUser, appUser, loading, isDemoMode, loginAsDemoRole, logout }}>
+    <AuthContext.Provider value={{ firebaseUser, appUser, loading, isDemoMode, loginAsDemoRole, logout, refreshFirebaseUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, writeBatch, where } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "./AuthContext";
 import { runReminderChecks, ReminderNotification } from "../utils/reminderEngine";
@@ -28,7 +28,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Run reminder check once on mount
+    if (appUser?.role === "student") return;
+    // Reminder generation is a staff-side convenience only. Student clients must
+    // never scan shared data to generate their own notifications.
     runReminderChecks().catch((err) => console.warn("Initial reminder check:", err));
 
     // Periodic reminder check every 5 minutes
@@ -37,11 +39,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [appUser?.role]);
 
   useEffect(() => {
     const notifRef = collection(db, "notifications");
-    const q = query(notifRef, orderBy("createdAt", "desc"));
+    const q = appUser?.role === "student" && appUser.uid
+      ? query(notifRef, where("targetUser", "==", appUser.uid), orderBy("createdAt", "desc"))
+      : query(notifRef, orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -51,7 +55,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ...d.data(),
         } as ReminderNotification));
 
-        // Filter notifications relevant to current user
+        // Staff can see operational notifications. Student queries are scoped at
+        // Firestore level before this presentation-level filtering occurs.
         const userEmail = appUser?.email?.toLowerCase();
         const userRole = appUser?.role;
         const filtered = all.filter((n) => {

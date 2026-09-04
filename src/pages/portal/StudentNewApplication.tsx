@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { assessEligibility } from "../../utils/eligibility";
 import { usePortalData } from "../../hooks/usePortalData";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import {
@@ -17,6 +18,7 @@ const COUNTRIES = [
 
 export const StudentNewApplication: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const portalData = usePortalData();
   const { universities } = useGlobalData();
 
@@ -42,6 +44,20 @@ export const StudentNewApplication: React.FC = () => {
     const names = universities.map((u) => u.name || u.id);
     return [...new Set(names)].sort();
   }, [universities]);
+
+  const selectedUniversity = useMemo(() => universities.find((university) => university.id === searchParams.get("universityId") || university.name === formData.universityName), [formData.universityName, searchParams, universities]);
+  const selectedProgramme = useMemo(() => selectedUniversity?.programmes.find((programme) => programme.id === searchParams.get("programmeId") || programme.title === formData.programmeName), [formData.programmeName, searchParams, selectedUniversity]);
+  const eligibility = selectedProgramme ? assessEligibility(portalData.ownStudent, selectedProgramme) : undefined;
+  useEffect(() => {
+    if (!selectedUniversity || !selectedProgramme) return;
+    setFormData((previous) => ({
+      ...previous,
+      universityName: previous.universityName || selectedUniversity.name,
+      programmeName: previous.programmeName || selectedProgramme.title,
+      targetCountry: previous.targetCountry || selectedUniversity.country,
+      intake: previous.intake || selectedProgramme.intakes[0] || "",
+    }));
+  }, [selectedProgramme, selectedUniversity]);
 
   const isFormValid = formData.universityName.trim() && formData.programmeName.trim() && formData.intake && formData.targetCountry;
 
@@ -70,11 +86,18 @@ export const StudentNewApplication: React.FC = () => {
     try {
       // Create the application
       await portalData.createApplication({
+        universityId: selectedUniversity?.id || `manual-${formData.universityName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
         universityName: formData.universityName.trim(),
+        programmeId: selectedProgramme?.id || `manual-${formData.programmeName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
         programmeName: formData.programmeName.trim(),
         intake: formData.intake,
         targetCountry: formData.targetCountry,
         personalStatement: formData.personalStatement.trim() || undefined,
+        eligibilityStatus: eligibility?.status,
+        eligibilityScore: eligibility?.score,
+        formResponses: { personalStatement: formData.personalStatement.trim() },
+        declarationAccepted: true,
+        submit: true,
       });
 
       // Upload any attached documents
@@ -216,7 +239,7 @@ export const StudentNewApplication: React.FC = () => {
             type="text"
             required
             value={formData.universityName}
-            onChange={(e) => updateField("universityName", e.target.value)}
+            onChange={(e) => { updateField("universityName", e.target.value); updateField("programmeName", ""); }}
             list="university-suggestions"
             placeholder="e.g. University of Oxford"
             className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
@@ -229,6 +252,13 @@ export const StudentNewApplication: React.FC = () => {
             </datalist>
           )}
         </div>
+
+        {selectedProgramme && eligibility && (
+          <div className={`p-4 rounded-xl border ${eligibility.status === "eligible" ? "bg-emerald-500/10 border-emerald-500/30" : eligibility.status === "not_eligible" ? "bg-rose-500/10 border-rose-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
+            <p className="text-sm font-bold text-[var(--text-primary)]">Eligibility: {eligibility.status.replace("_", " ")}</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">{eligibility.disclaimer}</p>
+          </div>
+        )}
 
         {/* Programme */}
         <div>
