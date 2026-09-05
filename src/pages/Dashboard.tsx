@@ -13,12 +13,20 @@ export const Dashboard: React.FC = () => {
   const [stageFilter, setStageFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
 
+  if (appUser?.role === "student") {
+    const studentDoc = students.find((s) => s.id === appUser.uid || s.email?.toLowerCase() === appUser.email?.toLowerCase());
+    const completeness = studentDoc?.profileCompleteness || 0;
+    if (completeness < 70) {
+      return <Navigate to="/student/onboarding/profile" replace />;
+    }
+    return <Navigate to="/student/dashboard" replace />;
+  }
+
   const roleHome: Partial<Record<NonNullable<typeof appUser>["role"], string>> = {
     counsellor: "/counsellor/dashboard",
     team_leader: "/team-leader/dashboard",
     finance_officer: "/finance/dashboard",
     visa_officer: "/visa-officer/dashboard",
-    student: "/student/dashboard",
     support_user: "/support/dashboard",
     external_agent: "/agent/dashboard",
     university_partner: "/university/dashboard",

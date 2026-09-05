@@ -24,7 +24,11 @@ export const AcceptInvitation: React.FC = () => {
     setLoading(true);
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(credential.user);
+      const lastSent = sessionStorage.getItem("last_verification_sent");
+      if (!lastSent || Date.now() - parseInt(lastSent) >= 60000) {
+        await sendEmailVerification(credential.user);
+        sessionStorage.setItem("last_verification_sent", Date.now().toString());
+      }
       await signOut(auth);
       setMessage("Your access account was created. Verify the email we sent, then return here to sign in and accept the invitation.");
     } catch (err: any) {
@@ -42,7 +46,11 @@ export const AcceptInvitation: React.FC = () => {
       const credential = await signInWithEmailAndPassword(auth, email, password);
       await reload(credential.user);
       if (!credential.user.emailVerified) {
-        await sendEmailVerification(credential.user);
+        const lastSent = sessionStorage.getItem("last_verification_sent");
+        if (!lastSent || Date.now() - parseInt(lastSent) >= 60000) {
+          await sendEmailVerification(credential.user);
+          sessionStorage.setItem("last_verification_sent", Date.now().toString());
+        }
         await signOut(auth);
         setMessage("Verify your email before accepting this invitation. A new verification email has been sent.");
         return;

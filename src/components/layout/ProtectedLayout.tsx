@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { requiresVerifiedEmail } from "../../firebase/config";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Loader2 } from "lucide-react";
 
 export const ProtectedLayout: React.FC = () => {
-  const { appUser, loading } = useAuth();
+  const { appUser, firebaseUser, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -23,6 +24,11 @@ export const ProtectedLayout: React.FC = () => {
 
   if (!appUser) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Security Guard: Unverified students cannot access any protected internal route
+  if (appUser.role === "student" && requiresVerifiedEmail && firebaseUser && !firebaseUser.emailVerified) {
+    return <Navigate to="/verify-email" replace />;
   }
 
   return (

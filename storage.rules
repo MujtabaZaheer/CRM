@@ -14,7 +14,7 @@ service firebase.storage {
     }
     function isStudentOwner(studentId) {
       return hasRole('student')
-        && firestore.get(/databases/(default)/documents/students/$(studentId)).data.email == request.auth.token.email;
+        && (studentId == request.auth.uid || firestore.get(/databases/(default)/documents/students/$(studentId)).data.email == request.auth.token.email);
     }
     function validUpload() {
       return request.resource.size <= 15 * 1024 * 1024

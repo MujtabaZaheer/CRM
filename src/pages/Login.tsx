@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
@@ -47,9 +47,13 @@ export const Login: React.FC = () => {
       try {
         const credential = await signInWithEmailAndPassword(auth, email, password);
         if (requiresVerifiedEmail && !credential.user.emailVerified) {
-          await sendEmailVerification(credential.user);
-          await signOut(auth);
-          setNotice("Please verify your email before signing in. We have sent a new verification link.");
+          try {
+            sessionStorage.setItem("pending_verification_email", credential.user.email || email);
+          } catch (_) {}
+          navigate("/verify-email", {
+            replace: true,
+            state: { email: credential.user.email || email, fromLogin: true },
+          });
           return;
         }
         // Redirect to role-specific dashboard after real Firebase Auth login

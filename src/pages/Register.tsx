@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { doc, setDoc, addDoc, collection } from "firebase/firestore";
-import { auth, db } from "../firebase/config";
+import { auth, db, getEmailActionSettings } from "../firebase/config";
 import {
   UserPlus, AlertCircle, User, Mail, Lock, Phone, Globe, Flag, Eye, EyeOff,
   CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase,
@@ -82,6 +82,7 @@ const ACCENT_CLASSES: Record<string, { card: string; cardHover: string; border: 
 /*  REGISTER COMPONENT                                                */
 /* ================================================================== */
 export const Register: React.FC = () => {
+  const navigate = useNavigate();
   /* ---- state ---- */
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [formData, setFormData] = useState({
@@ -100,7 +101,7 @@ export const Register: React.FC = () => {
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success] = useState(false);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -231,15 +232,53 @@ export const Register: React.FC = () => {
         });
       } catch (_) { /* consent logging is best-effort */ }
 
-      // 5. Send email verification & sign out
-      await sendEmailVerification(userCredential.user);
+      let emailSendSuccess = false;
+      let emailSendError = null;
+      try {
+        const lastSent = sessionStorage.getItem("last_verification_sent");
+        if (lastSent && Date.now() - parseInt(lastSent) < 60000) {
+          throw { code: "auth/too-many-requests", message: "Email already sent recently." };
+        }
+        await sendEmailVerification(userCredential.user, getEmailActionSettings());
+        sessionStorage.setItem("last_verification_sent", Date.now().toString());
+        emailSendSuccess = true;
+      } catch (sendErr: any) {
+        console.error("Firebase sendEmailVerification error during registration:", sendErr);
+        if (sendErr.code === "auth/too-many-requests") {
+          emailSendError = "Too many requests. Please try resending the verification email later.";
+        } else if (sendErr.code === "auth/unauthorized-continue-uri") {
+          emailSendError = "Configuration error: The domain is not authorized in Firebase Console.";
+        } else {
+          emailSendError = sendErr.message || "Failed to send verification email.";
+        }
+      }
+
+      // 6. Sign out the newly created user as required
       await signOut(auth);
 
-      setSuccess(true);
+      // Save pending email to session storage so /verify-email always knows who registered
+      try {
+        sessionStorage.setItem("pending_verification_email", formData.email.toLowerCase().trim());
+      } catch (_) {}
+
+      // 7. Redirect to /verify-email with state
+      navigate("/verify-email", {
+        replace: true,
+        state: {
+          email: formData.email.toLowerCase().trim(),
+          emailSent: emailSendSuccess,
+          emailError: emailSendError,
+          registeredRole: selectedRole,
+        },
+      });
     } catch (err: any) {
       console.error("Registration error:", err);
       if (err.code === "auth/email-already-in-use") {
         setError("An account with this email already exists. Please sign in instead.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Too many registration attempts. Please wait a moment and try again.");
+      } else if (err.code === "auth/network-request-failed") {
+        setError("Network error. Please check your internet connection and try again.");
       } else {
         setError(err.message || "Failed to create account. Please try again.");
       }
