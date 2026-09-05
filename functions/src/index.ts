@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
@@ -173,4 +174,98 @@ export const recordAuditEvent = onCall({ enforceAppCheck: false }, async (reques
 
   logger.info("Audit event recorded", { action, actor: request.auth.uid, targetEntity, targetId });
   return { recorded: true };
+});
+
+/** 
+ * OTP Email Verification
+ */
+const generateSecureOTP = () => {
+  // Generate a random 6-digit number
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+export const sendVerificationOTP = onCall({ enforceAppCheck: false }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  
+  const uid = request.auth.uid;
+  const email = request.auth.token.email;
+  
+  if (!email) throw new HttpsError("invalid-argument", "No email associated with this account.");
+  
+  // Rate limiting check
+  const now = Date.now();
+  const codesRef = db.collection("verification_codes").doc(uid);
+  const doc = await codesRef.get();
+  
+  if (doc.exists) {
+    const data = doc.data();
+    if (data && now - data.createdAt.toMillis() < 60000) {
+      throw new HttpsError("resource-exhausted", "Please wait a minute before requesting a new code.");
+    }
+  }
+
+  const otp = generateSecureOTP();
+  
+  // Save OTP to Firestore (expires in 10 minutes)
+  await codesRef.set({
+    otp,
+    email,
+    createdAt: FieldValue.serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(now + 10 * 60 * 1000),
+    attempts: 0
+  });
+
+  // MOCK EMAIL SEND (In production this would use SendGrid/Nodemailer)
+  logger.info(`[MOCK EMAIL] To: ${email} | Subject: Verify your email address | Body: Your EduCRM verification code is: ${otp}`);
+
+  return { success: true };
+});
+
+export const verifyOTP = onCall({ enforceAppCheck: false }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+  
+  const uid = request.auth.uid;
+  const code = request.data?.code;
+  
+  if (!code || typeof code !== "string" || code.length !== 6) {
+    throw new HttpsError("invalid-argument", "Invalid code format.");
+  }
+
+  const codesRef = db.collection("verification_codes").doc(uid);
+  const doc = await codesRef.get();
+  
+  if (!doc.exists) {
+    throw new HttpsError("not-found", "No pending verification found.");
+  }
+  
+  const data = doc.data()!;
+  
+  if (Date.now() > data.expiresAt.toMillis()) {
+    throw new HttpsError("failed-precondition", "This verification code has expired.");
+  }
+  
+  if (data.attempts >= 5) {
+    throw new HttpsError("resource-exhausted", "Too many failed attempts. Please request a new code.");
+  }
+  
+  if (data.otp !== code) {
+    await codesRef.update({ attempts: FieldValue.increment(1) });
+    throw new HttpsError("invalid-argument", "Incorrect verification code.");
+  }
+
+  // Code is valid - mark email verified in Auth
+  await getAuth().updateUser(uid, {
+    emailVerified: true
+  });
+  
+  // Update student profile as well
+  await db.collection("students").doc(uid).set({
+    emailVerified: true,
+    updatedAt: Date.now()
+  }, { merge: true });
+
+  // Delete the OTP code so it can't be reused
+  await codesRef.delete();
+
+  return { success: true };
 });

@@ -351,6 +351,11 @@ export const StudentOnboardingProfile: React.FC = () => {
       setTimeout(() => setSaveSuccess(false), 2000);
 
       if (isProceeding) {
+        if (!completeness.isComplete) {
+          setError("Your profile must be 100% complete before proceeding. Please fill in all required fields.");
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
         navigate("/student/onboarding/destination");
       }
     } catch (err: any) {
