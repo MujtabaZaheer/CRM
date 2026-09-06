@@ -62,7 +62,16 @@ export function calculateProfileCompleteness(
     score: personalScore,
     hint: personalComplete ? "Complete" : `${6 - personalCount} fields remaining`,
   });
-  if (!personalComplete) missing.push("Complete Personal Details (Name, Phone, DOB, Nationality, etc.)");
+  if (!personalComplete) {
+    const missingFields = [];
+    if (!hasName) missingFields.push("Full Name");
+    if (!hasEmail) missingFields.push("Email");
+    if (!hasPhone) missingFields.push("Phone Number");
+    if (!hasDob) missingFields.push("Date of Birth");
+    if (!hasNationality) missingFields.push("Nationality");
+    if (!hasCountry) missingFields.push("Country of Residence");
+    missing.push(`Personal Details (${missingFields.join(", ")})`);
+  }
 
   // 2. Passport (20%)
   const hasPassportNum = Boolean(student.passportNumber?.trim());
