@@ -49,6 +49,7 @@ export const StudentOnboardingProfile: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
 
+  const [currentStage, setCurrentStage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -314,7 +315,7 @@ export const StudentOnboardingProfile: React.FC = () => {
         relationship: sponsorRelation,
         annualIncomeUSD: Number(sponsorIncome) || 0,
         bankStatementUploaded: false
-      } : undefined,
+      } : null,
       employmentHistory: hasEmployment ? [{
         employer: employerName.trim(),
         jobTitle: jobTitle.trim(),
@@ -386,7 +387,7 @@ export const StudentOnboardingProfile: React.FC = () => {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold tracking-wider text-emerald-400 uppercase">
-              Step 1 of 4 • Student Onboarding
+              Profile Stage {currentStage} of 4 • Student Onboarding
             </span>
             <h1 className="text-xl font-bold font-heading text-primary">
               Let's build your student profile
@@ -438,6 +439,7 @@ export const StudentOnboardingProfile: React.FC = () => {
           </div>
         )}
 
+        {currentStage === 1 && (<>
         {/* Section 1: Personal Information */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
@@ -618,6 +620,9 @@ export const StudentOnboardingProfile: React.FC = () => {
           )}
         </section>
 
+        </>)}
+
+        {currentStage === 2 && (<>
         {/* Section 3: Academic Background */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -875,6 +880,9 @@ export const StudentOnboardingProfile: React.FC = () => {
             })}
           </div>
         </section>
+        </>)}
+
+        {currentStage === 3 && (<>
         {/* Section 6: Employment History */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -985,6 +993,9 @@ export const StudentOnboardingProfile: React.FC = () => {
           )}
         </section>
 
+        </>)}
+
+        {currentStage === 4 && (<>
         {/* Section 8: Dependants */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -1069,31 +1080,53 @@ export const StudentOnboardingProfile: React.FC = () => {
           )}
         </section>
 
-        {/* Bottom Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-subtle">
-          <div className="text-xs text-muted">
-            Step 1 of 4 • Next: Destination Countries & Study Preferences
-          </div>
+        </>)}
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+        {/* Bottom Actions */}
+        <div className="flex justify-between items-center gap-3 pt-6 border-t border-subtle">
+          <div>
+            {currentStage > 1 && (
+              <button
+                type="button"
+                onClick={() => setCurrentStage(s => s - 1)}
+                className="px-5 py-2.5 rounded-xl border border-default text-primary hover:bg-hover font-medium transition-colors"
+              >
+                Back
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={() => saveProgress(false)}
               disabled={saving}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-elevated hover:bg-hover text-sm font-semibold text-primary transition-colors cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl border border-default text-secondary hover:text-primary hover:bg-hover font-medium transition-colors"
             >
-              {saving ? "Saving..." : "Save Progress"}
+              Save Draft
             </button>
-
-            <button
-              type="button"
-              onClick={() => saveProgress(true)}
-              disabled={saving}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <span>Continue to Step 2</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {currentStage < 4 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setCurrentStage(s => s + 1);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center gap-2"
+              >
+                Next Step
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => saveProgress(true)}
+                disabled={saving || !completeness.isComplete}
+                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? "Processing..." : "Save & Complete Profile"}
+                {!saving && <ArrowRight className="w-4 h-4" />}
+              </button>
+            )}
           </div>
         </div>
       </main>
