@@ -29,14 +29,78 @@ export interface VaultDocument {
   updatedAt?: number;
 }
 
-const REQUIRED_STANDARD_DOCS = [
-  { type: "Passport", label: "International Passport (Data Page)", mandatory: true },
-  { type: "Academic Transcript", label: "Official Academic Transcript", mandatory: true },
-  { type: "Degree Certificate", label: "Graduation / Degree Certificate", mandatory: true },
-  { type: "Statement of Purpose", label: "Statement of Purpose (SOP)", mandatory: true },
-  { type: "English Language Certificate", label: "English Test Certificate (IELTS/PTE/TOEFL/Duolingo)", mandatory: false },
-  { type: "Letter of Recommendation", label: "Academic / Employer Reference Letter", mandatory: false },
-  { type: "CV / Resume", label: "Updated Academic & Professional CV", mandatory: false },
+export interface RequiredDocumentDef {
+  type: string;
+  label: string;
+  mandatory: boolean;
+  whyRequired: string;
+  whoRequiresIt: string;
+  acceptedFormats: string;
+  maxSize: string;
+  requirements: string[];
+}
+
+const REQUIRED_STANDARD_DOCS: RequiredDocumentDef[] = [
+  { 
+    type: "Passport", 
+    label: "International Passport (Data Page)", 
+    mandatory: true,
+    whyRequired: "Your passport is used to verify your identity, nationality, and to prepare your university and visa applications.",
+    whoRequiresIt: "All Universities & Immigration Authorities",
+    acceptedFormats: "PDF, JPG, PNG",
+    maxSize: "10 MB",
+    requirements: ["All four corners must be visible", "Text must be clearly readable", "Passport must not be expired", "Name must exactly match your profile"]
+  },
+  { 
+    type: "Academic Transcript", 
+    label: "Official Academic Transcript", 
+    mandatory: true,
+    whyRequired: "Universities use your transcript to assess your academic history and eligibility for the chosen program.",
+    whoRequiresIt: "Selected University Admissions",
+    acceptedFormats: "PDF only",
+    maxSize: "15 MB",
+    requirements: ["Must be official and stamped/signed", "Include grading scale/key if available", "Certified English translation required if not in English"]
+  },
+  { 
+    type: "Degree Certificate", 
+    label: "Graduation / Degree Certificate", 
+    mandatory: true,
+    whyRequired: "Proof that you have officially completed your previous qualification.",
+    whoRequiresIt: "Selected University Admissions",
+    acceptedFormats: "PDF, JPG",
+    maxSize: "10 MB",
+    requirements: ["Must show the final award and date", "Certified English translation required if not in English"]
+  },
+  { 
+    type: "Statement of Purpose", 
+    label: "Statement of Purpose (SOP)", 
+    mandatory: true,
+    whyRequired: "Allows the university to understand your motivation, academic interests, and career goals.",
+    whoRequiresIt: "Selected University Admissions",
+    acceptedFormats: "PDF, DOCX",
+    maxSize: "5 MB",
+    requirements: ["Typically 500-1000 words", "Must be originally written by you", "Should address why you chose this specific program and university"]
+  },
+  { 
+    type: "English Language Certificate", 
+    label: "English Test Certificate (IELTS/PTE/TOEFL)", 
+    mandatory: false,
+    whyRequired: "Proof that you meet the minimum English language requirements for the program.",
+    whoRequiresIt: "University & Visa Authorities",
+    acceptedFormats: "PDF",
+    maxSize: "10 MB",
+    requirements: ["Must be valid (typically taken within the last 2 years)", "Include TRF number or verification code"]
+  },
+  { 
+    type: "CV / Resume", 
+    label: "Updated Academic & Professional CV", 
+    mandatory: false,
+    whyRequired: "Provides a complete overview of your academic and employment timeline.",
+    whoRequiresIt: "Selected University Admissions",
+    acceptedFormats: "PDF",
+    maxSize: "5 MB",
+    requirements: ["Should include all work experience and study gaps", "Maximum 2-3 pages"]
+  },
 ];
 
 export const StudentDocumentVault: React.FC = () => {
@@ -298,9 +362,38 @@ export const StudentDocumentVault: React.FC = () => {
                         : "bg-zinc-800 text-zinc-500 border-zinc-700"
                     }`}
                   >
-                    {uploaded ? uploaded.status : "Missing"}
+                    {uploaded ? uploaded.status : "Required"}
                   </span>
                 </div>
+
+                {!uploaded && (
+                  <div className="p-4 rounded-xl bg-zinc-950/50 border border-zinc-800/80 space-y-3">
+                    <div>
+                      <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Why is this required?</h4>
+                      <p className="text-xs text-zinc-400">{req.whyRequired}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Required By</h4>
+                        <p className="text-xs text-zinc-400">{req.whoRequiresIt}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Formats & Size</h4>
+                        <p className="text-xs text-zinc-400">{req.acceptedFormats} (Max: {req.maxSize})</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Make sure:</h4>
+                      <ul className="text-xs text-zinc-400 space-y-1 list-disc pl-4">
+                        {req.requirements.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
 
                 {uploaded && (
                   <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 flex items-center justify-between">

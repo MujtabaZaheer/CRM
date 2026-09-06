@@ -33,6 +33,9 @@ import { StudentProfileSelfEdit } from "./pages/portal/StudentProfileSelfEdit";
 import { StudentNewApplication } from "./pages/portal/StudentNewApplication";
 import { StudentApplicationDetail, StudentApplications } from "./pages/portal/StudentApplications";
 import { StudentDashboard, StudentProgramDetail, StudentProgrammes, StudentUniversities, StudentUniversityDetail } from "./pages/portal/StudentExperience";
+import { StudentOnboardingProfile } from "./pages/portal/onboarding/StudentOnboardingProfile";
+import { StudentOnboardingDestination } from "./pages/portal/onboarding/StudentOnboardingDestination";
+import { StudentOnboardingProgramMatcher } from "./pages/portal/onboarding/StudentOnboardingProgramMatcher";
 import { AgentSubAgentManager } from "./pages/portal/AgentSubAgentManager";
 import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
@@ -246,6 +249,9 @@ export const App: React.FC = () => {
 
                 {/* Student Portal Routes (Added by Saad) */}
                 <Route path="/student" element={<RoleRoute role="student" />}>
+                  <Route path="onboarding/profile" element={<StudentOnboardingProfile />} />
+                  <Route path="onboarding/destination" element={<StudentOnboardingDestination />} />
+                  <Route path="onboarding/program-matcher" element={<StudentOnboardingProgramMatcher />} />
                   <Route path="dashboard" element={<StudentDashboard />} />
                   <Route path="profile" element={<StudentProfileSelfEdit />} />
                   <Route path="universities" element={<StudentUniversities />} />
