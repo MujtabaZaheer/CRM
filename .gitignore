@@ -34,3 +34,4 @@ functions/lib
 .env.production.local
 
 firestore.rules.backup
+.firebase/

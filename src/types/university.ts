@@ -5,6 +5,26 @@ export type StudyLevel =
   | "Foundation"
   | "Pre-Master";
 
+export type SubjectArea =
+  | "STEM"
+  | "Business & Management"
+  | "Health Sciences"
+  | "Humanities"
+  | "Computing & AI"
+  | "Law & Legal Studies"
+  | "Arts & Design"
+  | "Social Sciences"
+  | "Other";
+
+export type AccreditationStatus = "Full Partner" | "Provisional" | "Under Review";
+
+export interface ProgrammeScholarship {
+  name: string;
+  amount: string;
+  criteria?: string;
+  autoApplied?: boolean;
+}
+
 export interface Programme {
   id: string;
   title: string;
@@ -22,11 +42,22 @@ export interface Programme {
   requirements?: {
     minGpa?: number;
     minIelts?: number;
+    minIeltsListening?: number;
+    minIeltsReading?: number;
+    minIeltsWriting?: number;
+    minIeltsSpeaking?: number;
     acceptedQualifications?: string[];
     prerequisites?: string[];
     workExperienceRequired?: boolean;
   };
   applicationForm?: { id: string; label: string; type: "text" | "textarea" | "number" | "select"; required?: boolean; options?: string[]; helpText?: string }[];
+
+  // New fields for commercial-grade matcher
+  subjectArea?: SubjectArea;
+  studyMode?: ("On-Campus" | "Hybrid" | "Online")[];
+  scholarships?: ProgrammeScholarship[];
+  depositRequired?: number;
+  estimatedLivingCostAnnual?: number;
 }
 
 export interface University {
@@ -47,4 +78,11 @@ export interface University {
   programmes: Programme[];
   createdAt: number;
   updatedAt: number;
+
+  // New fields for commercial-grade explorer
+  globalRanking?: number;
+  nationalRanking?: number;
+  acceptanceRate?: number;
+  accreditationStatus?: AccreditationStatus;
 }
+

@@ -36,6 +36,7 @@ import { StudentDashboard, StudentProgramDetail, StudentProgrammes, StudentUnive
 import { StudentOnboardingProfile } from "./pages/portal/onboarding/StudentOnboardingProfile";
 import { StudentOnboardingDestination } from "./pages/portal/onboarding/StudentOnboardingDestination";
 import { StudentOnboardingProgramMatcher } from "./pages/portal/onboarding/StudentOnboardingProgramMatcher";
+import { StudentOnboardingMatchSelection } from "./pages/portal/onboarding/StudentOnboardingMatchSelection";
 import { AgentSubAgentManager } from "./pages/portal/AgentSubAgentManager";
 import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
@@ -154,6 +155,8 @@ export const App: React.FC = () => {
                 <Route path="onboarding/profile" element={<StudentOnboardingProfile />} />
                 <Route path="onboarding/destination" element={<StudentOnboardingDestination />} />
                 <Route path="onboarding/program-matcher" element={<StudentOnboardingProgramMatcher />} />
+                <Route path="onboarding/review" element={<StudentOnboardingMatchSelection />} />
+                <Route path="onboarding/match-selection" element={<StudentOnboardingMatchSelection />} />
               </Route>
 
               {/* Protected Application Routes */}

@@ -34,6 +34,18 @@ export interface ApplicationDocumentRequirement {
   verifiedAt?: number;
 }
 
+export type DocumentChecklistStatus = 'received' | 'missing' | 'verification_pending' | 'action_required';
+
+export interface DocumentChecklistItem {
+  docType: string;
+  label: string;
+  status: DocumentChecklistStatus;
+  required: boolean;
+  notes?: string;
+  uploadedAt?: number;
+  fileUrl?: string;
+}
+
 export interface ApplicationCondition {
   id: string;
   condition: string;
@@ -54,7 +66,7 @@ export interface Application {
   programmeName: string;
   intake: string; // e.g. "Fall 2026"
   targetCountry?: string;
-  eligibilityStatus?: "eligible" | "conditional" | "not_eligible" | "not_checked";
+  eligibilityStatus?: "eligible" | "competitive" | "conditional" | "not_eligible" | "not_checked";
   eligibilityScore?: number;
   applicationStatus?: ApplicationStage;
   assignedOfficer?: string;
@@ -70,6 +82,7 @@ export interface Application {
   stage: ApplicationStage;
   assignedCounsellor?: string;
   requiredDocuments?: ApplicationDocumentRequirement[];
+  documentChecklist?: DocumentChecklistItem[];
   conditions?: ApplicationCondition[];
   lockedAt?: number; // timestamp when locked for submission
   clonedFrom?: string; // applicationId this was cloned from

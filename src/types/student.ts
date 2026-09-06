@@ -103,8 +103,18 @@ export interface Student {
   researchProposal?: ResearchProposal;
 
   preferredDestination?: string;
+  preferredDestinations?: string[];
   preferredIntake?: string;
   budgetAnnualUsd?: number;
+
+  // Onboarding & Discovery Preferences
+  onboardingStep?: number;
+  shortlistedPrograms?: string[];
+  preferredStudyMode?: string;
+  preferredCity?: string;
+  scholarshipPriority?: 'High' | 'Medium' | 'Not Essential';
+  institutionType?: 'Any' | 'Public' | 'Private';
+  desiredStudyLevel?: string;
   
   profileCompleteness: number; // 0-100%
   assignedCounsellorId?: string;

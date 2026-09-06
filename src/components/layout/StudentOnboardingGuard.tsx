@@ -14,7 +14,7 @@ export const StudentOnboardingGuard: React.FC = () => {
 
   if (globalLoading && students.length === 0) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="min-h-screen bg-main flex items-center justify-center text-muted">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       </div>
     );
@@ -27,7 +27,7 @@ export const StudentOnboardingGuard: React.FC = () => {
   }
 
   const completeness = studentDoc.profileCompleteness || 0;
-  const hasDestination = !!(studentDoc as any).preferredDestination || !!studentDoc.budgetAnnualUsd;
+  const hasDestination = !!(studentDoc as any).preferredDestination || !!((studentDoc as any).preferredDestinations && (studentDoc as any).preferredDestinations.length > 0) || !!studentDoc.budgetAnnualUsd;
   const hasShortlist = (studentDoc as any).shortlistedPrograms && (studentDoc as any).shortlistedPrograms.length > 0;
 
   // Step 1: Master Profile
