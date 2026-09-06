@@ -1085,6 +1085,23 @@ export const StudentOnboardingProfile: React.FC = () => {
 
         </>)}
 
+        {currentStage === 4 && !completeness.isComplete && completeness.missingFields.length > 0 && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+            <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              Missing Information Required:
+            </h3>
+            <p className="text-xs mb-2 opacity-90">
+              Optional fields (like Dependants or Employment) are not required. You only need to complete the following to proceed:
+            </p>
+            <ul className="list-disc list-inside text-xs space-y-1 ml-1 opacity-90 font-medium">
+              {completeness.missingFields.map((field, idx) => (
+                <li key={idx}>{field}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Bottom Actions */}
         <div className="flex justify-between items-center gap-3 pt-6 border-t border-subtle">
           <div>
