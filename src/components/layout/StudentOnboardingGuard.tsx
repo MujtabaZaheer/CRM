@@ -68,8 +68,13 @@ export const StudentOnboardingGuard: React.FC = () => {
 
   // 2. First-Time User: Restrict access to their current (or previous) steps
   if (!isCompleted) {
-    // If they try to go to dashboard or anything NOT onboarding, push them back to their step
-    if (!location.pathname.includes("/onboarding/")) {
+    const isApplicationRoute =
+      location.pathname.startsWith("/student/new-application") ||
+      location.pathname.startsWith("/student/apply") ||
+      location.pathname.startsWith("/apply");
+
+    // If they try to go to dashboard or other portal pages while onboarding, push them back to their step
+    if (!location.pathname.includes("/onboarding/") && !isApplicationRoute) {
       return <Navigate to={`/student/onboarding/step-${currentStep}`} replace />;
     }
 

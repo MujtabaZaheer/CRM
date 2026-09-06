@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, ArrowRight, GraduationCap, MapPin, Search, CheckCircle2, BookOpen } from "lucide-react";
+import { AlertCircle, ArrowRight, GraduationCap, CheckCircle2, Send } from "lucide-react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { usePortalData } from "../../hooks/usePortalData";
 import { Programme, University } from "../../types/university";
 import { assessEligibility } from "../../utils/eligibility";
+import { UniversityExplorerMatcher } from "../../components/portal/UniversityExplorerMatcher";
 
 const fallbackImage = "/sample_transcript.jpg";
 const money = (value: number, currency: string) => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
@@ -266,84 +267,7 @@ export const StudentDashboard: React.FC = () => {
 const Empty: React.FC<{ title: string; action: string; href: string }> = ({ title, action, href }) => <div className="rounded-2xl border border-dashed border-subtle bg-elevated p-8 text-center"><GraduationCap className="mx-auto h-8 w-8 text-muted" /><p className="mt-3 font-semibold text-secondary">{title}</p><Link to={href} className="mt-3 inline-block text-sm font-bold text-emerald-500">{action} →</Link></div>;
 
 export const StudentUniversities: React.FC = () => { 
-  const { universities } = useGlobalData(); 
-  const [search, setSearch] = useState(""); 
-  const [selectedCountry, setSelectedCountry] = useState("All");
-
-  const availableCountries = Array.from(new Set(universities.map(u => u.country))).filter(Boolean).sort();
-
-  const filtered = universities.filter((university) => {
-    const matchesCountry = selectedCountry === "All" || university.country === selectedCountry;
-    if (!matchesCountry) return false;
-
-    if (!search) return true;
-    const term = search.toLowerCase();
-    return (
-      university.name.toLowerCase().includes(term) ||
-      university.city?.toLowerCase().includes(term) ||
-      university.country?.toLowerCase().includes(term)
-    );
-  });
-
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-8 animate-fade-in">
-      <header>
-        <p className="text-sm font-semibold text-emerald-500 tracking-wider">DISCOVER</p>
-        <h1 className="mt-1 text-3xl font-bold font-heading text-primary">Explore universities</h1>
-        <p className="mt-2 text-secondary">Find a university, understand its programmes, and check your fit before applying.</p>
-      </header>
-      
-      <div className="flex flex-col sm:flex-row gap-4 max-w-3xl">
-        <label className="relative flex-1">
-          <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted" />
-          <input 
-            value={search} 
-            onChange={(event) => setSearch(event.target.value)} 
-            placeholder="Search by university, city, or country" 
-            className="w-full rounded-xl border border-default bg-input py-3 pl-12 pr-4 text-primary shadow-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
-          />
-        </label>
-        
-        <select
-          value={selectedCountry}
-          onChange={(e) => setSelectedCountry(e.target.value)}
-          className="w-full sm:w-64 bg-input border border-default rounded-xl p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-        >
-          <option value="All">All Countries</option>
-          {availableCountries.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-      
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 mt-8">
-        {filtered.map((university) => (
-          <article key={university.id} className="overflow-hidden rounded-2xl bg-surface shadow-sm border border-default hover:border-emerald-500/50 transition-colors flex flex-col">
-            <Cover university={university} className="h-44 w-full" />
-            <div className="p-5 flex flex-col flex-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">{university.country}</p>
-              <h2 className="mt-1 text-lg font-bold text-primary leading-tight">{university.name}</h2>
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-secondary">
-                <MapPin className="h-3.5 w-3.5 text-emerald-500/70" />
-                {university.city}
-              </p>
-              <p className="mt-3 line-clamp-2 text-sm text-muted flex-1">{university.description || "Explore programmes, requirements, intakes, and application deadlines."}</p>
-              
-              <div className="mt-5 pt-4 border-t border-subtle flex items-center justify-between text-sm">
-                <span className="font-semibold text-secondary flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4 text-emerald-500/70" />
-                  {programmesFor(university).length} programmes
-                </span>
-                <Link to={`/student/universities/${university.id}`} className="font-bold text-emerald-500 flex items-center gap-1 hover:text-emerald-400">
-                  View <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-      
-      {!filtered.length && <Empty title="No universities match your search" action="Clear search" href="/student/universities" />}
-    </div>
-  ); 
+  return <UniversityExplorerMatcher initialViewMode="universities" isOnboarding={false} />;
 };
 
 export const StudentUniversityDetail: React.FC = () => { 
@@ -375,7 +299,7 @@ export const StudentUniversityDetail: React.FC = () => {
   ); 
 };
 
-const ProgrammeCard: React.FC<{ university: University; programme: Programme }> = ({ university, programme }) => { 
+export const ProgrammeCard: React.FC<{ university: University; programme: Programme }> = ({ university, programme }) => { 
   const { ownStudent } = usePortalData(); 
   return (
     <article className="rounded-2xl bg-surface p-5 shadow-sm border border-default hover:border-emerald-500/50 transition-colors flex flex-col h-full">
@@ -388,95 +312,26 @@ const ProgrammeCard: React.FC<{ university: University; programme: Programme }> 
           <span>{money(programme.tuitionFeeAnnual, programme.currency)} / year</span>
         </p>
       </div>
-      <div className="mt-5 pt-4 border-t border-subtle flex items-center justify-between">
+      <div className="mt-5 pt-4 border-t border-subtle flex items-center justify-between gap-2 flex-wrap">
         <EligibilityBadge programme={programme} student={ownStudent} />
-        <Link to={`/student/programs/${university.id}-${programme.id}`} className="text-sm font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1">
-          View <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to={`/student/programs/${university.id}-${programme.id}`} className="text-xs font-semibold text-secondary hover:text-primary px-3 py-1.5 rounded-lg bg-elevated border border-subtle transition-colors">
+            Details
+          </Link>
+          <Link
+            to={`/student/new-application?universityId=${university.id}&programmeId=${programme.id}`}
+            className="text-xs font-bold text-zinc-950 bg-emerald-500 hover:bg-emerald-400 px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+          >
+            <Send className="w-3 h-3" /> Apply Now
+          </Link>
+        </div>
       </div>
     </article>
   ); 
 };
 
 export const StudentProgrammes: React.FC = () => { 
-  const { universities } = useGlobalData(); 
-  const [search, setSearch] = useState(""); 
-  const [selectedCountry, setSelectedCountry] = useState("All");
-  const [selectedLevel, setSelectedLevel] = useState("All");
-
-  const items = useMemo(() => {
-    return universities.flatMap((university) => 
-      programmesFor(university).map((programme) => ({ university, programme }))
-    );
-  }, [universities]);
-
-  const availableCountries = Array.from(new Set(items.map(i => i.university.country))).filter(Boolean).sort();
-  const availableLevels = Array.from(new Set(items.map(i => i.programme.level))).filter(Boolean).sort();
-
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      const matchesCountry = selectedCountry === "All" || item.university.country === selectedCountry;
-      const matchesLevel = selectedLevel === "All" || item.programme.level === selectedLevel;
-      if (!matchesCountry || !matchesLevel) return false;
-
-      if (!search) return true;
-      const term = search.toLowerCase();
-      return (
-        item.university.name.toLowerCase().includes(term) ||
-        item.programme.title.toLowerCase().includes(term) ||
-        item.university.country?.toLowerCase().includes(term) ||
-        item.university.city?.toLowerCase().includes(term)
-      );
-    });
-  }, [items, search, selectedCountry, selectedLevel]);
-
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-8 animate-fade-in">
-      <header>
-        <p className="text-sm font-semibold text-emerald-500 tracking-wider">DISCOVER</p>
-        <h1 className="mt-1 text-3xl font-bold font-heading text-primary">Find a programme</h1>
-        <p className="mt-2 text-secondary">Requirements are an indication only. Final admission decisions are made by the university.</p>
-      </header>
-      
-      <div className="flex flex-col md:flex-row gap-4">
-        <label className="relative flex-1">
-          <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted" />
-          <input 
-            value={search} 
-            onChange={(event) => setSearch(event.target.value)} 
-            placeholder="Search programme, university, country, or degree" 
-            className="w-full rounded-xl border border-default bg-input py-3 pl-12 pr-4 text-primary shadow-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
-          />
-        </label>
-        
-        <select
-          value={selectedCountry}
-          onChange={(e) => setSelectedCountry(e.target.value)}
-          className="w-full md:w-48 bg-input border border-default rounded-xl p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-        >
-          <option value="All">All Countries</option>
-          {availableCountries.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        
-        <select
-          value={selectedLevel}
-          onChange={(e) => setSelectedLevel(e.target.value)}
-          className="w-full md:w-48 bg-input border border-default rounded-xl p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-        >
-          <option value="All">All Study Levels</option>
-          {availableLevels.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2 mt-8">
-        {filtered.map(({ university, programme }) => (
-          <ProgrammeCard key={`${university.id}-${programme.id}`} university={university} programme={programme} />
-        ))}
-      </div>
-      
-      {!filtered.length && <Empty title="No programmes match your search" action="Clear search" href="/student/programs" />}
-    </div>
-  ); 
+  return <UniversityExplorerMatcher initialViewMode="programs" isOnboarding={false} />;
 };
 
 export const StudentProgramDetail: React.FC = () => { 

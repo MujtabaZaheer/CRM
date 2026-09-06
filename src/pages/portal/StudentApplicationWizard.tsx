@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, useParams } from "react-router-dom";
 import {
   collection,
   doc,
@@ -32,6 +32,7 @@ import { Application } from "../../types/application";
 import { assessEligibility } from "../../utils/eligibility";
 import { getApplicationReadiness } from "../../utils/applicationReadiness";
 import { uploadStudentDocument } from "../../utils/documentStorage";
+import { DEMO_UNIVERSITIES } from "../../data/demoData";
 
 const STEPS = [
   { num: 1, title: "Overview" },
@@ -51,9 +52,11 @@ export const StudentApplicationWizard: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const params = useParams();
 
   const universityIdParam = searchParams.get("universityId") || "";
-  const programmeIdParam = searchParams.get("programmeId") || "";
+  const programmeIdParam = searchParams.get("programmeId") || params.programmeId || params.id || "";
+  const intakeParam = searchParams.get("intake") || "";
 
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<Student | null>(null);
@@ -102,46 +105,105 @@ export const StudentApplicationWizard: React.FC = () => {
       if (!uid) return;
 
       try {
-        // 1. Fetch student master profile
+        // 1. Fetch student master profile from both students/{uid} and users/{uid}
         const studentSnap = await getDoc(doc(db, "students", uid));
+        const userSnap = await getDoc(doc(db, "users", uid));
+        const userData = userSnap.exists() ? userSnap.data() : null;
+
         let studentData: Student | null = null;
         if (studentSnap.exists()) {
           studentData = studentSnap.data() as Student;
-          setStudent(studentData);
-          setPersonalOverrides({
-            fullName: studentData.fullName || "",
-            phone: studentData.phone || "",
-            countryOfResidence: studentData.countryOfResidence || "",
-            passportNumber: studentData.passportNumber || "",
-          });
+        } else if (userData) {
+          studentData = {
+            id: uid,
+            fullName: userData.displayName || "",
+            email: userData.email || "",
+            phone: userData.phone || "",
+            countryOfResidence: userData.countryOfResidence || "",
+            nationality: userData.nationality || "",
+            profileCompleteness: 30,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          } as Student;
         }
 
-        // 2. Fetch university & programme
+        const resolvedName =
+          studentData?.fullName ||
+          userData?.displayName ||
+          appUser?.displayName ||
+          firebaseUser?.displayName ||
+          "Student";
+        const resolvedPhone = studentData?.phone || userData?.phone || "";
+        const resolvedCountry =
+          studentData?.countryOfResidence ||
+          userData?.countryOfResidence ||
+          studentData?.nationality ||
+          userData?.nationality ||
+          "";
+
+        setStudent(studentData);
+        setPersonalOverrides({
+          fullName: resolvedName,
+          phone: resolvedPhone,
+          countryOfResidence: resolvedCountry,
+          passportNumber: studentData?.passportNumber || "",
+        });
+
+        // 2. Fetch universities (DB + DEMO catalog for universal coverage)
         const univSnap = await getDocs(collection(db, "universities"));
+        const allUnivs: University[] = univSnap.docs.map(
+          (uDoc) => ({ id: uDoc.id, ...uDoc.data() } as University)
+        );
+        DEMO_UNIVERSITIES.forEach((demo) => {
+          if (
+            !allUnivs.some(
+              (u) =>
+                u.id === demo.id ||
+                u.name.toLowerCase() === demo.name.toLowerCase()
+            )
+          ) {
+            allUnivs.push(demo);
+          }
+        });
+
         let foundUniv: University | null = null;
         let foundProg: Programme | null = null;
 
-        univSnap.docs.forEach((uDoc) => {
-          const u = { id: uDoc.id, ...uDoc.data() } as University;
-          if (u.id === universityIdParam || !foundUniv) {
+        // Prioritize finding by programmeIdParam across all universities
+        if (programmeIdParam) {
+          for (const u of allUnivs) {
             const p = u.programmes?.find((item) => item.id === programmeIdParam);
             if (p) {
               foundUniv = u;
               foundProg = p;
+              break;
             }
           }
-        });
+        }
+
+        // Secondary check by universityIdParam
+        if (!foundUniv && universityIdParam) {
+          const u = allUnivs.find((item) => item.id === universityIdParam);
+          if (u) {
+            foundUniv = u;
+            foundProg = u.programmes?.[0] || null;
+          }
+        }
 
         // Fallback to first available if not found
-        if (!foundUniv && !univSnap.empty) {
-          const firstUniv = { id: univSnap.docs[0].id, ...univSnap.docs[0].data() } as University;
-          foundUniv = firstUniv;
-          foundProg = firstUniv.programmes?.[0] || null;
+        if (!foundUniv && allUnivs.length > 0) {
+          foundUniv = allUnivs[0];
+          foundProg = allUnivs[0].programmes?.[0] || null;
         }
 
         setUniversity(foundUniv);
         setProgramme(foundProg);
-        if (foundProg?.intakes?.[0]) setSelectedIntake(foundProg.intakes[0]);
+
+        if (intakeParam) {
+          setSelectedIntake(intakeParam);
+        } else if (foundProg?.intakes?.[0]) {
+          setSelectedIntake(foundProg.intakes[0]);
+        }
 
         // 3. Check for existing application for this student + prog
         if (foundUniv && foundProg) {
@@ -172,8 +234,8 @@ export const StudentApplicationWizard: React.FC = () => {
             const newRef = await addDoc(collection(db, "applications"), {
               applicationNumber: appNumber,
               studentId: uid,
-              studentName: studentData?.fullName || appUser?.displayName || "Student",
-              studentEmail: studentData?.email || appUser?.email || "",
+              studentName: resolvedName,
+              studentEmail: studentData?.email || userData?.email || appUser?.email || "",
               universityId: foundUniv.id,
               universityName: foundUniv.name,
               programmeId: foundProg.id,
@@ -477,6 +539,13 @@ export const StudentApplicationWizard: React.FC = () => {
       <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-3.5 shadow-md">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back
+            </button>
             <span className="text-xs px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 font-bold">
               Step {currentStep} of 11
             </span>

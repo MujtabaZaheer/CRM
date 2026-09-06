@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { Loader2, ArrowRight, BookOpen, MapPin, Building2, Calendar } from "lucide-react";
 import { db } from "../../firebase/config";
 import { University } from "../../types/university";
+import { DEMO_UNIVERSITIES } from "../../data/demoData";
 import { StudentApplicationWizard } from "./StudentApplicationWizard";
 
 export const StudentNewApplication: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const params = useParams();
   const navigate = useNavigate();
 
+  const urlProgId = searchParams.get("programmeId") || params.programmeId || params.id;
   const urlUnivId = searchParams.get("universityId");
-  const urlProgId = searchParams.get("programmeId");
 
   const [loading, setLoading] = useState(true);
   const [universities, setUniversities] = useState<University[]>([]);
@@ -28,11 +30,16 @@ export const StudentNewApplication: React.FC = () => {
       try {
         const snap = await getDocs(collection(db, "universities"));
         const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as University));
+        DEMO_UNIVERSITIES.forEach(demo => {
+          if (!data.some(u => u.id === demo.id || u.name.toLowerCase() === demo.name.toLowerCase())) {
+            data.push(demo);
+          }
+        });
         setUniversities(data);
         
         // If we came from the matcher with URL params, try to autofill the selector
-        if (urlUnivId && urlProgId) {
-          const u = data.find(univ => univ.id === urlUnivId);
+        if (urlProgId) {
+          const u = data.find(univ => (urlUnivId && univ.id === urlUnivId) || univ.programmes?.some(p => p.id === urlProgId));
           if (u) {
             setSelectedCountry(u.country);
             setSelectedUnivId(u.id);
@@ -92,8 +99,8 @@ export const StudentNewApplication: React.FC = () => {
     }
   };
 
-  // If both are in URL, we just render the Wizard
-  if (urlUnivId && urlProgId) {
+  // If programmeId is in URL, render the Wizard
+  if (urlProgId || (urlUnivId && urlProgId)) {
     return <StudentApplicationWizard />;
   }
 

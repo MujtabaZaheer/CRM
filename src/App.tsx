@@ -152,6 +152,12 @@ export const App: React.FC = () => {
               <Route path="/public/forms/:formId" element={<PublicFormPage />} />
               <Route path="/public/form-success" element={<PublicFormSuccess />} />
 
+              {/* Direct Apply Routes */}
+              <Route element={<RoleRoute role="student" />}>
+                <Route path="/apply/:programmeId" element={<StudentNewApplication />} />
+                <Route path="/apply" element={<StudentNewApplication />} />
+              </Route>
+
               {/* Full-Screen Student Onboarding Wizard (Outside ProtectedLayout) */}
               <Route path="/student" element={<RoleRoute role="student" />}>
                 <Route path="onboarding/step-1" element={<StudentOnboardingStage1 />} />
@@ -275,6 +281,8 @@ export const App: React.FC = () => {
                     <Route path="requests" element={<RolePortal role="student" page="requests" />} />
                     <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />
                     <Route path="new-application" element={<StudentNewApplication />} />
+                    <Route path="apply/:programmeId" element={<StudentNewApplication />} />
+                    <Route path="apply" element={<StudentNewApplication />} />
                   </Route>
                 </Route>
 
