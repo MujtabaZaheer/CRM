@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, addDoc, collection } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
-import { auth, db, functions } from "../firebase/config";
+import { auth, db, getEmailActionSettings } from "../firebase/config";
 import {
   UserPlus, AlertCircle, User, Mail, Lock, Phone, Globe, Flag, Eye, EyeOff,
   CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase,
@@ -236,15 +235,14 @@ export const Register: React.FC = () => {
       let emailSendSuccess = false;
       let emailSendError = null;
       try {
-        const sendOTP = httpsCallable(functions, 'sendVerificationOTP');
-        await sendOTP();
+        await sendEmailVerification(userCredential.user, getEmailActionSettings());
         emailSendSuccess = true;
       } catch (sendErr: any) {
-        console.error("Firebase sendVerificationOTP error during registration:", sendErr);
-        if (sendErr.code === "resource-exhausted") {
-          emailSendError = "Too many requests. Please try resending the verification code later.";
+        console.error("Firebase sendEmailVerification error during registration:", sendErr);
+        if (sendErr.code === "auth/too-many-requests") {
+          emailSendError = "Too many requests. Please try resending the verification link later.";
         } else {
-          emailSendError = sendErr.message || "Failed to send verification code.";
+          emailSendError = sendErr.message || "Failed to send verification link.";
         }
       }
 
