@@ -33,8 +33,8 @@ export const StudentDashboard: React.FC = () => {
   
   const active = ownApplications.filter((app) => !["Rejected", "Withdrawn", "Enrolled"].includes(app.stage));
 
-  const requiredDocCount = 5; // simplified logic for demo
-  const uploadedDocCount = ownDocuments.length;
+  const requiredDocCount = 5; // Use fixed 5 for now since REQUIRED_STANDARD_DOCS is 5 items
+  const uploadedDocCount = new Set(ownDocuments.map(d => d.documentType)).size;
 
   return (
     <div className="mx-auto max-w-7xl space-y-7 pb-8 font-sans animate-fade-in">
@@ -163,29 +163,100 @@ export const StudentDashboard: React.FC = () => {
           </div>
 
           <div className="rounded-2xl bg-surface border border-subtle p-6 shadow-sm">
-            <h2 className="font-bold text-primary mb-4">Upcoming Deadlines</h2>
+            <h2 className="font-bold text-primary mb-4">My Tasks</h2>
             <div className="space-y-3">
-              {ownTasks.filter((task) => task.dueDate).slice(0, 3).map((task) => (
+              {ownTasks.slice(0, 3).map((task) => (
                 <div key={task.id} className="flex items-center justify-between border-b border-subtle pb-3 text-sm last:border-0 last:pb-0">
                   <span className="font-medium text-primary">{task.title}</span>
-                  <span className="text-xs text-secondary">{task.dueDate}</span>
+                  <span className={`text-xs font-bold ${task.status === 'Completed' ? 'text-emerald-500' : 'text-amber-500'}`}>{task.status}</span>
                 </div>
               ))}
-              {ownTasks.length === 0 && <p className="text-sm text-muted">No upcoming deadlines.</p>}
+              {ownTasks.length === 0 && <p className="text-sm text-muted">You're all caught up!</p>}
             </div>
           </div>
 
-          <div className="rounded-2xl bg-surface border border-subtle p-6 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-elevated border border-default flex items-center justify-center text-primary font-bold">
-              SC
-            </div>
-            <div>
-              <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Your Counsellor</p>
-              <p className="font-bold text-primary">Support Team</p>
-              <Link to="/student/messages" className="text-xs text-emerald-500 font-medium hover:underline">Send message</Link>
+          <div className="rounded-2xl bg-surface border border-subtle p-6 shadow-sm">
+            <h2 className="font-bold text-primary mb-4">Upcoming Deadlines</h2>
+            <div className="space-y-3">
+              {ownApplications
+                .filter(app => app.intake)
+                .slice(0, 3)
+                .map((app) => (
+                  <div key={app.id} className="flex items-center justify-between border-b border-subtle pb-3 text-sm last:border-0 last:pb-0">
+                    <div>
+                      <span className="font-medium text-primary block">{app.universityName}</span>
+                      <span className="text-xs text-secondary">{app.programmeName}</span>
+                    </div>
+                    <span className="text-xs font-bold text-rose-500">{app.intake}</span>
+                  </div>
+              ))}
+              {ownApplications.length === 0 && <p className="text-sm text-muted">No upcoming deadlines.</p>}
             </div>
           </div>
 
+          <div className="rounded-2xl bg-surface border border-subtle p-6 shadow-sm flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-lg shadow">
+                {ownStudent?.assignedCounsellorId ? "AC" : "AA"}
+              </div>
+              <div>
+                <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Your Education Advisor</p>
+                <p className="font-bold text-primary">Admissions Advisory Desk</p>
+                <p className="text-xs text-emerald-500 flex items-center gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Available for guidance
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/student/messages"
+              className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95"
+            >
+              Chat Now
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Recommended Universities */}
+      <section className="mt-8 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold font-heading text-primary">Explore Universities</h2>
+          <Link to="/student/universities" className="text-sm font-semibold text-emerald-500 hover:underline">View all</Link>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {universities
+            .filter(u => !ownStudent?.preferredDestination || u.country === ownStudent.preferredDestination)
+            .slice(0, 3)
+            .map(university => (
+              <Link key={university.id} to={`/student/universities/${university.id}`} className="group block overflow-hidden rounded-2xl bg-surface shadow-sm border border-default hover:border-emerald-500/50 transition-all hover:shadow-md">
+                <Cover university={university} className="h-40 w-full group-hover:scale-105 transition-transform duration-500" />
+                <div className="p-5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">{university.country}</p>
+                  <h3 className="mt-1 font-bold text-primary truncate">{university.name}</h3>
+                  <p className="mt-1 text-sm text-secondary truncate">{university.city}</p>
+                </div>
+              </Link>
+            ))}
+        </div>
+      </section>
+
+      {/* Recommended Programs */}
+      <section className="mt-8 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold font-heading text-primary">Recommended Programs</h2>
+          <Link to="/student/programs" className="text-sm font-semibold text-emerald-500 hover:underline">View all matches</Link>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {universities
+            .flatMap(u => programmesFor(u).map(p => ({ university: u, programme: p })))
+            .filter(item => !ownStudent?.preferredDestination || item.university.country === ownStudent.preferredDestination)
+            .slice(0, 3)
+            .map(item => (
+              <ProgrammeCard key={`${item.university.id}-${item.programme.id}`} university={item.university} programme={item.programme} />
+            ))}
         </div>
       </section>
     </div>

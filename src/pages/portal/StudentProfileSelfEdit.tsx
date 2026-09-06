@@ -98,7 +98,18 @@ export const StudentProfileSelfEdit: React.FC = () => {
         updatedAt: Date.now(),
       };
       
+      // Update Student CRM record
       await setDoc(doc(db, "students", appUser.uid), updatedData, { merge: true });
+      
+      // Keep Core Auth User record in sync
+      if (updatedData.fullName || updatedData.phone) {
+        await setDoc(doc(db, "users", appUser.uid), {
+          displayName: updatedData.fullName,
+          phone: updatedData.phone,
+          updatedAt: Date.now(),
+        }, { merge: true });
+      }
+
       setStudent(prev => prev ? { ...prev, ...updatedData } as Student : null);
       setSaveState('saved');
       

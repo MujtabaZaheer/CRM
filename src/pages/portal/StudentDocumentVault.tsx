@@ -40,7 +40,7 @@ export interface RequiredDocumentDef {
   requirements: string[];
 }
 
-const REQUIRED_STANDARD_DOCS: RequiredDocumentDef[] = [
+export const REQUIRED_STANDARD_DOCS: RequiredDocumentDef[] = [
   { 
     type: "Passport", 
     label: "International Passport (Data Page)", 

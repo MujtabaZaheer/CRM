@@ -69,6 +69,38 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /conversations/{conversationId} {
+      allow read: if signedIn() && (
+        isStaff() ||
+        (resource != null && (request.auth.uid in resource.data.participants || resource.data.studentId == request.auth.uid))
+      );
+      allow create: if signedIn() && (
+        isStaff() ||
+        request.auth.uid in request.resource.data.participants ||
+        request.resource.data.studentId == request.auth.uid
+      );
+      allow update: if signedIn() && (
+        isStaff() ||
+        request.auth.uid in resource.data.participants ||
+        resource.data.studentId == request.auth.uid
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && (
+          isStaff() ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid ||
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+        );
+        allow create: if signedIn() && (
+          isStaff() ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid ||
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+        );
+        allow update, delete: if isStaff();
+      }
+    }
+
     match /audit_logs/{logId} { allow read: if isStaff(); allow create: if signedIn(); allow update, delete: if false; }
     match /{document=**} { allow read, write: if isStaff(); }
   }

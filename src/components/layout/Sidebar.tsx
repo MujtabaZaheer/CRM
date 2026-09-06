@@ -182,6 +182,7 @@ const studentNavItems: NavItem[] = [
   { label: "My Applications", path: "/student/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "New Application", path: "/student/new-application", icon: <Plus className="w-4 h-4 text-emerald-400" /> },
   { label: "Document Vault", path: "/student/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Counsellor Chat", path: "/student/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "Tasks & Deadlines", path: "/student/tasks", icon: <CheckSquare className="w-4 h-4" /> },
 ];
 

@@ -166,6 +166,35 @@ export const StudentApplicationWizard: React.FC = () => {
             if (existingApp.personalStatement) setPersonalStatement(existingApp.personalStatement);
             if (existingApp.formResponses) setQuestionResponses(existingApp.formResponses);
             if (existingApp.intake) setSelectedIntake(existingApp.intake);
+          } else {
+            // Force create Draft immediately so it shows on Dashboard
+            const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newRef = await addDoc(collection(db, "applications"), {
+              applicationNumber: appNumber,
+              studentId: uid,
+              studentName: studentData?.fullName || appUser?.displayName || "Student",
+              studentEmail: studentData?.email || appUser?.email || "",
+              universityId: foundUniv.id,
+              universityName: foundUniv.name,
+              programmeId: foundProg.id,
+              programmeName: foundProg.title,
+              intake: foundProg.intakes?.[0] || "September 2027",
+              targetCountry: foundUniv.country,
+              stage: "Draft",
+              applicationStatus: "Draft",
+              currentStep: 1,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              history: [
+                {
+                  stage: "Draft",
+                  updatedBy: studentData?.email || "Student",
+                  timestamp: Date.now(),
+                  note: "Application draft started by student.",
+                },
+              ],
+            });
+            setApplicationId(newRef.id);
           }
         }
 
