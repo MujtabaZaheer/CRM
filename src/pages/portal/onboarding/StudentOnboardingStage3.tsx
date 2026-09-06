@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, getDoc, getDocs, setDoc, query, where, addDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, query, where } from "firebase/firestore";
 import {
   Search,
   CheckCircle2,
@@ -137,7 +137,7 @@ export const StudentOnboardingStage3: React.FC = () => {
   const [appliedMap, setAppliedMap] = useState<Record<string, string>>({}); // `${univId}-${progId}` => appNumber
   const [applyingKey] = useState<string | null>(null);
   const [savingShortlist, setSavingShortlist] = useState(false);
-  const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
+  const [appliedNotice] = useState<string | null>(null);
 
   // Detail drawer
   const [drawerItem, setDrawerItem] = useState<ProgramMatchItem | null>(null);
@@ -334,45 +334,7 @@ export const StudentOnboardingStage3: React.FC = () => {
 
   /* ---- Apply to Program (Navigate to Wizard) ---- */
   const handleApplyToProgram = async (univ: University, prog: Programme) => {
-    const intake = prog.intakes?.[0] || "";
-    const uid = firebaseUser?.uid || appUser?.uid;
-    
-    if (uid) {
-      try {
-        const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-        const payload = {
-          studentId: uid,
-          studentName: student?.fullName || appUser?.displayName || "Student",
-          studentEmail: student?.email || appUser?.email || "",
-          universityId: univ.id,
-          universityName: univ.name,
-          programmeId: prog.id,
-          programmeName: prog.title,
-          intake: intake,
-          targetCountry: univ.country,
-          stage: "Draft",
-          applicationStatus: "Draft",
-          currentStep: 1,
-          applicationNumber: appNumber,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          history: [{
-            stage: "Draft",
-            updatedBy: student?.email || "Student",
-            timestamp: Date.now(),
-            note: "Auto-filled draft application created via Matcher."
-          }]
-        };
-        
-        await addDoc(collection(db, "applications"), payload);
-        // Update local state instead of navigating away
-        setAppliedMap((prev) => ({ ...prev, [`${univ.id}-${prog.id}`]: appNumber }));
-        setAppliedNotice(`Application draft created for ${prog.title}`);
-        setTimeout(() => setAppliedNotice(null), 3000);
-      } catch (err) {
-        console.error("Failed to auto-generate application:", err);
-      }
-    }
+    navigate(`/student/new-application?universityId=${univ.id}&programmeId=${prog.id}`);
   };
 
   const proceedToStep4 = async () => {

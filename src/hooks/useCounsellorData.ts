@@ -265,22 +265,19 @@ export const useCounsellorData = () => {
       addDocument(newDoc);
 
       try {
-        const uploadedFile = await uploadStudentDocument(studentId, file);
-        const docRef = await addDoc(collection(db, "student_documents"), {
-          ...newDoc,
-          ...uploadedFile,
-        });
+        const uploadedFile = await uploadStudentDocument(studentId, file, docType);
+
 
         await logAuditEvent(
           "DOCUMENT_UPLOADED",
           userEmail || "Counsellor",
           "Document",
           `Uploaded ${docType} (${file.name}) for ${studentName}`,
-          docRef.id,
+          uploadedFile.documentId,
           appUser?.role
         );
 
-        return docRef.id;
+        return uploadedFile.documentId;
       } catch (err) {
         console.warn("Firestore upload doc notice (persisted locally):", err);
         return newDocId;

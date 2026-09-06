@@ -143,18 +143,24 @@ export const StudentApplicationWizard: React.FC = () => {
         setProgramme(foundProg);
         if (foundProg?.intakes?.[0]) setSelectedIntake(foundProg.intakes[0]);
 
-        // 3. Check for existing application draft for this student + prog
+        // 3. Check for existing application for this student + prog
         if (foundUniv && foundProg) {
           const appQ = query(
             collection(db, "applications"),
             where("studentId", "==", uid),
             where("universityId", "==", foundUniv.id),
-            where("programmeId", "==", foundProg.id),
-            where("applicationStatus", "==", "Draft")
+            where("programmeId", "==", foundProg.id)
           );
           const appSnap = await getDocs(appQ);
           if (!appSnap.empty) {
             const existingApp = appSnap.docs[0].data() as Application & Record<string, any>;
+            
+            if (existingApp.applicationStatus !== "Draft") {
+              setError("You have already applied to this program. Please check your Dashboard for status.");
+              setLoading(false);
+              return;
+            }
+
             setApplicationId(appSnap.docs[0].id);
             if (existingApp.currentStep) setCurrentStep(existingApp.currentStep);
             if (existingApp.personalStatement) setPersonalStatement(existingApp.personalStatement);
@@ -224,39 +230,35 @@ export const StudentApplicationWizard: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Upload to Firebase Storage
-      const uploadRes = await uploadStudentDocument(uid, file);
+      // Find existing document ID if replacing
+      const existingDoc = uploadedDocuments.find(d => d.type === docType);
+      
+      // 1. Upload to Document Storage and Firestore via Backend
+      const uploadRes = await uploadStudentDocument(
+        uid, 
+        file, 
+        docType, 
+        applicationId || undefined, 
+        existingDoc?.id
+      );
 
-      // 2. Add record to student_documents in Firestore
-      const docRef = await addDoc(collection(db, "student_documents"), {
-        studentId: uid,
-        studentName: student?.fullName || appUser?.displayName || "Student",
-        studentEmail: student?.email || appUser?.email || "",
-        documentType: docType,
-        fileName: uploadRes.fileName,
-        filePath: uploadRes.filePath,
-        fileUrl: uploadRes.fileUrl,
-        fileSize: uploadRes.fileSize,
-        fileType: uploadRes.fileType,
-        status: "Pending",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+      setUploadedDocuments((prev) => {
+        const filtered = prev.filter(d => d.type !== docType);
+        return [
+          ...filtered,
+          {
+            id: uploadRes.documentId,
+            name: file.name,
+            type: docType,
+            url: uploadRes.driveUrl,
+          },
+        ];
       });
-
-      setUploadedDocuments((prev) => [
-        ...prev,
-        {
-          id: docRef.id,
-          name: uploadRes.fileName,
-          type: docType,
-          url: uploadRes.fileUrl,
-        },
-      ]);
-      setSaveNotice(`Uploaded ${uploadRes.fileName} successfully!`);
+      setSaveNotice(`Uploaded ${file.name} successfully!`);
       setTimeout(() => setSaveNotice(null), 2500);
     } catch (err: any) {
       console.error("Document upload failed:", err);
-      setError(err.message || "Failed to upload document to Firebase Storage.");
+      setError(err.message || "Failed to upload document.");
     } finally {
       setUploadingDoc(false);
       e.target.value = "";

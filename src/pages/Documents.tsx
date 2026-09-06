@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, addDoc, query, orderBy, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
 import { Student } from "../types/student";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
@@ -119,36 +119,14 @@ export const Documents: React.FC = () => {
 
     try {
       setUploading(true);
-      const uploadedFile = await uploadStudentDocument(selectedStudentId, selectedFile);
-      const newDoc: Omit<StudentDocument, "id"> = {
-        studentId: selectedStudentId,
-        studentName: student.fullName,
-        docType,
-        ...uploadedFile,
-        versionNumber: 1,
-        versions: [
-          {
-            versionNumber: 1,
-            fileName: uploadedFile.fileName,
-            fileUrl: uploadedFile.fileUrl,
-            fileSize: uploadedFile.fileSize,
-            uploadedBy: appUser?.email || "Counsellor",
-            uploadedAt: Date.now(),
-          },
-        ],
-        expiryDate: expiryDate || undefined,
-        status: "Received",
-        uploadedBy: appUser?.email || "Counsellor",
-        createdAt: Date.now(),
-      };
-
-      const docRef = await addDoc(collection(db, "student_documents"), newDoc);
+      await uploadStudentDocument(selectedStudentId, selectedFile, docType);
+      
       await logAuditEvent(
         "DOCUMENT_UPLOADED",
         appUser?.email || "Unknown",
         "Document",
-        `Uploaded ${docType} v1 (${selectedFile.name}) for ${student.fullName}`,
-        docRef.id,
+        `Uploaded ${docType} (${selectedFile.name}) for ${student.fullName}`,
+        selectedStudentId,
         appUser?.role
       );
 
@@ -169,43 +147,25 @@ export const Documents: React.FC = () => {
     if (!newVersionFile) return;
     setUploading(true);
     try {
-      const uploadedFile = await uploadStudentDocument(targetDoc.studentId, newVersionFile);
-      const currentVersions = targetDoc.versions || [];
-      const newVersionNum = (targetDoc.versionNumber || 1) + 1;
-
-      const newVersionRecord: DocumentVersion = {
-        versionNumber: newVersionNum,
-        fileName: uploadedFile.fileName,
-        fileUrl: uploadedFile.fileUrl,
-        fileSize: uploadedFile.fileSize,
-        uploadedBy: appUser?.email || "Counsellor",
-        uploadedAt: Date.now(),
-      };
-
-      const updatedVersions = [newVersionRecord, ...currentVersions];
-
-      await updateDoc(doc(db, "student_documents", targetDoc.id), {
-        fileName: uploadedFile.fileName,
-        fileUrl: uploadedFile.fileUrl,
-        filePath: uploadedFile.filePath,
-        fileSize: uploadedFile.fileSize,
-        versionNumber: newVersionNum,
-        versions: updatedVersions,
-        status: "Received",
-        uploadedBy: appUser?.email || "Counsellor",
-      });
+      await uploadStudentDocument(
+        targetDoc.studentId, 
+        newVersionFile, 
+        targetDoc.docType, 
+        undefined, 
+        targetDoc.id
+      );
 
       await logAuditEvent(
-        "DOCUMENT_VERSION_UPLOADED",
+        "DOCUMENT_NEW_VERSION",
         appUser?.email || "Unknown",
         "Document",
-        `Uploaded version ${newVersionNum} for ${targetDoc.docType} (${targetDoc.studentName})`,
+        `Uploaded replacement for ${targetDoc.docType}`,
         targetDoc.id,
         appUser?.role
       );
 
-      setVersionModalDoc(null);
       setNewVersionFile(null);
+      setVersionModalDoc(null);
     } catch (err: any) {
       alert("Failed to upload new version: " + err.message);
     } finally {

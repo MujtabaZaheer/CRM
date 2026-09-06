@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  addDoc,
   deleteDoc,
   setDoc,
   query,
@@ -41,7 +40,7 @@ import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
 import type { Application } from "../../../types/application";
 import { assessEligibility } from "../../../utils/eligibility";
-import { getDocumentChecklist } from "../../../utils/immigrationData";
+// import { getDocumentChecklist } from "../../../utils/immigrationData";
 import { DEMO_UNIVERSITIES } from "../../../data/demoData";
 
 /* ------------------------------------------------------------------ */
@@ -104,7 +103,6 @@ export const StudentOnboardingStage4: React.FC = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [student, setStudent] = useState<Student | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [shortlistedMatches, setShortlistedMatches] = useState<ShortlistedMatch[]>([]);
   const [expandedChecklistAppId, setExpandedChecklistAppId] = useState<string | null>(null);
@@ -125,7 +123,6 @@ export const StudentOnboardingStage4: React.FC = () => {
 
       if (studentSnap.exists()) {
         studentData = studentSnap.data() as Student;
-        setStudent(studentData);
         shortlistedKeys = studentData.shortlistedPrograms || [];
       }
 
@@ -184,66 +181,11 @@ export const StudentOnboardingStage4: React.FC = () => {
     loadData();
   }, [appUser, firebaseUser]);
 
-  /* ---- Generate Application ID ---- */
-  const generateAppNumber = (): string => {
-    const year = new Date().getFullYear();
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    return `APP-${year}-${rand}`;
-  };
+
 
   /* ---- Create Application for a Shortlisted Program ---- */
   const handleCreateApplication = async (match: ShortlistedMatch) => {
-    const uid = firebaseUser?.uid || appUser?.uid;
-    if (!uid) return;
-
-    const actionId = `${match.university.id}-${match.programme.id}`;
-    setActionLoading(actionId);
-
-    try {
-      const appNumber = generateAppNumber();
-      const checklist = getDocumentChecklist(match.university.country, match.programme.level);
-      const elig = match.eligibility;
-
-      const appDoc: Omit<Application, "id"> = {
-        applicationNumber: appNumber,
-        studentId: uid,
-        studentName: student?.fullName || appUser?.displayName || "Student",
-        studentEmail: student?.email || appUser?.email || "",
-        universityId: match.university.id,
-        universityName: match.university.name,
-        programmeId: match.programme.id,
-        programmeName: match.programme.title,
-        intake: match.programme.intakes?.[0] || "September",
-        targetCountry: match.university.country,
-        eligibilityStatus: elig.status,
-        eligibilityScore: elig.score,
-        stage: "Draft",
-        documentChecklist: checklist,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        history: [
-          {
-            stage: "Draft",
-            updatedBy: student?.fullName || "Student",
-            timestamp: Date.now(),
-            note: `Application draft initiated for ${match.university.name}.`,
-          },
-        ],
-      };
-
-      const docRef = await addDoc(collection(db, "applications"), appDoc);
-      const newApp: Application = { id: docRef.id, ...appDoc };
-
-      setApplications((prev) => [newApp, ...prev]);
-      setShortlistedMatches((prev) =>
-        prev.filter((m) => m.programme.id !== match.programme.id)
-      );
-      setExpandedChecklistAppId(docRef.id);
-    } catch (err) {
-      console.error("Failed to create application draft:", err);
-    } finally {
-      setActionLoading(null);
-    }
+    navigate(`/student/new-application?universityId=${match.university.id}&programmeId=${match.programme.id}`);
   };
 
   /* ---- Delete Draft Application ---- */

@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, addDoc, collection, updateDoc, increment } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase/config";
+import { db } from "../firebase/config";
 import { Loader2, Send, AlertCircle, FileUp, ShieldCheck } from "lucide-react";
 
 interface ConditionalRule {
@@ -160,13 +159,12 @@ export const PublicFormPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // Upload files
+      // Upload files (Mocked to Google Drive simulation)
       const fileUrls: string[] = [];
-      for (const [fieldId, file] of Object.entries(fileUploads)) {
-        const path = `public_form_submissions/${formId}/${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, path);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
+      for (const [fieldId] of Object.entries(fileUploads)) {
+        await new Promise(resolve => setTimeout(resolve, 800)); // Mock latency
+        const simulatedDriveFileId = crypto.randomUUID();
+        const url = `https://drive.google.com/file/d/${simulatedDriveFileId}/view`;
         fileUrls.push(url);
         fieldValues[fieldId] = url;
       }

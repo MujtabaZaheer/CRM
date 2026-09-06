@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, deleteDoc } from "firebase/firestore";
 import {
   FileText,
   Upload,
@@ -148,32 +148,14 @@ export const StudentDocumentVault: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Upload to Firebase Storage
-      const uploadRes = await uploadStudentDocument(uid, file);
+      // 1. Upload to Firebase Storage and Save to Firestore via Backend Transaction
+      await uploadStudentDocument(uid, file, docType);
 
-      // 2. Save document record in Firestore
-      const newDoc = {
-        studentId: uid,
-        studentName: appUser?.displayName || "Student",
-        studentEmail: appUser?.email || "",
-        documentType: docType,
-        fileName: uploadRes.fileName,
-        filePath: uploadRes.filePath,
-        fileUrl: uploadRes.fileUrl,
-        fileSize: uploadRes.fileSize,
-        fileType: uploadRes.fileType,
-        status: "Pending",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      const ref = await addDoc(collection(db, "student_documents"), newDoc);
-      setDocuments((prev) => [
-        { id: ref.id, ...newDoc } as VaultDocument,
-        ...prev.filter((d) => d.documentType !== docType),
-      ]);
-      setNotice(`Uploaded ${file.name} successfully!`);
+      setNotice(`${docType} uploaded successfully.`);
       setTimeout(() => setNotice(null), 3000);
+      
+      // Reload documents to get the fresh data from Firestore
+      loadDocuments();
     } catch (err: any) {
       console.error("Upload error:", err);
       setError(err.message || "Failed to upload document.");
@@ -205,31 +187,18 @@ export const StudentDocumentVault: React.FC = () => {
     setError(null);
 
     try {
-      const uploadRes = await uploadStudentDocument(uid, selectedFile);
-      const newDoc = {
-        studentId: uid,
-        studentName: appUser?.displayName || "Student",
-        studentEmail: appUser?.email || "",
-        documentType: customDocType.trim(),
-        fileName: uploadRes.fileName,
-        filePath: uploadRes.filePath,
-        fileUrl: uploadRes.fileUrl,
-        fileSize: uploadRes.fileSize,
-        fileType: uploadRes.fileType,
-        expiryDate: customExpiryDate || undefined,
-        status: "Pending",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+      // Backend handles Firestore creation
+      await uploadStudentDocument(uid, selectedFile, customDocType.trim());
 
-      const ref = await addDoc(collection(db, "student_documents"), newDoc);
-      setDocuments((prev) => [{ id: ref.id, ...newDoc } as VaultDocument, ...prev]);
+      setDocuments((prev) => [...prev]); // We'll rely on loadDocuments()
+      loadDocuments();
+      
+      setNotice(`${customDocType} uploaded successfully.`);
+      setTimeout(() => setNotice(null), 3000);
       setIsCustomModalOpen(false);
       setSelectedFile(null);
       setCustomDocType("");
       setCustomExpiryDate("");
-      setNotice("Document uploaded successfully.");
-      setTimeout(() => setNotice(null), 3000);
     } catch (err: any) {
       setError(err.message || "Upload failed.");
     } finally {

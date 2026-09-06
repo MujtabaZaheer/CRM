@@ -92,8 +92,12 @@ export const StudentDashboard: React.FC = () => {
             <div className="space-y-3">
               {active.slice(0, 3).map((application) => { 
                 const university = universities.find((item) => item.id === application.universityId); 
+                // Navigate to Wizard if it's a draft
+                const href = application.stage === "Draft" 
+                  ? `/student/new-application?universityId=${application.universityId}&programmeId=${application.programmeId}`
+                  : `/student/applications/${application.id}`;
                 return (
-                  <Link key={application.id} to={`/student/applications/${application.id}`} className="block overflow-hidden rounded-xl bg-elevated border border-default hover:border-emerald-500/50 transition-colors">
+                  <Link key={application.id} to={href} className="block overflow-hidden rounded-xl bg-elevated border border-default hover:border-emerald-500/50 transition-colors">
                     <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <Cover university={university || { id: "fallback", name: application.universityName, country: "", city: "", programmes: [], createdAt: 0, updatedAt: 0 }} className="h-12 w-12 rounded-lg" />
@@ -106,7 +110,7 @@ export const StudentDashboard: React.FC = () => {
                         <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                           {application.stage}
                         </span>
-                        <p className="mt-1 text-xs text-muted">{application.nextAction || "Waiting for update"}</p>
+                        <p className="mt-1 text-xs text-muted">{application.nextAction || (application.stage === "Draft" ? "Continue application" : "Waiting for update")}</p>
                       </div>
                     </div>
                   </Link>
@@ -128,16 +132,30 @@ export const StudentDashboard: React.FC = () => {
               <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">{uploadedDocCount} / {requiredDocCount}</span>
             </div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-primary"><CheckCircle2 className="w-4 h-4 text-emerald-500"/> Passport</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-primary"><CheckCircle2 className="w-4 h-4 text-emerald-500"/> Academic Transcript</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-rose-500"><AlertCircle className="w-4 h-4"/> Personal Statement</span>
-                <span className="text-xs text-rose-500 font-medium">Missing</span>
-              </div>
+              {ownDocuments.length === 0 ? (
+                <div className="text-sm text-muted py-2">No documents uploaded yet.</div>
+              ) : (
+                ownDocuments.slice(0, 4).map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-primary">
+                      {doc.status === "Verified" ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ) : doc.status === "Rejected" ? (
+                        <AlertCircle className="w-4 h-4 text-rose-500" />
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-amber-400 mx-1" />
+                      )}
+                      {doc.documentType}
+                    </span>
+                    <span className={`text-xs font-medium ${
+                      doc.status === 'Verified' ? 'text-emerald-500' :
+                      doc.status === 'Rejected' ? 'text-rose-500' : 'text-amber-500'
+                    }`}>
+                      {doc.status}
+                    </span>
+                  </div>
+                ))
+              )}
               <div className="pt-3 border-t border-subtle mt-2">
                 <Link to="/student/documents" className="text-sm font-semibold text-emerald-500 hover:underline block text-center">Open Document Vault</Link>
               </div>
@@ -163,8 +181,8 @@ export const StudentDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Your Counsellor</p>
-              <p className="font-bold text-primary">Sarah Chen</p>
-              <Link to="/student/messages" className="text-xs text-emerald-500 font-medium hover:underline">Message Counsellor</Link>
+              <p className="font-bold text-primary">Support Team</p>
+              <Link to="/student/messages" className="text-xs text-emerald-500 font-medium hover:underline">Send message</Link>
             </div>
           </div>
 

@@ -33,7 +33,7 @@ service cloud.firestore {
     match /applications/{applicationId} {
       allow create: if isStaff() || (signedIn() && (request.resource.data.studentId == request.auth.uid || request.resource.data.studentEmail == request.auth.token.email) && request.resource.data.stage in ['Draft', 'Submitted']);
       allow get, list: if isStaff() || (signedIn() && (resource.data.studentId == request.auth.uid || resource.data.studentEmail == request.auth.token.email));
-      allow update: if isStaff() || (signedIn() && (resource.data.studentId == request.auth.uid || resource.data.studentEmail == request.auth.token.email) && request.resource.data.stage in ['Draft', 'Submitted', 'Initial Review']);
+      allow update: if isStaff() || (signedIn() && (resource.data.studentId == request.auth.uid || resource.data.studentEmail == request.auth.token.email) && (request.resource.data.stage == resource.data.stage || (resource.data.stage == 'Draft' && request.resource.data.stage == 'Submitted')));
       allow delete: if isAdmin();
     }
 

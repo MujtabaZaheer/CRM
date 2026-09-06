@@ -65,9 +65,8 @@ export const usePortalData = () => {
   const updateRequest = useCallback(async (request: SupportRequest, status: SupportRequestStatus, notes?: string) => { await updateDoc(doc(db, "support_requests", request.id), { status, notes: notes ?? request.notes ?? "", updatedAt: Date.now() }); }, []);
   const saveProfile = useCallback(async (student: Student, changes: Partial<Student>) => { await updateDoc(doc(db, "students", student.id), { ...changes, updatedAt: Date.now() }); }, []);
   const uploadDocument = useCallback(async (data: Omit<PortalDocument, "id" | "status" | "createdAt" | "fileName" | "fileUrl">, file: File) => {
-    const uploadedFile = await uploadStudentDocument(data.studentId, file);
-    await addDoc(collection(db, "student_documents"), { ...data, studentEmail: ownStudent?.email || appUser?.email || "", ...uploadedFile, status: "Pending", createdAt: Date.now() });
-  }, [appUser?.email, ownStudent?.email]);
+    await uploadStudentDocument(data.studentId, file, data.documentType);
+  }, []);
   const createApplication = useCallback(async (data: { universityId: string; universityName: string; programmeId: string; programmeName: string; intake: string; targetCountry: string; personalStatement?: string; eligibilityStatus?: Application["eligibilityStatus"]; eligibilityScore?: number; formResponses?: Record<string, string | number | boolean>; declarationAccepted?: boolean; submit?: boolean }) => {
     if (!ownStudent) throw new Error("Student profile not found. Please complete your profile first.");
     const duplicate = await getDocs(query(collection(db, "applications"), where("studentId", "==", ownStudent.id), where("universityId", "==", data.universityId), where("programmeId", "==", data.programmeId), where("intake", "==", data.intake)));

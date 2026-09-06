@@ -322,3 +322,5 @@ export const verifyOTP = onCall({ enforceAppCheck: false }, async (request) => {
 
   return { success: true };
 });
+
+export { uploadToGoogleDrive } from "./drive";
