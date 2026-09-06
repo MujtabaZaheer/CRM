@@ -26,6 +26,12 @@ export const StudentOnboardingGuard: React.FC = () => {
     return <Navigate to="/student/onboarding/profile" replace />;
   }
 
+  // If the student has already completed onboarding, bypass all checks
+  if ((studentDoc as any).onboardingStatus === "completed" || (studentDoc as any).profileCompleted === true) {
+    return <Outlet />;
+  }
+
+
   const completeness = studentDoc.profileCompleteness || 0;
   const hasDestination = !!(studentDoc as any).preferredDestination || !!((studentDoc as any).preferredDestinations && (studentDoc as any).preferredDestinations.length > 0) || !!studentDoc.budgetAnnualUsd;
   const hasShortlist = (studentDoc as any).shortlistedPrograms && (studentDoc as any).shortlistedPrograms.length > 0;

@@ -349,9 +349,19 @@ export const StudentOnboardingProfile: React.FC = () => {
     }
 
     try {
-      await setDoc(doc(db, "students", uid), payload, { merge: true });
-      // Also update base user profile display name
-      await setDoc(doc(db, "users", uid), { displayName: fullName, updatedAt: Date.now() }, { merge: true });
+      await setDoc(doc(db, "students", uid), {
+        ...payload,
+        onboardingStatus: "completed",
+        profileCompleted: true
+      }, { merge: true });
+      
+      // Also update base user profile display name and completion status
+      await setDoc(doc(db, "users", uid), { 
+        displayName: fullName, 
+        profileCompleted: true,
+        onboardingStatus: "completed",
+        updatedAt: Date.now() 
+      }, { merge: true });
 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);

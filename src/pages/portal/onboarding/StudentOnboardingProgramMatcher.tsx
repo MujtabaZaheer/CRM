@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, getDoc, getDocs, setDoc, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, query, where, addDoc } from "firebase/firestore";
 import {
   Search,
   CheckCircle2,
@@ -213,7 +213,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
         let score = 50;
         const reasons: string[] = [];
 
-        const countryMatch = dests.some((d) => d.toLowerCase() === univ.country.toLowerCase());
+        const countryMatch = dests.some((d) => d.toLowerCase().trim() === (univ.country || "").toLowerCase().trim());
         if (countryMatch) { score += 20; reasons.push(`Destination match: ${univ.country}`); }
 
         const pl = prog.level || "";
@@ -250,9 +250,9 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
     return matchedPrograms.filter(({ university, programme, eligibility }) => {
       // Country tab filter
       if (activeCountryTab !== "All") {
-        if (university.country.toLowerCase() !== activeCountryTab.toLowerCase()) return false;
+        if ((university.country || "").toLowerCase().trim() !== activeCountryTab.toLowerCase().trim()) return false;
       } else if (selectedCountries.length > 0) {
-        if (!selectedCountries.some((c) => c.toLowerCase() === university.country.toLowerCase())) {
+        if (!selectedCountries.some((c) => c.toLowerCase().trim() === (university.country || "").toLowerCase().trim())) {
           return false;
         }
       }
@@ -335,6 +335,41 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
   /* ---- Apply to Program (Navigate to Wizard) ---- */
   const handleApplyToProgram = async (univ: University, prog: Programme) => {
     const intake = prog.intakes?.[0] || "";
+    const uid = firebaseUser?.uid || appUser?.uid;
+    
+    if (uid) {
+      try {
+        const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const payload = {
+          studentId: uid,
+          studentName: student?.fullName || appUser?.displayName || "Student",
+          studentEmail: student?.email || appUser?.email || "",
+          universityId: univ.id,
+          universityName: univ.name,
+          programmeId: prog.id,
+          programmeName: prog.title,
+          intake: intake,
+          targetCountry: univ.country,
+          stage: "Draft",
+          applicationStatus: "Draft",
+          currentStep: 1,
+          applicationNumber: appNumber,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          history: [{
+            stage: "Draft",
+            updatedBy: student?.email || "Student",
+            timestamp: Date.now(),
+            note: "Auto-filled draft application created via Matcher."
+          }]
+        };
+        
+        await addDoc(collection(db, "applications"), payload);
+      } catch (err) {
+        console.error("Failed to auto-generate application:", err);
+      }
+    }
+    
     navigate(`/student/new-application?universityId=${univ.id}&programmeId=${prog.id}&intake=${encodeURIComponent(intake)}`);
   };
 
