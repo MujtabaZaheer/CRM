@@ -100,6 +100,7 @@ export const StudentOnboardingDestination: React.FC = () => {
 
       try {
         // Load university countries to supplement destinations
+        let combined = [...DEFAULT_DESTINATIONS];
         try {
           const univSnap = await getDocs(collection(db, "universities"));
           if (!univSnap.empty) {
@@ -108,29 +109,66 @@ export const StudentOnboardingDestination: React.FC = () => {
               const data = d.data();
               if (data.country) dbCountries.add(data.country);
             });
-            if (dbCountries.size > 0) {
-              const combined = [...DEFAULT_DESTINATIONS];
-              dbCountries.forEach((c) => {
-                if (!combined.some((item) => item.name.toLowerCase() === c.toLowerCase())) {
-                  combined.push({
-                    id: c.toLowerCase().replace(/\s+/g, "_"),
-                    name: c,
-                    code: c.slice(0, 2).toUpperCase(),
-                    flag: "🌐",
-                    currency: "USD",
-                    region: "Europe",
-                    tuitionAffordabilityTier: "$$",
-                    pswvLengthYears: 0,
-                    popularIntakes: ["September", "January"],
-                    partnerCount: 0,
-                    averageTuition: "Varies",
-                  });
-                }
-              });
-              setAvailableDestinations(combined);
-            }
+            dbCountries.forEach((c) => {
+              if (!combined.some((item) => item.name.toLowerCase() === c.toLowerCase())) {
+                combined.push({
+                  id: c.toLowerCase().replace(/\s+/g, "_"),
+                  name: c,
+                  code: c.slice(0, 2).toUpperCase(),
+                  flag: "🌐",
+                  currency: "USD",
+                  region: "Europe",
+                  tuitionAffordabilityTier: "$$",
+                  pswvLengthYears: 0,
+                  popularIntakes: ["September", "January"],
+                  partnerCount: 0,
+                  averageTuition: "Varies",
+                });
+              }
+            });
           }
         } catch (_) { /* universities collection may not exist yet */ }
+
+        // Fetch rest of the world from RestCountries API to ensure complete world coverage
+        try {
+          const res = await fetch("https://restcountries.com/v3.1/all?fields=name,cca2,flag,region,currencies");
+          const worldData = await res.json();
+          if (Array.isArray(worldData)) {
+            worldData.forEach((wc) => {
+              const cName = wc.name?.common;
+              if (cName && !combined.some((item) => item.name.toLowerCase() === cName.toLowerCase())) {
+                let mappedRegion: any = "Europe";
+                if (wc.region === "Americas") mappedRegion = "Latin America";
+                else if (wc.region === "Asia") mappedRegion = "Asia-Pacific";
+                else if (wc.region === "Africa") mappedRegion = "Africa";
+                else if (wc.region === "Oceania") mappedRegion = "Asia-Pacific";
+
+                let curr = "USD";
+                if (wc.currencies) {
+                  curr = Object.keys(wc.currencies)[0] || "USD";
+                }
+
+                combined.push({
+                  id: cName.toLowerCase().replace(/\s+/g, "_"),
+                  name: cName,
+                  code: wc.cca2 || cName.slice(0, 2).toUpperCase(),
+                  flag: wc.flag || "🌐",
+                  currency: curr,
+                  region: mappedRegion,
+                  tuitionAffordabilityTier: "$",
+                  pswvLengthYears: 0,
+                  popularIntakes: ["September"],
+                  partnerCount: 0,
+                  averageTuition: "Varies",
+                });
+              }
+            });
+          }
+        } catch (err) {
+          console.warn("Failed to fetch world countries", err);
+        }
+
+        setAvailableDestinations(combined);
 
         // Load student preferences
         const snap = await getDoc(doc(db, "students", uid));

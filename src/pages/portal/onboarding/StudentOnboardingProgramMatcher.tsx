@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, query, where } from "firebase/firestore";
 import {
   Search,
   CheckCircle2,
@@ -30,10 +30,10 @@ import { db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
-import { Application } from "../../../types/application";
+// import { Application } from "../../../types/application";
 import { assessEligibility, EligibilityResult } from "../../../utils/eligibility";
 import { DEMO_UNIVERSITIES } from "../../../data/demoData";
-import { getDocumentChecklist } from "../../../utils/immigrationData";
+// import { getDocumentChecklist } from "../../../utils/immigrationData";
 
 /* ------------------------------------------------------------------ */
 /*  Local types                                                        */
@@ -135,9 +135,9 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
   // Shortlist & Applied tracking
   const [shortlistedKeys, setShortlistedKeys] = useState<string[]>([]);
   const [appliedMap, setAppliedMap] = useState<Record<string, string>>({}); // `${univId}-${progId}` => appNumber
-  const [applyingKey, setApplyingKey] = useState<string | null>(null);
+  const [applyingKey] = useState<string | null>(null);
   const [savingShortlist, setSavingShortlist] = useState(false);
-  const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
+  const [appliedNotice] = useState<string | null>(null);
 
   // Detail drawer
   const [drawerItem, setDrawerItem] = useState<ProgramMatchItem | null>(null);
@@ -332,61 +332,10 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
     }
   };
 
-  /* ---- Apply to Program (One-Click Application Draft Creation) ---- */
+  /* ---- Apply to Program (Navigate to Wizard) ---- */
   const handleApplyToProgram = async (univ: University, prog: Programme) => {
-    const uid = firebaseUser?.uid || appUser?.uid;
-    if (!uid) return;
-    const key = `${univ.id}-${prog.id}`;
-    if (appliedMap[key]) {
-      navigate("/student/onboarding/review");
-      return;
-    }
-
-    setApplyingKey(key);
-    try {
-      const year = new Date().getFullYear();
-      const rand = Math.floor(1000 + Math.random() * 9000);
-      const appNumber = `APP-${year}-${rand}`;
-      const elig = assessEligibility(student || undefined, prog);
-      const checklist = getDocumentChecklist(univ.country, prog.level);
-
-      const appDoc: Omit<Application, "id"> = {
-        applicationNumber: appNumber,
-        studentId: uid,
-        studentName: student?.fullName || appUser?.displayName || "Student",
-        studentEmail: student?.email || appUser?.email || "",
-        universityId: univ.id,
-        universityName: univ.name,
-        programmeId: prog.id,
-        programmeName: prog.title,
-        intake: prog.intakes?.[0] || "September",
-        targetCountry: univ.country,
-        eligibilityStatus: elig.status,
-        eligibilityScore: elig.score,
-        stage: "Draft",
-        documentChecklist: checklist,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        history: [
-          {
-            stage: "Draft",
-            updatedBy: student?.fullName || "Student",
-            timestamp: Date.now(),
-            note: `Application draft initiated from University Explorer for ${univ.name}.`,
-          },
-        ],
-      };
-
-      await addDoc(collection(db, "applications"), appDoc);
-      setAppliedMap((prev) => ({ ...prev, [key]: appNumber }));
-      setShortlistedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
-      setAppliedNotice(`Application draft ${appNumber} created for ${prog.title} at ${univ.name}!`);
-      setTimeout(() => setAppliedNotice(null), 5000);
-    } catch (err) {
-      console.error("Failed to apply:", err);
-    } finally {
-      setApplyingKey(null);
-    }
+    const intake = prog.intakes?.[0] || "";
+    navigate(`/student/new-application?universityId=${univ.id}&programmeId=${prog.id}&intake=${encodeURIComponent(intake)}`);
   };
 
   /* ---- Proceed to Step 4 ---- */
