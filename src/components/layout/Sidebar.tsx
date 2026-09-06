@@ -176,13 +176,13 @@ const visaNavItems: NavItem[] = [
 
 const studentNavItems: NavItem[] = [
   { label: "Dashboard", path: "/student/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "My Profile", path: "/student/profile", icon: <UserCheck className="w-4 h-4" /> },
   { label: "Universities", path: "/student/universities", icon: <Building2 className="w-4 h-4" /> },
   { label: "Programs", path: "/student/programs", icon: <BookOpen className="w-4 h-4" /> },
-  { label: "Applications", path: "/student/applications", icon: <FileText className="w-4 h-4" /> },
-  { label: "New application", path: "/student/new-application", icon: <Plus className="w-4 h-4 text-emerald-400" /> },
-  { label: "Profile", path: "/student/profile", icon: <UserCheck className="w-4 h-4" /> },
-  { label: "Documents", path: "/student/documents", icon: <FolderOpen className="w-4 h-4" /> },
-  { label: "Tasks & support", path: "/student/tasks", icon: <CheckSquare className="w-4 h-4" /> },
+  { label: "My Applications", path: "/student/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "New Application", path: "/student/new-application", icon: <Plus className="w-4 h-4 text-emerald-400" /> },
+  { label: "Document Vault", path: "/student/documents", icon: <FolderOpen className="w-4 h-4" /> },
+  { label: "Tasks & Deadlines", path: "/student/tasks", icon: <CheckSquare className="w-4 h-4" /> },
 ];
 
 const agentNavItems: NavItem[] = [

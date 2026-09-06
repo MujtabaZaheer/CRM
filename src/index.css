@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  --color-main: var(--bg-main);
+  --color-surface: var(--bg-card);
+  --color-surface-alt: var(--bg-card-alt);
+  --color-elevated: var(--bg-elevated);
+  --color-input: var(--bg-input);
+  --color-hover: var(--bg-hover);
+  --color-border-default: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-backdrop: var(--backdrop);
+}
+
 @layer base {
   :root {
     /* Surface colors */

@@ -120,14 +120,19 @@ export const VerifyEmail: React.FC = () => {
       }, 1000);
     } catch (err: any) {
       console.error("Verification error:", err);
-      if (err.code === "invalid-argument") {
-        setError("Incorrect verification code.");
-      } else if (err.code === "failed-precondition") {
+      const code = err.code || "";
+      const msg = err.message || "";
+      
+      if (code.includes("invalid-argument") || msg.includes("invalid-argument") || msg.includes("Incorrect")) {
+        setError("The verification code is incorrect. Please check the code and try again.");
+      } else if (code.includes("failed-precondition") || msg.includes("expired")) {
         setError("This verification code has expired. Please request a new one.");
-      } else if (err.code === "resource-exhausted") {
-        setError("Too many failed attempts. Please request a new code.");
+      } else if (code.includes("resource-exhausted") || msg.includes("exhausted")) {
+        setError("For your security, verification is temporarily limited. Please try again later.");
+      } else if (code.includes("internal") || msg.toLowerCase().includes("internal") || code.includes("not-found")) {
+        setError("Our verification service is temporarily unavailable. Please try again in a few moments.");
       } else {
-        setError(err.message || "Failed to verify code. Please try again.");
+        setError("Failed to verify code. Please try again.");
       }
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
@@ -154,10 +159,15 @@ export const VerifyEmail: React.FC = () => {
       inputRefs.current[0]?.focus();
     } catch (err: any) {
       console.error("Resend error:", err);
-      if (err.code === "resource-exhausted") {
-        setError("Too many requests. Please wait a moment before requesting another code.");
+      const code = err.code || "";
+      const msg = err.message || "";
+      
+      if (code.includes("resource-exhausted") || msg.includes("exhausted")) {
+        setError("For your security, sending is temporarily limited. Please wait before trying again.");
+      } else if (code.includes("internal") || msg.toLowerCase().includes("internal") || code.includes("not-found")) {
+        setError("Our verification service is temporarily unavailable. Please try again in a few moments.");
       } else {
-        setError(err.message || "Unable to send verification code. Please try again later.");
+        setError("We couldn't send your verification code right now. Please try again.");
       }
     } finally {
       setResending(false);
@@ -178,30 +188,30 @@ export const VerifyEmail: React.FC = () => {
   const displayEmail = storedEmail || firebaseUser?.email || "your registered email";
 
   return (
-    <main className="min-h-screen grid place-items-center bg-zinc-950 p-4 relative overflow-hidden font-sans">
+    <main className="min-h-screen grid place-items-center bg-main p-4 relative overflow-hidden font-sans">
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <section className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-md p-8 text-center text-white shadow-2xl relative z-10 space-y-6">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10">
+      <section className="w-full max-w-md rounded-3xl border border-subtle bg-surface/95 backdrop-blur-md p-8 text-center text-primary shadow-2xl relative z-10 space-y-6">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 shadow-lg shadow-emerald-500/10">
           <Mail className="w-8 h-8" />
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold font-heading text-white tracking-tight">
+          <h1 className="text-2xl font-bold font-heading text-primary tracking-tight">
             Verify your email
           </h1>
-          <p className="text-sm text-zinc-300">
+          <p className="text-sm text-secondary">
             We've sent a 6-digit verification code to:
           </p>
-          <div className="inline-block px-3.5 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 font-mono text-sm font-semibold max-w-full truncate">
+          <div className="inline-block px-3.5 py-1.5 rounded-full bg-elevated border border-subtle text-emerald-500 font-mono text-sm font-semibold max-w-full truncate">
             {displayEmail}
           </div>
         </div>
 
-        <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-2xl p-4 text-xs text-zinc-400 text-left space-y-1.5">
-          <p className="font-semibold text-zinc-200 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <div className="bg-elevated/60 border border-subtle rounded-2xl p-4 text-xs text-muted text-left space-y-1.5">
+          <p className="font-semibold text-primary flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
             Code expires in 10 minutes.
           </p>
           <p>
@@ -221,7 +231,7 @@ export const VerifyEmail: React.FC = () => {
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               disabled={verifying}
-              className="w-12 h-14 bg-zinc-950 border border-zinc-700 rounded-xl text-center text-xl font-bold text-emerald-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors disabled:opacity-50"
+              className="w-12 h-14 bg-input border border-default rounded-xl text-center text-xl font-bold text-emerald-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors disabled:opacity-50"
             />
           ))}
         </div>
@@ -244,7 +254,7 @@ export const VerifyEmail: React.FC = () => {
           <button
             onClick={handleVerify}
             disabled={verifying || code.join("").length !== 6}
-            className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
           >
             {verifying ? (
               <>
@@ -259,7 +269,7 @@ export const VerifyEmail: React.FC = () => {
           <button
             onClick={handleResendCode}
             disabled={Boolean(cooldown) || resending || verifying}
-            className="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-zinc-200 font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 px-4 bg-elevated hover:bg-hover border border-default text-primary font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${resending ? "animate-spin text-emerald-400" : ""}`} />
             {cooldown > 0
@@ -270,7 +280,7 @@ export const VerifyEmail: React.FC = () => {
           </button>
         </div>
 
-        <div className="pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+        <div className="pt-4 border-t border-subtle flex items-center justify-between text-xs text-muted">
           <button
             onClick={handleSignOut}
             className="hover:text-rose-400 transition-colors flex items-center gap-1.5 cursor-pointer underline mx-auto"

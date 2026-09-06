@@ -20,7 +20,8 @@ interface TopbarProps {
 
 export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
   const { appUser, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
   const { showDemoData, toggleDemoData } = useGlobalData();
   const navigate = useNavigate();
 

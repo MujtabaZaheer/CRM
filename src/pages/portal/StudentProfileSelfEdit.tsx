@@ -1,559 +1,546 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { Student, QualificationLevel } from "../../types/student";
 import { DEMO_STUDENTS } from "../../data/demoData";
-import { User, GraduationCap, Globe, Phone, FileCheck, Save, CheckCircle2, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { 
+  User, GraduationCap, Globe, FileCheck, 
+  CheckCircle2, AlertCircle, Plus, Trash2, ShieldCheck, 
+  BookOpen, CreditCard, Loader2
+} from "lucide-react";
+
+type TabId = 'personal' | 'passport' | 'academic' | 'preferences' | 'english' | 'financial';
+
+const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: 'personal', label: 'Personal & Contact', icon: User },
+  { id: 'passport', label: 'Passport & Identity', icon: Globe },
+  { id: 'academic', label: 'Academic History', icon: GraduationCap },
+  { id: 'preferences', label: 'Study Preferences', icon: BookOpen },
+  { id: 'english', label: 'English Proficiency', icon: FileCheck },
+  { id: 'financial', label: 'Financial Sponsor', icon: CreditCard },
+];
 
 export const StudentProfileSelfEdit: React.FC = () => {
   const { appUser } = useAuth();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Form State
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [nationality, setNationality] = useState("");
-  const [countryOfResidence, setCountryOfResidence] = useState("");
-  const [passportNumber, setPassportNumber] = useState("");
-  const [passportExpiry, setPassportExpiry] = useState("");
-  const [preferredDestination, setPreferredDestination] = useState("");
-  const [preferredIntake, setPreferredIntake] = useState("");
-  const [budgetAnnualUsd, setBudgetAnnualUsd] = useState(25000);
-  const [englishTestType, setEnglishTestType] = useState<"IELTS" | "PTE" | "TOEFL" | "Duolingo" | "MOI Evidence">("IELTS");
-  const [englishOverallScore, setEnglishOverallScore] = useState("");
-  const [studyGapJustification, setStudyGapJustification] = useState("");
-  const [sponsorName, setSponsorName] = useState("");
-  const [sponsorRelationship, setSponsorRelationship] = useState("Parent");
-  const [sponsorIncome, setSponsorIncome] = useState(40000);
-
-  // Academic History Records
-  const [academicHistory, setAcademicHistory] = useState<Student["academicHistory"]>([]);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [activeTab, setActiveTab] = useState<TabId>('personal');
+  
+  // Data State
+  const [data, setData] = useState<Partial<Student>>({});
+  
+  // Ref to track if it's the initial load to prevent immediate autosave
+  const isInitialLoad = useRef(true);
+  // Ref to debounce save
+  const saveTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!appUser?.uid) return;
       try {
         const snap = await getDoc(doc(db, "students", appUser.uid));
-        const data = snap.exists() ? (snap.data() as Student) : DEMO_STUDENTS[0];
-        if (data) {
-          setStudent(data);
-          setFullName(data.fullName || "");
-          setPhone(data.phone || "");
-          setNationality(data.nationality || "");
-          setCountryOfResidence(data.countryOfResidence || "");
-          setPassportNumber(data.passportNumber || "");
-          setPassportExpiry(data.passportExpiry || "");
-          setPreferredDestination(data.preferredDestination || "");
-          setPreferredIntake(data.preferredIntake || "");
-          setBudgetAnnualUsd(data.budgetAnnualUsd || 25000);
-          if (data.englishProficiency) {
-            setEnglishTestType(data.englishProficiency.testType || "IELTS");
-            setEnglishOverallScore(data.englishProficiency.overallScore || "");
-          }
-          setStudyGapJustification(data.studyGapJustification || "");
-          if (data.financialSponsor) {
-            setSponsorName(data.financialSponsor.name || "");
-            setSponsorRelationship(data.financialSponsor.relationship || "Parent");
-            setSponsorIncome(data.financialSponsor.annualIncomeUSD || 40000);
-          }
-          setAcademicHistory(data.academicHistory || []);
+        const st = snap.exists() ? (snap.data() as Student) : DEMO_STUDENTS[0];
+        if (st) {
+          setStudent(st);
+          setData({
+            fullName: st.fullName || "",
+            phone: st.phone || "",
+            nationality: st.nationality || "",
+            countryOfResidence: st.countryOfResidence || "",
+            passportNumber: st.passportNumber || "",
+            passportExpiry: st.passportExpiry || "",
+            preferredDestination: st.preferredDestination || "",
+            preferredIntake: st.preferredIntake || "",
+            budgetAnnualUsd: st.budgetAnnualUsd || 25000,
+            englishProficiency: st.englishProficiency || { testType: "IELTS", overallScore: "" },
+            studyGapJustification: st.studyGapJustification || "",
+            financialSponsor: st.financialSponsor || { name: "", relationship: "Parent", annualIncomeUSD: 40000, bankStatementUploaded: false },
+            academicHistory: st.academicHistory || [],
+          });
         }
-      } catch (err: any) {
+      } catch (err) {
         console.warn("Could not load student profile:", err);
       } finally {
         setLoading(false);
+        setTimeout(() => { isInitialLoad.current = false; }, 500);
       }
     };
     loadProfile();
   }, [appUser]);
 
-  const handleAddAcademicRecord = () => {
-    setAcademicHistory([
-      ...academicHistory,
-      {
-        institution: "",
-        qualification: "Bachelor's Degree",
-        degreeTitle: "",
-        country: "",
-        completionYear: 2024,
-        gradeGpa: "",
-      },
-    ]);
-  };
-
-  const handleRemoveAcademicRecord = (index: number) => {
-    setAcademicHistory(academicHistory.filter((_, i) => i !== index));
-  };
-
-  const handleUpdateAcademicRecord = (index: number, field: string, value: any) => {
-    setAcademicHistory(
-      academicHistory.map((rec, i) => (i === index ? { ...rec, [field]: value } : rec))
-    );
-  };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!appUser?.uid) return;
-    setSaving(true);
-    setNotice(null);
-    setError(null);
-
-    // Calculate completeness
+  const calculateCompleteness = (currentData: Partial<Student>) => {
     let filled = 0;
     const totalFields = 10;
-    if (fullName) filled++;
-    if (phone) filled++;
-    if (nationality) filled++;
-    if (countryOfResidence) filled++;
-    if (passportNumber) filled++;
-    if (preferredDestination) filled++;
-    if (englishOverallScore) filled++;
-    if (academicHistory.length > 0) filled++;
-    if (sponsorName) filled++;
-    if (studyGapJustification) filled++;
-    const completeness = Math.round((filled / totalFields) * 100);
+    if (currentData.fullName) filled++;
+    if (currentData.phone) filled++;
+    if (currentData.nationality) filled++;
+    if (currentData.countryOfResidence) filled++;
+    if (currentData.passportNumber) filled++;
+    if (currentData.preferredDestination) filled++;
+    if (currentData.englishProficiency?.overallScore) filled++;
+    if (currentData.academicHistory && currentData.academicHistory.length > 0) filled++;
+    if (currentData.financialSponsor?.name) filled++;
+    if (currentData.studyGapJustification || currentData.academicHistory?.length) filled++; // Rough proxy
+    return Math.round((filled / totalFields) * 100);
+  };
 
-    const updatedData: Partial<Student> = {
-      fullName,
-      phone,
-      nationality,
-      countryOfResidence,
-      passportNumber: passportNumber || undefined,
-      passportExpiry: passportExpiry || undefined,
-      preferredDestination: preferredDestination || undefined,
-      preferredIntake: preferredIntake || undefined,
-      budgetAnnualUsd,
-      englishProficiency: englishOverallScore
-        ? { testType: englishTestType, overallScore: englishOverallScore }
-        : undefined,
-      studyGapJustification: studyGapJustification || undefined,
-      financialSponsor: sponsorName
-        ? { name: sponsorName, relationship: sponsorRelationship, annualIncomeUSD: sponsorIncome, bankStatementUploaded: false }
-        : undefined,
-      academicHistory,
-      profileCompleteness: completeness,
-      updatedAt: Date.now(),
-    };
-
+  const handleSave = useCallback(async (currentData: Partial<Student>) => {
+    if (!appUser?.uid) return;
+    setSaveState('saving');
+    
     try {
+      const completeness = calculateCompleteness(currentData);
+      const updatedData = {
+        ...currentData,
+        profileCompleteness: Math.min(100, completeness),
+        updatedAt: Date.now(),
+      };
+      
       await setDoc(doc(db, "students", appUser.uid), updatedData, { merge: true });
-      setNotice("Your student profile has been updated successfully!");
-    } catch (err: any) {
+      setStudent(prev => prev ? { ...prev, ...updatedData } as Student : null);
+      setSaveState('saved');
+      
+      setTimeout(() => {
+        setSaveState(prev => prev === 'saved' ? 'idle' : prev);
+      }, 3000);
+    } catch (err) {
       console.error("Profile save error:", err);
-      setError("Failed to save profile. Please try again.");
-    } finally {
-      setSaving(false);
+      setSaveState('error');
     }
+  }, [appUser]);
+
+  // Autosave effect
+  useEffect(() => {
+    if (isInitialLoad.current || loading) return;
+    
+    setSaveState('idle');
+    if (saveTimeoutRef.current) {
+      window.clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = window.setTimeout(() => {
+      handleSave(data);
+    }, 1500); // 1.5s debounce
+
+    return () => {
+      if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
+    };
+  }, [data, handleSave, loading]);
+
+  const updateField = (field: keyof Student, value: any) => {
+    setData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateNestedField = (parent: keyof Student, field: string, value: any) => {
+    setData(prev => ({
+      ...prev,
+      [parent]: {
+        ...(prev[parent] as any || {}),
+        [field]: value
+      }
+    }));
   };
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-[var(--text-muted)] text-sm">
-        Loading student profile...
+      <div className="p-12 text-center text-muted flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <p>Loading your profile...</p>
       </div>
     );
   }
 
+  const completeness = student?.profileCompleteness || calculateCompleteness(data);
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[var(--bg-card)] p-6 rounded-2xl border border-[var(--border-color)]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-surface p-6 rounded-2xl border border-subtle shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)] flex items-center space-x-2">
-            <User className="w-7 h-7 text-emerald-400" />
-            <span>My Student Profile & Credentials</span>
+          <h1 className="text-2xl font-bold font-heading text-primary flex items-center space-x-2">
+            <User className="w-7 h-7 text-emerald-500" />
+            <span>My Master Profile</span>
           </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            Keep your academic qualifications, test scores, and personal info up to date for university admissions.
+          <p className="text-sm text-secondary mt-1">
+            This information is used to match you with programs and automatically populate your university applications.
           </p>
         </div>
 
-        {student && (
-          <div className="text-right">
-            <span className="text-xs text-[var(--text-secondary)] block font-semibold">Profile Completeness</span>
-            <div className="flex items-center space-x-2 mt-1">
-              <div className="w-28 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: `${student.profileCompleteness || 30}%` }}
-                />
-              </div>
-              <span className="text-xs font-bold text-emerald-400 font-mono">
-                {student.profileCompleteness || 30}%
-              </span>
-            </div>
+        <div className="text-right sm:min-w-[200px]">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-secondary font-semibold">Profile Completeness</span>
+            <span className="text-xs font-bold text-emerald-500">{completeness}%</span>
           </div>
-        )}
-      </div>
-
-      {notice && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{notice}</span>
-          </div>
-          <button onClick={() => setNotice(null)} className="underline text-[10px]">Dismiss</button>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-semibold flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* Section 1: Personal Details */}
-        <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl space-y-4">
-          <h2 className="font-heading font-bold text-base text-[var(--text-primary)] flex items-center space-x-2">
-            <Globe className="w-5 h-5 text-emerald-400" />
-            <span>1. Personal & Passport Information</span>
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Full Legal Name *</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Phone / WhatsApp *</label>
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Nationality *</label>
-              <input
-                type="text"
-                required
-                value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Country of Current Residence *</label>
-              <input
-                type="text"
-                required
-                value={countryOfResidence}
-                onChange={(e) => setCountryOfResidence(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Passport Number</label>
-              <input
-                type="text"
-                placeholder="e.g. A12345678"
-                value={passportNumber}
-                onChange={(e) => setPassportNumber(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Passport Expiry Date</label>
-              <input
-                type="date"
-                value={passportExpiry}
-                onChange={(e) => setPassportExpiry(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2: Study Preferences */}
-        <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl space-y-4">
-          <h2 className="font-heading font-bold text-base text-[var(--text-primary)] flex items-center space-x-2">
-            <GraduationCap className="w-5 h-5 text-emerald-400" />
-            <span>2. Study Preferences & Budget</span>
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Preferred Destination</label>
-              <select
-                value={preferredDestination}
-                onChange={(e) => setPreferredDestination(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              >
-                <option value="">Select country...</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="Canada">Canada</option>
-                <option value="Australia">Australia</option>
-                <option value="United States">United States</option>
-                <option value="Germany">Germany</option>
-                <option value="Ireland">Ireland</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Target Intake</label>
-              <input
-                type="text"
-                placeholder="e.g. Fall 2026 / Spring 2027"
-                value={preferredIntake}
-                onChange={(e) => setPreferredIntake(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Annual Tuition Budget (USD)</label>
-              <input
-                type="number"
-                min="5000"
-                max="100000"
-                step="1000"
-                value={budgetAnnualUsd}
-                onChange={(e) => setBudgetAnnualUsd(Number(e.target.value))}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] font-mono focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: English Proficiency & Gap Justification */}
-        <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl space-y-4">
-          <h2 className="font-heading font-bold text-base text-[var(--text-primary)] flex items-center space-x-2">
-            <FileCheck className="w-5 h-5 text-emerald-400" />
-            <span>3. English Proficiency & Gap Explanation</span>
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">English Test Type</label>
-              <select
-                value={englishTestType}
-                onChange={(e) => setEnglishTestType(e.target.value as any)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none"
-              >
-                <option value="IELTS">IELTS Academic</option>
-                <option value="PTE">PTE Academic</option>
-                <option value="TOEFL">TOEFL iBT</option>
-                <option value="Duolingo">Duolingo English Test</option>
-                <option value="MOI Evidence">Medium of Instruction (MOI)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Overall Test Score / Band</label>
-              <input
-                type="text"
-                placeholder="e.g. 7.0 (with no band < 6.5)"
-                value={englishOverallScore}
-                onChange={(e) => setEnglishOverallScore(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[var(--text-secondary)] font-semibold mb-1">
-              Study Gap Justification (If any gaps between degrees)
-            </label>
-            <textarea
-              rows={2}
-              placeholder="Explain any study gaps (e.g. full-time work experience, internships, or exam preparation)..."
-              value={studyGapJustification}
-              onChange={(e) => setStudyGapJustification(e.target.value)}
-              className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] text-xs focus:outline-none focus:border-emerald-500"
+          <div className="w-full h-2.5 bg-elevated rounded-full overflow-hidden border border-subtle">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${completeness}%` }}
             />
           </div>
+          <div className="flex items-center justify-end mt-2 text-xs h-4">
+            {saveState === 'saving' && <span className="text-muted flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> Saving...</span>}
+            {saveState === 'saved' && <span className="text-emerald-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Saved just now</span>}
+            {saveState === 'error' && <span className="text-rose-500 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Save failed</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Sidebar Navigation */}
+        <div className="md:col-span-1 space-y-2">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left font-medium text-sm ${
+                activeTab === tab.id 
+                  ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                  : 'bg-surface hover:bg-hover text-secondary border border-subtle'
+              }`}
+            >
+              <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-emerald-500' : 'text-muted'}`} />
+              {tab.label}
+            </button>
+          ))}
+          
+          <div className="mt-8 p-4 bg-elevated border border-subtle rounded-xl text-xs text-muted space-y-2">
+            <div className="flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+              <p>Your data is securely stored and only shared with universities when you explicitly submit an application.</p>
+            </div>
+          </div>
         </div>
 
-        {/* Section 4: Academic Qualifications */}
-        <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-heading font-bold text-base text-[var(--text-primary)] flex items-center space-x-2">
-              <GraduationCap className="w-5 h-5 text-emerald-400" />
-              <span>4. Academic Qualifications History</span>
-            </h2>
-            <button
-              type="button"
-              onClick={handleAddAcademicRecord}
-              className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-xl flex items-center space-x-1 border border-emerald-500/20 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Degree</span>
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {academicHistory.map((rec, index) => (
-              <div key={index} className="p-4 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400 font-mono">Qualification #{index + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAcademicRecord(index)}
-                    className="p-1 text-zinc-500 hover:text-rose-400 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+        {/* Content Area */}
+        <div className="md:col-span-3 bg-surface border border-subtle rounded-2xl p-6 shadow-sm min-h-[400px]">
+          
+          {/* TAB 1: PERSONAL */}
+          {activeTab === 'personal' && (
+            <div className="space-y-5 animate-fade-in">
+              <h2 className="text-lg font-bold text-primary font-heading border-b border-subtle pb-3">Personal & Contact Information</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Full Legal Name *</label>
+                  <input
+                    type="text"
+                    value={data.fullName || ""}
+                    onChange={(e) => updateField("fullName", e.target.value)}
+                    placeholder="As it appears on your passport"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all"
+                  />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Level</label>
-                    <select
-                      value={rec.qualification}
-                      onChange={(e) => handleUpdateAcademicRecord(index, "qualification", e.target.value as QualificationLevel)}
-                      className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)]"
-                    >
-                      <option value="High School / A-Levels">High School / A-Levels</option>
-                      <option value="Bachelor's Degree">Bachelor's Degree</option>
-                      <option value="Master's Degree">Master's Degree</option>
-                      <option value="Doctorate / PhD">Doctorate / PhD</option>
-                      <option value="Diploma / Certificate">Diploma / Certificate</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Institution Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. University of Manchester"
-                      value={rec.institution}
-                      onChange={(e) => handleUpdateAcademicRecord(index, "institution", e.target.value)}
-                      className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Degree Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. BSc Computer Science"
-                      value={rec.degreeTitle}
-                      onChange={(e) => handleUpdateAcademicRecord(index, "degreeTitle", e.target.value)}
-                      className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Country</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. UK / PK"
-                      value={rec.country}
-                      onChange={(e) => handleUpdateAcademicRecord(index, "country", e.target.value)}
-                      className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Completion Year</label>
-                    <input
-                      type="number"
-                      min="1990"
-                      max="2030"
-                      value={rec.completionYear}
-                      onChange={(e) => handleUpdateAcademicRecord(index, "completionYear", Number(e.target.value))}
-                      className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1">Grade / GPA</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 3.8 / 4.0 or First Class"
-                      value={rec.gradeGpa}
-                      onChange={(e) => handleUpdateAcademicRecord(index, "gradeGpa", e.target.value)}
-                      className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] font-mono"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Phone / WhatsApp *</label>
+                  <input
+                    type="tel"
+                    value={data.phone || ""}
+                    onChange={(e) => updateField("phone", e.target.value)}
+                    placeholder="+1 234 567 8900"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Nationality *</label>
+                  <input
+                    type="text"
+                    value={data.nationality || ""}
+                    onChange={(e) => updateField("nationality", e.target.value)}
+                    placeholder="e.g. Pakistani"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Country of Residence *</label>
+                  <input
+                    type="text"
+                    value={data.countryOfResidence || ""}
+                    onChange={(e) => updateField("countryOfResidence", e.target.value)}
+                    placeholder="e.g. United Arab Emirates"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Section 5: Financial Sponsor Declaration */}
-        <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl space-y-4">
-          <h2 className="font-heading font-bold text-base text-[var(--text-primary)] flex items-center space-x-2">
-            <Phone className="w-5 h-5 text-emerald-400" />
-            <span>5. Financial Sponsorship Declaration</span>
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Sponsor Full Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Self / Parent Name"
-                value={sponsorName}
-                onChange={(e) => setSponsorName(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none"
-              />
             </div>
+          )}
 
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Relationship</label>
-              <select
-                value={sponsorRelationship}
-                onChange={(e) => setSponsorRelationship(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none"
-              >
-                <option value="Self">Self-Funded</option>
-                <option value="Parent">Parent</option>
-                <option value="Sibling">Sibling</option>
-                <option value="Government Scholarship">Government Scholarship</option>
-                <option value="Corporate Sponsor">Corporate Sponsor</option>
-              </select>
+          {/* TAB 2: PASSPORT */}
+          {activeTab === 'passport' && (
+            <div className="space-y-5 animate-fade-in">
+              <h2 className="text-lg font-bold text-primary font-heading border-b border-subtle pb-3">Passport & Identity</h2>
+              <div className="bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-xl text-xs text-emerald-600/90 dark:text-emerald-400 mb-4 flex gap-2">
+                <Globe className="w-4 h-4 shrink-0" />
+                <p>Passport details are required for issuing your CAS/COE and processing your visa application.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Passport Number</label>
+                  <input
+                    type="text"
+                    value={data.passportNumber || ""}
+                    onChange={(e) => updateField("passportNumber", e.target.value)}
+                    placeholder="e.g. A12345678"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Passport Expiry Date</label>
+                  <input
+                    type="date"
+                    value={data.passportExpiry || ""}
+                    onChange={(e) => updateField("passportExpiry", e.target.value)}
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
             </div>
+          )}
 
-            <div>
-              <label className="block text-[var(--text-secondary)] font-semibold mb-1">Annual Income (USD Equivalent)</label>
-              <input
-                type="number"
-                min="5000"
-                step="5000"
-                value={sponsorIncome}
-                onChange={(e) => setSponsorIncome(Number(e.target.value))}
-                className="w-full p-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] font-mono focus:outline-none"
-              />
+          {/* TAB 3: ACADEMIC */}
+          {activeTab === 'academic' && (
+            <div className="space-y-5 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-subtle pb-3">
+                <h2 className="text-lg font-bold text-primary font-heading">Academic History</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newHist = [...(data.academicHistory || []), { institution: "", qualification: "Bachelor's Degree", degreeTitle: "", country: "", completionYear: new Date().getFullYear(), gradeGpa: "" }];
+                    updateField("academicHistory", newHist);
+                  }}
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs rounded-lg flex items-center gap-1 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Degree
+                </button>
+              </div>
+              
+              {!data.academicHistory?.length ? (
+                <div className="p-8 text-center text-muted border border-dashed border-subtle rounded-xl">
+                  <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No academic history added yet.</p>
+                  <p className="text-xs mt-1">Add your most recent qualifications to match with eligible programs.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {data.academicHistory.map((rec, index) => (
+                    <div key={index} className="p-4 bg-elevated border border-default rounded-xl space-y-4 relative group">
+                      <button
+                        onClick={() => {
+                          const newHist = data.academicHistory?.filter((_, i) => i !== index);
+                          updateField("academicHistory", newHist);
+                        }}
+                        className="absolute top-3 right-3 p-1.5 text-muted hover:text-rose-500 bg-surface rounded-md border border-subtle opacity-0 group-hover:opacity-100 transition-all"
+                        title="Remove Record"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Qualification {index + 1}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <label className="block text-secondary font-medium mb-1">Level</label>
+                          <select
+                            value={rec.qualification}
+                            onChange={(e) => {
+                              const hist = [...(data.academicHistory || [])];
+                              hist[index].qualification = e.target.value as QualificationLevel;
+                              updateField("academicHistory", hist);
+                            }}
+                            className="w-full p-2 bg-input border border-default rounded-lg text-primary outline-none"
+                          >
+                            <option value="High School / A-Levels">High School / A-Levels</option>
+                            <option value="Bachelor's Degree">Bachelor's Degree</option>
+                            <option value="Master's Degree">Master's Degree</option>
+                            <option value="Doctorate / PhD">Doctorate / PhD</option>
+                            <option value="Diploma / Certificate">Diploma / Certificate</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-secondary font-medium mb-1">Institution</label>
+                          <input
+                            type="text"
+                            value={rec.institution}
+                            onChange={(e) => {
+                              const hist = [...(data.academicHistory || [])];
+                              hist[index].institution = e.target.value;
+                              updateField("academicHistory", hist);
+                            }}
+                            placeholder="e.g. University of Manchester"
+                            className="w-full p-2 bg-input border border-default rounded-lg text-primary outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-secondary font-medium mb-1">Degree Title</label>
+                          <input
+                            type="text"
+                            value={rec.degreeTitle}
+                            onChange={(e) => {
+                              const hist = [...(data.academicHistory || [])];
+                              hist[index].degreeTitle = e.target.value;
+                              updateField("academicHistory", hist);
+                            }}
+                            placeholder="e.g. BSc Computer Science"
+                            className="w-full p-2 bg-input border border-default rounded-lg text-primary outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-secondary font-medium mb-1">Grade / GPA</label>
+                          <input
+                            type="text"
+                            value={rec.gradeGpa}
+                            onChange={(e) => {
+                              const hist = [...(data.academicHistory || [])];
+                              hist[index].gradeGpa = e.target.value;
+                              updateField("academicHistory", hist);
+                            }}
+                            placeholder="e.g. 3.8/4.0 or First Class"
+                            className="w-full p-2 bg-input border border-default rounded-lg text-primary outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Submit Bar */}
-        <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center space-x-2 transition-all disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            <span>{saving ? "Saving Profile..." : "Save Student Profile"}</span>
-          </button>
+          {/* TAB 4: PREFERENCES */}
+          {activeTab === 'preferences' && (
+            <div className="space-y-5 animate-fade-in">
+              <h2 className="text-lg font-bold text-primary font-heading border-b border-subtle pb-3">Study Preferences & Budget</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Preferred Destination</label>
+                  <select
+                    value={data.preferredDestination || ""}
+                    onChange={(e) => updateField("preferredDestination", e.target.value)}
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  >
+                    <option value="">Select country...</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="United States">United States</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Ireland">Ireland</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Target Intake</label>
+                  <input
+                    type="text"
+                    value={data.preferredIntake || ""}
+                    onChange={(e) => updateField("preferredIntake", e.target.value)}
+                    placeholder="e.g. Fall 2026"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Annual Tuition Budget (USD)</label>
+                  <input
+                    type="number"
+                    value={data.budgetAnnualUsd || ""}
+                    onChange={(e) => updateField("budgetAnnualUsd", Number(e.target.value))}
+                    step="1000"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: ENGLISH */}
+          {activeTab === 'english' && (
+            <div className="space-y-5 animate-fade-in">
+              <h2 className="text-lg font-bold text-primary font-heading border-b border-subtle pb-3">English Proficiency & Gap Justification</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">English Test Type</label>
+                  <select
+                    value={data.englishProficiency?.testType || "IELTS"}
+                    onChange={(e) => updateNestedField("englishProficiency", "testType", e.target.value)}
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  >
+                    <option value="IELTS">IELTS Academic</option>
+                    <option value="PTE">PTE Academic</option>
+                    <option value="TOEFL">TOEFL iBT</option>
+                    <option value="Duolingo">Duolingo English Test</option>
+                    <option value="MOI Evidence">Medium of Instruction (MOI)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Overall Score / Band</label>
+                  <input
+                    type="text"
+                    value={data.englishProficiency?.overallScore || ""}
+                    onChange={(e) => updateNestedField("englishProficiency", "overallScore", e.target.value)}
+                    placeholder="e.g. 7.0"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="sm:col-span-2 mt-4">
+                  <label className="block text-secondary font-semibold mb-1.5">Study Gap Justification</label>
+                  <p className="text-xs text-muted mb-2">If you have gaps of more than 6 months between your studies, explain what you were doing (e.g. working full-time, exam preparation).</p>
+                  <textarea
+                    rows={3}
+                    value={data.studyGapJustification || ""}
+                    onChange={(e) => updateField("studyGapJustification", e.target.value)}
+                    placeholder="Explain any study gaps..."
+                    className="w-full p-3 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: FINANCIAL */}
+          {activeTab === 'financial' && (
+            <div className="space-y-5 animate-fade-in">
+              <h2 className="text-lg font-bold text-primary font-heading border-b border-subtle pb-3">Financial Sponsor</h2>
+              <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-xl text-xs text-amber-600/90 dark:text-amber-400 mb-4 flex gap-2">
+                <CreditCard className="w-4 h-4 shrink-0" />
+                <p>Universities and embassies require proof that you have sufficient funds to cover tuition and living expenses.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Sponsor Full Name</label>
+                  <input
+                    type="text"
+                    value={data.financialSponsor?.name || ""}
+                    onChange={(e) => updateNestedField("financialSponsor", "name", e.target.value)}
+                    placeholder="e.g. Self or Parent Name"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Relationship to Student</label>
+                  <select
+                    value={data.financialSponsor?.relationship || "Parent"}
+                    onChange={(e) => updateNestedField("financialSponsor", "relationship", e.target.value)}
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all"
+                  >
+                    <option value="Self">Self-Funded</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Sibling">Sibling</option>
+                    <option value="Government Scholarship">Government Scholarship</option>
+                    <option value="Corporate Sponsor">Corporate Sponsor</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-secondary font-semibold mb-1.5">Annual Income (USD Equivalent)</label>
+                  <input
+                    type="number"
+                    value={data.financialSponsor?.annualIncomeUSD || ""}
+                    onChange={(e) => updateNestedField("financialSponsor", "annualIncomeUSD", Number(e.target.value))}
+                    step="5000"
+                    className="w-full p-2.5 bg-input border border-default rounded-xl text-primary focus:border-emerald-500 outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </form>
+      </div>
     </div>
   );
 };
