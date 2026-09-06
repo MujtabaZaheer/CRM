@@ -109,6 +109,10 @@ export interface Student {
 
   // Onboarding & Discovery Preferences
   onboardingStep?: number;
+  onboardingStatus?: "not_started" | "in_progress" | "completed";
+  profileCompleted?: boolean;
+  currentStep?: number;
+  
   shortlistedPrograms?: string[];
   preferredStudyMode?: string;
   preferredCity?: string;

@@ -67,7 +67,7 @@ const STUDY_MODES = ["On-Campus (Full-Time)", "On-Campus (Part-Time)", "Hybrid",
 /* ================================================================== */
 /*  COMPONENT                                                          */
 /* ================================================================== */
-export const StudentOnboardingDestination: React.FC = () => {
+export const StudentOnboardingStage2: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
 
@@ -75,8 +75,7 @@ export const StudentOnboardingDestination: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [student, setStudent] = useState<Student | null>(null);
-
+  const [, setStudent] = useState<Student | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<WorldRegion>("All");
   const [activeFilters, setActiveFilters] = useState<QuickFilter[]>([]);
@@ -280,15 +279,20 @@ export const StudentOnboardingDestination: React.FC = () => {
       preferredCity: preferredCity.trim(),
       scholarshipPriority,
       institutionType,
-      onboardingStep: Math.max(student?.onboardingStep || 0, 2),
+      currentStep: 3,
       updatedAt: Date.now(),
     };
 
     try {
       await setDoc(doc(db, "students", uid), payload, { merge: true });
+      await setDoc(doc(db, "users", uid), { 
+        currentStep: 3,
+        updatedAt: Date.now() 
+      }, { merge: true });
+      
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-      if (isProceeding) navigate("/student/onboarding/program-matcher");
+      if (isProceeding) navigate("/student/onboarding/step-3");
     } catch (err: any) {
       console.error("Failed to save:", err);
       setError(err.message || "Could not save preferences.");
@@ -326,7 +330,7 @@ export const StudentOnboardingDestination: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate("/student/onboarding/profile")}
+              onClick={() => navigate("/student/onboarding/step-1")}
               className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
@@ -841,4 +845,4 @@ export const StudentOnboardingDestination: React.FC = () => {
   );
 };
 
-export default StudentOnboardingDestination;
+export default StudentOnboardingStage2;

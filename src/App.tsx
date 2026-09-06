@@ -33,10 +33,10 @@ import { StudentProfileSelfEdit } from "./pages/portal/StudentProfileSelfEdit";
 import { StudentNewApplication } from "./pages/portal/StudentNewApplication";
 import { StudentApplicationDetail, StudentApplications } from "./pages/portal/StudentApplications";
 import { StudentDashboard, StudentProgramDetail, StudentProgrammes, StudentUniversities, StudentUniversityDetail } from "./pages/portal/StudentExperience";
-import { StudentOnboardingProfile } from "./pages/portal/onboarding/StudentOnboardingProfile";
-import { StudentOnboardingDestination } from "./pages/portal/onboarding/StudentOnboardingDestination";
-import { StudentOnboardingProgramMatcher } from "./pages/portal/onboarding/StudentOnboardingProgramMatcher";
-import { StudentOnboardingMatchSelection } from "./pages/portal/onboarding/StudentOnboardingMatchSelection";
+import { StudentOnboardingStage1 } from "./pages/portal/onboarding/StudentOnboardingStage1";
+import { StudentOnboardingStage2 } from "./pages/portal/onboarding/StudentOnboardingStage2";
+import { StudentOnboardingStage3 } from "./pages/portal/onboarding/StudentOnboardingStage3";
+import { StudentOnboardingStage4 } from "./pages/portal/onboarding/StudentOnboardingStage4";
 import { AgentSubAgentManager } from "./pages/portal/AgentSubAgentManager";
 import { AgentsPage } from "./pages/Agents";
 import { DataQualityPage } from "./pages/DataQualityDashboard";
@@ -152,11 +152,10 @@ export const App: React.FC = () => {
 
               {/* Full-Screen Student Onboarding Wizard (Outside ProtectedLayout) */}
               <Route path="/student" element={<RoleRoute role="student" />}>
-                <Route path="onboarding/profile" element={<StudentOnboardingProfile />} />
-                <Route path="onboarding/destination" element={<StudentOnboardingDestination />} />
-                <Route path="onboarding/program-matcher" element={<StudentOnboardingProgramMatcher />} />
-                <Route path="onboarding/review" element={<StudentOnboardingMatchSelection />} />
-                <Route path="onboarding/match-selection" element={<StudentOnboardingMatchSelection />} />
+                <Route path="onboarding/step-1" element={<StudentOnboardingStage1 />} />
+                <Route path="onboarding/step-2" element={<StudentOnboardingStage2 />} />
+                <Route path="onboarding/step-3" element={<StudentOnboardingStage3 />} />
+                <Route path="onboarding/step-4" element={<StudentOnboardingStage4 />} />
               </Route>
 
               {/* Protected Application Routes */}

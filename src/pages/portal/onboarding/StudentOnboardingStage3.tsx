@@ -112,7 +112,7 @@ const ELIG_BADGE: Record<string, { bg: string; text: string; border: string; ico
 /* ================================================================== */
 /*  COMPONENT                                                          */
 /* ================================================================== */
-export const StudentOnboardingProgramMatcher: React.FC = () => {
+export const StudentOnboardingStage3: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
 
@@ -137,7 +137,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
   const [appliedMap, setAppliedMap] = useState<Record<string, string>>({}); // `${univId}-${progId}` => appNumber
   const [applyingKey] = useState<string | null>(null);
   const [savingShortlist, setSavingShortlist] = useState(false);
-  const [appliedNotice] = useState<string | null>(null);
+  const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
 
   // Detail drawer
   const [drawerItem, setDrawerItem] = useState<ProgramMatchItem | null>(null);
@@ -365,22 +365,24 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
         };
         
         await addDoc(collection(db, "applications"), payload);
+        // Update local state instead of navigating away
+        setAppliedMap((prev) => ({ ...prev, [`${univ.id}-${prog.id}`]: appNumber }));
+        setAppliedNotice(`Application draft created for ${prog.title}`);
+        setTimeout(() => setAppliedNotice(null), 3000);
       } catch (err) {
         console.error("Failed to auto-generate application:", err);
       }
     }
-    
-    navigate(`/student/new-application?universityId=${univ.id}&programmeId=${prog.id}&intake=${encodeURIComponent(intake)}`);
   };
 
-  /* ---- Proceed to Step 4 ---- */
   const proceedToStep4 = async () => {
     const uid = firebaseUser?.uid || appUser?.uid;
     if (uid) {
       setSavingShortlist(true);
       try {
-        await setDoc(doc(db, "students", uid), { shortlistedPrograms: shortlistedKeys, onboardingStep: 4, updatedAt: Date.now() }, { merge: true });
-        navigate("/student/onboarding/review");
+        await setDoc(doc(db, "students", uid), { shortlistedPrograms: shortlistedKeys, currentStep: 4, updatedAt: Date.now() }, { merge: true });
+        await setDoc(doc(db, "users", uid), { currentStep: 4, updatedAt: Date.now() }, { merge: true });
+        navigate("/student/onboarding/step-4");
       } catch (err) { console.error("Save error:", err); }
       finally { setSavingShortlist(false); }
     }
@@ -420,7 +422,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/student/onboarding/destination")}
+              onClick={() => navigate("/student/onboarding/step-2")}
               className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
@@ -473,7 +475,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
               <span className="font-semibold">{appliedNotice}</span>
             </div>
             <button
-              onClick={() => navigate("/student/onboarding/review")}
+              onClick={() => navigate("/student/onboarding/step-4")}
               className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-400 cursor-pointer"
             >
               Track in Step 4 →
@@ -1065,4 +1067,4 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
   );
 };
 
-export default StudentOnboardingProgramMatcher;
+export default StudentOnboardingStage3;

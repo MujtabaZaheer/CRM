@@ -45,11 +45,11 @@ const COUNTRIES = [
   "Ghana", "Bangladesh", "Other",
 ];
 
-export const StudentOnboardingProfile: React.FC = () => {
+export const StudentOnboardingStage1: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
 
-  const [currentStage, setCurrentStage] = useState(1);
+  const [currentStage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -351,15 +351,17 @@ export const StudentOnboardingProfile: React.FC = () => {
     try {
       await setDoc(doc(db, "students", uid), {
         ...payload,
-        onboardingStatus: "completed",
-        profileCompleted: true
+        onboardingStatus: "in_progress",
+        profileCompleted: false,
+        currentStep: 2
       }, { merge: true });
       
       // Also update base user profile display name and completion status
       await setDoc(doc(db, "users", uid), { 
         displayName: fullName, 
-        profileCompleted: true,
-        onboardingStatus: "completed",
+        onboardingStatus: "in_progress",
+        profileCompleted: false,
+        currentStep: 2,
         updatedAt: Date.now() 
       }, { merge: true });
 
@@ -372,7 +374,7 @@ export const StudentOnboardingProfile: React.FC = () => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
-        navigate("/student/onboarding/destination");
+        navigate("/student/onboarding/step-2");
       }
     } catch (err: any) {
       console.error("Save profile error:", err);
@@ -454,7 +456,6 @@ export const StudentOnboardingProfile: React.FC = () => {
           </div>
         )}
 
-        {currentStage === 1 && (<>
         {/* Section 1: Personal Information */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
@@ -635,9 +636,6 @@ export const StudentOnboardingProfile: React.FC = () => {
           )}
         </section>
 
-        </>)}
-
-        {currentStage === 2 && (<>
         {/* Section 3: Academic Background */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -895,9 +893,7 @@ export const StudentOnboardingProfile: React.FC = () => {
             })}
           </div>
         </section>
-        </>)}
 
-        {currentStage === 3 && (<>
         {/* Section 6: Employment History */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -1008,9 +1004,6 @@ export const StudentOnboardingProfile: React.FC = () => {
           )}
         </section>
 
-        </>)}
-
-        {currentStage === 4 && (<>
         {/* Section 8: Dependants */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -1095,9 +1088,7 @@ export const StudentOnboardingProfile: React.FC = () => {
           )}
         </section>
 
-        </>)}
-
-        {currentStage === 4 && !completeness.isComplete && completeness.missingFields.length > 0 && (
+        {!completeness.isComplete && completeness.missingFields.length > 0 && (
           <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400">
             <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
@@ -1115,55 +1106,28 @@ export const StudentOnboardingProfile: React.FC = () => {
         )}
 
         {/* Bottom Actions */}
-        <div className="flex justify-between items-center gap-3 pt-6 border-t border-subtle">
-          <div>
-            {currentStage > 1 && (
-              <button
-                type="button"
-                onClick={() => setCurrentStage(s => s - 1)}
-                className="px-5 py-2.5 rounded-xl border border-default text-primary hover:bg-hover font-medium transition-colors"
-              >
-                Back
-              </button>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => saveProgress(false)}
-              disabled={saving}
-              className="px-5 py-2.5 rounded-xl border border-default text-secondary hover:text-primary hover:bg-hover font-medium transition-colors"
-            >
-              Save Draft
-            </button>
-            {currentStage < 4 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  setCurrentStage(s => s + 1);
-                }}
-                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center gap-2"
-              >
-                Next Step
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => saveProgress(true)}
-                disabled={saving || !completeness.isComplete}
-                className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? "Processing..." : "Save & Complete Profile"}
-                {!saving && <ArrowRight className="w-4 h-4" />}
-              </button>
-            )}
-          </div>
+        <div className="flex justify-end items-center gap-3 pt-6 border-t border-subtle">
+          <button
+            type="button"
+            onClick={() => saveProgress(false)}
+            disabled={saving}
+            className="px-5 py-2.5 rounded-xl border border-default text-secondary hover:text-primary hover:bg-hover font-medium transition-colors"
+          >
+            Save Draft
+          </button>
+          <button
+            type="button"
+            onClick={() => saveProgress(true)}
+            disabled={saving || !completeness.isComplete}
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Processing..." : "Next Step"}
+            {!saving && <ArrowRight className="w-4 h-4" />}
+          </button>
         </div>
       </main>
     </div>
   );
 };
 
-export default StudentOnboardingProfile;
+export default StudentOnboardingStage1;

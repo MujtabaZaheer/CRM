@@ -99,7 +99,7 @@ const STAGE_CONFIG: Record<string, { bg: string; text: string; border: string }>
 /* ================================================================== */
 /*  COMPONENT                                                          */
 /* ================================================================== */
-export const StudentOnboardingMatchSelection: React.FC = () => {
+export const StudentOnboardingStage4: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
 
@@ -277,13 +277,22 @@ export const StudentOnboardingMatchSelection: React.FC = () => {
       await setDoc(
         doc(db, "students", uid),
         {
-          onboardingCompleted: true,
-          onboardingStep: 4,
+          onboardingStatus: "completed",
+          profileCompleted: true,
           updatedAt: Date.now(),
         },
         { merge: true }
       );
-      navigate("/");
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          onboardingStatus: "completed",
+          profileCompleted: true,
+          updatedAt: Date.now(),
+        },
+        { merge: true }
+      );
+      navigate("/student/dashboard");
     } catch (err) {
       console.error("Failed to finish onboarding:", err);
     } finally {
@@ -316,14 +325,14 @@ export const StudentOnboardingMatchSelection: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/student/onboarding/program-matcher")}
+              onClick={() => navigate("/student/onboarding/step-3")}
               className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Matcher
             </button>
 
             <button
-              onClick={() => navigate("/student/onboarding/program-matcher")}
+              onClick={() => navigate("/student/onboarding/step-3")}
               className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-primary rounded-lg border border-subtle transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
@@ -446,13 +455,23 @@ export const StudentOnboardingMatchSelection: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Link
-                        to={`/student/applications/${app.id}`}
-                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                      <button
+                        onClick={async () => {
+                          setCompletingOnboarding(true);
+                          try {
+                            const uid = firebaseUser?.uid || appUser?.uid;
+                            if (uid) {
+                              await setDoc(doc(db, "students", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
+                              await setDoc(doc(db, "users", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
+                            }
+                            navigate(`/student/applications/${app.id}`);
+                          } catch (e) {}
+                        }}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >
                         <span>Continue Application</span>
                         <ExternalLink className="w-3.5 h-3.5" />
-                      </Link>
+                      </button>
 
                       {app.stage === "Draft" && (
                         <button
@@ -638,4 +657,4 @@ export const StudentOnboardingMatchSelection: React.FC = () => {
   );
 };
 
-export default StudentOnboardingMatchSelection;
+export default StudentOnboardingStage4;

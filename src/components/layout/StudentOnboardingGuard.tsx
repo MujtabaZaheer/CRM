@@ -1,59 +1,88 @@
-import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
-import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { Loader2 } from "lucide-react";
+import { Student } from "../../types/student";
 
 export const StudentOnboardingGuard: React.FC = () => {
-  const { appUser } = useAuth();
-  const { students, applications, initialLoading: globalLoading } = useGlobalData();
+  const { appUser, firebaseUser, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const [studentDoc, setStudentDoc] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!appUser || appUser.role !== "student") {
-    return <Navigate to="/" replace />;
-  }
+  useEffect(() => {
+    let isMounted = true;
+    const fetchProfile = async () => {
+      const uid = firebaseUser?.uid || appUser?.uid;
+      if (!uid) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, "students", uid));
+        if (snap.exists() && isMounted) {
+          setStudentDoc(snap.data() as Student);
+        }
+      } catch (err) {
+        console.warn("Guard could not fetch student doc:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
 
-  if (globalLoading && students.length === 0) {
+    if (!authLoading) {
+      fetchProfile();
+    }
+
+    return () => { isMounted = false; };
+  }, [appUser, firebaseUser, authLoading]);
+
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-main flex items-center justify-center text-muted">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="flex min-h-screen items-center justify-center bg-[#09090b]">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     );
   }
 
-  const studentDoc = students.find((s) => s.id === appUser.uid || s.email?.toLowerCase() === appUser.email?.toLowerCase());
-
+  // Fallback to step 1 if no student doc
   if (!studentDoc) {
-    return <Navigate to="/student/onboarding/profile" replace />;
-  }
-
-  // If the student has already completed onboarding, bypass all checks
-  if ((studentDoc as any).onboardingStatus === "completed" || (studentDoc as any).profileCompleted === true) {
+    if (location.pathname !== "/student/onboarding/step-1") {
+      return <Navigate to="/student/onboarding/step-1" replace />;
+    }
     return <Outlet />;
   }
 
+  const isCompleted = studentDoc.onboardingStatus === "completed" || studentDoc.profileCompleted === true;
+  const currentStep = studentDoc.currentStep || 1;
 
-  const completeness = studentDoc.profileCompleteness || 0;
-  const hasDestination = !!(studentDoc as any).preferredDestination || !!((studentDoc as any).preferredDestinations && (studentDoc as any).preferredDestinations.length > 0) || !!studentDoc.budgetAnnualUsd;
-  const hasShortlist = (studentDoc as any).shortlistedPrograms && (studentDoc as any).shortlistedPrograms.length > 0;
-
-  // Step 1: Master Profile
-  if (completeness < 100) {
-    return <Navigate to="/student/onboarding/profile" replace />;
+  // 1. Returning User: Bypass all onboarding screens, direct to dashboard
+  if (isCompleted) {
+    if (location.pathname.includes("/onboarding/")) {
+      return <Navigate to="/student/dashboard" replace />;
+    }
+    return <Outlet />; // Allowed to access everything else
   }
 
-  // Step 2: Destination
-  if (!hasDestination) {
-    return <Navigate to="/student/onboarding/destination" replace />;
-  }
+  // 2. First-Time User: Restrict access to their current (or previous) steps
+  if (!isCompleted) {
+    // If they try to go to dashboard or anything NOT onboarding, push them back to their step
+    if (!location.pathname.includes("/onboarding/")) {
+      return <Navigate to={`/student/onboarding/step-${currentStep}`} replace />;
+    }
 
-  // Step 3: Program Matcher (Requires at least one shortlist or an active application)
-  if (!hasShortlist) {
-    const studentApps = applications.filter((a) => a.studentId === studentDoc.id);
-    if (studentApps.length === 0) {
-      return <Navigate to="/student/onboarding/program-matcher" replace />;
+    // Determine the step they are trying to access
+    const match = location.pathname.match(/step-(\d+)/);
+    if (match) {
+      const attemptedStep = parseInt(match[1], 10);
+      if (attemptedStep > currentStep) {
+        // Trying to access a future step they haven't unlocked yet
+        return <Navigate to={`/student/onboarding/step-${currentStep}`} replace />;
+      }
     }
   }
 
-  // If they passed all checks, render the requested route
   return <Outlet />;
 };

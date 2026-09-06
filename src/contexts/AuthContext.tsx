@@ -127,6 +127,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 office: "Main Office",
                 branchId: "branch-main",
                 tenantId: "tenant-default",
+                onboardingStatus: "not_started",
+                profileCompleted: false,
+                currentStep: 1,
               };
               try {
                 await setDoc(userDocRef, defaultProfile, { merge: true });
@@ -146,6 +149,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
               role: "student",
               createdAt: Date.now(),
+              onboardingStatus: "not_started",
+              profileCompleted: false,
+              currentStep: 1,
             };
             setAppUser(fallbackProfile);
             setLoading(false);
