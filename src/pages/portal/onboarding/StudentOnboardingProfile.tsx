@@ -310,12 +310,6 @@ export const StudentOnboardingProfile: React.FC = () => {
           },
       noEnglishTestYet,
       desiredStudyLevel,
-      financialSponsor: hasSponsor ? {
-        name: sponsorName.trim(),
-        relationship: sponsorRelation,
-        annualIncomeUSD: Number(sponsorIncome) || 0,
-        bankStatementUploaded: false
-      } : null,
       employmentHistory: hasEmployment ? [{
         employer: employerName.trim(),
         jobTitle: jobTitle.trim(),
@@ -342,6 +336,15 @@ export const StudentOnboardingProfile: React.FC = () => {
       onboardingStep: 1,
       updatedAt: Date.now(),
     };
+
+    if (hasSponsor) {
+      payload.financialSponsor = {
+        name: sponsorName.trim(),
+        relationship: sponsorRelation,
+        annualIncomeUSD: Number(sponsorIncome) || 0,
+        bankStatementUploaded: false
+      };
+    }
 
     try {
       await setDoc(doc(db, "students", uid), payload, { merge: true });
