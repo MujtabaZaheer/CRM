@@ -14,39 +14,6 @@ export const Dashboard: React.FC = () => {
   const [sourceFilter, setSourceFilter] = useState("All");
 
   if (appUser?.role === "student") {
-    const studentDoc = students.find((s) => s.id === appUser.uid || s.email?.toLowerCase() === appUser.email?.toLowerCase());
-    
-    if (studentDoc) {
-      const completeness = studentDoc.profileCompleteness || 0;
-      const hasDestination = !!(studentDoc as any).preferredDestination || !!studentDoc.budgetAnnualUsd;
-      const hasShortlist = (studentDoc as any).shortlistedPrograms && (studentDoc as any).shortlistedPrograms.length > 0;
-      
-      // Step 1: Master Profile
-      if (completeness < 100) {
-        return <Navigate to="/student/onboarding/profile" replace />;
-      }
-      
-      // Step 2: Destination
-      if (!hasDestination) {
-        return <Navigate to="/student/onboarding/destination" replace />;
-      }
-      
-      // Step 3: Program Matcher (Requires at least one shortlist or an active application)
-      // Note: We skip checking active applications here because the student dashboard shows the shortlist 
-      // and prompts them to apply. But strictly following the prompt, we should enforce program selection:
-      if (!hasShortlist) {
-        // We'll let them see dashboard if they want, but to strictly enforce the onboarding flow:
-        // Let's check if they have any applications:
-        const studentApps = applications.filter(a => a.studentId === studentDoc.id);
-        if (studentApps.length === 0) {
-           return <Navigate to="/student/onboarding/program-matcher" replace />;
-        }
-      }
-    } else {
-      // Missing student doc? Force to profile to initialize.
-      return <Navigate to="/student/onboarding/profile" replace />;
-    }
-    
     return <Navigate to="/student/dashboard" replace />;
   }
 

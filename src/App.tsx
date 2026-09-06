@@ -58,6 +58,7 @@ import { SupportCreateTicketPage } from "./pages/support/CreateTicket";
 import { SupportKnowledgeBasePage } from "./pages/support/KnowledgeBase";
 import { SupportReportsPage } from "./pages/support/Reports";
 import { SupportNotificationsPage } from "./pages/support/Notifications";
+import { StudentOnboardingGuard } from "./components/layout/StudentOnboardingGuard";
 
 // Auditor Module Imports
 import { AuditorDashboard } from "./pages/auditor/Dashboard";
@@ -252,18 +253,21 @@ export const App: React.FC = () => {
                   <Route path="onboarding/profile" element={<StudentOnboardingProfile />} />
                   <Route path="onboarding/destination" element={<StudentOnboardingDestination />} />
                   <Route path="onboarding/program-matcher" element={<StudentOnboardingProgramMatcher />} />
-                  <Route path="dashboard" element={<StudentDashboard />} />
-                  <Route path="profile" element={<StudentProfileSelfEdit />} />
-                  <Route path="universities" element={<StudentUniversities />} />
-                  <Route path="universities/:universityId" element={<StudentUniversityDetail />} />
-                  <Route path="programs" element={<StudentProgrammes />} />
-                  <Route path="programs/:programId" element={<StudentProgramDetail />} />
-                  <Route path="applications" element={<StudentApplications />} />
-                  <Route path="applications/:applicationId" element={<StudentApplicationDetail />} />
-                  <Route path="documents" element={<RolePortal role="student" page="documents" />} />
-                  <Route path="requests" element={<RolePortal role="student" page="requests" />} />
-                  <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />
-                  <Route path="new-application" element={<StudentNewApplication />} />
+                  
+                  <Route element={<StudentOnboardingGuard />}>
+                    <Route path="dashboard" element={<StudentDashboard />} />
+                    <Route path="profile" element={<StudentProfileSelfEdit />} />
+                    <Route path="universities" element={<StudentUniversities />} />
+                    <Route path="universities/:universityId" element={<StudentUniversityDetail />} />
+                    <Route path="programs" element={<StudentProgrammes />} />
+                    <Route path="programs/:programId" element={<StudentProgramDetail />} />
+                    <Route path="applications" element={<StudentApplications />} />
+                    <Route path="applications/:applicationId" element={<StudentApplicationDetail />} />
+                    <Route path="documents" element={<RolePortal role="student" page="documents" />} />
+                    <Route path="requests" element={<RolePortal role="student" page="requests" />} />
+                    <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />
+                    <Route path="new-application" element={<StudentNewApplication />} />
+                  </Route>
                 </Route>
 
                 {/* External Agent Portal Routes */}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { signOut, sendEmailVerification } from "firebase/auth";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -9,7 +9,6 @@ import {
   LogOut,
   AlertCircle,
   Loader2,
-  ExternalLink,
 } from "lucide-react";
 import { auth } from "../firebase/config";
 import { getEmailActionSettings } from "../firebase/config";
@@ -104,7 +103,6 @@ export const VerifyEmail: React.FC = () => {
     } catch (err: any) {
       console.error("Resend error:", err);
       const code = err.code || "";
-      const msg = err.message || "";
       
       if (code.includes("too-many-requests")) {
         setError("For your security, sending is temporarily limited. Please wait before trying again.");

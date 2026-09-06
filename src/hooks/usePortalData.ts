@@ -25,7 +25,12 @@ export const usePortalData = () => {
   useEffect(() => {
     let count = 0;
     const done = () => { count += 1; if (count >= 6) setLoading(false); };
-    const fail = () => { setError("Some portal records could not be loaded. Check your access and connection."); done(); };
+    const fail = () => { 
+      if (!showDemoData) {
+        setError("Some portal records could not be loaded. Check your access and connection."); 
+      }
+      done(); 
+    };
     const studentRole = appUser?.role === "student";
     const noSubscription = () => { done(); return () => undefined; };
 

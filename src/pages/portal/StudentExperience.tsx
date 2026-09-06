@@ -176,12 +176,281 @@ export const StudentDashboard: React.FC = () => {
 
 const Empty: React.FC<{ title: string; action: string; href: string }> = ({ title, action, href }) => <div className="rounded-2xl border border-dashed border-subtle bg-elevated p-8 text-center"><GraduationCap className="mx-auto h-8 w-8 text-muted" /><p className="mt-3 font-semibold text-secondary">{title}</p><Link to={href} className="mt-3 inline-block text-sm font-bold text-emerald-500">{action} →</Link></div>;
 
-export const StudentUniversities: React.FC = () => { const { universities } = useGlobalData(); const [search, setSearch] = useState(""); const filtered = universities.filter((university) => `${university.name} ${university.country} ${university.city}`.toLowerCase().includes(search.toLowerCase())); return <div className="mx-auto max-w-7xl space-y-6 pb-8"><header><p className="text-sm font-semibold text-emerald-700">DISCOVER</p><h1 className="mt-1 text-3xl font-bold text-slate-900">Explore universities</h1><p className="mt-2 text-slate-500">Find a university, understand its programmes, and check your fit before applying.</p></header><label className="relative block max-w-xl"><Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by university, city, or country" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-12 pr-4 shadow-sm outline-none focus:border-emerald-500" /></label><div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{filtered.map((university) => <article key={university.id} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200"><Cover university={university} className="h-44 w-full" /><div className="p-5"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{university.country}</p><h2 className="mt-1 text-lg font-bold text-slate-900">{university.name}</h2><p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MapPin className="h-4 w-4" />{university.city}</p><p className="mt-3 line-clamp-2 text-sm text-slate-600">{university.description || "Explore programmes, requirements, intakes, and application deadlines."}</p><div className="mt-4 flex items-center justify-between text-sm"><span className="font-medium text-slate-600">{programmesFor(university).length} programmes</span><Link to={`/student/universities/${university.id}`} className="font-bold text-emerald-700">View university →</Link></div></div></article>)}</div>{!filtered.length && <Empty title="No universities match your search" action="Clear search" href="/student/universities" />}</div>; };
+export const StudentUniversities: React.FC = () => { 
+  const { universities } = useGlobalData(); 
+  const [search, setSearch] = useState(""); 
+  const [selectedCountry, setSelectedCountry] = useState("All");
 
-export const StudentUniversityDetail: React.FC = () => { const { universityId } = useParams(); const { universities } = useGlobalData(); const university = universities.find((item) => item.id === universityId); if (!university) return <div className="p-8 text-slate-600">University not found or is no longer available.</div>; return <div className="mx-auto max-w-6xl space-y-6 pb-8"><div className="overflow-hidden rounded-3xl bg-slate-900 text-white"><Cover university={university} className="h-64 w-full opacity-60" /><div className="-mt-24 relative p-7"><p className="text-sm text-emerald-300">{university.city}, {university.country}</p><h1 className="mt-1 text-3xl font-bold">{university.name}</h1><p className="mt-3 max-w-2xl text-slate-200">{university.description || "Programme and admission details are maintained by the education team."}</p><a href={university.website?.startsWith("http") ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer" className="mt-5 inline-block text-sm font-bold text-white underline">Official website</a></div></div><section><h2 className="text-xl font-bold text-slate-900">Popular programmes</h2><div className="mt-4 grid gap-4 md:grid-cols-2">{programmesFor(university).map((programme) => <ProgrammeCard key={programme.id} university={university} programme={programme} />)}</div></section></div>; };
+  const availableCountries = Array.from(new Set(universities.map(u => u.country))).filter(Boolean).sort();
 
-const ProgrammeCard: React.FC<{ university: University; programme: Programme }> = ({ university, programme }) => { const { ownStudent } = usePortalData(); return <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><p className="text-xs font-bold uppercase text-emerald-700">{programme.level}</p><h3 className="mt-1 font-bold text-slate-900">{programme.title}</h3><p className="mt-2 text-sm text-slate-500">{programme.durationMonths} months · {money(programme.tuitionFeeAnnual, programme.currency)}</p><div className="mt-4 flex flex-wrap gap-2"><EligibilityBadge programme={programme} student={ownStudent} /><Link to={`/student/programs/${university.id}-${programme.id}`} className="ml-auto text-sm font-bold text-slate-900">View programme →</Link></div></article>; };
+  const filtered = universities.filter((university) => {
+    const matchesCountry = selectedCountry === "All" || university.country === selectedCountry;
+    if (!matchesCountry) return false;
 
-export const StudentProgrammes: React.FC = () => { const { universities } = useGlobalData(); const [search, setSearch] = useState(""); const items = useMemo(() => universities.flatMap((university) => programmesFor(university).map((programme) => ({ university, programme }))).filter((item) => `${item.university.name} ${item.programme.title} ${item.university.country} ${item.programme.level}`.toLowerCase().includes(search.toLowerCase())), [universities, search]); return <div className="mx-auto max-w-7xl space-y-6 pb-8"><header><p className="text-sm font-semibold text-emerald-700">DISCOVER</p><h1 className="mt-1 text-3xl font-bold text-slate-900">Find a programme</h1><p className="mt-2 text-slate-500">Requirements are an indication only. Final admission decisions are made by the university.</p></header><label className="relative block max-w-xl"><Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search programme, university, country, or degree" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-12 pr-4 shadow-sm outline-none focus:border-emerald-500" /></label><div className="grid gap-4 lg:grid-cols-2">{items.map(({ university, programme }) => <ProgrammeCard key={`${university.id}-${programme.id}`} university={university} programme={programme} />)}</div></div>; };
+    if (!search) return true;
+    const term = search.toLowerCase();
+    return (
+      university.name.toLowerCase().includes(term) ||
+      university.city?.toLowerCase().includes(term) ||
+      university.country?.toLowerCase().includes(term)
+    );
+  });
 
-export const StudentProgramDetail: React.FC = () => { const { programId } = useParams(); const { universities } = useGlobalData(); const { ownStudent } = usePortalData(); const found = universities.flatMap((university) => programmesFor(university).map((programme) => ({ university, programme }))).find((item) => `${item.university.id}-${item.programme.id}` === programId); if (!found) return <div className="p-8 text-slate-600">Programme not found.</div>; const result = assessEligibility(ownStudent, found.programme); const color = result.status === "eligible" ? "emerald" : result.status === "not_eligible" ? "rose" : "amber"; return <div className="mx-auto max-w-5xl space-y-6 pb-8"><div className="rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-200"><p className="text-sm font-bold text-emerald-700">{found.university.name} · {found.university.city}</p><h1 className="mt-2 text-3xl font-bold text-slate-900">{found.programme.title}</h1><div className="mt-5 grid gap-3 text-sm text-slate-600 sm:grid-cols-4"><span>{found.programme.level}</span><span>{found.programme.durationMonths} months</span><span>{money(found.programme.tuitionFeeAnnual, found.programme.currency)}</span><span>{found.programme.intakes.join(", ")}</span></div></div><section className={`rounded-2xl border bg-${color}-50 p-6`}><h2 className="text-lg font-bold text-slate-900">Based on your profile: {result.status.replace("_", " ")}</h2><p className="mt-2 text-sm text-slate-600">{result.disclaimer}</p><div className="mt-4 space-y-3">{result.checks.map((check) => <div key={check.label} className="rounded-xl bg-white p-3 text-sm shadow-sm"><span className="font-semibold text-slate-800">{check.status === "pass" ? "✓" : check.status === "fail" ? "✕" : "!"} {check.label}</span><p className="mt-1 text-slate-600">{check.detail}</p></div>)}</div><Link to={`/student/new-application?universityId=${found.university.id}&programmeId=${found.programme.id}`} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white">Start application <ArrowRight className="h-4 w-4" /></Link></section></div>; };
+  return (
+    <div className="mx-auto max-w-7xl space-y-6 pb-8 animate-fade-in">
+      <header>
+        <p className="text-sm font-semibold text-emerald-500 tracking-wider">DISCOVER</p>
+        <h1 className="mt-1 text-3xl font-bold font-heading text-primary">Explore universities</h1>
+        <p className="mt-2 text-secondary">Find a university, understand its programmes, and check your fit before applying.</p>
+      </header>
+      
+      <div className="flex flex-col sm:flex-row gap-4 max-w-3xl">
+        <label className="relative flex-1">
+          <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted" />
+          <input 
+            value={search} 
+            onChange={(event) => setSearch(event.target.value)} 
+            placeholder="Search by university, city, or country" 
+            className="w-full rounded-xl border border-default bg-input py-3 pl-12 pr-4 text-primary shadow-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+          />
+        </label>
+        
+        <select
+          value={selectedCountry}
+          onChange={(e) => setSelectedCountry(e.target.value)}
+          className="w-full sm:w-64 bg-input border border-default rounded-xl p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="All">All Countries</option>
+          {availableCountries.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+      
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 mt-8">
+        {filtered.map((university) => (
+          <article key={university.id} className="overflow-hidden rounded-2xl bg-surface shadow-sm border border-default hover:border-emerald-500/50 transition-colors flex flex-col">
+            <Cover university={university} className="h-44 w-full" />
+            <div className="p-5 flex flex-col flex-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">{university.country}</p>
+              <h2 className="mt-1 text-lg font-bold text-primary leading-tight">{university.name}</h2>
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-secondary">
+                <MapPin className="h-3.5 w-3.5 text-emerald-500/70" />
+                {university.city}
+              </p>
+              <p className="mt-3 line-clamp-2 text-sm text-muted flex-1">{university.description || "Explore programmes, requirements, intakes, and application deadlines."}</p>
+              
+              <div className="mt-5 pt-4 border-t border-subtle flex items-center justify-between text-sm">
+                <span className="font-semibold text-secondary flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-emerald-500/70" />
+                  {programmesFor(university).length} programmes
+                </span>
+                <Link to={`/student/universities/${university.id}`} className="font-bold text-emerald-500 flex items-center gap-1 hover:text-emerald-400">
+                  View <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      
+      {!filtered.length && <Empty title="No universities match your search" action="Clear search" href="/student/universities" />}
+    </div>
+  ); 
+};
+
+export const StudentUniversityDetail: React.FC = () => { 
+  const { universityId } = useParams(); 
+  const { universities } = useGlobalData(); 
+  const university = universities.find((item) => item.id === universityId); 
+  
+  if (!university) return <div className="p-8 text-secondary">University not found or is no longer available.</div>; 
+  
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 pb-8 animate-fade-in">
+      <div className="overflow-hidden rounded-3xl bg-main border border-default relative">
+        <Cover university={university} className="h-64 w-full opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent pointer-events-none" />
+        <div className="-mt-24 relative p-7 z-10">
+          <p className="text-sm font-bold tracking-wider text-emerald-400">{university.city}, {university.country}</p>
+          <h1 className="mt-1 text-3xl font-bold text-white font-heading">{university.name}</h1>
+          <p className="mt-3 max-w-2xl text-zinc-300">{university.description || "Programme and admission details are maintained by the education team."}</p>
+          <a href={university.website?.startsWith("http") ? university.website : `https://${university.website}`} target="_blank" rel="noreferrer" className="mt-5 inline-block text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors">Official website →</a>
+        </div>
+      </div>
+      <section>
+        <h2 className="text-xl font-bold font-heading text-primary">Popular programmes</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {programmesFor(university).map((programme) => <ProgrammeCard key={programme.id} university={university} programme={programme} />)}
+        </div>
+      </section>
+    </div>
+  ); 
+};
+
+const ProgrammeCard: React.FC<{ university: University; programme: Programme }> = ({ university, programme }) => { 
+  const { ownStudent } = usePortalData(); 
+  return (
+    <article className="rounded-2xl bg-surface p-5 shadow-sm border border-default hover:border-emerald-500/50 transition-colors flex flex-col h-full">
+      <div className="flex-1">
+        <p className="text-xs font-bold uppercase tracking-wider text-emerald-500">{programme.level}</p>
+        <h3 className="mt-1 font-bold text-primary leading-snug">{programme.title}</h3>
+        <p className="mt-2 text-sm text-secondary flex flex-wrap gap-x-4 gap-y-1">
+          <span>{programme.durationMonths} months</span>
+          <span>•</span>
+          <span>{money(programme.tuitionFeeAnnual, programme.currency)} / year</span>
+        </p>
+      </div>
+      <div className="mt-5 pt-4 border-t border-subtle flex items-center justify-between">
+        <EligibilityBadge programme={programme} student={ownStudent} />
+        <Link to={`/student/programs/${university.id}-${programme.id}`} className="text-sm font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1">
+          View <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    </article>
+  ); 
+};
+
+export const StudentProgrammes: React.FC = () => { 
+  const { universities } = useGlobalData(); 
+  const [search, setSearch] = useState(""); 
+  const [selectedCountry, setSelectedCountry] = useState("All");
+  const [selectedLevel, setSelectedLevel] = useState("All");
+
+  const items = useMemo(() => {
+    return universities.flatMap((university) => 
+      programmesFor(university).map((programme) => ({ university, programme }))
+    );
+  }, [universities]);
+
+  const availableCountries = Array.from(new Set(items.map(i => i.university.country))).filter(Boolean).sort();
+  const availableLevels = Array.from(new Set(items.map(i => i.programme.level))).filter(Boolean).sort();
+
+  const filtered = useMemo(() => {
+    return items.filter((item) => {
+      const matchesCountry = selectedCountry === "All" || item.university.country === selectedCountry;
+      const matchesLevel = selectedLevel === "All" || item.programme.level === selectedLevel;
+      if (!matchesCountry || !matchesLevel) return false;
+
+      if (!search) return true;
+      const term = search.toLowerCase();
+      return (
+        item.university.name.toLowerCase().includes(term) ||
+        item.programme.title.toLowerCase().includes(term) ||
+        item.university.country?.toLowerCase().includes(term) ||
+        item.university.city?.toLowerCase().includes(term)
+      );
+    });
+  }, [items, search, selectedCountry, selectedLevel]);
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6 pb-8 animate-fade-in">
+      <header>
+        <p className="text-sm font-semibold text-emerald-500 tracking-wider">DISCOVER</p>
+        <h1 className="mt-1 text-3xl font-bold font-heading text-primary">Find a programme</h1>
+        <p className="mt-2 text-secondary">Requirements are an indication only. Final admission decisions are made by the university.</p>
+      </header>
+      
+      <div className="flex flex-col md:flex-row gap-4">
+        <label className="relative flex-1">
+          <Search className="absolute left-4 top-3.5 h-5 w-5 text-muted" />
+          <input 
+            value={search} 
+            onChange={(event) => setSearch(event.target.value)} 
+            placeholder="Search programme, university, country, or degree" 
+            className="w-full rounded-xl border border-default bg-input py-3 pl-12 pr-4 text-primary shadow-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+          />
+        </label>
+        
+        <select
+          value={selectedCountry}
+          onChange={(e) => setSelectedCountry(e.target.value)}
+          className="w-full md:w-48 bg-input border border-default rounded-xl p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="All">All Countries</option>
+          {availableCountries.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        
+        <select
+          value={selectedLevel}
+          onChange={(e) => setSelectedLevel(e.target.value)}
+          className="w-full md:w-48 bg-input border border-default rounded-xl p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+        >
+          <option value="All">All Study Levels</option>
+          {availableLevels.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2 mt-8">
+        {filtered.map(({ university, programme }) => (
+          <ProgrammeCard key={`${university.id}-${programme.id}`} university={university} programme={programme} />
+        ))}
+      </div>
+      
+      {!filtered.length && <Empty title="No programmes match your search" action="Clear search" href="/student/programs" />}
+    </div>
+  ); 
+};
+
+export const StudentProgramDetail: React.FC = () => { 
+  const { programId } = useParams(); 
+  const { universities } = useGlobalData(); 
+  const { ownStudent } = usePortalData(); 
+  
+  const found = universities
+    .flatMap((university) => programmesFor(university).map((programme) => ({ university, programme })))
+    .find((item) => `${item.university.id}-${item.programme.id}` === programId); 
+    
+  if (!found) return <div className="p-8 text-secondary">Programme not found.</div>; 
+  
+  const result = assessEligibility(ownStudent, found.programme); 
+  const colorClass = result.status === "eligible" ? "emerald" : result.status === "not_eligible" ? "rose" : "amber"; 
+  
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 pb-8 animate-fade-in">
+      <div className="rounded-3xl bg-surface border border-default p-7 shadow-sm">
+        <p className="text-sm font-bold text-emerald-500 tracking-wider uppercase">{found.university.name} • {found.university.city}</p>
+        <h1 className="mt-2 text-3xl font-bold font-heading text-primary">{found.programme.title}</h1>
+        <div className="mt-5 flex flex-wrap gap-3 text-sm text-secondary">
+          <span className="bg-elevated border border-subtle px-3 py-1 rounded-full">{found.programme.level}</span>
+          <span className="bg-elevated border border-subtle px-3 py-1 rounded-full">{found.programme.durationMonths} months</span>
+          <span className="bg-elevated border border-subtle px-3 py-1 rounded-full">{money(found.programme.tuitionFeeAnnual, found.programme.currency)}</span>
+          <span className="bg-elevated border border-subtle px-3 py-1 rounded-full">Intakes: {found.programme.intakes.join(", ")}</span>
+        </div>
+      </div>
+      
+      <section className={`rounded-2xl border bg-${colorClass}-500/10 border-${colorClass}-500/30 p-6 shadow-sm`}>
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl bg-${colorClass}-500/20 text-${colorClass}-400`}>
+            {result.status === "eligible" ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-primary font-heading">
+              Based on your profile: <span className="capitalize">{result.status.replace("_", " ")}</span>
+            </h2>
+            <p className="mt-1 text-sm text-secondary">{result.disclaimer}</p>
+          </div>
+        </div>
+        
+        <div className="mt-6 space-y-3">
+          {result.checks.map((check) => (
+            <div key={check.label} className="rounded-xl bg-surface border border-subtle p-4 text-sm shadow-sm flex items-start gap-3">
+              <span className={`mt-0.5 font-bold ${check.status === "pass" ? "text-emerald-500" : check.status === "fail" ? "text-rose-500" : "text-amber-500"}`}>
+                {check.status === "pass" ? "✓" : check.status === "fail" ? "✕" : "!"}
+              </span>
+              <div>
+                <span className="font-semibold text-primary">{check.label}</span>
+                <p className="mt-1 text-secondary">{check.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <Link 
+          to={`/student/new-application?universityId=${found.university.id}&programmeId=${found.programme.id}`} 
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition-colors"
+        >
+          Start application <ArrowRight className="w-4 h-4" />
+        </Link>
+      </section>
+    </div>
+  ); 
+};
