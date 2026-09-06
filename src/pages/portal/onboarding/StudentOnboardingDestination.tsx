@@ -26,13 +26,24 @@ import {
 import { db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
-import type { DestinationCountry } from "../../../types/country";
+import type { DestinationCountry, WorldRegion } from "../../../types/country";
 import { DEFAULT_DESTINATIONS } from "../../../types/country";
 import { getImmigrationData } from "../../../utils/immigrationData";
 
 /* ------------------------------------------------------------------ */
-/*  Quick filter definitions                                           */
+/*  Region and quick filter definitions                               */
 /* ------------------------------------------------------------------ */
+const REGION_TABS: WorldRegion[] = [
+  "All",
+  "Popular Hubs",
+  "Europe",
+  "North America",
+  "Asia-Pacific",
+  "Middle East",
+  "Latin America",
+  "Africa",
+];
+
 type QuickFilter = "popular" | "longPswv" | "affordable" | "noTuition";
 
 const QUICK_FILTERS: { key: QuickFilter; label: string; icon: React.ReactNode }[] = [
@@ -42,7 +53,7 @@ const QUICK_FILTERS: { key: QuickFilter; label: string; icon: React.ReactNode }[
   { key: "noTuition", label: "No Tuition", icon: <GraduationCap className="w-3.5 h-3.5" /> },
 ];
 
-const POPULAR_IDS = new Set(["uk", "ca", "us", "au"]);
+const POPULAR_IDS = new Set(["uk", "ca", "us", "au", "de", "fr", "ie", "sg", "ae"]);
 
 const INTAKE_OPTIONS = [
   "Fall 2026 (Aug – Oct)",
@@ -67,11 +78,13 @@ export const StudentOnboardingDestination: React.FC = () => {
   const [student, setStudent] = useState<Student | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<WorldRegion>("All");
   const [activeFilters, setActiveFilters] = useState<QuickFilter[]>([]);
   const [availableDestinations, setAvailableDestinations] = useState<DestinationCountry[]>(DEFAULT_DESTINATIONS);
 
   // Preferences
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [inspectedCountry, setInspectedCountry] = useState<string | null>(null);
   const [budgetAnnualUsd, setBudgetAnnualUsd] = useState(25000);
   const [preferredIntake, setPreferredIntake] = useState(INTAKE_OPTIONS[0]);
   const [preferredStudyMode, setPreferredStudyMode] = useState(STUDY_MODES[0]);
@@ -105,6 +118,7 @@ export const StudentOnboardingDestination: React.FC = () => {
                     code: c.slice(0, 2).toUpperCase(),
                     flag: "🌐",
                     currency: "USD",
+                    region: "Europe",
                     tuitionAffordabilityTier: "$$",
                     pswvLengthYears: 0,
                     popularIntakes: ["September", "January"],
@@ -176,9 +190,16 @@ export const StudentOnboardingDestination: React.FC = () => {
       list = list.filter((d) => d.name.toLowerCase().includes(q) || d.code.toLowerCase().includes(q));
     }
 
+    // Region filter
+    if (selectedRegion === "Popular Hubs") {
+      list = list.filter((d) => d.isPopular || POPULAR_IDS.has(d.id));
+    } else if (selectedRegion !== "All") {
+      list = list.filter((d) => d.region === selectedRegion);
+    }
+
     // Quick filters
     if (activeFilters.includes("popular")) {
-      list = list.filter((d) => POPULAR_IDS.has(d.id));
+      list = list.filter((d) => d.isPopular || POPULAR_IDS.has(d.id));
     }
     if (activeFilters.includes("longPswv")) {
       list = list.filter((d) => d.pswvLengthYears >= 2);
@@ -191,13 +212,14 @@ export const StudentOnboardingDestination: React.FC = () => {
     }
 
     return list;
-  }, [availableDestinations, searchQuery, activeFilters]);
+  }, [availableDestinations, searchQuery, selectedRegion, activeFilters]);
 
-  /* ---- Active advisory for first selected country ---- */
+  /* ---- Active advisory for inspected or first selected country ---- */
+  const activeCountryName = inspectedCountry || selectedCountries[0] || filteredDestinations[0]?.name;
   const activeAdvisory = useMemo(() => {
-    if (selectedCountries.length === 0) return null;
-    return getImmigrationData(selectedCountries[0]);
-  }, [selectedCountries]);
+    if (!activeCountryName) return null;
+    return getImmigrationData(activeCountryName);
+  }, [activeCountryName]);
 
   /* ---- Save preferences ---- */
   const savePreferences = async (isProceeding = false) => {
@@ -337,7 +359,57 @@ export const StudentOnboardingDestination: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Region Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-t border-subtle/50 pt-3">
+            {REGION_TABS.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setSelectedRegion(r)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  selectedRegion === r
+                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                    : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Selected Destinations Chips Bar */}
+        {selectedCountries.length > 0 && (
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center gap-2 animate-fade-in">
+            <span className="text-xs font-bold text-emerald-400 mr-1 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" /> Selected Destinations ({selectedCountries.length}):
+            </span>
+            {selectedCountries.map((c) => (
+              <span
+                key={c}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface border border-emerald-500/30 text-xs font-bold text-primary shadow-sm"
+              >
+                <span>{availableDestinations.find((d) => d.name === c)?.flag || "🌐"}</span>
+                <span>{c}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleCountry(c)}
+                  className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-muted hover:text-rose-400 transition-colors cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => setSelectedCountries([])}
+              className="text-xs text-muted hover:text-rose-400 ml-auto font-semibold underline cursor-pointer"
+            >
+              Clear All
+            </button>
+          </div>
+        )}
 
         {/* ---- Main Grid ---- */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -361,15 +433,21 @@ export const StudentOnboardingDestination: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {filteredDestinations.map((country) => {
                   const selected = selectedCountries.includes(country.name);
+                  const isInspected = activeCountryName === country.name;
                   const advisory = getImmigrationData(country.name);
                   const pCount = advisory?.partnerCount || country.partnerCount || 0;
                   return (
                     <div
                       key={country.id}
-                      onClick={() => toggleCountry(country.name)}
+                      onClick={() => {
+                        toggleCountry(country.name);
+                        setInspectedCountry(country.name);
+                      }}
                       className={`p-4 rounded-xl border transition-all cursor-pointer select-none space-y-3 relative group hover-lift ${
                         selected
                           ? "bg-emerald-500/10 border-emerald-500/50 shadow-md shadow-emerald-500/5 ring-1 ring-emerald-500/20"
+                          : isInspected
+                          ? "bg-elevated border-default ring-1 ring-default"
                           : "bg-main border-subtle hover:border-default hover:bg-elevated"
                       }`}
                     >

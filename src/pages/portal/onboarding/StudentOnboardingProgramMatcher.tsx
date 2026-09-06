@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, addDoc, query, where } from "firebase/firestore";
 import {
   Search,
   CheckCircle2,
@@ -8,12 +8,10 @@ import {
   XCircle,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
   Loader2,
   SlidersHorizontal,
   BookmarkPlus,
   BookmarkCheck,
-  Calendar,
   Banknote,
   GraduationCap,
   Building2,
@@ -22,16 +20,20 @@ import {
   Shield,
   X,
   Eye,
-  BookOpen,
-  Award,
-  Filter,
   Info,
+  Globe,
+  Send,
+  Layers,
+  LayoutGrid,
 } from "lucide-react";
 import { db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
+import { Application } from "../../../types/application";
 import { assessEligibility, EligibilityResult } from "../../../utils/eligibility";
+import { DEMO_UNIVERSITIES } from "../../../data/demoData";
+import { getDocumentChecklist } from "../../../utils/immigrationData";
 
 /* ------------------------------------------------------------------ */
 /*  Local types                                                        */
@@ -43,6 +45,8 @@ interface ProgramMatchItem {
   eligibility: EligibilityResult;
   matchReasons: string[];
 }
+
+type ViewMode = "universities" | "programs";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -122,16 +126,18 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [maxBudget, setMaxBudget] = useState<number>(50000);
+  const [activeCountryTab, setActiveCountryTab] = useState<string>("All");
+  const [maxBudget, setMaxBudget] = useState<number>(60000);
   const [onlyEligible, setOnlyEligible] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("universities");
 
-  // University focus
-  const [focusedUnivId, setFocusedUnivId] = useState<string | null>(null);
-
-  // Shortlist
+  // Shortlist & Applied tracking
   const [shortlistedKeys, setShortlistedKeys] = useState<string[]>([]);
+  const [appliedMap, setAppliedMap] = useState<Record<string, string>>({}); // `${univId}-${progId}` => appNumber
+  const [applyingKey, setApplyingKey] = useState<string | null>(null);
   const [savingShortlist, setSavingShortlist] = useState(false);
+  const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
 
   // Detail drawer
   const [drawerItem, setDrawerItem] = useState<ProgramMatchItem | null>(null);
@@ -158,8 +164,34 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             setSelectedCountries([sd.preferredDestination]);
           }
         }
+
+        // Fetch universities from DB + merge with DEMO_UNIVERSITIES to guarantee global coverage
         const univSnap = await getDocs(collection(db, "universities"));
-        setUniversities(univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University)));
+        let fetched = univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University));
+        if (fetched.length === 0) {
+          fetched = DEMO_UNIVERSITIES;
+        } else {
+          DEMO_UNIVERSITIES.forEach((demo) => {
+            if (!fetched.some((u) => u.name.toLowerCase() === demo.name.toLowerCase())) {
+              fetched.push(demo);
+            }
+          });
+        }
+        setUniversities(fetched);
+
+        // Fetch existing applications for this student
+        try {
+          const appsQuery = query(collection(db, "applications"), where("studentId", "==", uid));
+          const appsSnap = await getDocs(appsQuery);
+          const appRecord: Record<string, string> = {};
+          appsSnap.docs.forEach((d) => {
+            const data = d.data();
+            if (data.universityId && data.programmeId) {
+              appRecord[`${data.universityId}-${data.programmeId}`] = data.applicationNumber || d.id;
+            }
+          });
+          setAppliedMap(appRecord);
+        } catch (_) {}
       } catch (err) {
         console.warn("Error loading matcher data:", err);
       } finally {
@@ -213,57 +245,81 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
     return results.sort((a, b) => b.matchScore - a.matchScore);
   }, [universities, student, maxBudget]);
 
-  /* ---- Filtered results ---- */
+  /* ---- Filtered programs ---- */
   const filteredMatches = useMemo(() => {
-    return matchedPrograms.filter((item) => {
-      const q = debouncedSearch.toLowerCase().trim();
-      const matchesQuery = !q ||
-        item.programme.title.toLowerCase().includes(q) ||
-        item.university.name.toLowerCase().includes(q) ||
-        item.university.country.toLowerCase().includes(q);
+    return matchedPrograms.filter(({ university, programme, eligibility }) => {
+      // Country tab filter
+      if (activeCountryTab !== "All") {
+        if (university.country.toLowerCase() !== activeCountryTab.toLowerCase()) return false;
+      } else if (selectedCountries.length > 0) {
+        if (!selectedCountries.some((c) => c.toLowerCase() === university.country.toLowerCase())) {
+          return false;
+        }
+      }
 
-      const matchesField = selectedFields.length === 0 || selectedFields.some((f) =>
-        item.programme.title.toLowerCase().includes(f.toLowerCase()) ||
-        (item.programme.field || "").toLowerCase().includes(f.toLowerCase()) ||
-        (item.programme.subjectArea || "").toLowerCase().includes(f.toLowerCase()),
-      );
+      // Search query
+      if (debouncedSearch.trim()) {
+        const q = debouncedSearch.toLowerCase().trim();
+        const matchesTitle = programme.title.toLowerCase().includes(q);
+        const matchesUniv = university.name.toLowerCase().includes(q);
+        const matchesCountry = university.country.toLowerCase().includes(q);
+        const matchesField = (programme.field || "").toLowerCase().includes(q);
+        const matchesSubject = (programme.subjectArea || "").toLowerCase().includes(q);
+        if (!matchesTitle && !matchesUniv && !matchesCountry && !matchesField && !matchesSubject) return false;
+      }
 
-      const matchesLevel = selectedLevels.length === 0 || selectedLevels.some((level) => {
-        const pl = item.programme.level;
-        if (level === "Master's") return pl.includes("Postgraduate") || pl.includes("Master");
-        if (level === "Bachelor's") return pl.includes("Undergraduate") || pl.includes("Bachelor");
-        if (level === "MBA") return item.programme.title.toLowerCase().includes("mba");
-        if (level === "PhD") return pl.includes("Doctorate");
-        if (level === "Pre-Master's") return pl.includes("Pre-Master");
-        return pl.toLowerCase().includes(level.toLowerCase());
-      });
+      // Level
+      if (selectedLevels.length > 0) {
+        const matchesLevel = selectedLevels.some((l) => {
+          const pl = (programme.level || "").toLowerCase();
+          const target = l.toLowerCase();
+          if (target.includes("master") && (pl.includes("master") || pl.includes("postgrad"))) return true;
+          if (target.includes("bachelor") && (pl.includes("bachelor") || pl.includes("undergrad"))) return true;
+          if (target.includes("phd") && (pl.includes("phd") || pl.includes("doctor"))) return true;
+          if (target.includes("foundation") && pl.includes("foundation")) return true;
+          return pl.includes(target);
+        });
+        if (!matchesLevel) return false;
+      }
 
-      const matchesCountry = selectedCountries.length === 0 || selectedCountries.some((c) =>
-        item.university.country.toLowerCase() === c.toLowerCase(),
-      );
+      // Field / Subject
+      if (selectedFields.length > 0) {
+        const matchesField = selectedFields.some((f) => {
+          const progField = (programme.subjectArea || programme.field || "").toLowerCase();
+          return progField.includes(f.toLowerCase());
+        });
+        if (!matchesField) return false;
+      }
 
-      const matchesEligible = !onlyEligible ||
-        item.eligibility.status === "eligible" ||
-        item.eligibility.status === "competitive" ||
-        item.eligibility.status === "conditional";
+      // Tuition budget
+      const fee = programme.tuitionFeeAnnual || 0;
+      if (fee > maxBudget) return false;
 
-      const matchesBudget = (item.programme.tuitionFeeAnnual || 0) <= maxBudget;
-      const matchesUniv = !focusedUnivId || item.university.id === focusedUnivId;
+      // Eligibility only
+      if (onlyEligible && eligibility.status === "not_eligible") return false;
 
-      return matchesQuery && matchesField && matchesLevel && matchesCountry && matchesEligible && matchesBudget && matchesUniv;
+      return true;
     });
-  }, [matchedPrograms, debouncedSearch, selectedFields, selectedLevels, selectedCountries, onlyEligible, maxBudget, focusedUnivId]);
+  }, [matchedPrograms, debouncedSearch, selectedLevels, selectedFields, maxBudget, onlyEligible, activeCountryTab, selectedCountries]);
 
-  /* ---- University directory (filtered by destinations) ---- */
-  const directoryUniversities = useMemo(() => {
-    if (selectedCountries.length === 0) return universities;
-    return universities.filter((u) => selectedCountries.some((c) => c.toLowerCase() === u.country.toLowerCase()));
-  }, [universities, selectedCountries]);
+  /* ---- Grouped by University ---- */
+  const universitiesWithMatches = useMemo(() => {
+    const map = new Map<string, { university: University; programs: ProgramMatchItem[] }>();
+    filteredMatches.forEach((item) => {
+      const uId = item.university.id;
+      if (!map.has(uId)) {
+        map.set(uId, { university: item.university, programs: [] });
+      }
+      map.get(uId)!.programs.push(item);
+    });
+    return Array.from(map.values());
+  }, [filteredMatches]);
 
-  const uniqueCountries = useMemo(() => {
-    const s = new Set<string>();
-    universities.forEach((u) => s.add(u.country));
-    return Array.from(s).sort();
+  /* ---- Distinct countries available ---- */
+  const availableCountries = useMemo(() => {
+    const set = new Set<string>();
+    universities.forEach((u) => { if (u.country) set.add(u.country); });
+    return Array.from(set);
   }, [universities]);
 
   /* ---- Shortlist toggle ---- */
@@ -273,6 +329,63 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
     const uid = firebaseUser?.uid || appUser?.uid;
     if (uid) {
       try { await setDoc(doc(db, "students", uid), { shortlistedPrograms: next, updatedAt: Date.now() }, { merge: true }); } catch (_) {}
+    }
+  };
+
+  /* ---- Apply to Program (One-Click Application Draft Creation) ---- */
+  const handleApplyToProgram = async (univ: University, prog: Programme) => {
+    const uid = firebaseUser?.uid || appUser?.uid;
+    if (!uid) return;
+    const key = `${univ.id}-${prog.id}`;
+    if (appliedMap[key]) {
+      navigate("/student/onboarding/review");
+      return;
+    }
+
+    setApplyingKey(key);
+    try {
+      const year = new Date().getFullYear();
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      const appNumber = `APP-${year}-${rand}`;
+      const elig = assessEligibility(student || undefined, prog);
+      const checklist = getDocumentChecklist(univ.country, prog.level);
+
+      const appDoc: Omit<Application, "id"> = {
+        applicationNumber: appNumber,
+        studentId: uid,
+        studentName: student?.fullName || appUser?.displayName || "Student",
+        studentEmail: student?.email || appUser?.email || "",
+        universityId: univ.id,
+        universityName: univ.name,
+        programmeId: prog.id,
+        programmeName: prog.title,
+        intake: prog.intakes?.[0] || "September",
+        targetCountry: univ.country,
+        eligibilityStatus: elig.status,
+        eligibilityScore: elig.score,
+        stage: "Draft",
+        documentChecklist: checklist,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        history: [
+          {
+            stage: "Draft",
+            updatedBy: student?.fullName || "Student",
+            timestamp: Date.now(),
+            note: `Application draft initiated from University Explorer for ${univ.name}.`,
+          },
+        ],
+      };
+
+      await addDoc(collection(db, "applications"), appDoc);
+      setAppliedMap((prev) => ({ ...prev, [key]: appNumber }));
+      setShortlistedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+      setAppliedNotice(`Application draft ${appNumber} created for ${prog.title} at ${univ.name}!`);
+      setTimeout(() => setAppliedNotice(null), 5000);
+    } catch (err) {
+      console.error("Failed to apply:", err);
+    } finally {
+      setApplyingKey(null);
     }
   };
 
@@ -302,6 +415,8 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
     );
   }
 
+  const appliedCount = Object.keys(appliedMap).length;
+
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */
@@ -312,10 +427,13 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold tracking-wider text-emerald-400 uppercase">
-              Step 3 of 4 • University Explorer & Program Matcher
+              Step 3 of 4 • University Explorer & Multi-Program Matcher
             </span>
-            <h1 className="text-xl font-bold font-heading text-primary">Discover & Shortlist</h1>
+            <h1 className="text-xl font-bold font-heading text-primary">
+              Explore Universities & Apply
+            </h1>
           </div>
+
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/student/onboarding/destination")}
@@ -323,110 +441,132 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
             </button>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-elevated rounded-lg p-0.5 border border-subtle">
+              <button
+                onClick={() => setViewMode("universities")}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === "universities"
+                    ? "bg-surface text-emerald-400 shadow-sm"
+                    : "text-muted hover:text-primary"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Universities</span>
+              </button>
+              <button
+                onClick={() => setViewMode("programs")}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === "programs"
+                    ? "bg-surface text-emerald-400 shadow-sm"
+                    : "text-muted hover:text-primary"
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Programs</span>
+              </button>
+            </div>
+
             <button
               onClick={proceedToStep4}
-              disabled={shortlistedKeys.length === 0 || savingShortlist}
+              disabled={savingShortlist}
               className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <span>Compare Matches ({shortlistedKeys.length})</span>
+              <span>View Applications ({appliedCount > 0 ? appliedCount : shortlistedKeys.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-6">
-        {/* ---- Tip Banner ---- */}
-        <div className="p-5 rounded-2xl bg-surface border border-subtle text-sm text-secondary flex items-start gap-3 mb-6 shadow-sm animate-fade-in">
-          <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-primary">Eligibility & match scores calculated in real-time.</p>
-            <p className="text-xs text-muted">Use filters to refine. Shortlist at least 1 program to proceed.</p>
-          </div>
-        </div>
-
-        {/* ---- University Directory (Horizontal Scroll) ---- */}
-        {directoryUniversities.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-sm font-bold text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-emerald-400" />
-              Partner Universities
-              {focusedUnivId && (
-                <button
-                  onClick={() => setFocusedUnivId(null)}
-                  className="ml-2 text-xs text-emerald-400 hover:text-emerald-300 font-normal flex items-center gap-1 cursor-pointer"
-                >
-                  <X className="w-3 h-3" /> Show all
-                </button>
-              )}
-            </h2>
-            <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-thin">
-              {directoryUniversities.map((univ) => {
-                const isFocused = focusedUnivId === univ.id;
-                return (
-                  <button
-                    key={univ.id}
-                    onClick={() => setFocusedUnivId(isFocused ? null : univ.id)}
-                    className={`shrink-0 w-52 p-4 rounded-xl border transition-all text-left cursor-pointer group hover-lift ${
-                      isFocused
-                        ? "bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/20"
-                        : "bg-surface border-subtle hover:border-default"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-elevated flex items-center justify-center mb-2">
-                      {univ.logoUrl ? (
-                        <img src={univ.logoUrl} alt={univ.name} className="w-8 h-8 rounded object-contain" />
-                      ) : (
-                        <Building2 className="w-5 h-5 text-emerald-400" />
-                      )}
-                    </div>
-                    <h3 className={`text-xs font-bold line-clamp-2 leading-tight ${isFocused ? "text-emerald-400" : "text-primary group-hover:text-emerald-400"} transition-colors`}>
-                      {univ.name}
-                    </h3>
-                    <p className="text-[10px] text-muted mt-1 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {univ.city}, {univ.country}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {univ.globalRanking && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-elevated text-secondary border border-subtle">
-                          #{univ.globalRanking} Global
-                        </span>
-                      )}
-                      {univ.nationalRanking && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-elevated text-secondary border border-subtle">
-                          #{univ.nationalRanking} National
-                        </span>
-                      )}
-                      {univ.accreditationStatus && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <Shield className="w-2.5 h-2.5 inline mr-0.5" />
-                          {univ.accreditationStatus}
-                        </span>
-                      )}
-                      {univ.acceptanceRate != null && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-elevated text-secondary border border-subtle">
-                          {univ.acceptanceRate}% Acceptance
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-6 space-y-6">
+        {/* Applied Alert Notification Toast */}
+        {appliedNotice && (
+          <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm flex items-center justify-between gap-3 animate-fade-in shadow-lg shadow-emerald-500/10">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+              <span className="font-semibold">{appliedNotice}</span>
             </div>
+            <button
+              onClick={() => navigate("/student/onboarding/review")}
+              className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-400 cursor-pointer"
+            >
+              Track in Step 4 →
+            </button>
           </div>
         )}
 
-        {/* ---- Mobile Filter Toggle ---- */}
-        <div className="lg:hidden mb-4">
+        {/* ---- Top Country Tabs (Cascading from Step 2) ---- */}
+        <div className="bg-surface border border-subtle rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sq-card animate-fade-in">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-xs font-bold text-muted flex items-center gap-1.5 whitespace-nowrap mr-2">
+              <Globe className="w-4 h-4 text-emerald-400" /> Filter Country:
+            </span>
+            <button
+              onClick={() => setActiveCountryTab("All")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                activeCountryTab === "All"
+                  ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                  : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
+              }`}
+            >
+              All Destinations ({selectedCountries.length > 0 ? selectedCountries.join(", ") : "Worldwide"})
+            </button>
+
+            {selectedCountries.map((c) => (
+              <button
+                key={c}
+                onClick={() => setActiveCountryTab(c)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  activeCountryTab === c
+                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                    : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+
+            {/* Other countries available in catalog */}
+            {availableCountries.filter((c) => !selectedCountries.includes(c)).slice(0, 5).map((c) => (
+              <button
+                key={c}
+                onClick={() => setActiveCountryTab(c)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                  activeCountryTab === c
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "bg-elevated/50 text-muted hover:text-secondary hover:bg-elevated"
+                }`}
+              >
+                + {c}
+              </button>
+            ))}
+          </div>
+
+          {appliedCount > 0 && (
+            <div className="shrink-0 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+              <Send className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs font-bold text-emerald-400">
+                {appliedCount} Draft {appliedCount === 1 ? "Application" : "Applications"} Created
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Filter Toggle */}
+        <div className="lg:hidden">
           <button
+            type="button"
             onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-elevated border border-default rounded-xl font-medium text-sm cursor-pointer"
+            className="w-full py-2 bg-elevated border border-subtle rounded-xl text-xs font-semibold text-secondary hover:text-primary flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <Filter className="w-4 h-4" />
-            {isMobileFiltersOpen ? "Hide Filters" : "Show Filters"}
+            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+            {isMobileFiltersOpen ? "Hide Program Filters" : "Show Program Filters"}
           </button>
         </div>
 
+        {/* ---- Main Layout: Filters + Content ---- */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ---- Sidebar Filters ---- */}
           <aside className={`lg:w-72 shrink-0 space-y-6 ${isMobileFiltersOpen ? "block" : "hidden lg:block"}`}>
@@ -438,210 +578,369 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search courses..."
+                  placeholder="Search universities, courses..."
                   className="w-full bg-main border border-default rounded-xl pl-9 pr-3.5 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors sq-input"
                 />
               </div>
             </div>
 
-            {/* Cascading Filters */}
+            {/* Granular Filters */}
             <div className="bg-surface rounded-2xl p-5 border border-subtle shadow-sm space-y-6 sq-card">
               <div className="flex items-center gap-2 mb-2 pb-3 border-b border-subtle">
                 <SlidersHorizontal className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-semibold text-primary font-heading">Filters</h3>
+                <h2 className="text-sm font-bold text-primary font-heading">Program Filters</h2>
               </div>
 
-              {/* Country */}
+              {/* Study Level */}
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-secondary uppercase tracking-wider">Country</h4>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                  {uniqueCountries.map((c) => (
-                    <label key={c} className="flex items-center gap-2 text-sm cursor-pointer group">
-                      <input type="checkbox" checked={selectedCountries.includes(c)} onChange={() => toggleArrayItem(setSelectedCountries, c)} className="rounded border-default text-emerald-500 focus:ring-emerald-500/50 bg-main cursor-pointer" />
-                      <span className="text-secondary group-hover:text-primary transition-colors">{c}</span>
-                    </label>
-                  ))}
+                <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Level / Award</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {STUDY_LEVELS.map((level) => {
+                    const active = selectedLevels.includes(level);
+                    return (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => toggleArrayItem(setSelectedLevels, level)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer sq-pill ${
+                          active
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 font-semibold"
+                            : "bg-main border-subtle text-secondary hover:border-default hover:text-primary"
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Level */}
+              {/* Subject Area */}
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-secondary uppercase tracking-wider">Study Level</h4>
-                <div className="space-y-1.5">
-                  {STUDY_LEVELS.map((lvl) => (
-                    <label key={lvl} className="flex items-center gap-2 text-sm cursor-pointer group">
-                      <input type="checkbox" checked={selectedLevels.includes(lvl)} onChange={() => toggleArrayItem(setSelectedLevels, lvl)} className="rounded border-default text-emerald-500 focus:ring-emerald-500/50 bg-main cursor-pointer" />
-                      <span className="text-secondary group-hover:text-primary transition-colors">{lvl}</span>
-                    </label>
-                  ))}
+                <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Subject Area</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {SUBJECT_AREAS.map((subj) => {
+                    const active = selectedFields.includes(subj);
+                    return (
+                      <button
+                        key={subj}
+                        type="button"
+                        onClick={() => toggleArrayItem(setSelectedFields, subj)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer sq-pill ${
+                          active
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 font-semibold"
+                            : "bg-main border-subtle text-secondary hover:border-default hover:text-primary"
+                        }`}
+                      >
+                        {subj}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Subject */}
+              {/* Annual Tuition Slider */}
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-secondary uppercase tracking-wider">Subject Area</h4>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                  {SUBJECT_AREAS.map((f) => (
-                    <label key={f} className="flex items-center gap-2 text-sm cursor-pointer group">
-                      <input type="checkbox" checked={selectedFields.includes(f)} onChange={() => toggleArrayItem(setSelectedFields, f)} className="rounded border-default text-emerald-500 focus:ring-emerald-500/50 bg-main cursor-pointer" />
-                      <span className="text-secondary group-hover:text-primary transition-colors">{f}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Budget */}
-              <div className="space-y-3 pt-2 border-t border-subtle">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-secondary uppercase tracking-wider">Max Tuition</h4>
-                  <span className="text-xs font-bold text-emerald-400">${(maxBudget / 1000).toFixed(0)}k</span>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-secondary uppercase tracking-wider">Max Tuition / Yr</span>
+                  <span className="font-bold text-emerald-400">${maxBudget.toLocaleString()}</span>
                 </div>
                 <input
-                  type="range" min="5000" max="100000" step="5000" value={maxBudget}
+                  type="range"
+                  min={5000}
+                  max={80000}
+                  step={2500}
+                  value={maxBudget}
                   onChange={(e) => setMaxBudget(Number(e.target.value))}
-                  className="w-full h-1.5 bg-elevated rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  className="w-full accent-emerald-500 cursor-pointer"
                 />
               </div>
 
-              {/* Eligibility toggle */}
-              <div className="pt-2 border-t border-subtle">
-                <label className="flex items-start gap-2 text-sm cursor-pointer group">
-                  <input type="checkbox" checked={onlyEligible} onChange={(e) => setOnlyEligible(e.target.checked)} className="mt-0.5 rounded border-default text-emerald-500 focus:ring-emerald-500/50 bg-main cursor-pointer" />
-                  <span className="text-secondary group-hover:text-primary transition-colors text-xs leading-relaxed">
-                    Only show programs where I meet requirements
-                  </span>
-                </label>
+              {/* Eligibility Only Toggle */}
+              <div className="flex items-center justify-between pt-2 border-t border-subtle">
+                <span className="text-xs font-semibold text-secondary">Eligible Matches Only</span>
+                <button
+                  type="button"
+                  onClick={() => setOnlyEligible(!onlyEligible)}
+                  className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
+                    onlyEligible ? "bg-emerald-500" : "bg-elevated"
+                  }`}
+                >
+                  <div
+                    className={`w-3.5 h-3.5 rounded-full bg-white transition-transform absolute top-0.5 ${
+                      onlyEligible ? "left-4" : "left-0.5"
+                    }`}
+                  />
+                </button>
               </div>
             </div>
           </aside>
 
-          {/* ---- Results Grid ---- */}
-          <div className="flex-1 space-y-4">
-            <div className="flex items-center justify-between text-sm text-secondary px-1">
-              <span>Showing <strong className="text-primary">{filteredMatches.length}</strong> matching programs</span>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {filteredMatches.map(({ university, programme, matchScore, eligibility, matchReasons }) => {
-                const key = `${university.id}-${programme.id}`;
-                const isShortlisted = shortlistedKeys.includes(key);
-                const badge = ELIG_BADGE[eligibility.status] || ELIG_BADGE.not_checked;
-
-                return (
-                  <article
-                    key={key}
-                    className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 group hover-lift sq-card ${
-                      isShortlisted
-                        ? "bg-elevated border-emerald-500/50 shadow-md shadow-emerald-500/5"
-                        : "bg-surface border-subtle hover:border-default"
-                    }`}
+          {/* ---- Right Content Area ---- */}
+          <div className="flex-1 space-y-6">
+            {/* View Mode 1: University Explorer View */}
+            {viewMode === "universities" ? (
+              <div className="space-y-6">
+                {universitiesWithMatches.map(({ university, programs }) => (
+                  <div
+                    key={university.id}
+                    className="bg-surface border border-subtle rounded-2xl p-6 sq-card shadow-sm space-y-5"
                   >
-                    {/* Top Badges */}
-                    <div className="flex justify-between items-start gap-3">
-                      <div className={`px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${badge.bg} ${badge.text} ${badge.border}`}>
-                        {badge.icon}
-                        {eligibility.label}
+                    {/* University Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-elevated border border-subtle flex items-center justify-center shrink-0">
+                          {university.logoUrl ? (
+                            <img src={university.logoUrl} alt={university.name} className="w-10 h-10 object-contain" />
+                          ) : (
+                            <Building2 className="w-7 h-7 text-emerald-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-lg font-bold text-primary font-heading">{university.name}</h2>
+                            {university.accreditationStatus && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <Shield className="w-2.5 h-2.5 inline mr-1" /> {university.accreditationStatus}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted flex items-center gap-1.5 mt-1">
+                            <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>{university.city}, {university.country}</span>
+                            {university.globalRanking && (
+                              <span className="ml-2 font-semibold text-secondary">
+                                • #{university.globalRanking} Worldwide
+                              </span>
+                            )}
+                            {university.acceptanceRate && (
+                              <span className="ml-1 text-muted">
+                                ({university.acceptanceRate}% acceptance rate)
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-secondary bg-elevated px-3 py-1.5 rounded-xl border border-subtle shrink-0">
+                        {programs.length} {programs.length === 1 ? "Program Available" : "Programs Available"}
+                      </span>
+                    </div>
+
+                    {university.description && (
+                      <p className="text-xs text-secondary leading-relaxed">{university.description}</p>
+                    )}
+
+                    {/* Offering Programs Table / Cards */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+                        <GraduationCap className="w-4 h-4 text-emerald-400" /> Offering Programs & Admission Criteria:
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-3">
+                        {programs.map(({ programme, matchScore, eligibility }) => {
+                          const key = `${university.id}-${programme.id}`;
+                          const isShortlisted = shortlistedKeys.includes(key);
+                          const appNumber = appliedMap[key];
+                          const isApplying = applyingKey === key;
+                          const eligBadge = ELIG_BADGE[eligibility.status] || ELIG_BADGE.not_checked;
+
+                          return (
+                            <div
+                              key={key}
+                              className="p-4 rounded-xl bg-main border border-subtle hover:border-default transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                            >
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="text-sm font-bold text-primary hover:text-emerald-400 transition-colors">
+                                    {programme.title}
+                                  </h4>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${eligBadge.bg} ${eligBadge.text} ${eligBadge.border}`}>
+                                    {eligBadge.icon} {eligibility.label}
+                                  </span>
+                                  {appNumber && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
+                                      ✓ Draft: {appNumber}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+                                  <span><span className="text-secondary font-medium">Level:</span> {programme.level}</span>
+                                  <span>•</span>
+                                  <span><span className="text-secondary font-medium">Duration:</span> {programme.durationMonths} mos</span>
+                                  <span>•</span>
+                                  <span><span className="text-secondary font-medium">Tuition:</span> {programme.currency} {programme.tuitionFeeAnnual?.toLocaleString()}/yr</span>
+                                  <span>•</span>
+                                  <span><span className="text-secondary font-medium">Min IELTS:</span> {programme.minIeltsScore || 6.5}</span>
+                                  <span>•</span>
+                                  <span><span className="text-secondary font-medium">Intakes:</span> {programme.intakes?.join(", ") || "September"}</span>
+                                </div>
+
+                                {programme.entryRequirements && (
+                                  <p className="text-[11px] text-muted italic line-clamp-1">
+                                    Entry: {programme.entryRequirements}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setDrawerItem({ university, programme, matchScore, eligibility, matchReasons: [] })}
+                                  className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg border border-subtle transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> Details
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleShortlist(key)}
+                                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                    isShortlisted
+                                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                                      : "bg-elevated border-subtle text-muted hover:text-primary"
+                                  }`}
+                                  title={isShortlisted ? "Shortlisted" : "Shortlist program"}
+                                >
+                                  {isShortlisted ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isApplying}
+                                  onClick={() => handleApplyToProgram(university, programme)}
+                                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer ${
+                                    appNumber
+                                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                                      : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
+                                  }`}
+                                >
+                                  {isApplying ? (
+                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Drafting...</>
+                                  ) : appNumber ? (
+                                    <><CheckCircle2 className="w-3.5 h-3.5" /> Track Draft</>
+                                  ) : (
+                                    <><Send className="w-3.5 h-3.5" /> Apply Now</>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {universitiesWithMatches.length === 0 && (
+                  <div className="py-16 text-center bg-surface border border-subtle rounded-2xl p-8 sq-card">
+                    <Building2 className="w-10 h-10 text-muted mx-auto mb-3 opacity-40" />
+                    <h3 className="text-base font-bold text-primary">No universities match the selected criteria</h3>
+                    <p className="text-xs text-muted mt-1">Try switching to &quot;All Destinations&quot; or broadening your filters.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* View Mode 2: Program Grid View */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {filteredMatches.map(({ university, programme, matchScore, eligibility }) => {
+                  const key = `${university.id}-${programme.id}`;
+                  const isShortlisted = shortlistedKeys.includes(key);
+                  const appNumber = appliedMap[key];
+                  const eligBadge = ELIG_BADGE[eligibility.status] || ELIG_BADGE.not_checked;
+
+                  return (
+                    <article
+                      key={key}
+                      className="bg-surface rounded-2xl p-5 border border-subtle hover:border-default transition-all flex flex-col justify-between space-y-4 group hover-lift relative sq-card"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${eligBadge.bg} ${eligBadge.text} ${eligBadge.border}`}>
+                            {eligBadge.icon} {eligibility.label}
+                          </span>
+                          <span className="text-[10px] font-semibold text-muted bg-elevated px-2 py-0.5 rounded border border-subtle">
+                            {university.country}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setDrawerItem({ university, programme, matchScore, eligibility, matchReasons: [] })}
+                            className="p-1.5 rounded-lg bg-main text-muted hover:text-primary border border-default cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleShortlist(key)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              isShortlisted ? "bg-emerald-500 text-white" : "bg-main text-muted hover:text-primary border border-default"
+                            }`}
+                          >
+                            {isShortlisted ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-bold text-primary font-heading line-clamp-2 leading-tight group-hover:text-emerald-400 transition-colors">
+                          {programme.title}
+                        </h3>
+                        <p className="text-xs text-muted flex items-center gap-1.5 mt-1">
+                          <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="font-medium text-secondary">{university.name}</span>
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-subtle/50 text-xs">
+                        <div className="bg-main rounded-lg p-2 border border-subtle">
+                          <span className="text-[10px] text-muted uppercase font-semibold block">Tuition / Yr</span>
+                          <span className="font-bold text-primary">{programme.currency} {programme.tuitionFeeAnnual?.toLocaleString()}</span>
+                        </div>
+                        <div className="bg-main rounded-lg p-2 border border-subtle">
+                          <span className="text-[10px] text-muted uppercase font-semibold block">Intakes</span>
+                          <span className="font-bold text-primary line-clamp-1">{programme.intakes?.join(", ") || "September"}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex items-center gap-2">
                         <button
-                          onClick={() => setDrawerItem({ university, programme, matchScore, eligibility, matchReasons })}
-                          className="p-1.5 rounded-xl bg-main text-muted hover:text-primary border border-default transition-all cursor-pointer"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => toggleShortlist(key)}
-                          className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                            isShortlisted ? "bg-emerald-500 text-white" : "bg-main text-muted hover:text-primary border border-default"
+                          type="button"
+                          disabled={applyingKey === key}
+                          onClick={() => handleApplyToProgram(university, programme)}
+                          className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer ${
+                            appNumber
+                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                              : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
                           }`}
                         >
-                          {isShortlisted ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
+                          {applyingKey === key ? (
+                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating Application...</>
+                          ) : appNumber ? (
+                            <><CheckCircle2 className="w-3.5 h-3.5" /> Drafted ({appNumber})</>
+                          ) : (
+                            <><Send className="w-3.5 h-3.5" /> Apply Now</>
+                          )}
                         </button>
                       </div>
-                    </div>
-
-                    {/* Content */}
-                    <div>
-                      <h3 className="text-base font-bold text-primary font-heading line-clamp-2 leading-tight group-hover:text-emerald-400 transition-colors">
-                        {programme.title}
-                      </h3>
-                      <p className="text-sm text-secondary mt-1 flex items-center gap-1.5">
-                        <span className="font-medium text-primary">{university.name}</span> • {university.country}
-                      </p>
-                    </div>
-
-                    {/* Quick Info Pills */}
-                    <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-subtle/50">
-                      <div className="flex flex-col bg-main rounded-lg p-2 border border-subtle">
-                        <span className="text-[10px] text-muted uppercase font-semibold flex items-center gap-1 mb-0.5">
-                          <Banknote className="w-3 h-3" /> Tuition / Yr
-                        </span>
-                        <span className="text-sm font-medium text-primary">
-                          ${(programme.tuitionFeeAnnual || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex flex-col bg-main rounded-lg p-2 border border-subtle">
-                        <span className="text-[10px] text-muted uppercase font-semibold flex items-center gap-1 mb-0.5">
-                          <Calendar className="w-3 h-3" /> Intakes
-                        </span>
-                        <span className="text-sm font-medium text-primary line-clamp-1">
-                          {programme.intakes?.join(", ") || "Sep, Jan"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col bg-main rounded-lg p-2 border border-subtle">
-                        <span className="text-[10px] text-muted uppercase font-semibold flex items-center gap-1 mb-0.5">
-                          <GraduationCap className="w-3 h-3" /> Level
-                        </span>
-                        <span className="text-sm font-medium text-primary line-clamp-1">
-                          {programme.level || "Postgraduate"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col bg-main rounded-lg p-2 border border-subtle">
-                        <span className="text-[10px] text-muted uppercase font-semibold flex items-center gap-1 mb-0.5">
-                          <Sparkles className="w-3 h-3" /> Score
-                        </span>
-                        <span className="text-sm font-medium text-emerald-400">{matchScore}% Fit</span>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            {filteredMatches.length === 0 && (
-              <div className="py-16 flex flex-col items-center justify-center text-center bg-surface border border-subtle rounded-2xl sq-card">
-                <div className="w-12 h-12 bg-main rounded-full flex items-center justify-center mb-3">
-                  <Search className="w-5 h-5 text-muted" />
-                </div>
-                <h3 className="text-base font-semibold text-primary">No exact matches found</h3>
-                <p className="text-sm text-secondary mt-1 max-w-sm">
-                  Try broadening your filters or increasing your maximum tuition budget.
-                </p>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </main>
 
-      {/* ================================================================ */}
-      {/*  PROGRAM DETAIL DRAWER                                           */}
-      {/* ================================================================ */}
+      {/* ================================================================ */
+      /*  PROGRAM DETAIL DRAWER                                           */
+      /* ================================================================ */}
       {drawerItem && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-backdrop z-50"
-            onClick={() => setDrawerItem(null)}
-          />
-          {/* Drawer panel */}
+          <div className="fixed inset-0 bg-backdrop z-50" onClick={() => setDrawerItem(null)} />
           <div className="fixed top-0 right-0 h-full w-full max-w-lg bg-surface border-l border-subtle z-50 overflow-y-auto shadow-2xl animate-slide-in-right">
-            {/* Header */}
             <div className="sticky top-0 bg-surface/95 backdrop-blur-sm border-b border-subtle p-5 flex items-start justify-between z-10">
               <div className="flex-1 mr-4">
-                <h2 className="text-lg font-bold text-primary font-heading leading-tight">
-                  {drawerItem.programme.title}
-                </h2>
+                <h2 className="text-lg font-bold text-primary font-heading leading-tight">{drawerItem.programme.title}</h2>
                 <p className="text-sm text-secondary mt-1 flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-emerald-400" />
                   {drawerItem.university.name} — {drawerItem.university.city}, {drawerItem.university.country}
@@ -656,176 +955,77 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             </div>
 
             <div className="p-5 space-y-6">
-              {/* Eligibility badge */}
               {(() => {
                 const badge = ELIG_BADGE[drawerItem.eligibility.status] || ELIG_BADGE.not_checked;
                 return (
                   <div className={`p-3 rounded-xl border ${badge.bg} ${badge.border} flex items-center gap-2`}>
                     <span className={`${badge.text}`}>{badge.icon}</span>
                     <span className={`text-sm font-bold ${badge.text}`}>{drawerItem.eligibility.label}</span>
-                    <span className={`ml-auto text-sm font-bold ${badge.text}`}>{drawerItem.eligibility.score}%</span>
+                    <span className={`ml-auto text-sm font-bold ${badge.text}`}>{drawerItem.eligibility.score}% Readiness</span>
                   </div>
                 );
               })()}
 
-              {/* Academic Requirements */}
               <section className="space-y-3">
                 <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <GraduationCap className="w-3.5 h-3.5" /> Academic Requirements
+                  <GraduationCap className="w-3.5 h-3.5" /> Academic & Language Criteria
                 </h3>
                 <div className="bg-main rounded-xl p-4 border border-subtle space-y-2 text-sm">
                   {drawerItem.programme.requirements?.minGpa && (
                     <div className="flex justify-between">
-                      <span className="text-muted">Minimum GPA / Grade</span>
+                      <span className="text-muted">Minimum GPA</span>
                       <span className="font-semibold text-primary">{drawerItem.programme.requirements.minGpa}</span>
                     </div>
                   )}
-                  {drawerItem.programme.entryRequirements && (
-                    <p className="text-xs text-muted leading-relaxed">{drawerItem.programme.entryRequirements}</p>
-                  )}
-                  {drawerItem.programme.requirements?.acceptedQualifications?.length ? (
-                    <div>
-                      <span className="text-[10px] text-muted uppercase font-semibold">Accepted Qualifications</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {drawerItem.programme.requirements.acceptedQualifications.map((q) => (
-                          <span key={q} className="text-[10px] px-2 py-0.5 rounded-md bg-elevated text-secondary border border-subtle sq-pill">{q}</span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {!drawerItem.programme.requirements?.minGpa && !drawerItem.programme.entryRequirements && (
-                    <p className="text-xs text-muted italic">No specific academic requirements configured.</p>
-                  )}
-                </div>
-              </section>
-
-              {/* Language Requirements */}
-              <section className="space-y-3">
-                <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5" /> Language Requirements
-                </h3>
-                <div className="bg-main rounded-xl p-4 border border-subtle space-y-2 text-sm">
-                  {(drawerItem.programme.requirements?.minIelts || drawerItem.programme.minIeltsScore) ? (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-muted">IELTS Overall</span>
-                        <span className="font-semibold text-primary">{drawerItem.programme.requirements?.minIelts || drawerItem.programme.minIeltsScore}</span>
-                      </div>
-                      {drawerItem.programme.requirements?.minIeltsListening && (
-                        <div className="grid grid-cols-4 gap-2 pt-2 border-t border-subtle">
-                          {[
-                            { label: "L", val: drawerItem.programme.requirements.minIeltsListening },
-                            { label: "R", val: drawerItem.programme.requirements.minIeltsReading },
-                            { label: "W", val: drawerItem.programme.requirements.minIeltsWriting },
-                            { label: "S", val: drawerItem.programme.requirements.minIeltsSpeaking },
-                          ].map((b) => b.val ? (
-                            <div key={b.label} className="text-center">
-                              <span className="text-[10px] text-muted font-semibold uppercase">{b.label}</span>
-                              <p className="text-sm font-bold text-primary">{b.val}</p>
-                            </div>
-                          ) : null)}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted italic">No language score requirements configured.</p>
-                  )}
-                </div>
-              </section>
-
-              {/* Financial Summary */}
-              <section className="space-y-3">
-                <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <Banknote className="w-3.5 h-3.5" /> Financial Summary
-                </h3>
-                <div className="bg-main rounded-xl p-4 border border-subtle space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted">Tuition / Year</span>
-                    <span className="font-semibold text-primary">
-                      {drawerItem.programme.currency} {(drawerItem.programme.tuitionFeeAnnual || 0).toLocaleString()}
-                    </span>
+                    <span className="text-muted">Minimum IELTS Band</span>
+                    <span className="font-semibold text-emerald-400">{drawerItem.programme.minIeltsScore || 6.5} overall</span>
                   </div>
+                  {drawerItem.programme.entryRequirements && (
+                    <p className="text-xs text-muted leading-relaxed pt-1">{drawerItem.programme.entryRequirements}</p>
+                  )}
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                  <Banknote className="w-3.5 h-3.5" /> Costs & Deposit
+                </h3>
+                <div className="bg-main rounded-xl p-4 border border-subtle space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted">Duration</span>
-                    <span className="font-semibold text-primary">{drawerItem.programme.durationMonths} months</span>
+                    <span className="text-muted">Annual Tuition</span>
+                    <span className="font-bold text-primary">{drawerItem.programme.currency} {drawerItem.programme.tuitionFeeAnnual?.toLocaleString()}</span>
                   </div>
                   {drawerItem.programme.estimatedLivingCostAnnual && (
                     <div className="flex justify-between">
-                      <span className="text-muted">Est. Living Cost / Year</span>
-                      <span className="font-semibold text-primary">
-                        {drawerItem.programme.currency} {drawerItem.programme.estimatedLivingCostAnnual.toLocaleString()}
-                      </span>
+                      <span className="text-muted">Estimated Living Cost / Year</span>
+                      <span className="font-semibold text-secondary">{drawerItem.programme.currency} {drawerItem.programme.estimatedLivingCostAnnual.toLocaleString()}</span>
                     </div>
                   )}
                   {drawerItem.programme.depositRequired && (
                     <div className="flex justify-between">
-                      <span className="text-muted">Deposit Required</span>
-                      <span className="font-semibold text-amber-400">
-                        {drawerItem.programme.currency} {drawerItem.programme.depositRequired.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  {drawerItem.programme.applicationFee && (
-                    <div className="flex justify-between">
-                      <span className="text-muted">Application Fee</span>
-                      <span className="font-semibold text-primary">
-                        {drawerItem.programme.currency} {drawerItem.programme.applicationFee.toLocaleString()}
-                      </span>
+                      <span className="text-muted">Mandatory Deposit</span>
+                      <span className="font-semibold text-amber-400">{drawerItem.programme.currency} {drawerItem.programme.depositRequired.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
               </section>
 
-              {/* Scholarships */}
-              {drawerItem.programme.scholarships && drawerItem.programme.scholarships.length > 0 && (
-                <section className="space-y-3">
-                  <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5" /> Scholarships
-                  </h3>
-                  <div className="space-y-2">
-                    {drawerItem.programme.scholarships.map((s, i) => (
-                      <div key={i} className="bg-main rounded-xl p-3 border border-subtle">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-semibold text-primary">{s.name}</span>
-                          <span className="text-xs font-bold text-emerald-400">{s.amount}</span>
-                        </div>
-                        {s.criteria && <p className="text-xs text-muted mt-1">{s.criteria}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Key Dates */}
-              <section className="space-y-3">
-                <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> Key Dates
-                </h3>
-                <div className="bg-main rounded-xl p-4 border border-subtle space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted">Application Deadline</span>
-                    <span className="font-semibold text-amber-400">{drawerItem.programme.deadline || "Rolling Admissions"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Intakes</span>
-                    <span className="font-semibold text-primary">{drawerItem.programme.intakes?.join(", ") || "September"}</span>
-                  </div>
-                </div>
-              </section>
-
-              {/* Eligibility Checks */}
               {drawerItem.eligibility.checks.length > 0 && (
                 <section className="space-y-3">
                   <h3 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Eligibility Checks
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Profile Eligibility Cross-Examination
                   </h3>
                   <div className="space-y-2">
                     {drawerItem.eligibility.checks.map((check, i) => (
-                      <div key={i} className={`p-3 rounded-lg border text-xs ${
-                        check.status === "pass" ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400" :
-                        check.status === "fail" ? "bg-rose-500/5 border-rose-500/20 text-rose-400" :
-                        "bg-amber-500/5 border-amber-500/20 text-amber-400"
-                      }`}>
+                      <div
+                        key={i}
+                        className={`p-3 rounded-lg border text-xs ${
+                          check.status === "pass" ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400" :
+                          check.status === "fail" ? "bg-rose-500/5 border-rose-500/20 text-rose-400" :
+                          "bg-amber-500/5 border-amber-500/20 text-amber-400"
+                        }`}
+                      >
                         <span className="font-bold">{check.label}</span>
                         <p className="text-primary/70 mt-0.5">{check.detail}</p>
                       </div>
@@ -835,35 +1035,32 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
               )}
             </div>
 
-            {/* Drawer Footer */}
+            {/* Drawer Footer with Apply Button */}
             <div className="sticky bottom-0 bg-surface/95 backdrop-blur-sm border-t border-subtle p-5 flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => {
                   const key = `${drawerItem.university.id}-${drawerItem.programme.id}`;
                   toggleShortlist(key);
                 }}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  shortlistedKeys.includes(`${drawerItem.university.id}-${drawerItem.programme.id}`)
-                    ? "bg-elevated text-emerald-400 border border-emerald-500/30"
-                    : "bg-elevated text-primary border border-default hover:border-emerald-500/30"
-                }`}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-default bg-elevated hover:bg-hover text-primary transition-colors flex items-center justify-center gap-1 cursor-pointer"
               >
                 {shortlistedKeys.includes(`${drawerItem.university.id}-${drawerItem.programme.id}`) ? (
-                  <><BookmarkCheck className="w-4 h-4" /> Shortlisted</>
+                  <><BookmarkCheck className="w-4 h-4 text-emerald-400" /> Shortlisted</>
                 ) : (
                   <><BookmarkPlus className="w-4 h-4" /> Shortlist</>
                 )}
               </button>
               <button
+                type="button"
                 onClick={() => {
-                  const key = `${drawerItem.university.id}-${drawerItem.programme.id}`;
-                  if (!shortlistedKeys.includes(key)) toggleShortlist(key);
+                  handleApplyToProgram(drawerItem.university, drawerItem.programme);
                   setDrawerItem(null);
-                  proceedToStep4();
                 }}
-                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Apply Now <ArrowRight className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
+                {appliedMap[`${drawerItem.university.id}-${drawerItem.programme.id}`] ? "View Draft" : "Apply to Program"}
               </button>
             </div>
           </div>
