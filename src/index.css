@@ -18,34 +18,34 @@
 
 @layer base {
   :root {
-    /* Surface colors */
-    --bg-main: #09090b;
-    --bg-card: #18181b;
-    --bg-card-alt: rgba(9, 9, 11, 0.8);
-    --bg-elevated: #09090b;
-    --bg-input: #09090b;
-    --bg-hover: rgba(39, 39, 42, 0.6);
+    /* Surface colors - EduBridge Deep Navy */
+    --bg-main: #0B1120; /* Slightly darker than 1A2A4F for background depth */
+    --bg-card: #141f36; /* Elevated from main */
+    --bg-card-alt: rgba(11, 17, 32, 0.8);
+    --bg-elevated: #1a2a4f; /* True EduBridge Navy */
+    --bg-input: #0B1120;
+    --bg-hover: rgba(26, 42, 79, 0.6);
 
     /* Border colors */
-    --border-default: #27272a;
-    --border-subtle: rgba(39, 39, 42, 0.6);
+    --border-default: #1e3366;
+    --border-subtle: rgba(30, 51, 102, 0.5);
 
     /* Text colors */
-    --text-primary: #f4f4f5;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --text-placeholder: #52525b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-placeholder: #64748b;
 
     /* Backdrop */
-    --backdrop: rgba(9, 9, 11, 0.8);
+    --backdrop: rgba(11, 17, 32, 0.8);
 
     /* Sidebar glass background */
-    --bg-sidebar: rgba(18, 18, 22, 0.7);
-    --bg-sidebar-border: rgba(255, 255, 255, 0.08);
+    --bg-sidebar: rgba(20, 31, 54, 0.7);
+    --bg-sidebar-border: rgba(255, 255, 255, 0.06);
 
     /* Selection */
-    --select-bg: #10b981;
-    --select-text: #09090b;
+    --select-bg: #38bdf8;
+    --select-text: #0f172a;
   }
 
   html.light {
