@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 export const StudentOnboardingGuard: React.FC = () => {
   const { appUser } = useAuth();
-  const { students, applications, loading: globalLoading } = useGlobalData();
+  const { students, applications, initialLoading: globalLoading } = useGlobalData();
 
   if (!appUser || appUser.role !== "student") {
     return <Navigate to="/" replace />;

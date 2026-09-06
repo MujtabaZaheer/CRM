@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, ArrowRight, GraduationCap, MapPin, Search, CheckCircle2 } from "lucide-react";
+import { AlertCircle, ArrowRight, GraduationCap, MapPin, Search, CheckCircle2, BookOpen } from "lucide-react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { usePortalData } from "../../hooks/usePortalData";
 import { Programme, University } from "../../types/university";
