@@ -189,22 +189,27 @@ export const StudentOnboardingDestination: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="min-h-screen bg-main relative overflow-hidden flex items-center justify-center text-muted">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-16">
-      {/* Top Guided Progress Header */}
-      <div className="sticky top-0 z-30 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-4">
+    <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
+      {/* Decorative Background Elements */}
+        <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-brand/10 to-transparent pointer-events-none" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-20 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Guided Progress Header */}
+      <div className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold tracking-wider text-emerald-400 uppercase">
               Step 2 of 4 • Study Destination & Preferences
             </span>
-            <h1 className="text-xl font-bold font-heading text-white">
+            <h1 className="text-xl font-bold font-heading text-primary">
               Where do you want to study?
             </h1>
           </div>
@@ -213,7 +218,7 @@ export const StudentOnboardingDestination: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate("/student/onboarding/profile")}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Back
@@ -222,7 +227,7 @@ export const StudentOnboardingDestination: React.FC = () => {
               type="button"
               onClick={() => savePreferences(false)}
               disabled={saving}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-primary rounded-lg transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
               {saving ? "Saving..." : saveSuccess ? "Saved ✓" : "Save"}
@@ -233,13 +238,13 @@ export const StudentOnboardingDestination: React.FC = () => {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-8 mt-6 space-y-8">
         {/* Banner */}
-        <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-sm text-zinc-300 flex items-start gap-3">
+        <div className="p-5 rounded-2xl bg-surface/70 border border-subtle text-sm text-secondary flex items-start gap-3">
           <Globe className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-white">
+            <p className="font-semibold text-primary">
               Choose your preferred destinations. We'll compare universities and programs across countries.
             </p>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-muted mt-1">
               Select one or multiple destination countries. In the next step, our Program Matcher will evaluate real admissions requirements and fee ranges across your selections.
             </p>
           </div>
@@ -253,11 +258,11 @@ export const StudentOnboardingDestination: React.FC = () => {
         )}
 
         {/* Destination Countries Grid */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div>
-              <h2 className="text-base font-bold text-white font-heading">Target Study Countries (Multi-Select)</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Click to select or deselect countries you wish to explore.</p>
+              <h2 className="text-base font-bold text-primary font-heading">Target Study Countries (Multi-Select)</h2>
+              <p className="text-xs text-muted mt-0.5">Click to select or deselect countries you wish to explore.</p>
             </div>
             <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
               {selectedCountries.length} Selected
@@ -274,7 +279,7 @@ export const StudentOnboardingDestination: React.FC = () => {
                   className={`p-4 rounded-2xl border transition-all cursor-pointer select-none space-y-2 relative ${
                     selected
                       ? "bg-emerald-500/10 border-emerald-500/50 shadow-md shadow-emerald-500/5"
-                      : "bg-zinc-950/70 border-zinc-800 hover:border-zinc-700 text-zinc-300"
+                      : "bg-main relative overflow-hidden/70 border-subtle hover:border-default text-secondary"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -283,7 +288,7 @@ export const StudentOnboardingDestination: React.FC = () => {
                       className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
                         selected
                           ? "bg-emerald-500 border-emerald-500 text-zinc-950"
-                          : "border-zinc-700 bg-zinc-900"
+                          : "border-default bg-surface"
                       }`}
                     >
                       {selected && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
@@ -291,10 +296,10 @@ export const StudentOnboardingDestination: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className={`text-sm font-bold ${selected ? "text-white" : "text-zinc-200"}`}>
+                    <h3 className={`text-sm font-bold ${selected ? "text-primary" : "text-primary"}`}>
                       {country.name}
                     </h3>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Est. Tuition: {country.averageTuition}</p>
+                    <p className="text-[11px] text-muted mt-0.5">Est. Tuition: {country.averageTuition}</p>
                   </div>
                 </div>
               );
@@ -303,22 +308,22 @@ export const StudentOnboardingDestination: React.FC = () => {
         </section>
 
         {/* Budget & Preferences */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-6">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-6">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
             <DollarSign className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-bold text-white font-heading">Budget & Admission Preferences</h2>
+            <h2 className="text-base font-bold text-primary font-heading">Budget & Admission Preferences</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {/* Annual Tuition Budget */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-xs font-semibold text-secondary">
                 Annual Tuition Budget (USD Equivalent)
               </label>
-              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 space-y-2">
+              <div className="p-3 bg-main relative overflow-hidden rounded-xl border border-subtle space-y-2">
                 <div className="flex items-center justify-between text-sm font-bold text-emerald-400">
                   <span>${budgetAnnualUsd.toLocaleString()}</span>
-                  <span className="text-xs text-zinc-400 font-normal">per academic year</span>
+                  <span className="text-xs text-muted font-normal">per academic year</span>
                 </div>
                 <input
                   type="range"
@@ -329,7 +334,7 @@ export const StudentOnboardingDestination: React.FC = () => {
                   onChange={(e) => setBudgetAnnualUsd(Number(e.target.value))}
                   className="w-full accent-emerald-500 cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-zinc-500">
+                <div className="flex justify-between text-[10px] text-muted">
                   <span>$5,000</span>
                   <span>$30,000</span>
                   <span>$60,000+</span>
@@ -339,13 +344,13 @@ export const StudentOnboardingDestination: React.FC = () => {
 
             {/* Preferred Intake */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-xs font-semibold text-secondary">
                 Target Academic Intake
               </label>
               <select
                 value={preferredIntake}
                 onChange={(e) => setPreferredIntake(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 {INTAKES.map((i) => (
                   <option key={i} value={i}>{i}</option>
@@ -355,13 +360,13 @@ export const StudentOnboardingDestination: React.FC = () => {
 
             {/* Study Mode */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-xs font-semibold text-secondary">
                 Preferred Study Mode
               </label>
               <select
                 value={preferredStudyMode}
                 onChange={(e) => setPreferredStudyMode(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-3 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 {STUDY_MODES.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -371,7 +376,7 @@ export const StudentOnboardingDestination: React.FC = () => {
 
             {/* Preferred City */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-xs font-semibold text-secondary">
                 Preferred City / Region (Optional)
               </label>
               <input
@@ -379,19 +384,19 @@ export const StudentOnboardingDestination: React.FC = () => {
                 value={preferredCity}
                 onChange={(e) => setPreferredCity(e.target.value)}
                 placeholder="e.g. London, Toronto, Sydney, or Munich"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             {/* Scholarship Priority */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-xs font-semibold text-secondary">
                 Scholarship Requirement
               </label>
               <select
                 value={scholarshipPriority}
                 onChange={(e) => setScholarshipPriority(e.target.value as any)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 <option value="High">Essential (Requires funding / scholarship)</option>
                 <option value="Medium">Preferred if available (Partial funding)</option>
@@ -401,13 +406,13 @@ export const StudentOnboardingDestination: React.FC = () => {
 
             {/* Institution Type */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">
+              <label className="block text-xs font-semibold text-secondary">
                 Institution Type Preference
               </label>
               <select
                 value={institutionType}
                 onChange={(e) => setInstitutionType(e.target.value as any)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 <option value="Any">Any Recognized University</option>
                 <option value="Public">Public / State Universities</option>
@@ -418,8 +423,8 @@ export const StudentOnboardingDestination: React.FC = () => {
         </section>
 
         {/* Legal & Regulatory Disclaimer */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-xs text-zinc-400 space-y-1">
-          <p className="font-semibold text-zinc-300 flex items-center gap-1.5">
+        <div className="bg-surface/50 border border-subtle rounded-2xl p-4 text-xs text-muted space-y-1">
+          <p className="font-semibold text-secondary flex items-center gap-1.5">
             <HelpCircle className="w-4 h-4 text-emerald-400" />
             Admissions & Immigration Notice
           </p>
@@ -429,8 +434,8 @@ export const StudentOnboardingDestination: React.FC = () => {
         </div>
 
         {/* Bottom Navigation Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-800">
-          <div className="text-xs text-zinc-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-subtle">
+          <div className="text-xs text-muted">
             Step 2 of 4 • Next: Program Matcher across Selected Countries
           </div>
 
@@ -438,7 +443,7 @@ export const StudentOnboardingDestination: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate("/student/onboarding/profile")}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold text-zinc-200 transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-elevated hover:bg-hover text-sm font-semibold text-primary transition-colors cursor-pointer"
             >
               Previous Step
             </button>

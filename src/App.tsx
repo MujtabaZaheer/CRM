@@ -149,6 +149,13 @@ export const App: React.FC = () => {
               <Route path="/public/forms/:formId" element={<PublicFormPage />} />
               <Route path="/public/form-success" element={<PublicFormSuccess />} />
 
+              {/* Full-Screen Student Onboarding Wizard (Outside ProtectedLayout) */}
+              <Route path="/student" element={<RoleRoute role="student" />}>
+                <Route path="onboarding/profile" element={<StudentOnboardingProfile />} />
+                <Route path="onboarding/destination" element={<StudentOnboardingDestination />} />
+                <Route path="onboarding/program-matcher" element={<StudentOnboardingProgramMatcher />} />
+              </Route>
+
               {/* Protected Application Routes */}
               <Route element={<ProtectedLayout />}>
                 <Route path="/" element={<Dashboard />} />
@@ -250,10 +257,6 @@ export const App: React.FC = () => {
 
                 {/* Student Portal Routes (Added by Saad) */}
                 <Route path="/student" element={<RoleRoute role="student" />}>
-                  <Route path="onboarding/profile" element={<StudentOnboardingProfile />} />
-                  <Route path="onboarding/destination" element={<StudentOnboardingDestination />} />
-                  <Route path="onboarding/program-matcher" element={<StudentOnboardingProgramMatcher />} />
-                  
                   <Route element={<StudentOnboardingGuard />}>
                     <Route path="dashboard" element={<StudentDashboard />} />
                     <Route path="profile" element={<StudentProfileSelfEdit />} />

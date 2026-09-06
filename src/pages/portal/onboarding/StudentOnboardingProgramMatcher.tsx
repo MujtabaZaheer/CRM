@@ -267,22 +267,27 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="min-h-screen bg-main relative overflow-hidden flex items-center justify-center text-muted">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-16">
-      {/* Top Guided Progress Header */}
-      <div className="sticky top-0 z-30 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-4">
+    <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
+      {/* Decorative Background Elements */}
+        <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-brand/10 to-transparent pointer-events-none" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-20 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Guided Progress Header */}
+      <div className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold tracking-wider text-emerald-400 uppercase">
               Step 3 of 4 • Intelligent Program Matcher
             </span>
-            <h1 className="text-xl font-bold font-heading text-white">
+            <h1 className="text-xl font-bold font-heading text-primary">
               Find the right program
             </h1>
           </div>
@@ -291,7 +296,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate("/student/onboarding/destination")}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Back
@@ -312,30 +317,30 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-6 space-y-6">
         {/* Banner */}
-        <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-sm text-zinc-300 flex items-start gap-3">
+        <div className="p-5 rounded-2xl bg-surface/70 border border-subtle text-sm text-secondary flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-semibold text-white">
+            <p className="font-semibold text-primary">
               Tell us what you want to study and we'll compare matching programs across your selected countries.
             </p>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted">
               The engine distinguishes between your <strong>Match Score</strong> (preference & goals alignment) and your <strong>Configured Eligibility</strong> (meeting specific academic & English thresholds). Shortlist your favorite options to compare them in Step 4.
             </p>
           </div>
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-3">
+        <div className="p-4 rounded-2xl bg-surface/90 border border-subtle space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+              <Search className="w-4 h-4 text-muted absolute left-3 top-3" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search subject, university, or city..."
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl pl-9 pr-3.5 py-2 text-xs sm:text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -343,7 +348,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             <select
               value={selectedField}
               onChange={(e) => setSelectedField(e.target.value)}
-              className="bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="bg-main relative overflow-hidden border border-default rounded-xl px-3 py-2 text-xs sm:text-sm text-primary focus:outline-none focus:border-emerald-500"
             >
               {POPULAR_FIELDS.map((f) => (
                 <option key={f} value={f}>{f}</option>
@@ -354,7 +359,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             <select
               value={selectedLevel}
               onChange={(e) => setSelectedLevel(e.target.value)}
-              className="bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="bg-main relative overflow-hidden border border-default rounded-xl px-3 py-2 text-xs sm:text-sm text-primary focus:outline-none focus:border-emerald-500"
             >
               {STUDY_LEVELS.map((lvl) => (
                 <option key={lvl} value={lvl}>{lvl}</option>
@@ -365,7 +370,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             <select
               value={selectedCountryFilter}
               onChange={(e) => setSelectedCountryFilter(e.target.value)}
-              className="bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="bg-main relative overflow-hidden border border-default rounded-xl px-3 py-2 text-xs sm:text-sm text-primary focus:outline-none focus:border-emerald-500"
             >
               <option value="All">All Destination Countries</option>
               {countriesInResults.map((c) => (
@@ -374,21 +379,21 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-zinc-800/80 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-subtle/80 text-xs">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300">
+              <label className="flex items-center gap-1.5 cursor-pointer text-secondary">
                 <input
                   type="checkbox"
                   checked={onlyEligible}
                   onChange={(e) => setOnlyEligible(e.target.checked)}
-                  className="rounded border-zinc-700 text-emerald-500 focus:ring-0"
+                  className="rounded border-default text-emerald-500 focus:ring-0"
                 />
                 Show only eligible or conditional matches
               </label>
             </div>
 
-            <div className="text-zinc-400">
-              Showing <span className="font-bold text-white">{filteredMatches.length}</span> matching programs
+            <div className="text-muted">
+              Showing <span className="font-bold text-primary">{filteredMatches.length}</span> matching programs
             </div>
           </div>
         </div>
@@ -427,8 +432,8 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
                 key={key}
                 className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 relative ${
                   isShortlisted
-                    ? "bg-zinc-900/95 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30"
-                    : "bg-zinc-900/70 border-zinc-800 hover:border-zinc-700"
+                    ? "bg-surface/95 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30"
+                    : "bg-surface/70 border-subtle hover:border-default"
                 }`}
               >
                 {/* Header: Match Score Badge & Shortlist Button */}
@@ -437,7 +442,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
                     <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wide">
                       {matchScore}% Preference Match
                     </span>
-                    <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                    <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
                       {programme.level}
                     </span>
                   </div>
@@ -448,7 +453,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
                     className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
                       isShortlisted
                         ? "bg-emerald-500 text-zinc-950 border-emerald-400 font-bold"
-                        : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                        : "bg-elevated text-secondary border-default hover:bg-hover hover:text-primary"
                     }`}
                   >
                     {isShortlisted ? (
@@ -467,39 +472,39 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
 
                 {/* Program & University Details */}
                 <div>
-                  <h3 className="text-base font-bold text-white leading-snug">
+                  <h3 className="text-base font-bold text-primary leading-snug">
                     {programme.title}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-zinc-400">
-                    <span className="font-semibold text-zinc-200 flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted">
+                    <span className="font-semibold text-primary flex items-center gap-1">
                       <Building2 className="w-3.5 h-3.5 text-emerald-400" />
                       {university.name}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Globe className="w-3.5 h-3.5 text-zinc-500" />
+                      <Globe className="w-3.5 h-3.5 text-muted" />
                       {university.city}, {university.country}
                     </span>
                   </div>
                 </div>
 
                 {/* Key Metrics: Fee & Intake */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-main relative overflow-hidden/70 border border-subtle/80 text-xs">
                   <div>
-                    <span className="text-[11px] text-zinc-500 block">Annual Tuition</span>
-                    <span className="font-semibold text-zinc-200">
+                    <span className="text-[11px] text-muted block">Annual Tuition</span>
+                    <span className="font-semibold text-primary">
                       {programme.currency} {programme.tuitionFeeAnnual?.toLocaleString() || "N/A"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] text-zinc-500 block">Duration</span>
-                    <span className="font-semibold text-zinc-200">
+                    <span className="text-[11px] text-muted block">Duration</span>
+                    <span className="font-semibold text-primary">
                       {programme.durationMonths ? `${programme.durationMonths} months` : "1 - 2 years"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] text-zinc-500 block">Next Intake</span>
-                    <span className="font-semibold text-zinc-200">
+                    <span className="text-[11px] text-muted block">Next Intake</span>
+                    <span className="font-semibold text-primary">
                       {programme.intakes?.[0] || "September"}
                     </span>
                   </div>
@@ -507,7 +512,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
 
                 {/* Independent Eligibility Engine Evaluation */}
                 <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Admissions Eligibility Assessment</div>
+                  <div className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Admissions Eligibility Assessment</div>
                   <div className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${eligColor}`}>
                     <div className="flex items-center gap-2">
                       {eligIcon}
@@ -519,7 +524,7 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
                   </div>
 
                   {/* Checklist items */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] text-zinc-400">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] text-muted">
                     {eligibility.checks.map((chk, i) => (
                       <div key={i} className="flex items-center gap-1.5 truncate">
                         <span className={chk.status === "pass" ? "text-emerald-400" : chk.status === "review" ? "text-amber-400" : "text-rose-400"}>
@@ -533,11 +538,11 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
 
                 {/* Match Reasons */}
                 {matchReasons.length > 0 && (
-                  <div className="pt-2 border-t border-zinc-800/60">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Preference Factors</span>
+                  <div className="pt-2 border-t border-subtle/60">
+                    <span className="text-[10px] font-bold text-muted uppercase block mb-1">Preference Factors</span>
                     <div className="flex flex-wrap gap-1.5">
                       {matchReasons.slice(0, 3).map((r, i) => (
-                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300">
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-elevated text-secondary">
                           {r}
                         </span>
                       ))}
@@ -550,26 +555,26 @@ export const StudentOnboardingProgramMatcher: React.FC = () => {
         </div>
 
         {filteredMatches.length === 0 && (
-          <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 text-zinc-400 space-y-3">
+          <div className="p-12 text-center rounded-2xl bg-surface/40 border border-dashed border-subtle text-muted space-y-3">
             <GraduationCap className="w-10 h-10 mx-auto text-zinc-600" />
-            <h3 className="text-base font-semibold text-zinc-300">No matching programs found</h3>
-            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+            <h3 className="text-base font-semibold text-secondary">No matching programs found</h3>
+            <p className="text-xs text-muted max-w-sm mx-auto">
               Try adjusting your subject keyword, clearing filters, or increasing your budget range.
             </p>
           </div>
         )}
 
         {/* Bottom Bar */}
-        <div className="sticky bottom-4 z-20 bg-zinc-900/95 backdrop-blur-md border border-zinc-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl">
-          <div className="text-xs text-zinc-400">
-            <span className="font-bold text-white">{shortlistedKeys.length}</span> programs shortlisted for comparison
+        <div className="sticky bottom-4 z-20 bg-surface/95 backdrop-blur-md border border-subtle p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl">
+          <div className="text-xs text-muted">
+            <span className="font-bold text-primary">{shortlistedKeys.length}</span> programs shortlisted for comparison
           </div>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => navigate("/student/onboarding/destination")}
-              className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition-colors cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-elevated hover:bg-hover text-xs font-semibold text-secondary transition-colors cursor-pointer"
             >
               Previous
             </button>

@@ -368,32 +368,37 @@ export const StudentOnboardingProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="min-h-screen bg-main relative overflow-hidden flex items-center justify-center text-muted">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-16">
+    <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-brand/10 to-transparent pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
       {/* Top Guided Progress Header */}
-      <div className="sticky top-0 z-30 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-4">
+      <div className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold tracking-wider text-emerald-400 uppercase">
               Step 1 of 4 • Student Onboarding
             </span>
-            <h1 className="text-xl font-bold font-heading text-white">
+            <h1 className="text-xl font-bold font-heading text-primary">
               Let's build your student profile
             </h1>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="text-xs text-zinc-400">Profile Completion</span>
+              <span className="text-xs text-muted">Profile Completion</span>
               <p className="text-lg font-bold text-emerald-400">{completeness.percentage}%</p>
             </div>
-            <div className="w-24 bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+            <div className="w-24 bg-elevated h-2.5 rounded-full overflow-hidden">
               <div
                 className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${completeness.percentage}%` }}
@@ -403,7 +408,7 @@ export const StudentOnboardingProfile: React.FC = () => {
               type="button"
               onClick={() => saveProgress(false)}
               disabled={saving}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-primary rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
               {saving ? "Saving..." : saveSuccess ? "Saved ✓" : "Save Draft"}
@@ -414,13 +419,13 @@ export const StudentOnboardingProfile: React.FC = () => {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-8 mt-6 space-y-8">
         {/* Banner */}
-        <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-sm text-zinc-300 flex items-start gap-3">
+        <div className="p-5 rounded-2xl bg-surface/70 border border-subtle text-sm text-secondary flex items-start gap-3">
           <BookOpen className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-white">
+            <p className="font-semibold text-primary">
               Tell us about yourself so we can find universities and programs that match your academic background and goals.
             </p>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-muted mt-1">
               Your master profile auto-fills future applications, eliminates redundant paperwork, and provides instant eligibility feedback.
             </p>
           </div>
@@ -434,72 +439,72 @@ export const StudentOnboardingProfile: React.FC = () => {
         )}
 
         {/* Section 1: Personal Information */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
             <User className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-bold text-white font-heading">1. Personal Information</h2>
+            <h2 className="text-base font-bold text-primary font-heading">1. Personal Information</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">First Name *</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">First Name *</label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="Muhammad"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Last Name *</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Last Name *</label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Ali"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Email Address (Auth)</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Email Address (Auth)</label>
               <input
                 type="email"
                 value={email}
                 disabled
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-zinc-400 cursor-not-allowed"
+                className="w-full bg-surface border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-muted cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Phone Number *</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Phone Number *</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+92 300 1234567"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Date of Birth</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Date of Birth</label>
               <input
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Gender</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Gender</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as any)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -509,11 +514,11 @@ export const StudentOnboardingProfile: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Nationality *</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Nationality *</label>
               <select
                 value={nationality}
                 onChange={(e) => setNationality(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -522,11 +527,11 @@ export const StudentOnboardingProfile: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Country of Residence *</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Country of Residence *</label>
               <select
                 value={countryOfResidence}
                 onChange={(e) => setCountryOfResidence(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -535,34 +540,34 @@ export const StudentOnboardingProfile: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">City</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">City</label>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Lahore / Islamabad"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
           </div>
         </section>
 
         {/* Section 2: Passport Information */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <Shield className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">2. Passport Information</h2>
+              <h2 className="text-base font-bold text-primary font-heading">2. Passport Information</h2>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span className="text-zinc-400">Do you have a passport?</span>
+              <span className="text-muted">Do you have a passport?</span>
               <button
                 type="button"
                 onClick={() => setHasPassport(!hasPassport)}
                 className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
                   hasPassport
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                    : "bg-elevated text-muted border border-default"
                 }`}
               >
                 {hasPassport ? "Yes, I have a passport" : "No passport yet"}
@@ -573,22 +578,22 @@ export const StudentOnboardingProfile: React.FC = () => {
           {hasPassport ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Passport Number</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Passport Number</label>
                 <input
                   type="text"
                   value={passportNumber}
                   onChange={(e) => setPassportNumber(e.target.value)}
                   placeholder="AB1234567"
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Passport Issuing Country</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Passport Issuing Country</label>
                 <select
                   value={passportCountry}
                   onChange={(e) => setPassportCountry(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 >
                   {COUNTRIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -597,33 +602,33 @@ export const StudentOnboardingProfile: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Passport Expiry Date</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Passport Expiry Date</label>
                 <input
                   type="date"
                   value={passportExpiry}
                   onChange={(e) => setPassportExpiry(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
           ) : (
-            <p className="text-xs text-zinc-400 bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-800">
+            <p className="text-xs text-muted bg-main relative overflow-hidden/60 p-3.5 rounded-xl border border-subtle">
               ℹ Passport details are not required to search programs or draft applications. You can add them later prior to final university CAS/Visa submission.
             </p>
           )}
         </section>
 
         {/* Section 3: Academic Background */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <GraduationCap className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">3. Academic Background</h2>
+              <h2 className="text-base font-bold text-primary font-heading">3. Academic Background</h2>
             </div>
             <button
               type="button"
               onClick={addAcademicRecord}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-emerald-400 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-emerald-400 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Qualification
@@ -634,9 +639,9 @@ export const StudentOnboardingProfile: React.FC = () => {
             {academicRecords.map((record, index) => (
               <div
                 key={index}
-                className="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-4 relative"
+                className="p-4 rounded-xl bg-main relative overflow-hidden/80 border border-subtle space-y-4 relative"
               >
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-400">
+                <div className="flex items-center justify-between text-xs font-semibold text-muted">
                   <span>Record #{index + 1}</span>
                   {academicRecords.length > 1 && (
                     <button
@@ -652,22 +657,22 @@ export const StudentOnboardingProfile: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Institution Name *</label>
+                    <label className="block text-xs font-semibold text-secondary mb-1.5">Institution Name *</label>
                     <input
                       type="text"
                       value={record.institution}
                       onChange={(e) => updateAcademicRecord(index, "institution", e.target.value)}
                       placeholder="e.g. NUST / University of the Punjab"
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Qualification Level *</label>
+                    <label className="block text-xs font-semibold text-secondary mb-1.5">Qualification Level *</label>
                     <select
                       value={record.qualification}
                       onChange={(e) => updateAcademicRecord(index, "qualification", e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     >
                       {QUALIFICATIONS.map((q) => (
                         <option key={q} value={q}>{q}</option>
@@ -676,45 +681,45 @@ export const StudentOnboardingProfile: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Degree Title / Major *</label>
+                    <label className="block text-xs font-semibold text-secondary mb-1.5">Degree Title / Major *</label>
                     <input
                       type="text"
                       value={record.degreeTitle}
                       onChange={(e) => updateAcademicRecord(index, "degreeTitle", e.target.value)}
                       placeholder="BS Computer Science / A-Levels Pre-Eng"
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Country of Study</label>
+                    <label className="block text-xs font-semibold text-secondary mb-1.5">Country of Study</label>
                     <input
                       type="text"
                       value={record.country}
                       onChange={(e) => updateAcademicRecord(index, "country", e.target.value)}
                       placeholder="Pakistan"
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Completion Year</label>
+                    <label className="block text-xs font-semibold text-secondary mb-1.5">Completion Year</label>
                     <input
                       type="number"
                       value={record.completionYear}
                       onChange={(e) => updateAcademicRecord(index, "completionYear", Number(e.target.value))}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Grade / CGPA / % *</label>
+                    <label className="block text-xs font-semibold text-secondary mb-1.5">Grade / CGPA / % *</label>
                     <input
                       type="text"
                       value={record.gradeGpa}
                       onChange={(e) => updateAcademicRecord(index, "gradeGpa", e.target.value)}
                       placeholder="3.45 / 4.00 or 78%"
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>
@@ -724,19 +729,19 @@ export const StudentOnboardingProfile: React.FC = () => {
         </section>
 
         {/* Section 4: English Language Proficiency */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <FileCheck className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">4. English Language Proficiency</h2>
+              <h2 className="text-base font-bold text-primary font-heading">4. English Language Proficiency</h2>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-zinc-400 flex items-center gap-1.5 cursor-pointer">
+              <label className="text-xs text-muted flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={noEnglishTestYet}
                   onChange={(e) => setNoEnglishTestYet(e.target.checked)}
-                  className="rounded border-zinc-700 text-emerald-500 focus:ring-0"
+                  className="rounded border-default text-emerald-500 focus:ring-0"
                 />
                 Haven't taken an English test yet
               </label>
@@ -747,11 +752,11 @@ export const StudentOnboardingProfile: React.FC = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Test Type</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Test Type</label>
                   <select
                     value={englishTestType}
                     onChange={(e) => setEnglishTestType(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                   >
                     <option value="IELTS">IELTS Academic</option>
                     <option value="PTE">PTE Academic</option>
@@ -763,69 +768,69 @@ export const StudentOnboardingProfile: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Overall Score</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Overall Score</label>
                   <input
                     type="text"
                     value={englishOverallScore}
                     onChange={(e) => setEnglishOverallScore(e.target.value)}
                     placeholder="e.g. 7.0 or 65 or 120"
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Test Date</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Test Date</label>
                   <input
                     type="date"
                     value={englishTestDate}
                     onChange={(e) => setEnglishTestDate(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               {englishTestType === "IELTS" && (
-                <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-2">
-                  <p className="text-xs font-semibold text-zinc-300">Sub-scores (Optional but recommended)</p>
+                <div className="p-4 rounded-xl bg-main relative overflow-hidden/70 border border-subtle space-y-2">
+                  <p className="text-xs font-semibold text-secondary">Sub-scores (Optional but recommended)</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <span className="text-[11px] text-zinc-400">Listening</span>
+                      <span className="text-[11px] text-muted">Listening</span>
                       <input
                         type="text"
                         value={englishSubScores.listening}
                         onChange={(e) => setEnglishSubScores({ ...englishSubScores, listening: e.target.value })}
                         placeholder="7.5"
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
                       />
                     </div>
                     <div>
-                      <span className="text-[11px] text-zinc-400">Reading</span>
+                      <span className="text-[11px] text-muted">Reading</span>
                       <input
                         type="text"
                         value={englishSubScores.reading}
                         onChange={(e) => setEnglishSubScores({ ...englishSubScores, reading: e.target.value })}
                         placeholder="6.5"
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
                       />
                     </div>
                     <div>
-                      <span className="text-[11px] text-zinc-400">Writing</span>
+                      <span className="text-[11px] text-muted">Writing</span>
                       <input
                         type="text"
                         value={englishSubScores.writing}
                         onChange={(e) => setEnglishSubScores({ ...englishSubScores, writing: e.target.value })}
                         placeholder="6.5"
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
                       />
                     </div>
                     <div>
-                      <span className="text-[11px] text-zinc-400">Speaking</span>
+                      <span className="text-[11px] text-muted">Speaking</span>
                       <input
                         type="text"
                         value={englishSubScores.speaking}
                         onChange={(e) => setEnglishSubScores({ ...englishSubScores, speaking: e.target.value })}
                         placeholder="7.0"
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
                       />
                     </div>
                   </div>
@@ -833,20 +838,20 @@ export const StudentOnboardingProfile: React.FC = () => {
               )}
             </div>
           ) : (
-            <p className="text-xs text-zinc-400 bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-800">
+            <p className="text-xs text-muted bg-main relative overflow-hidden/60 p-3.5 rounded-xl border border-subtle">
               ℹ No worries! Our Program Matcher will still evaluate programs that offer English test waivers, internal university tests, or pre-sessional English courses.
             </p>
           )}
         </section>
 
         {/* Section 5: Target Study Level */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
             <Globe className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-bold text-white font-heading">5. Desired Study Level</h2>
+            <h2 className="text-base font-bold text-primary font-heading">5. Desired Study Level</h2>
           </div>
 
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-muted">
             Select the degree level you are seeking to pursue abroad:
           </p>
 
@@ -861,7 +866,7 @@ export const StudentOnboardingProfile: React.FC = () => {
                   className={`p-3.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer border ${
                     active
                       ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-md shadow-emerald-500/10"
-                      : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
+                      : "bg-main relative overflow-hidden text-muted border-subtle hover:border-default hover:text-primary"
                   }`}
                 >
                   {level}
@@ -871,21 +876,21 @@ export const StudentOnboardingProfile: React.FC = () => {
           </div>
         </section>
         {/* Section 6: Employment History */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <FileCheck className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">6. Employment History</h2>
+              <h2 className="text-base font-bold text-primary font-heading">6. Employment History</h2>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span className="text-zinc-400">Do you have work experience?</span>
+              <span className="text-muted">Do you have work experience?</span>
               <button
                 type="button"
                 onClick={() => setHasEmployment(!hasEmployment)}
                 className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
                   hasEmployment
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                    : "bg-elevated text-muted border border-default"
                 }`}
               >
                 {hasEmployment ? "Yes" : "No"}
@@ -896,23 +901,23 @@ export const StudentOnboardingProfile: React.FC = () => {
           {hasEmployment && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Employer Name</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Employer Name</label>
                 <input
                   type="text"
                   value={employerName}
                   onChange={(e) => setEmployerName(e.target.value)}
                   placeholder="Company Inc."
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Job Title</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Job Title</label>
                 <input
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
                   placeholder="Software Engineer"
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -920,21 +925,21 @@ export const StudentOnboardingProfile: React.FC = () => {
         </section>
 
         {/* Section 7: Financial Sponsor */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <Shield className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">7. Financial Sponsor</h2>
+              <h2 className="text-base font-bold text-primary font-heading">7. Financial Sponsor</h2>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span className="text-zinc-400">Do you have a financial sponsor?</span>
+              <span className="text-muted">Do you have a financial sponsor?</span>
               <button
                 type="button"
                 onClick={() => setHasSponsor(!hasSponsor)}
                 className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
                   hasSponsor
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                    : "bg-elevated text-muted border border-default"
                 }`}
               >
                 {hasSponsor ? "Yes" : "No"}
@@ -945,20 +950,20 @@ export const StudentOnboardingProfile: React.FC = () => {
           {hasSponsor && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Sponsor Name</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Sponsor Name</label>
                 <input
                   type="text"
                   value={sponsorName}
                   onChange={(e) => setSponsorName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Relationship</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Relationship</label>
                 <select
                   value={sponsorRelation}
                   onChange={(e) => setSponsorRelation(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 >
                   <option value="Parent">Parent</option>
                   <option value="Spouse">Spouse</option>
@@ -967,13 +972,13 @@ export const StudentOnboardingProfile: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Annual Income (USD)</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Annual Income (USD)</label>
                 <input
                   type="number"
                   value={sponsorIncome}
                   onChange={(e) => setSponsorIncome(e.target.value)}
                   placeholder="50000"
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -981,21 +986,21 @@ export const StudentOnboardingProfile: React.FC = () => {
         </section>
 
         {/* Section 8: Dependants */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <User className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">8. Dependants</h2>
+              <h2 className="text-base font-bold text-primary font-heading">8. Dependants</h2>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span className="text-zinc-400">Any dependants joining you?</span>
+              <span className="text-muted">Any dependants joining you?</span>
               <button
                 type="button"
                 onClick={() => setHasDependants(!hasDependants)}
                 className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
                   hasDependants
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                    : "bg-elevated text-muted border border-default"
                 }`}
               >
                 {hasDependants ? "Yes" : "No"}
@@ -1005,34 +1010,34 @@ export const StudentOnboardingProfile: React.FC = () => {
 
           {hasDependants && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Number of Dependants</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Number of Dependants</label>
               <input
                 type="number"
                 min="1"
                 value={dependantsCount}
                 onChange={(e) => setDependantsCount(e.target.value)}
-                className="w-full sm:w-1/3 bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full sm:w-1/3 bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               />
             </div>
           )}
         </section>
 
         {/* Section 9: References */}
-        <section className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <FileCheck className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-white font-heading">9. References</h2>
+              <h2 className="text-base font-bold text-primary font-heading">9. References</h2>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span className="text-zinc-400">Add an academic/professional reference?</span>
+              <span className="text-muted">Add an academic/professional reference?</span>
               <button
                 type="button"
                 onClick={() => setHasReferences(!hasReferences)}
                 className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
                   hasReferences
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                    : "bg-elevated text-muted border border-default"
                 }`}
               >
                 {hasReferences ? "Yes" : "No"}
@@ -1043,21 +1048,21 @@ export const StudentOnboardingProfile: React.FC = () => {
           {hasReferences && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Reference Name</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Reference Name</label>
                 <input
                   type="text"
                   value={refName}
                   onChange={(e) => setRefName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Reference Email</label>
+                <label className="block text-xs font-semibold text-secondary mb-1.5">Reference Email</label>
                 <input
                   type="email"
                   value={refEmail}
                   onChange={(e) => setRefEmail(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -1065,8 +1070,8 @@ export const StudentOnboardingProfile: React.FC = () => {
         </section>
 
         {/* Bottom Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-800">
-          <div className="text-xs text-zinc-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-subtle">
+          <div className="text-xs text-muted">
             Step 1 of 4 • Next: Destination Countries & Study Preferences
           </div>
 
@@ -1075,7 +1080,7 @@ export const StudentOnboardingProfile: React.FC = () => {
               type="button"
               onClick={() => saveProgress(false)}
               disabled={saving}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold text-zinc-200 transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-elevated hover:bg-hover text-sm font-semibold text-primary transition-colors cursor-pointer disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Progress"}
             </button>
