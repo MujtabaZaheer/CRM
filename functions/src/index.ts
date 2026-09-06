@@ -4,6 +4,29 @@ import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { randomUUID } from "node:crypto";
+import * as nodemailer from "nodemailer";
+
+// SMTP Configuration from Environment variables
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || "587", 10);
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_FROM = process.env.SMTP_FROM || `"EduCRM Admissions" <${SMTP_USER}>`;
+
+const getTransporter = () => {
+  if (!SMTP_USER || !SMTP_PASS) {
+    logger.warn("SMTP_USER and SMTP_PASS are not set. Email sending will likely fail unless using a mock transport.");
+  }
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465, // true for 465, false for other ports
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+};
 
 initializeApp();
 const db = getFirestore();
@@ -215,8 +238,38 @@ export const sendVerificationOTP = onCall({ enforceAppCheck: false }, async (req
     attempts: 0
   });
 
-  // MOCK EMAIL SEND (In production this would use SendGrid/Nodemailer)
-  logger.info(`[MOCK EMAIL] To: ${email} | Subject: Verify your email address | Body: Your EduCRM verification code is: ${otp}`);
+  try {
+    const transporter = getTransporter();
+    
+    // Attempt to send email
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to: email,
+      subject: "Verify your email address - EduCRM",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+          <h2 style="color: #0f172a;">Verify your email address</h2>
+          <p style="color: #475569; font-size: 16px;">
+            Thank you for registering. Please use the following 6-digit code to verify your email address. 
+            This code will expire in 10 minutes.
+          </p>
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-radius: 8px; margin: 24px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #10b981;">${otp}</span>
+          </div>
+          <p style="color: #64748b; font-size: 14px; margin-top: 24px;">
+            If you did not request this verification code, please ignore this email.
+          </p>
+        </div>
+      `,
+    });
+    
+    logger.info(`[EMAIL SENT] Verification code sent successfully to ${email}`);
+  } catch (error) {
+    logger.error("Failed to send verification email:", error);
+    // Even if email fails, we shouldn't leak server errors directly to the client,
+    // but the client will handle it if we throw an internal error.
+    throw new HttpsError("internal", "Our email service is temporarily unavailable. Please try again later.");
+  }
 
   return { success: true };
 });
