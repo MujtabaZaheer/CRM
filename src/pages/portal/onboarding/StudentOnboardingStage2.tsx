@@ -315,6 +315,11 @@ export const StudentOnboardingStage2: React.FC = () => {
   /* ================================================================ */
   return (
     <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
+      {/* Role-Specific Atmospheric Background Layer */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.065] dark:opacity-[0.055]"
+        style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
+      />
       {/* ---- Sticky Header ---- */}
       <div className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">

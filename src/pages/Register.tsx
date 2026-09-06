@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { UserRole } from "../types/role";
 import { REGISTRATION_CONFIGS, SELF_REGISTERABLE_ROLES } from "../types/registrationConfig";
+import { StudentCVUploader } from "../components/ai/StudentCVUploader";
+import { getRoleBackground } from "../utils/roleBackgrounds";
 
 /* ------------------------------------------------------------------ */
 /*  Password strength rules                                           */
@@ -314,7 +316,12 @@ export const Register: React.FC = () => {
   /* ================================================================ */
   if (!selectedRole) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Dynamic Ambient Background Layer */}
+        <div
+          className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.08]"
+          style={{ backgroundImage: `url('/images/student_welcome_banner.jpg')` }}
+        />
         {/* Background Glows */}
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -382,18 +389,25 @@ export const Register: React.FC = () => {
   /* ================================================================ */
   /*  REGISTRATION FORM                                               */
   /* ================================================================ */
+  const roleBg = getRoleBackground(selectedRole);
+
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Dynamic Role Background Image */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.08]"
+        style={{ backgroundImage: `url('${roleBg}')` }}
+      />
       {/* Background Glows */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-lg bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
+      <div className="w-full max-w-xl bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
         {/* Back button */}
         <button
           type="button"
           onClick={() => { setSelectedRole(null); setError(null); }}
-          className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
+          className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Change role</span>
@@ -415,6 +429,25 @@ export const Register: React.FC = () => {
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
+        )}
+
+        {/* AI Student CV Auto-Fill Dropzone */}
+        {selectedRole === "student" && (
+          <StudentCVUploader
+            onExtracted={(extracted) => {
+              setFormData((prev) => ({
+                ...prev,
+                fullName: extracted.fullName || prev.fullName,
+                email: extracted.email || prev.email,
+                phone: extracted.phone || prev.phone,
+                nationality: NATIONALITIES.includes(extracted.nationality) ? extracted.nationality : prev.nationality || "Pakistani",
+                countryOfResidence: extracted.countryOfResidence || prev.countryOfResidence || "Pakistan",
+              }));
+              try {
+                sessionStorage.setItem("student_extracted_cv", JSON.stringify(extracted));
+              } catch (_) {}
+            }}
+          />
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

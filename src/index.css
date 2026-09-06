@@ -227,16 +227,12 @@
     animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  /* Page-specific background image scenes */
-  .bg-scene-login,
-  .bg-scene-register,
-  .bg-scene-invite {
+  /* Role & Page Specific Background Overlays */
+  [class*="bg-scene-"] {
     position: relative;
   }
 
-  .bg-scene-login::before,
-  .bg-scene-register::before,
-  .bg-scene-invite::before {
+  [class*="bg-scene-"]::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -253,11 +249,39 @@
   }
 
   .bg-scene-register::before {
-    background-image: url('/images/campus_us.jpg');
+    background-image: url('/images/student_welcome_banner.jpg');
   }
 
   .bg-scene-invite::before {
-    background-image: url('/images/student_welcome_banner.jpg');
+    background-image: url('/images/campus_uk.jpg');
+  }
+
+  .bg-scene-student::before {
+    background-image: url('/images/student_campus_hero.jpg');
+  }
+
+  .bg-scene-counsellor::before {
+    background-image: url('/images/role_counsellor.jpg');
+  }
+
+  .bg-scene-visa::before {
+    background-image: url('/images/role_visa.jpg');
+  }
+
+  .bg-scene-finance::before {
+    background-image: url('/images/role_finance.jpg');
+  }
+
+  .bg-scene-admin::before {
+    background-image: url('/images/role_admin.jpg');
+  }
+
+  .bg-scene-agent::before {
+    background-image: url('/images/role_agent.jpg');
+  }
+
+  .bg-scene-university::before {
+    background-image: url('/images/campus_us.jpg');
   }
 }
 

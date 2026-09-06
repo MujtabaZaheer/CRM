@@ -113,8 +113,13 @@ export const StudentNewApplication: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-main text-primary p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-main text-primary p-8 relative overflow-hidden">
+      {/* Role-Specific Atmospheric Background Layer */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.065] dark:opacity-[0.055]"
+        style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
+      />
+      <div className="max-w-4xl mx-auto space-y-6 relative z-10">
         <div>
           <h1 className="text-3xl font-bold">Start a New Application</h1>
           <p className="text-secondary mt-2">Select your desired university and program to begin the application process.</p>

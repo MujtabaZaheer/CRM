@@ -19,6 +19,8 @@ import { db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AcademicRecord, QualificationLevel, Student } from "../../../types/student";
 import { calculateProfileCompleteness } from "../../../utils/profileCompleteness";
+import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
+import { getRoleBackground } from "../../../utils/roleBackgrounds";
 
 const STUDY_LEVELS = [
   "Foundation",
@@ -194,6 +196,25 @@ export const StudentOnboardingStage1: React.FC = () => {
           setFirstName(parts[0] || "");
           setLastName(parts.slice(1).join(" ") || "");
         }
+
+        // Check if CV was pre-extracted during registration
+        try {
+          const cachedCV = sessionStorage.getItem("student_extracted_cv");
+          if (cachedCV) {
+            const parsed = JSON.parse(cachedCV);
+            if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
+            if (parsed.lastName && !lastName) setLastName(parsed.lastName);
+            if (parsed.phone && !phone) setPhone(parsed.phone);
+            if (parsed.nationality && !nationality) setNationality(parsed.nationality);
+            if (parsed.countryOfResidence && !countryOfResidence) setCountryOfResidence(parsed.countryOfResidence);
+            if (parsed.dob && !dob) setDob(parsed.dob);
+            if (parsed.city && !city) setCity(parsed.city);
+            if (parsed.desiredStudyLevel && !desiredStudyLevel) setDesiredStudyLevel(parsed.desiredStudyLevel);
+            if (parsed.academicRecords && parsed.academicRecords.length > 0) {
+              setAcademicRecords(parsed.academicRecords);
+            }
+          }
+        } catch (_) {}
       } catch (err: any) {
         console.warn("Could not load student profile:", err);
       } finally {
@@ -394,6 +415,11 @@ export const StudentOnboardingStage1: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
+      {/* Role-Specific Atmospheric Background Layer */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.065] dark:opacity-[0.055]"
+        style={{ backgroundImage: `url('${getRoleBackground("student")}')` }}
+      />
       {/* Decorative Background Elements */}
       <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-brand/10 to-transparent pointer-events-none" />
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -455,6 +481,26 @@ export const StudentOnboardingStage1: React.FC = () => {
             <span>{error}</span>
           </div>
         )}
+
+        {/* AI CV Extraction Dropzone */}
+        <StudentCVUploader
+          title="Auto-Fill Profile with AI (CV / Resume Scanner)"
+          subtitle="Upload your CV or academic transcript (PDF, DOCX, TXT, Image) to automatically populate personal details, academic history, and test scores."
+          onExtracted={(data) => {
+            if (data.firstName) setFirstName(data.firstName);
+            if (data.lastName) setLastName(data.lastName);
+            if (data.dob) setDob(data.dob);
+            if (data.gender) setGender(data.gender);
+            if (data.nationality) setNationality(data.nationality);
+            if (data.countryOfResidence) setCountryOfResidence(data.countryOfResidence);
+            if (data.city) setCity(data.city);
+            if (data.phone) setPhone(data.phone);
+            if (data.desiredStudyLevel) setDesiredStudyLevel(data.desiredStudyLevel);
+            if (data.academicRecords && data.academicRecords.length > 0) {
+              setAcademicRecords(data.academicRecords);
+            }
+          }}
+        />
 
         {/* Section 1: Personal Information */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
