@@ -106,7 +106,7 @@ export const AcceptInvitation: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 bg-scene-invite">
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500 text-zinc-950 flex items-center justify-center">

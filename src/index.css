@@ -80,6 +80,28 @@
                       radial-gradient(at 85% 85%, rgba(20, 184, 166, 0.04) 0px, transparent 50%);
     background-attachment: fixed;
     color: var(--text-primary);
+    position: relative;
+  }
+
+  /* Global subtle background image layer */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: url('/images/campus_uk.jpg') center / cover no-repeat fixed;
+    opacity: 0.045;
+  }
+
+  html.light body::after {
+    opacity: 0.03;
+  }
+
+  /* Ensure body children sit above the ::after layer */
+  body > #root {
+    position: relative;
+    z-index: 1;
   }
 
   h1, h2, h3, h4, .font-heading {
@@ -203,6 +225,39 @@
 
   .animate-modal-pop {
     animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Page-specific background image scenes */
+  .bg-scene-login,
+  .bg-scene-register,
+  .bg-scene-invite {
+    position: relative;
+  }
+
+  .bg-scene-login::before,
+  .bg-scene-register::before,
+  .bg-scene-invite::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.08;
+  }
+
+  .bg-scene-login::before {
+    background-image: url('/images/student_campus_hero.jpg');
+  }
+
+  .bg-scene-register::before {
+    background-image: url('/images/campus_us.jpg');
+  }
+
+  .bg-scene-invite::before {
+    background-image: url('/images/student_welcome_banner.jpg');
   }
 }
 

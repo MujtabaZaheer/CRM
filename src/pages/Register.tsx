@@ -282,7 +282,7 @@ export const Register: React.FC = () => {
   /* ================================================================ */
   if (success) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-8 space-y-6 relative z-10 backdrop-blur-md text-center">
           <div className="w-16 h-16 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-full flex items-center justify-center mx-auto">
@@ -314,7 +314,7 @@ export const Register: React.FC = () => {
   /* ================================================================ */
   if (!selectedRole) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
         {/* Background Glows */}
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -383,7 +383,7 @@ export const Register: React.FC = () => {
   /*  REGISTRATION FORM                                               */
   /* ================================================================ */
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
       {/* Background Glows */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
