@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { signOut } from "firebase/auth";
+import { signOut, sendEmailVerification } from "firebase/auth";
 import { useLocation, useNavigate } from "react-router-dom";
-import { httpsCallable } from "firebase/functions";
 import {
   CheckCircle2,
   Mail,
@@ -10,8 +9,10 @@ import {
   LogOut,
   AlertCircle,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
-import { auth, functions } from "../firebase/config";
+import { auth } from "../firebase/config";
+import { getEmailActionSettings } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
 const COOLDOWN_SECONDS = 60;
@@ -35,11 +36,8 @@ export const VerifyEmail: React.FC = () => {
   );
   const [error, setError] = useState<string | null>(emailError || null);
   
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
-  
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Sync email when user loads
   useEffect(() => {
@@ -60,47 +58,9 @@ export const VerifyEmail: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [cooldown]);
 
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
 
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted) {
-      const newCode = [...code];
-      for (let i = 0; i < pasted.length; i++) {
-        newCode[i] = pasted[i];
-      }
-      setCode(newCode);
-      if (pasted.length < 6) {
-        inputRefs.current[pasted.length]?.focus();
-      } else {
-        inputRefs.current[5]?.focus();
-      }
-    }
-  };
 
   const handleVerify = async () => {
-    const fullCode = code.join("");
-    if (fullCode.length !== 6) {
-      setError("Please enter the full 6-digit code.");
-      return;
-    }
-
     setError(null);
     setMessage(null);
     setVerifying(true);
@@ -108,34 +68,21 @@ export const VerifyEmail: React.FC = () => {
     try {
       if (!auth.currentUser) throw new Error("Authentication session lost. Please sign in again.");
       
-      const verifyOTP = httpsCallable(functions, 'verifyOTP');
-      await verifyOTP({ code: fullCode });
-      
-      setMessage("Verification confirmed! Redirecting to student onboarding...");
       await auth.currentUser.reload();
-      await refreshFirebaseUser();
-
-      setTimeout(() => {
-        navigate("/student/onboarding/profile", { replace: true });
-      }, 1000);
-    } catch (err: any) {
-      console.error("Verification error:", err);
-      const code = err.code || "";
-      const msg = err.message || "";
       
-      if (code.includes("invalid-argument") || msg.includes("invalid-argument") || msg.includes("Incorrect")) {
-        setError("The verification code is incorrect. Please check the code and try again.");
-      } else if (code.includes("failed-precondition") || msg.includes("expired")) {
-        setError("This verification code has expired. Please request a new one.");
-      } else if (code.includes("resource-exhausted") || msg.includes("exhausted")) {
-        setError("For your security, verification is temporarily limited. Please try again later.");
-      } else if (code.includes("internal") || msg.toLowerCase().includes("internal") || code.includes("not-found")) {
-        setError("Our verification service is temporarily unavailable. Please try again in a few moments.");
+      if (auth.currentUser.emailVerified) {
+        setMessage("Verification confirmed! Redirecting to student onboarding...");
+        await refreshFirebaseUser();
+
+        setTimeout(() => {
+          navigate("/student/onboarding/profile", { replace: true });
+        }, 1000);
       } else {
-        setError("Failed to verify code. Please try again.");
+        setError("Your email is not verified yet. Please click the link in the email we sent you.");
       }
-      setCode(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
+    } catch (err: any) {
+      console.error("Verification check error:", err);
+      setError("Failed to verify status. Please try again.");
     } finally {
       setVerifying(false);
     }
@@ -150,24 +97,19 @@ export const VerifyEmail: React.FC = () => {
     try {
       if (!auth.currentUser) throw new Error("Authentication session lost. Please sign in again.");
 
-      const sendOTP = httpsCallable(functions, 'sendVerificationOTP');
-      await sendOTP();
+      await sendEmailVerification(auth.currentUser, getEmailActionSettings());
 
-      setMessage("A new verification code has been sent to your email.");
+      setMessage("A new verification link has been sent to your email.");
       setCooldown(COOLDOWN_SECONDS);
-      setCode(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
     } catch (err: any) {
       console.error("Resend error:", err);
       const code = err.code || "";
       const msg = err.message || "";
       
-      if (code.includes("resource-exhausted") || msg.includes("exhausted")) {
+      if (code.includes("too-many-requests")) {
         setError("For your security, sending is temporarily limited. Please wait before trying again.");
-      } else if (code.includes("internal") || msg.toLowerCase().includes("internal") || code.includes("not-found")) {
-        setError("Our verification service is temporarily unavailable. Please try again in a few moments.");
       } else {
-        setError("We couldn't send your verification code right now. Please try again.");
+        setError("We couldn't send your verification email right now. Please try again.");
       }
     } finally {
       setResending(false);
@@ -202,7 +144,7 @@ export const VerifyEmail: React.FC = () => {
             Verify your email
           </h1>
           <p className="text-sm text-secondary">
-            We've sent a 6-digit verification code to:
+            We've sent a verification link to:
           </p>
           <div className="inline-block px-3.5 py-1.5 rounded-full bg-elevated border border-subtle text-emerald-500 font-mono text-sm font-semibold max-w-full truncate">
             {displayEmail}
@@ -212,29 +154,14 @@ export const VerifyEmail: React.FC = () => {
         <div className="bg-elevated/60 border border-subtle rounded-2xl p-4 text-xs text-muted text-left space-y-1.5">
           <p className="font-semibold text-primary flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            Code expires in 10 minutes.
+            Click the link in the email to verify.
           </p>
           <p>
             Your email must be verified before you can access the admissions portal.
           </p>
         </div>
 
-        {/* OTP Input Grid */}
-        <div className="flex gap-2 justify-center py-2" onPaste={handlePaste}>
-          {code.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => { inputRefs.current[index] = el; }}
-              type="text"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              disabled={verifying}
-              className="w-12 h-14 bg-input border border-default rounded-xl text-center text-xl font-bold text-emerald-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors disabled:opacity-50"
-            />
-          ))}
-        </div>
+
 
         {message && (
           <div className="rounded-xl bg-emerald-500/15 border border-emerald-500/30 p-3.5 text-xs sm:text-sm text-emerald-300 flex items-start gap-2 text-left">
@@ -253,16 +180,19 @@ export const VerifyEmail: React.FC = () => {
         <div className="space-y-3 pt-2">
           <button
             onClick={handleVerify}
-            disabled={verifying || code.join("").length !== 6}
+            disabled={verifying}
             className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
           >
             {verifying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Verifying...
+                Checking verification status...
               </>
             ) : (
-              "Verify Email"
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                I have clicked the verification link
+              </>
             )}
           </button>
 
@@ -275,8 +205,8 @@ export const VerifyEmail: React.FC = () => {
             {cooldown > 0
               ? `Resend available in ${cooldown}s`
               : resending
-              ? "Sending code..."
-              : "Didn't receive it? Resend code"}
+              ? "Sending email..."
+              : "Didn't receive the email? Resend link"}
           </button>
         </div>
 
