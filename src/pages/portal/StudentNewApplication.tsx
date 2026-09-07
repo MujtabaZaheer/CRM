@@ -116,9 +116,10 @@ export const StudentNewApplication: React.FC = () => {
     <div className="min-h-screen bg-main text-primary p-8 relative overflow-hidden">
       {/* Role-Specific Atmospheric Background Layer */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.065] dark:opacity-[0.055]"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
         style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
       />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/70 via-white/50 to-white/75 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
       <div className="max-w-4xl mx-auto space-y-6 relative z-10">
         <div>
           <h1 className="text-3xl font-bold">Start a New Application</h1>

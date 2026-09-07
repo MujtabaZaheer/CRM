@@ -349,7 +349,10 @@ export const StudentApplicationWizard: React.FC = () => {
       setTimeout(() => setSaveNotice(null), 2500);
     } catch (err: any) {
       console.error("Document upload failed:", err);
-      setError(err.message || "Failed to upload document.");
+      const friendlyMsg = err.message && err.message !== "internal"
+        ? err.message
+        : "Failed to upload document. Please ensure the file is under 15MB (PDF/JPG/PNG/DOCX) and try again.";
+      setError(friendlyMsg);
     } finally {
       setUploadingDoc(false);
       e.target.value = "";
@@ -515,7 +518,7 @@ export const StudentApplicationWizard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="min-h-screen bg-transparent flex items-center justify-center text-muted">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       </div>
     );
@@ -523,9 +526,9 @@ export const StudentApplicationWizard: React.FC = () => {
 
   if (!university || !programme) {
     return (
-      <div className="min-h-screen bg-zinc-950 p-8 text-center text-zinc-300 space-y-4">
+      <div className="min-h-screen bg-transparent p-8 text-center text-primary space-y-4">
         <h2 className="text-xl font-bold">No Program Selected</h2>
-        <p className="text-sm text-zinc-500">Please choose a university program through the Program Matcher.</p>
+        <p className="text-sm text-muted">Please choose a university program through the Program Matcher.</p>
         <Link to="/student/onboarding/program-matcher" className="text-emerald-400 font-bold underline">
           Open Program Matcher →
         </Link>
@@ -534,26 +537,33 @@ export const StudentApplicationWizard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-24">
+    <div className="min-h-screen bg-transparent text-primary font-sans pb-24 relative">
+      {/* Role-Specific Atmospheric Background Layer */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
+        style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
+      />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/70 via-white/50 to-white/75 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
+
       {/* Top Wizard Navigation Header */}
-      <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-3.5 shadow-md">
+      <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-3.5 shadow-md">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 flex items-center gap-1 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-elevated hover:bg-hover border border-subtle text-xs font-semibold text-primary flex items-center gap-1 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back
             </button>
-            <span className="text-xs px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 font-bold">
+            <span className="text-xs px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold">
               Step {currentStep} of 11
             </span>
             <div className="truncate">
-              <h1 className="text-sm sm:text-base font-bold text-white truncate">
+              <h1 className="text-sm sm:text-base font-bold text-primary truncate">
                 {programme.title}
               </h1>
-              <p className="text-xs text-zinc-400 truncate">
+              <p className="text-xs text-secondary truncate">
                 {university.name} • {university.country}
               </p>
             </div>
@@ -567,14 +577,14 @@ export const StudentApplicationWizard: React.FC = () => {
               </span>
             )}
             <div className="text-right hidden sm:block">
-              <span className="text-[11px] text-zinc-400">Readiness: </span>
+              <span className="text-[11px] text-secondary">Readiness: </span>
               <span className="text-xs font-bold text-emerald-400">{readiness.percentage}%</span>
             </div>
             <button
               type="button"
               onClick={() => saveDraft()}
               disabled={saving}
-              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg bg-elevated hover:bg-hover border border-subtle text-xs font-semibold text-primary flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
               {saving ? "Saving..." : "Save Draft"}
@@ -596,10 +606,10 @@ export const StudentApplicationWizard: React.FC = () => {
                   onClick={() => saveDraft(s.num)}
                   className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
                     active
-                      ? "bg-emerald-500 text-zinc-950 font-bold shadow-sm"
+                      ? "bg-emerald-500 text-primary font-bold shadow-sm shadow-emerald-500/20"
                       : completed
-                      ? "bg-zinc-800 text-emerald-400"
-                      : "bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+                      ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
+                      : "bg-elevated text-muted hover:text-primary hover:bg-hover border border-subtle"
                   }`}
                 >
                   <span>{s.num}.</span>
@@ -621,42 +631,42 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 1: Application Overview */}
         {currentStep === 1 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 1</span>
-              <h2 className="text-lg font-bold text-white font-heading">Application Overview</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">Application Overview</h2>
+              <p className="text-xs text-secondary mt-0.5">
                 Verify program details, intakes, and admission deadlines before proceeding.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
-                <span className="text-zinc-500">Degree Level</span>
-                <p className="font-bold text-white text-sm">{programme.level}</p>
+              <div className="p-3.5 rounded-xl bg-elevated/50 border border-subtle space-y-1">
+                <span className="text-muted">Degree Level</span>
+                <p className="font-bold text-primary text-sm">{programme.level}</p>
               </div>
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
-                <span className="text-zinc-500">Duration</span>
-                <p className="font-bold text-white text-sm">{programme.durationMonths} Months</p>
+              <div className="p-3.5 rounded-xl bg-elevated/50 border border-subtle space-y-1">
+                <span className="text-muted">Duration</span>
+                <p className="font-bold text-primary text-sm">{programme.durationMonths} Months</p>
               </div>
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
-                <span className="text-zinc-500">Annual Tuition Fee</span>
+              <div className="p-3.5 rounded-xl bg-elevated/50 border border-subtle space-y-1">
+                <span className="text-muted">Annual Tuition Fee</span>
                 <p className="font-bold text-emerald-400 text-sm">
                   {programme.currency} {programme.tuitionFeeAnnual?.toLocaleString()}
                 </p>
               </div>
-              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-1">
-                <span className="text-zinc-500">Application Deadline</span>
+              <div className="p-3.5 rounded-xl bg-elevated/50 border border-subtle space-y-1">
+                <span className="text-muted">Application Deadline</span>
                 <p className="font-bold text-amber-300 text-sm">{programme.deadline || "Rolling Admissions"}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-zinc-300">Select Intake Session *</label>
+              <label className="block text-xs font-semibold text-secondary">Select Intake Session *</label>
               <select
                 value={selectedIntake}
                 onChange={(e) => setSelectedIntake(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 {(programme.intakes || ["September", "January"]).map((i) => (
                   <option key={i} value={i}>{i}</option>
@@ -668,11 +678,11 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 2: Personal Information (Auto-Filled) */}
         {currentStep === 2 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-subtle">
               <div>
                 <span className="text-xs font-bold text-emerald-400 uppercase">Step 2</span>
-                <h2 className="text-lg font-bold text-white font-heading">Personal Information</h2>
+                <h2 className="text-lg font-bold text-primary font-heading font-bold">Personal Information</h2>
               </div>
               <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
                 Auto-filled from Master Profile
@@ -681,42 +691,42 @@ export const StudentApplicationWizard: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Full Legal Name</label>
+                <label className="block text-xs font-semibold text-secondary mb-1">Full Legal Name</label>
                 <input
                   type="text"
                   value={personalOverrides.fullName}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, fullName: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Email Address</label>
+                <label className="block text-xs font-semibold text-secondary mb-1">Email Address</label>
                 <input
                   type="email"
                   value={student?.email || appUser?.email || ""}
                   disabled
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-zinc-400 cursor-not-allowed"
+                  className="w-full bg-elevated border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-muted cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Contact Phone</label>
+                <label className="block text-xs font-semibold text-secondary mb-1">Contact Phone</label>
                 <input
                   type="text"
                   value={personalOverrides.phone}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, phone: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Country of Residence</label>
+                <label className="block text-xs font-semibold text-secondary mb-1">Country of Residence</label>
                 <input
                   type="text"
                   value={personalOverrides.countryOfResidence}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, countryOfResidence: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -725,11 +735,11 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 3: Academic History */}
         {currentStep === 3 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-subtle">
               <div>
                 <span className="text-xs font-bold text-emerald-400 uppercase">Step 3</span>
-                <h2 className="text-lg font-bold text-white font-heading">Academic History</h2>
+                <h2 className="text-lg font-bold text-primary font-heading font-bold">Academic History</h2>
               </div>
               <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
                 Auto-filled from Master Profile
@@ -739,17 +749,17 @@ export const StudentApplicationWizard: React.FC = () => {
             {student?.academicHistory && student.academicHistory.length > 0 ? (
               <div className="space-y-3">
                 {student.academicHistory.map((rec, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between font-bold text-sm text-white">
+                  <div key={i} className="p-4 rounded-xl bg-elevated/50 border border-subtle text-xs space-y-1.5">
+                    <div className="flex items-center justify-between font-bold text-sm text-primary">
                       <span>{rec.degreeTitle}</span>
                       <span className="text-emerald-400">{rec.gradeGpa}</span>
                     </div>
-                    <p className="text-zinc-400">{rec.institution} • {rec.country} ({rec.completionYear})</p>
+                    <p className="text-secondary">{rec.institution} • {rec.country} ({rec.completionYear})</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-6 text-center text-zinc-400 border border-dashed border-zinc-800 rounded-xl">
+              <div className="p-6 text-center text-secondary border border-dashed border-subtle rounded-xl">
                 <p className="text-xs">No academic records found in profile.</p>
                 <Link to="/student/onboarding/step-1" className="text-xs font-bold text-emerald-400 underline mt-2 inline-block">
                   Update Academic History in Profile →
@@ -761,23 +771,23 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 4: English Language */}
         {currentStep === 4 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-subtle">
               <div>
                 <span className="text-xs font-bold text-emerald-400 uppercase">Step 4</span>
-                <h2 className="text-lg font-bold text-white font-heading">English Language Proficiency</h2>
+                <h2 className="text-lg font-bold text-primary font-heading font-bold">English Language Proficiency</h2>
               </div>
               <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
                 Auto-filled from Master Profile
               </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2 text-xs">
-              <div className="flex justify-between items-center text-sm font-bold text-white">
+            <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2 text-xs">
+              <div className="flex justify-between items-center text-sm font-bold text-primary">
                 <span>Test Type: {student?.englishProficiency?.testType || "Pending / Not Taken"}</span>
                 <span className="text-emerald-400">Score: {student?.englishProficiency?.overallScore || "N/A"}</span>
               </div>
-              <p className="text-zinc-400">
+              <p className="text-secondary">
                 Minimum Program IELTS Requirement: {programme.minIeltsScore ? `IELTS ${programme.minIeltsScore}` : "None explicitly required"}
               </p>
             </div>
@@ -786,16 +796,16 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 5: Program-Specific Requirements */}
         {currentStep === 5 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 5</span>
-              <h2 className="text-lg font-bold text-white font-heading">Program-Specific Requirements</h2>
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">Program-Specific Requirements</h2>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                <p className="font-semibold text-zinc-200">Admissions Criteria Comparison:</p>
-                <div className="space-y-1.5 text-zinc-400">
+              <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2">
+                <p className="font-semibold text-primary">Admissions Criteria Comparison:</p>
+                <div className="space-y-1.5 text-secondary">
                   {eligibility.checks.map((chk, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className={chk.status === "pass" ? "text-emerald-400" : "text-amber-400"}>
@@ -808,13 +818,13 @@ export const StudentApplicationWizard: React.FC = () => {
               </div>
 
               <div className="space-y-2 pt-2">
-                <label className="block font-semibold text-zinc-300">Statement of Purpose / Personal Statement</label>
+                <label className="block font-semibold text-secondary">Statement of Purpose / Personal Statement</label>
                 <textarea
                   rows={5}
                   value={personalStatement}
                   onChange={(e) => setPersonalStatement(e.target.value)}
                   placeholder="Explain why you wish to study this program, your academic background, and your future career objectives..."
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-subtle rounded-xl p-3 text-xs sm:text-sm text-primary focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -823,11 +833,11 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 6: University-Specific Dynamic Questions */}
         {currentStep === 6 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 6</span>
-              <h2 className="text-lg font-bold text-white font-heading">University-Specific Questions</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">University-Specific Questions</h2>
+              <p className="text-xs text-secondary mt-0.5">
                 Questions configured specifically by {university.name} for this admissions intake.
               </p>
             </div>
@@ -836,7 +846,7 @@ export const StudentApplicationWizard: React.FC = () => {
               <div className="space-y-4">
                 {programme.applicationForm.map((q) => (
                   <div key={q.id} className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-zinc-300">
+                    <label className="block text-xs font-semibold text-secondary">
                       {q.label} {q.required && <span className="text-rose-400">*</span>}
                     </label>
                     {q.type === "textarea" ? (
@@ -845,13 +855,13 @@ export const StudentApplicationWizard: React.FC = () => {
                         value={questionResponses[q.id] || ""}
                         onChange={(e) => setQuestionResponses({ ...questionResponses, [q.id]: e.target.value })}
                         placeholder={q.helpText || "Enter your answer"}
-                        className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-input border border-subtle rounded-xl p-3 text-sm text-primary focus:outline-none focus:border-emerald-500"
                       />
                     ) : q.type === "select" ? (
                       <select
                         value={questionResponses[q.id] || ""}
                         onChange={(e) => setQuestionResponses({ ...questionResponses, [q.id]: e.target.value })}
-                        className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                       >
                         <option value="">-- Select an option --</option>
                         {(q.options || []).map((opt) => (
@@ -864,14 +874,14 @@ export const StudentApplicationWizard: React.FC = () => {
                         value={questionResponses[q.id] || ""}
                         onChange={(e) => setQuestionResponses({ ...questionResponses, [q.id]: e.target.value })}
                         placeholder={q.helpText || "Your response"}
-                        className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                       />
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800 text-xs text-zinc-400">
+              <div className="p-4 rounded-xl bg-elevated/40 border border-subtle text-xs text-secondary">
                 ✓ No additional university-specific questions required for this program.
               </div>
             )}
@@ -880,18 +890,18 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 7: Required Documents (Firebase Storage) */}
         {currentStep === 7 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-subtle">
               <div>
                 <span className="text-xs font-bold text-emerald-400 uppercase">Step 7</span>
-                <h2 className="text-lg font-bold text-white font-heading">Document Requirements</h2>
+                <h2 className="text-lg font-bold text-primary font-heading font-bold">Document Requirements</h2>
               </div>
               <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                 {readiness.items.filter(i => i.key.startsWith("document-") && i.state === "complete").length} / {readiness.items.filter(i => i.key.startsWith("document-")).length} Complete
               </span>
             </div>
 
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-secondary">
               Upload documents using secure Firebase Storage. All documents are encrypted and associated directly with your admissions profile.
             </p>
 
@@ -903,10 +913,10 @@ export const StudentApplicationWizard: React.FC = () => {
                 return (
                   <div
                     key={docName}
-                    className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    className="p-4 rounded-xl bg-elevated/50 border border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                   >
                     <div>
-                      <div className="flex items-center gap-2 font-semibold text-white">
+                      <div className="flex items-center gap-2 font-semibold text-primary">
                         <FileText className="w-4 h-4 text-emerald-400" />
                         <span>{docName}</span>
                         {existing ? (
@@ -916,7 +926,7 @@ export const StudentApplicationWizard: React.FC = () => {
                         )}
                       </div>
                       {existing && (
-                        <p className="text-[11px] text-zinc-500 mt-0.5 truncate max-w-xs">{existing.name}</p>
+                        <p className="text-[11px] text-muted mt-0.5 truncate max-w-xs">{existing.name}</p>
                       )}
                     </div>
 
@@ -926,12 +936,12 @@ export const StudentApplicationWizard: React.FC = () => {
                           href={existing.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold"
+                          className="px-3 py-1.5 rounded-lg bg-elevated hover:bg-hover text-primary font-semibold border border-subtle"
                         >
                           Preview
                         </a>
                       )}
-                      <label className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold cursor-pointer transition-colors flex items-center gap-1">
+                      <label className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold cursor-pointer transition-colors flex items-center gap-1">
                         <Upload className="w-3.5 h-3.5" />
                         <span>{existing ? "Replace" : "Upload"}</span>
                         <input
@@ -950,18 +960,18 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 8: Country / Visa Information (Informational) */}
         {currentStep === 8 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 8</span>
-              <h2 className="text-lg font-bold text-white font-heading">Destination Country & Visa Guidelines</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">Destination Country & Visa Guidelines</h2>
+              <p className="text-xs text-secondary mt-0.5">
                 Target Country: <span className="text-emerald-400 font-semibold">{university.country}</span>
               </p>
             </div>
 
-            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-3">
-              <h3 className="font-bold text-white text-sm">General Student Visa Requirements:</h3>
-              <ul className="space-y-1.5 text-zinc-300 list-disc pl-4 leading-relaxed">
+            <div className="p-4 rounded-xl bg-elevated/50 border border-subtle text-xs space-y-3">
+              <h3 className="font-bold text-primary text-sm">General Student Visa Requirements:</h3>
+              <ul className="space-y-1.5 text-secondary list-disc pl-4 leading-relaxed">
                 <li>Official University Unconditional Offer & Confirmation of Acceptance for Studies (CAS / COE).</li>
                 <li>Proof of Financial Maintenance (Tuition fee balance + official living expenses for 9 - 12 months).</li>
                 <li>Valid International Passport with minimum 6 months validity.</li>
@@ -970,19 +980,19 @@ export const StudentApplicationWizard: React.FC = () => {
               </ul>
             </div>
 
-            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2.5">
+            <div className="p-4 rounded-xl bg-elevated/40 border border-subtle text-xs text-secondary flex items-start gap-2.5">
               <HelpCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <p>
                 Please acknowledge that you have reviewed these general country guidelines. Official visa processing begins after university offer issuance.
               </p>
             </div>
 
-            <label className="flex items-center gap-2 text-xs font-semibold text-zinc-200 cursor-pointer pt-2">
+            <label className="flex items-center gap-2 text-xs font-semibold text-primary cursor-pointer pt-2">
               <input
                 type="checkbox"
                 checked={visaReviewed}
                 onChange={(e) => setVisaReviewed(e.target.checked)}
-                className="rounded border-zinc-700 text-emerald-500 focus:ring-0"
+                className="rounded border-subtle text-emerald-500 focus:ring-0"
               />
               I have reviewed the general visa prerequisites for {university.country}
             </label>
@@ -991,55 +1001,55 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 9: Application Review */}
         {currentStep === 9 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-6 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-6 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 9</span>
-              <h2 className="text-lg font-bold text-white font-heading">Complete Application Review</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">Complete Application Review</h2>
+              <p className="text-xs text-secondary mt-0.5">
                 Inspect your submission data across each section prior to making your declaration.
               </p>
             </div>
 
             <div className="space-y-4 text-xs">
               {/* Review Section 1: University & Program */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                <div className="flex justify-between items-center font-bold text-sm text-white">
+              <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2">
+                <div className="flex justify-between items-center font-bold text-sm text-primary">
                   <span>Programme & University</span>
                   <button type="button" onClick={() => setCurrentStep(1)} className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
                     <Edit3 className="w-3 h-3" /> Edit
                   </button>
                 </div>
-                <p className="text-zinc-300">{programme.title} ({programme.level})</p>
-                <p className="text-zinc-500">{university.name} • {university.country} • Intake: {selectedIntake}</p>
+                <p className="text-secondary">{programme.title} ({programme.level})</p>
+                <p className="text-muted">{university.name} • {university.country} • Intake: {selectedIntake}</p>
               </div>
 
               {/* Review Section 2: Personal Details */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                <div className="flex justify-between items-center font-bold text-sm text-white">
+              <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2">
+                <div className="flex justify-between items-center font-bold text-sm text-primary">
                   <span>Personal Details</span>
                   <button type="button" onClick={() => setCurrentStep(2)} className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
                     <Edit3 className="w-3 h-3" /> Edit
                   </button>
                 </div>
-                <p className="text-zinc-300">Name: {personalOverrides.fullName || student?.fullName}</p>
-                <p className="text-zinc-500">Email: {student?.email} • Phone: {personalOverrides.phone || student?.phone}</p>
+                <p className="text-secondary">Name: {personalOverrides.fullName || student?.fullName}</p>
+                <p className="text-muted">Email: {student?.email} • Phone: {personalOverrides.phone || student?.phone}</p>
               </div>
 
               {/* Review Section 3: Academic & Language */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                <div className="flex justify-between items-center font-bold text-sm text-white">
+              <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2">
+                <div className="flex justify-between items-center font-bold text-sm text-primary">
                   <span>Academic & Language</span>
                   <button type="button" onClick={() => setCurrentStep(3)} className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
                     <Edit3 className="w-3 h-3" /> Edit
                   </button>
                 </div>
-                <p className="text-zinc-300">Qualification: {student?.academicHistory?.[0]?.degreeTitle || "Recorded"} ({student?.academicHistory?.[0]?.gradeGpa || "N/A"})</p>
-                <p className="text-zinc-500">English: {student?.englishProficiency?.testType || "Pending"} ({student?.englishProficiency?.overallScore || "N/A"})</p>
+                <p className="text-secondary">Qualification: {student?.academicHistory?.[0]?.degreeTitle || "Recorded"} ({student?.academicHistory?.[0]?.gradeGpa || "N/A"})</p>
+                <p className="text-muted">English: {student?.englishProficiency?.testType || "Pending"} ({student?.englishProficiency?.overallScore || "N/A"})</p>
               </div>
 
               {/* Review Section 4: Documents Uploaded */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                <div className="flex justify-between items-center font-bold text-sm text-white">
+              <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2">
+                <div className="flex justify-between items-center font-bold text-sm text-primary">
                   <span>Uploaded Documents ({uploadedDocuments.length})</span>
                   <button type="button" onClick={() => setCurrentStep(7)} className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
                     <Edit3 className="w-3 h-3" /> Edit
@@ -1047,7 +1057,7 @@ export const StudentApplicationWizard: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {programme?.requiredDocuments?.map((item: string, i: number) => (
-                    <span key={i} className="px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300">
+                    <span key={i} className="px-2.5 py-1 rounded-md bg-elevated border border-subtle text-[11px] text-primary">
                       {item}
                     </span>
                   ))}
@@ -1059,21 +1069,21 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 10: Declaration & Consents */}
         {currentStep === 10 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-5 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 10</span>
-              <h2 className="text-lg font-bold text-white font-heading">Applicant Declarations</h2>
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">Applicant Declarations</h2>
             </div>
 
-            <div className="p-5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-4 text-xs">
+            <div className="p-5 rounded-xl bg-elevated/50 border border-subtle space-y-4 text-xs">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={declaration1}
                   onChange={(e) => setDeclaration1(e.target.checked)}
-                  className="rounded border-zinc-700 text-emerald-500 focus:ring-0 mt-0.5"
+                  className="rounded border-subtle text-emerald-500 focus:ring-0 mt-0.5"
                 />
-                <span className="text-zinc-300 leading-relaxed">
+                <span className="text-secondary leading-relaxed">
                   I confirm that the academic, personal, and financial information provided in this application is true, accurate, and complete to the best of my knowledge.
                 </span>
               </label>
@@ -1083,9 +1093,9 @@ export const StudentApplicationWizard: React.FC = () => {
                   type="checkbox"
                   checked={declaration2}
                   onChange={(e) => setDeclaration2(e.target.checked)}
-                  className="rounded border-zinc-700 text-emerald-500 focus:ring-0 mt-0.5"
+                  className="rounded border-subtle text-emerald-500 focus:ring-0 mt-0.5"
                 />
-                <span className="text-zinc-300 leading-relaxed">
+                <span className="text-secondary leading-relaxed">
                   I understand that submitting this application does not guarantee admission. Final admission decisions are made solely by the university admissions committee.
                 </span>
               </label>
@@ -1095,9 +1105,9 @@ export const StudentApplicationWizard: React.FC = () => {
                   type="checkbox"
                   checked={declaration3}
                   onChange={(e) => setDeclaration3(e.target.checked)}
-                  className="rounded border-zinc-700 text-emerald-500 focus:ring-0 mt-0.5"
+                  className="rounded border-subtle text-emerald-500 focus:ring-0 mt-0.5"
                 />
-                <span className="text-zinc-300 leading-relaxed">
+                <span className="text-secondary leading-relaxed">
                   I understand that student visa and immigration decisions are governed independently by official government immigration authorities.
                 </span>
               </label>
@@ -1107,23 +1117,23 @@ export const StudentApplicationWizard: React.FC = () => {
 
         {/* STEP 11: Final Submit & Readiness Check */}
         {currentStep === 11 && (
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-6 animate-fade-in">
-            <div className="pb-3 border-b border-zinc-800">
+          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-6 animate-fade-in">
+            <div className="pb-3 border-b border-subtle">
               <span className="text-xs font-bold text-emerald-400 uppercase">Step 11</span>
-              <h2 className="text-lg font-bold text-white font-heading">Application Readiness & Final Submission</h2>
+              <h2 className="text-lg font-bold text-primary font-heading font-bold">Application Readiness & Final Submission</h2>
             </div>
 
             {/* Readiness Card */}
-            <div className="p-5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-4">
+            <div className="p-5 rounded-xl bg-elevated/50 border border-subtle space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Application Readiness Score</h3>
-                  <p className="text-xs text-zinc-400">Calculated based on verified profile, documents, and declarations.</p>
+                  <h3 className="text-sm font-bold text-primary">Application Readiness Score</h3>
+                  <p className="text-xs text-secondary">Calculated based on verified profile, documents, and declarations.</p>
                 </div>
                 <span className="text-2xl font-bold text-emerald-400">{readiness.percentage}%</span>
               </div>
 
-              <div className="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-input h-2.5 rounded-full overflow-hidden">
                 <div
                   className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${readiness.percentage}%` }}
@@ -1157,7 +1167,7 @@ export const StudentApplicationWizard: React.FC = () => {
               type="button"
               onClick={handleSubmitApplication}
               disabled={saving || !readiness.ready}
-              className="w-full py-3.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
@@ -1175,18 +1185,18 @@ export const StudentApplicationWizard: React.FC = () => {
         )}
 
         {/* Wizard Bottom Controls */}
-        <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+        <div className="flex items-center justify-between pt-4 border-t border-subtle">
           <button
             type="button"
             onClick={() => saveDraft(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1 || saving}
-            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-xl bg-elevated hover:bg-hover text-primary font-semibold border border-subtle text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Previous
           </button>
 
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-muted">
             Step {currentStep} of 11
           </span>
 
@@ -1195,7 +1205,7 @@ export const StudentApplicationWizard: React.FC = () => {
               type="button"
               onClick={() => saveDraft(currentStep + 1)}
               disabled={saving}
-              className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>Next</span>
               <ArrowRight className="w-3.5 h-3.5" />
