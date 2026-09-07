@@ -838,7 +838,11 @@ export function extractCountryForRecord(ctxText: string, defaultCountry: string)
 /**
  * Extracts authentic, complete academic records from CV text
  */
-export function extractAcademicRecordsFromText(text: string, countryOfResidence: string): AcademicRecord[] {
+export function extractAcademicRecordsFromText(
+  text: string,
+  countryOfResidence: string,
+  isolateSection: boolean = true
+): AcademicRecord[] {
   const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter((l) => l.length > 0);
   const records: AcademicRecord[] = [];
 
@@ -870,21 +874,23 @@ export function extractAcademicRecordsFromText(text: string, countryOfResidence:
     }
   ];
 
-  // 1. Isolate Education Section if present
+  // 1. Isolate Education Section if present AND isolateSection is true
   let scanLines = lines;
-  const eduStartIdx = lines.findIndex((l) =>
-    /\b(?:EDUCATION|ACADEMIC\s*BACKGROUND|ACADEMIC\s*QUALIFICATIONS|EDUCATIONAL\s*QUALIFICATIONS|EDUCATION\s*&\s*QUALIFICATIONS|ACADEMIC\s*HISTORY|ACADEMICS)\b/i.test(l)
-  );
-
-  if (eduStartIdx !== -1) {
-    const remaining = lines.slice(eduStartIdx + 1);
-    const eduEndIdx = remaining.findIndex((l) =>
-      /\b(?:WORK\s*EXPERIENCE|EMPLOYMENT\s*HISTORY|PROFESSIONAL\s*EXPERIENCE|EXPERIENCE|PROJECTS|SKILLS|TECHNICAL\s*SKILLS|CERTIFICATIONS|PUBLICATIONS|AWARDS|LANGUAGES|REFERENCES)\b/i.test(l)
+  if (isolateSection) {
+    const eduStartIdx = lines.findIndex((l) =>
+      /\b(?:EDUCATION|ACADEMIC\s*BACKGROUND|ACADEMIC\s*QUALIFICATIONS|EDUCATIONAL\s*QUALIFICATIONS|EDUCATION\s*&\s*QUALIFICATIONS|ACADEMIC\s*HISTORY|ACADEMICS)\b/i.test(l)
     );
-    if (eduEndIdx !== -1) {
-      scanLines = remaining.slice(0, eduEndIdx);
-    } else {
-      scanLines = remaining;
+
+    if (eduStartIdx !== -1) {
+      const remaining = lines.slice(eduStartIdx + 1);
+      const eduEndIdx = remaining.findIndex((l) =>
+        /\b(?:WORK\s*EXPERIENCE|EMPLOYMENT\s*HISTORY|PROFESSIONAL\s*EXPERIENCE|EXPERIENCE|PROJECTS|SKILLS|TECHNICAL\s*SKILLS|CERTIFICATIONS|PUBLICATIONS|AWARDS|LANGUAGES|REFERENCES)\b/i.test(l)
+      );
+      if (eduEndIdx !== -1) {
+        scanLines = remaining.slice(0, eduEndIdx);
+      } else {
+        scanLines = remaining;
+      }
     }
   }
 
@@ -986,8 +992,8 @@ export function extractAcademicRecordsFromText(text: string, countryOfResidence:
     }
   }
 
-  if (records.length === 0 && scanLines !== lines) {
-    return extractAcademicRecordsFromText(lines.join("\n"), countryOfResidence);
+  if (records.length === 0 && isolateSection && scanLines !== lines) {
+    return extractAcademicRecordsFromText(text, countryOfResidence, false);
   }
 
   // Deduplicate identical records (same institution and same degree title)

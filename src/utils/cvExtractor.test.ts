@@ -237,4 +237,24 @@ ACADEMIC BACKGROUND:
     expect(result.academicRecords![1].degreeTitle).toContain("A-Levels");
     expect(result.academicRecords![1].completionYear).toBe(2019);
   });
+
+  it("should never cause Maximum call stack size exceeded or infinite recursion when education section contains unparsed text", () => {
+    const unparsedSectionCv = `
+Applicant Name
+Email: applicant@example.com
+Phone: +92 300 1234567
+
+EDUCATION:
+Some arbitrary description or bullet points without standard degree keywords
+Self-taught programming and online tutorials
+EXPERIENCE:
+Software developer at company
+    `;
+
+    // Must return safely without throwing RangeError: Maximum call stack size exceeded
+    expect(() => {
+      const result = heuristicExtractFromText(unparsedSectionCv);
+      expect(result.academicRecords).toBeDefined();
+    }).not.toThrow();
+  });
 });
