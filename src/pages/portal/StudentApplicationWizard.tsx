@@ -751,7 +751,7 @@ export const StudentApplicationWizard: React.FC = () => {
             ) : (
               <div className="p-6 text-center text-zinc-400 border border-dashed border-zinc-800 rounded-xl">
                 <p className="text-xs">No academic records found in profile.</p>
-                <Link to="/student/onboarding/profile" className="text-xs font-bold text-emerald-400 underline mt-2 inline-block">
+                <Link to="/student/onboarding/step-1" className="text-xs font-bold text-emerald-400 underline mt-2 inline-block">
                   Update Academic History in Profile →
                 </Link>
               </div>

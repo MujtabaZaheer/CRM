@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../../firebase/config";
 import { useAdmissionsData } from "../../hooks/useAdmissionsData";
 import { ApplicationStage } from "../../types/application";
 import {
@@ -170,6 +172,21 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
 
       // Update stage accordingly
       await admissions.updateStage(app, decisionType as ApplicationStage, `Decision recorded: ${decisionType}`);
+
+      // Dispatch real-time student notification
+      try {
+        if (app.studentId) {
+          await addDoc(collection(db, "notifications"), {
+            targetUser: app.studentId,
+            title: `Admissions Decision: ${decisionType}`,
+            message: `Congratulations! ${app.universityName} has officially recorded a ${decisionType} for ${app.programmeName}.`,
+            type: "application",
+            read: false,
+            createdAt: Date.now(),
+          });
+        }
+      } catch (_) { /* notification dispatch is best-effort */ }
+
       setNotice(`Decision ${decisionType} recorded for ${app.applicationNumber}`);
       setShowDecisionModal(false);
     } catch (err: any) {

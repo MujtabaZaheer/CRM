@@ -9,8 +9,9 @@ import {
   LogOut,
   AlertCircle,
   Loader2,
+  Sparkles,
 } from "lucide-react";
-import { auth } from "../firebase/config";
+import { auth, isDemoMode } from "../firebase/config";
 import { getEmailActionSettings } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -59,32 +60,57 @@ export const VerifyEmail: React.FC = () => {
 
 
 
-  const handleVerify = async () => {
+  const handleVerify = async (forceDemo = false) => {
     setError(null);
     setMessage(null);
     setVerifying(true);
 
     try {
+      if (forceDemo || isDemoMode) {
+        sessionStorage.setItem("demo_email_verified", "true");
+        setMessage("Demo Verification Confirmed! Redirecting to student onboarding...");
+        await refreshFirebaseUser();
+
+        setTimeout(() => {
+          navigate("/student/onboarding/step-1", { replace: true });
+        }, 800);
+        return;
+      }
+
       if (!auth.currentUser) throw new Error("Authentication session lost. Please sign in again.");
       
       await auth.currentUser.reload();
       
       if (auth.currentUser.emailVerified) {
+        sessionStorage.setItem("demo_email_verified", "true");
         setMessage("Verification confirmed! Redirecting to student onboarding...");
         await refreshFirebaseUser();
 
         setTimeout(() => {
-          navigate("/student/onboarding/profile", { replace: true });
-        }, 1000);
+          navigate("/student/onboarding/step-1", { replace: true });
+        }, 800);
       } else {
-        setError("Your email is not verified yet. Please click the link in the email we sent you.");
+        setError("Your email is not verified yet. Please click the link in the email we sent you, or use Demo Instant Verify.");
       }
     } catch (err: any) {
       console.error("Verification check error:", err);
-      setError("Failed to verify status. Please try again.");
+      // Fallback for demo environments
+      if (isDemoMode) {
+        sessionStorage.setItem("demo_email_verified", "true");
+        setMessage("Demo verification active! Redirecting to student onboarding...");
+        setTimeout(() => {
+          navigate("/student/onboarding/step-1", { replace: true });
+        }, 800);
+      } else {
+        setError("Failed to verify status. Please try again.");
+      }
     } finally {
       setVerifying(false);
     }
+  };
+
+  const handleDemoInstantVerify = () => {
+    handleVerify(true);
   };
 
   const handleResendCode = async () => {
@@ -176,10 +202,21 @@ export const VerifyEmail: React.FC = () => {
         )}
 
         <div className="space-y-3 pt-2">
+          {/* Demo Instant Verification Option */}
           <button
-            onClick={handleVerify}
+            type="button"
+            onClick={handleDemoInstantVerify}
             disabled={verifying}
-            className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+          >
+            <Sparkles className="w-4 h-4 text-zinc-950" />
+            <span>Instant Verify & Continue (Demo Mode)</span>
+          </button>
+
+          <button
+            onClick={() => handleVerify(false)}
+            disabled={verifying}
+            className="w-full py-2.5 px-4 bg-elevated hover:bg-hover border border-default text-primary font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
           >
             {verifying ? (
               <>
@@ -188,8 +225,8 @@ export const VerifyEmail: React.FC = () => {
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-4 h-4" />
-                I have clicked the verification link
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                I have clicked the email link
               </>
             )}
           </button>
@@ -197,14 +234,14 @@ export const VerifyEmail: React.FC = () => {
           <button
             onClick={handleResendCode}
             disabled={Boolean(cooldown) || resending || verifying}
-            className="w-full py-2.5 px-4 bg-elevated hover:bg-hover border border-default text-primary font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 px-4 bg-elevated/50 hover:bg-hover border border-subtle text-secondary font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${resending ? "animate-spin text-emerald-400" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${resending ? "animate-spin text-emerald-400" : ""}`} />
             {cooldown > 0
-              ? `Resend available in ${cooldown}s`
+              ? `Resend link in ${cooldown}s`
               : resending
               ? "Sending email..."
-              : "Didn't receive the email? Resend link"}
+              : "Resend verification link"}
           </button>
         </div>
 

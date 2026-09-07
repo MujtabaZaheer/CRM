@@ -143,6 +143,28 @@ export const useCounsellorData = () => {
           appUser?.role
         );
 
+        // Auto-register referral commission if lead was referred by an external agent
+        if (lead.agentUid || (lead as any).agentName || lead.source?.includes("Agent")) {
+          try {
+            await addDoc(collection(db, "commissions"), {
+              agentId: lead.agentUid || "agent_external",
+              agentName: (lead as any).agentName || "External Agent",
+              counsellorId: userUid,
+              counsellorName: userEmail || "Counsellor",
+              studentId: docRef.id,
+              studentName: lead.fullName,
+              universityName: lead.destinationCountry || "Global Partner University",
+              tuitionFeeAmount: 15000,
+              rateApplied: 10,
+              amount: 1500,
+              currency: "USD",
+              status: "Eligible",
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            });
+          } catch (_) {}
+        }
+
         return docRef.id;
       } catch (err) {
         console.warn("Firestore convert notice (persisted in local state):", err);

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EduCRM — Master System Flow & Architecture Specification (SSD, SD, State Transition, BPMN)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #ffffff;
+      color: #0f172a;
+      margin: 0;
+      padding: 10px;
+      line-height: 1.4;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #0f172a 100%);
+      color: #ffffff;
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      border: 1px solid #10b981;
+    }
+
+    .header-banner h1 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+    }
+
+    .header-banner p {
+      margin: 0;
+      font-size: 11.5px;
+      color: #a7f3d0;
+    }
+
+    .meta-tag {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      page-break-inside: avoid;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #064e3b;
+      margin: 0 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid #10b981;
+      padding-bottom: 8px;
+    }
+
+    .section-desc {
+      font-size: 12px;
+      color: #64748b;
+      margin: 0 0 16px 0;
+    }
+
+    .mermaid {
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    .key-points {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-left: 3px solid #10b981;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #334155;
+    }
+
+    .key-points strong {
+      color: #0f172a;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Title Banner -->
+  <div class="header-banner">
+    <h1>📐 EduCRM System Workflow & Architecture Specification</h1>
+    <p>Comprehensive Documentation of State Transitions, BPMN Multi-Role Workflows, System Sequence Diagrams (SSD), and Component Sequence Diagrams (SD).</p>
+    <div class="meta-tag">Version 2.4.0 • Enterprise Architecture Reference</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1. STATE TRANSITION DIAGRAMS                                  -->
+  <!-- ============================================================ -->
+  <div class="section-card">
+    <h2 class="section-title">1. State Transition Diagram — Core Multi-Flow Lifecycles</h2>
+    <p class="section-desc">Documents all discrete operational states from initial ingestion through intermediate review, offer generation, compliance clearance, and confirmed final status across the 3 primary system workflows.</p>
+
+    <div class="mermaid">
+stateDiagram-v2
+    [*] --> Ingestion: New Interaction / Input
+
+    state Ingestion {
+        [*] --> Student_Self_Register: Flow 1 (/register)
+        [*] --> Agent_Referral_Lead: Flow 2 (/agent/refer-lead)
+        [*] --> Uni_App_Submission: Flow 3 (/university/applications)
+    }
+
+    %% Flow 1 Lifecycle
+    Student_Self_Register --> Email_Verification_Pending: Account created (Auth + Firestore)
+    Email_Verification_Pending --> Email_Verified: Verified link or Demo Fast-Forward
+    Email_Verified --> Onboarding_Active: Step 1 (Academics) & Step 2 (Preferences)
+    Onboarding_Active --> Application_Drafted: Step 3 (Course Matching) & Step 4 (Checklist)
+    Application_Drafted --> Application_Submitted: Student submits application dossier
+    Application_Submitted --> Admissions_Review: Admissions desk review
+    Admissions_Review --> Offer_Issued: Conditional or Unconditional Offer
+    Offer_Issued --> Status_Confirmed_Enrolled: Offer accepted & Deposit verified
+
+    %% Flow 2 Lifecycle
+    Agent_Referral_Lead --> Lead_Ingested: Logged with agent referral code
+    Lead_Ingested --> Counsellor_Contacted: Lead counselling & qualification
+    Counsellor_Contacted --> Student_Converted: convertLeadToStudent() executed
+    Student_Converted --> Commission_Eligible: Auto-generated commission record
+    Commission_Eligible --> Commission_Approved: Finance desk approves commission
+    Commission_Approved --> Commission_Paid: Payout batch processed
+
+    %% Flow 3 Lifecycle
+    Uni_App_Submission --> Partner_App_Review: University registry dossier inspection
+    Partner_App_Review --> Unconditional_Offer: Direct offer issued
+    Unconditional_Offer --> CAS_Issuance_Pending: Deposit / conditions fulfilled
+    CAS_Issuance_Pending --> CAS_Issued: Official CAS Reference released
+    CAS_Issued --> Visa_Ready_Confirmed: Student visa clearance unlocked
+
+    Status_Confirmed_Enrolled --> [*]
+    Commission_Paid --> [*]
+    Visa_Ready_Confirmed --> [*]
+    </div>
+
+    <div class="key-points">
+      <strong>Core Transition Rules:</strong> Every state transition triggers both an updated document attribute in Cloud Firestore and an immutable audit event in <code>audit_logs</code>. In-app student and partner notifications are dispatched whenever an application enters <code>Unconditional Offer</code>, <code>Approved</code>, or <code>CAS Issued</code>.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================ -->
+  <!-- 2. BPMN MULTI-ROLE PROCESS DIAGRAM                           -->
+  <!-- ============================================================ -->
+  <div class="section-card">
+    <h2 class="section-title">2. BPMN Multi-Role Process Swimlane Diagram</h2>
+    <p class="section-desc">Business Process Model and Notation (BPMN) swimlane diagram illustrating cross-functional handoffs between Student, External Agent, Counsellor, Admissions Officer, University Partner, Finance Officer, and the System Backend.</p>
+
+    <div class="mermaid">
+flowchart TD
+    subgraph StudentLane["👤 STUDENT APPLICANT"]
+        S1["Navigate to /register"] --> S2["Fill Student Profile & GDPR"]
+        S2 --> S3["Verify Email / Demo Quick-Verify"]
+        S3 --> S4["Complete 4-Step Onboarding"]
+        S4 --> S5["Submit Application (/student/new-application)"]
+        S5 --> S6["Track Status in /student/applications"]
+        S6 --> S7{"Offer Received?"}
+        S7 -->|Yes| S8["Accept Offer & Receive CAS Reference"]
+    end
+
+    subgraph AgentLane["🤝 EXTERNAL AGENT"]
+        AG1["Login at /agent/dashboard"] --> AG2["Generate Referral Link"]
+        AG2 --> AG3["Submit Referral Lead (/agent/refer-lead)"]
+        AG3 --> AG4["Monitor Pipeline Progress"]
+        AG4 --> AG5["View Confirmed Commission ($1,500)"]
+    end
+
+    subgraph StaffLane["💼 COUNSELLOR & ADMISSIONS DESK"]
+        C1["Counsellor receives Agent Referral Lead"] --> C2["Qualify Lead & Convert to Student"]
+        C2 --> AD1["Admissions Officer opens /admissions/applications"]
+        AD1 --> AD2["Review Academic Transcripts & IELTS"]
+        AD2 --> AD3{"Decision Type?"}
+        AD3 -->|Unconditional| AD4["Issue Unconditional Offer"]
+        AD3 -->|Conditional| AD5["Issue Conditional Offer"]
+    end
+
+    subgraph UniLane["🏛️ UNIVERSITY PARTNER"]
+        U1["Partner opens /university/applications"] --> U2["Inspect Student Dossier"]
+        U2 --> U3["Issue Direct Unconditional Offer"]
+        U3 --> U4["Navigate to /university/cas-issuance"]
+        U4 --> U5["Enter CAS Ref & Release Official Document"]
+    end
+
+    subgraph FinanceLane["💳 FINANCE OFFICER"]
+        F1["Open /finance/commissions"] --> F2["Review Eligible Agent Claims"]
+        F2 --> F3["Approve Commission Claim"]
+        F3 --> F4["Execute Batch Payout"]
+    end
+
+    subgraph SystemLane["⚙️ SYSTEM ENGINE (Firebase Auth & Firestore)"]
+        SYS1["createUserWithEmailAndPassword"]
+        SYS2["setDoc users/{uid} & students/{uid}"]
+        SYS3["addDoc applications (stage: 'Submitted')"]
+        SYS4["addDoc commissions (status: 'Eligible')"]
+        SYS5["Real-time onSnapshot Synchronization"]
+        SYS6["Dispatch In-App Notifications"]
+    end
+
+    S2 --> SYS1
+    SYS1 --> SYS2
+    SYS2 --> S3
+    S5 --> SYS3
+    SYS3 --> AD1
+    SYS3 --> U1
+
+    AG3 --> SYS4
+    SYS4 --> C1
+    C2 --> F1
+    F3 --> AG5
+
+    AD4 --> SYS6
+    U3 --> SYS6
+    U5 --> SYS6
+    SYS6 --> S6
+
+    style StudentLane fill:#064e3b,stroke:#34d399,color:#fff
+    style AgentLane fill:#1e1b4b,stroke:#818cf8,color:#fff
+    style StaffLane fill:#0f172a,stroke:#38bdf8,color:#fff
+    style UniLane fill:#312e81,stroke:#a78bfa,color:#fff
+    style FinanceLane fill:#451a03,stroke:#fbbf24,color:#fff
+    style SystemLane fill:#18181b,stroke:#71717a,color:#fff
+    </div>
+
+    <div class="key-points">
+      <strong>Enterprise Coordination:</strong> Real-time Firestore synchronization guarantees that actions taken by the Admissions Officer or University Partner immediately reflect in the Student Portal and Agent Ledger without manual page refreshes.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================ -->
+  <!-- 3. SYSTEM SEQUENCE DIAGRAMS (SSD)                            -->
+  <!-- ============================================================ -->
+  <div class="section-card">
+    <h2 class="section-title">3.1 System Sequence Diagram (SSD) — Student Registration to Approval</h2>
+    <p class="section-desc">High-level interaction between the Student Applicant, Admissions Officer, and the EduCRM Platform Boundary.</p>
+
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Student as Student Applicant
+    actor Admissions as Admissions Officer
+    participant CRM as EduCRM Platform Boundary
+    participant DB as Cloud Firestore Database
+
+    rect rgb(240, 253, 244)
+    note right of Student: Phase 1: Registration & Onboarding
+    Student->>CRM: Register Account (Name, Email, Password, GDPR)
+    CRM->>DB: Provision users/{uid} & students/{uid}
+    CRM-->>Student: Deliver Verification Link / Enable Demo Bypass
+    Student->>CRM: Confirm Verification & Complete 4-Stage Onboarding
+    CRM->>DB: Update Profile Completeness & Preferences
+    end
+
+    rect rgb(238, 242, 255)
+    note right of Student: Phase 2: Direct Application Submission
+    Student->>CRM: Submit University Application (/student/new-application)
+    CRM->>DB: addDoc("applications", { stage: "Submitted", studentId })
+    CRM-->>Student: Display "Application Submitted Successfully"
+    DB-->>CRM: Sync to Admissions Review Queue
+    end
+
+    rect rgb(254, 243, 199)
+    note right of Admissions: Phase 3: Staff Review & Approval
+    Admissions->>CRM: Open /admissions/applications & Inspect Dossier
+    Admissions->>CRM: Click "Issue Offer / Decision" -> Select "Unconditional Offer"
+    CRM->>DB: updateDoc("applications/{id}", { stage: "Unconditional Offer" })
+    CRM->>DB: addDoc("notifications", { targetUser: studentId, title: "Offer Issued" })
+    CRM-->>Admissions: Display Success Toast
+    end
+
+    rect rgb(240, 253, 244)
+    note right of Student: Phase 4: Confirmed Status Visibility
+    DB-->>CRM: Push Updated Stage via onSnapshot
+    CRM-->>Student: Display "Unconditional Offer" (95% Progress) & Confirmed Badge
+    end
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h2 class="section-title">3.2 System Sequence Diagram (SSD) — Agent Referral to Commission Confirmed</h2>
+    <p class="section-desc">High-level interaction between the External Agent, Counsellor, Finance Officer, and EduCRM.</p>
+
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Agent as External Agent
+    actor Counsellor as Education Counsellor
+    actor Finance as Finance Officer
+    participant CRM as EduCRM Platform Boundary
+    participant DB as Cloud Firestore Database
+
+    Agent->>CRM: Submit Referral Lead (/agent/refer-lead)
+    CRM->>DB: addDoc("leads", { source: "External Agent Referral", agentUid })
+    CRM-->>Agent: Return Referral Confirmation & Tracking ID
+
+    Counsellor->>CRM: Open /counsellor/leads -> Select Referral Lead
+    Counsellor->>CRM: Click "Convert Lead to Student"
+    CRM->>DB: addDoc("students") & addDoc("commissions", { amount: 1500, status: "Eligible" })
+    CRM-->>Counsellor: Display Conversion Success
+
+    Finance->>CRM: Open /finance/commissions -> Select Agent Claim
+    Finance->>CRM: Click "Approve Commission" / "Batch Payout"
+    CRM->>DB: updateDoc("commissions/{id}", { status: "Approved" })
+    CRM-->>Finance: Payout Scheduled & Confirmed
+
+    DB-->>CRM: Real-time update to Agent Portal
+    Agent->>CRM: Open /agent/commissions -> View Confirmed $1,500 Payout
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <div class="section-card">
+    <h2 class="section-title">3.3 System Sequence Diagram (SSD) — University Partner Offer & CAS Release</h2>
+    <p class="section-desc">Interaction between University Partner, Registry Officer, and Student for direct CAS release.</p>
+
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Uni as University Partner
+    actor Student as Student Applicant
+    participant CRM as EduCRM Platform Boundary
+    participant DB as Cloud Firestore Database
+
+    Uni->>CRM: Open /university/applications -> Review Applied Candidate
+    Uni->>CRM: Click "Issue Unconditional Offer"
+    CRM->>DB: updateDoc("applications/{id}", { stage: "Unconditional Offer" })
+    CRM-->>Uni: Status Updated
+
+    Uni->>CRM: Open /university/cas-issuance -> Select Candidate
+    Uni->>CRM: Input CAS Ref "CAS-2026-UK-88421" & Click "Release Official CAS"
+    CRM->>DB: updateDoc("applications/{id}", { stage: "CAS Issued", casRefNumber })
+    CRM->>DB: addDoc("notifications", { targetUser: studentId, title: "CAS Released" })
+    CRM-->>Uni: CAS Reference Published
+
+    DB-->>CRM: Sync to Student Dashboard
+    Student->>CRM: Open /student/applications -> View "CAS Issued - Visa Ready"
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 4. DETAILED COMPONENT SEQUENCE DIAGRAMS (SD)                 -->
+  <!-- ============================================================ -->
+  <div class="section-card">
+    <h2 class="section-title">4.1 Component Sequence Diagram (SD) — Student Registration & Verification</h2>
+    <p class="section-desc">Component-level trace showing React UI, Firebase Auth, Firestore, and StudentOnboardingGuard.</p>
+
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Student
+    participant UI as Register.tsx
+    participant Verify as VerifyEmail.tsx
+    participant FireAuth as Firebase Authentication
+    participant Firestore as Cloud Firestore
+    participant Guard as StudentOnboardingGuard.tsx
+    participant Stage1 as StudentOnboardingStage1.tsx
+
+    User->>UI: Select role "student", enter credentials & accept GDPR
+    UI->>FireAuth: createUserWithEmailAndPassword(email, password)
+    FireAuth-->>UI: Return userCredential { uid }
+    UI->>Firestore: setDoc("users/{uid}", { role: "student" })
+    UI->>Firestore: setDoc("students/{uid}", { profileCompleteness: 30, currentStep: 1 })
+    UI->>FireAuth: sendEmailVerification(user)
+    UI-->>User: Navigate to /verify-email
+
+    alt Normal Email Verification
+        User->>FireAuth: Click verification link in email
+        FireAuth-->>Verify: auth.currentUser.reload() -> emailVerified = true
+    else Demo Instant Verify (Demo Mode)
+        User->>Verify: Click "Instant Verify & Continue (Demo Mode)"
+        Verify->>Verify: sessionStorage.setItem("demo_email_verified", "true")
+    end
+
+    Verify-->>User: Navigate to /student/onboarding/step-1
+    User->>Guard: Request /student/onboarding/step-1
+    Guard->>Firestore: getDoc("students/{uid}")
+    Firestore-->>Guard: Return studentDoc (onboardingStatus: not_started, currentStep: 1)
+    Guard-->>Stage1: Render StudentOnboardingStage1 (Profile & Academics)
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h2 class="section-title">4.2 Component Sequence Diagram (SD) — Admissions Decision & Real-Time Sync</h2>
+    <p class="section-desc">Detailed execution trace of AdmissionsWorkspace, useAdmissionsData, GlobalDataContext, and StudentApplications.</p>
+
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Officer as Admissions Officer
+    participant AdminUI as AdmissionsWorkspace.tsx
+    participant AdminHook as useAdmissionsData.ts
+    participant GlobalCtx as GlobalDataContext.tsx
+    participant Firestore as Cloud Firestore
+    participant StudentUI as StudentApplications.tsx
+    actor Student as Student Applicant
+
+    Officer->>AdminUI: Click "Issue Offer / Decision"
+    AdminUI->>AdminUI: Select decisionType = "Unconditional Offer", deposit = 1000
+    AdminUI->>AdminHook: recordDecision(decisionPayload)
+    AdminHook->>Firestore: addDoc("admissions_decisions", decisionPayload)
+    AdminHook->>AdminHook: updateStage(app, "Unconditional Offer")
+    AdminHook->>GlobalCtx: updateGlobalApplication(app.id, { stage: "Unconditional Offer" })
+    AdminHook->>Firestore: updateDoc("applications/{id}", { stage: "Unconditional Offer", history })
+    AdminUI->>Firestore: addDoc("notifications", { targetUser: studentId, title: "Offer Issued" })
+    AdminUI-->>Officer: Show notice "Decision Unconditional Offer recorded"
+
+    Firestore-)GlobalCtx: onSnapshot("applications") triggers update
+    GlobalCtx-)StudentUI: GlobalDataContext provides updated application
+    StudentUI-->>Student: Render "Unconditional Offer" badge (95% progress) + Confirmed Banner
+    </div>
+  </div>
+
+  <footer>
+    EduCRM Enterprise Documentation • Generated on 2026-09-07 • Confidential & Proprietary
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      sequence: {
+        actorMargin: 35,
+        width: 135,
+        height: 55,
+        boxMargin: 8,
+        boxTextMargin: 4,
+        noteMargin: 8,
+        messageMargin: 30
+      }
+    });
+  </script>
+</body>
+</html>

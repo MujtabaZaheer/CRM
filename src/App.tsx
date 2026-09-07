@@ -160,6 +160,8 @@ export const App: React.FC = () => {
 
               {/* Full-Screen Student Onboarding Wizard (Outside ProtectedLayout) */}
               <Route path="/student" element={<RoleRoute role="student" />}>
+                <Route path="onboarding" element={<Navigate to="/student/onboarding/step-1" replace />} />
+                <Route path="onboarding/profile" element={<Navigate to="/student/onboarding/step-1" replace />} />
                 <Route path="onboarding/step-1" element={<StudentOnboardingStage1 />} />
                 <Route path="onboarding/step-2" element={<StudentOnboardingStage2 />} />
                 <Route path="onboarding/step-3" element={<StudentOnboardingStage3 />} />

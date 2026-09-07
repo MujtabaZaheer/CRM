@@ -86,6 +86,8 @@ export interface Application {
   conditions?: ApplicationCondition[];
   lockedAt?: number; // timestamp when locked for submission
   clonedFrom?: string; // applicationId this was cloned from
+  casRefNumber?: string;
+  casIssuedAt?: number;
   history?: ApplicationHistoryItem[];
   createdAt: number;
   updatedAt: number;

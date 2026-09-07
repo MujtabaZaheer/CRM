@@ -47,6 +47,8 @@ export interface Lead {
   interactionLog?: LeadInteraction[];
   lastContactedAt?: number;
   lostReason?: string;
+  agentUid?: string;
+  agentName?: string;
   createdAt: number;
   updatedAt: number;
 }

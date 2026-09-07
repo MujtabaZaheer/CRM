@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { Users2, DollarSign, Send, CheckCircle2, Search, Link2, Sparkles, FileText } from "lucide-react";
-import { collection, addDoc } from "firebase/firestore";
+import { Users2, DollarSign, Send, CheckCircle2, Search, Link2, Sparkles, FileText, Wallet, Award, Clock } from "lucide-react";
+import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "../../firebase/config";
+import { Commission } from "../../types/finance";
+import { DEMO_COMMISSIONS } from "../../data/demoData";
 
 export type AgentSubPage = "dashboard" | "referrals" | "refer-lead" | "commissions" | "notifications";
 
@@ -18,6 +20,23 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
   const [leadPhone, setLeadPhone] = useState("");
   const [leadProgram, setLeadProgram] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
+
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, "commissions"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Commission);
+        setCommissions(list.length > 0 ? list : DEMO_COMMISSIONS);
+      },
+      () => {
+        setCommissions(DEMO_COMMISSIONS);
+      }
+    );
+    return () => unsub();
+  }, []);
 
   const referralLink = `https://education-crm-9fee2.web.app/register?ref=${appUser?.uid || "agent123"}`;
 
@@ -235,9 +254,133 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
 
       {/* COMMISSIONS LEDGER PAGE */}
       {page === "commissions" && (
-        <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-4">
-          <h2 className="font-bold text-base text-[var(--text-primary)]">Agent Commission Ledger</h2>
-          <p className="text-[var(--text-secondary)]">Track referral payouts and eligibility statuses.</p>
+        <div className="space-y-6">
+          {/* Summary metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-[var(--text-muted)] font-semibold uppercase text-[10px]">
+                <span>Total Accrued Commissions</span>
+                <Wallet className="w-4 h-4 text-emerald-400" />
+              </div>
+              <p className="text-2xl font-bold font-heading text-[var(--text-primary)]">
+                ${commissions.reduce((s, c) => s + (c.amount || 0), 0).toLocaleString()} USD
+              </p>
+              <span className="text-[10px] text-emerald-400 font-medium">All referred candidate applications</span>
+            </div>
+
+            <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-[var(--text-muted)] font-semibold uppercase text-[10px]">
+                <span>Approved / Paid Payouts</span>
+                <Award className="w-4 h-4 text-teal-400" />
+              </div>
+              <p className="text-2xl font-bold font-heading text-emerald-400">
+                ${commissions
+                  .filter((c) => c.status === "Approved" || c.status === "Paid")
+                  .reduce((s, c) => s + (c.amount || 0), 0)
+                  .toLocaleString()}{" "}
+                USD
+              </p>
+              <span className="text-[10px] text-teal-400 font-medium">Confirmed by Finance</span>
+            </div>
+
+            <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-[var(--text-muted)] font-semibold uppercase text-[10px]">
+                <span>Pending Verification</span>
+                <Clock className="w-4 h-4 text-amber-400" />
+              </div>
+              <p className="text-2xl font-bold font-heading text-amber-400">
+                ${commissions
+                  .filter((c) => c.status === "Eligible" || c.status === "Pending")
+                  .reduce((s, c) => s + (c.amount || 0), 0)
+                  .toLocaleString()}{" "}
+                USD
+              </p>
+              <span className="text-[10px] text-amber-400 font-medium">Awaiting enrolment lock</span>
+            </div>
+          </div>
+
+          {/* Ledger Table */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-sm text-[var(--text-primary)]">Agent Commission Claims Ledger</h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                  Real-time status tracking synced with admissions conversions and finance payouts.
+                </p>
+              </div>
+
+              <div className="relative max-w-xs w-full">
+                <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter claims by student..."
+                  className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] uppercase text-[10px]">
+                  <tr>
+                    <th className="p-3">Student Name</th>
+                    <th className="p-3">Target Institution</th>
+                    <th className="p-3">Tuition Base</th>
+                    <th className="p-3">Rate</th>
+                    <th className="p-3">Commission Claim</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Confirmed Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-default)] text-xs">
+                  {commissions
+                    .filter((c) =>
+                      `${c.studentName} ${c.universityName} ${c.status}`
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase())
+                    )
+                    .map((c) => (
+                      <tr key={c.id} className="hover:bg-[var(--bg-hover)] transition-colors">
+                        <td className="p-3 font-bold text-[var(--text-primary)]">
+                          {c.studentName || "Referred Student"}
+                        </td>
+                        <td className="p-3 text-[var(--text-secondary)]">
+                          {c.universityName || "Partner University"}
+                        </td>
+                        <td className="p-3 text-[var(--text-secondary)]">
+                          ${(c.tuitionFeeAmount || 15000).toLocaleString()} {c.currency || "USD"}
+                        </td>
+                        <td className="p-3 text-[var(--text-muted)]">
+                          {c.rateApplied ? `${c.rateApplied}%` : "Standard Tier"}
+                        </td>
+                        <td className="p-3 font-bold text-emerald-400 font-mono">
+                          ${c.amount.toLocaleString()} {c.currency || "USD"}
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
+                              c.status === "Paid"
+                                ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
+                                : c.status === "Approved"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                            }`}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right text-[var(--text-muted)] font-mono text-[11px]">
+                          {c.updatedAt
+                            ? new Date(c.updatedAt).toLocaleDateString()
+                            : new Date(c.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
