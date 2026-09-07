@@ -12,35 +12,75 @@ export const isDocumentMatch = (docTypeOrName?: string | null, requiredName?: st
   const d = normalise(docTypeOrName);
   const r = normalise(requiredName);
   if (!d || !r) return false;
+  if (d === r) return true;
+
+  // Category 1: High School / Secondary / Matric / Intermediate
+  const isHighSchoolReq = r.includes("highschool") || r.includes("secondary") || r.includes("matric") || r.includes("intermediate") || r.includes("olevel") || r.includes("alevel") || r.includes("10th") || r.includes("12th") || r.includes("ssc") || r.includes("hssc");
+  const isHighSchoolDoc = d.includes("highschool") || d.includes("secondary") || d.includes("matric") || d.includes("intermediate") || d.includes("olevel") || d.includes("alevel") || d.includes("10th") || d.includes("12th") || d.includes("ssc") || d.includes("hssc");
+
+  if (isHighSchoolReq) {
+    return isHighSchoolDoc;
+  }
+  // If document is explicitly high school, never match university/academic transcript or degree
+  if (isHighSchoolDoc && (r.includes("academic") || r.includes("degree") || r.includes("university") || r.includes("college"))) {
+    return false;
+  }
+
+  // Category 2: English Language Proficiency (IELTS, TOEFL, PTE, Duolingo, MOI)
+  const isEnglishReq = r.includes("english") || r.includes("ielts") || r.includes("toefl") || r.includes("pte") || r.includes("duolingo") || r.includes("proficiency") || r.includes("cambridge") || r.includes("languagecert");
+  const isEnglishDoc = d.includes("english") || d.includes("ielts") || d.includes("toefl") || d.includes("pte") || d.includes("duolingo") || d.includes("proficiency") || d.includes("cambridge") || d.includes("languagecert");
+
+  if (isEnglishReq) {
+    return isEnglishDoc;
+  }
+  // English certificates should NEVER match general degree or graduation certificate slots
+  if (isEnglishDoc && (r.includes("degree") || r.includes("graduation") || r.includes("diploma"))) {
+    return false;
+  }
+
+  // Category 3: Degree / Graduation / Provisional Award Certificate
+  const isDegreeReq = r.includes("degree") || r.includes("graduation") || r.includes("provisional");
+  const isDegreeDoc = (d.includes("degree") || d.includes("graduation") || d.includes("provisional")) && !isEnglishDoc && !isHighSchoolDoc;
+
+  if (isDegreeReq) {
+    return isDegreeDoc;
+  }
+  if (isDegreeDoc && (r.includes("english") || r.includes("language") || isEnglishReq)) {
+    return false;
+  }
+
+  // Category 4: University / Higher Education Academic Transcript
+  const isAcademicTranscriptReq = r.includes("academictranscript") || (r.includes("transcript") && !isHighSchoolReq);
+  const isAcademicTranscriptDoc = d.includes("transcript") && !isHighSchoolDoc;
+
+  if (isAcademicTranscriptReq) {
+    return isAcademicTranscriptDoc;
+  }
+
+  // Category 5: Statement of Purpose / SOP / Essay
+  const isSopReq = r.includes("statement") || r.includes("sop") || r.includes("purpose") || r.includes("essay") || r.includes("motivation");
+  const isSopDoc = d.includes("statement") || d.includes("sop") || d.includes("purpose") || d.includes("essay") || d.includes("motivation");
+  if (isSopReq) {
+    return isSopDoc;
+  }
+
+  // Category 6: Passport / Travel Document
+  const isPassportReq = r.includes("passport") || r.includes("traveldoc");
+  const isPassportDoc = d.includes("passport") || d.includes("traveldoc");
+  if (isPassportReq) {
+    return isPassportDoc;
+  }
+
+  // Category 7: CV / Resume
+  const isCvReq = r.includes("cv") || r.includes("resume") || r.includes("curriculumvitae");
+  const isCvDoc = d.includes("cv") || d.includes("resume") || d.includes("curriculumvitae");
+  if (isCvReq) {
+    return isCvDoc;
+  }
+
+  // Safe fallback if strings match directly and don't cross categories
   if (d.includes(r) || r.includes(d)) return true;
-  
-  // High School Transcript matching: matches high school, secondary, or academic transcript
-  if (r.includes("highschool") || r.includes("secondary")) {
-    return d.includes("highschool") || d.includes("secondary") || d.includes("transcript");
-  }
-  // General Transcript matching
-  if (r.includes("transcript") && d.includes("transcript")) return true;
-  // Degree / Graduation Certificate matching
-  if ((r.includes("degree") || r.includes("graduation") || r.includes("certificate")) &&
-      (d.includes("degree") || d.includes("graduation") || d.includes("certificate"))) {
-    return true;
-  }
-  // Statement of Purpose / SOP / Essay / Personal Statement matching
-  if ((r.includes("statement") || r.includes("sop") || r.includes("purpose") || r.includes("essay")) &&
-      (d.includes("statement") || d.includes("sop") || d.includes("purpose") || d.includes("essay"))) {
-    return true;
-  }
-  // Passport matching
-  if (r.includes("passport") && d.includes("passport")) return true;
-  // English Language Test matching
-  if ((r.includes("english") || r.includes("ielts") || r.includes("toefl") || r.includes("pte")) &&
-      (d.includes("english") || d.includes("ielts") || d.includes("toefl") || d.includes("pte"))) {
-    return true;
-  }
-  // CV / Resume matching
-  if ((r.includes("cv") || r.includes("resume")) && (d.includes("cv") || d.includes("resume"))) {
-    return true;
-  }
+
   return false;
 };
 

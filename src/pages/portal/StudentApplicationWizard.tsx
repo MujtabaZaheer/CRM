@@ -30,7 +30,7 @@ import { Student } from "../../types/student";
 import { Programme, University } from "../../types/university";
 import { Application } from "../../types/application";
 import { assessEligibility } from "../../utils/eligibility";
-import { getApplicationReadiness, isDocumentMatch } from "../../utils/applicationReadiness";
+import { getApplicationReadiness, isDocumentMatch, normalise } from "../../utils/applicationReadiness";
 import { uploadStudentDocument, getDocumentBlobOrUrl } from "../../utils/documentStorage";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 
@@ -235,7 +235,7 @@ export const StudentApplicationWizard: React.FC = () => {
               applicationNumber: appNumber,
               studentId: uid,
               studentName: resolvedName,
-              studentEmail: studentData?.email || userData?.email || appUser?.email || "",
+              studentEmail: firebaseUser?.email || studentData?.email || userData?.email || appUser?.email || "",
               universityId: foundUniv.id,
               universityName: foundUniv.name,
               programmeId: foundProg.id,
@@ -376,7 +376,10 @@ export const StudentApplicationWizard: React.FC = () => {
 
     try {
       // Find existing document ID if replacing
-      const existingDoc = uploadedDocuments.find(d => isDocumentMatch(d.type || (d as any).documentType, docType));
+      const existingDoc = uploadedDocuments.find((d) => {
+        const dt = d.type || (d as any).documentType || "";
+        return (dt && normalise(dt) === normalise(docType)) || isDocumentMatch(dt, docType);
+      });
       
       // 1. Upload to Document Storage and Firestore via Backend
       const uploadRes = await uploadStudentDocument(
@@ -388,7 +391,10 @@ export const StudentApplicationWizard: React.FC = () => {
       );
 
       setUploadedDocuments((prev) => {
-        const filtered = prev.filter(d => (d.type || (d as any).documentType) !== docType);
+        const filtered = prev.filter((d) => {
+          const dt = d.type || (d as any).documentType || "";
+          return normalise(dt) !== normalise(docType) && !isDocumentMatch(dt, docType);
+        });
         return [
           ...filtered,
           {
@@ -442,10 +448,12 @@ export const StudentApplicationWizard: React.FC = () => {
     setError(null);
 
     try {
+      const userEmail = firebaseUser?.email || appUser?.email || student?.email || "";
+      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || firebaseUser?.displayName || "Student";
       const payload: Partial<Application> & Record<string, any> = {
         studentId: uid,
-        studentName: personalOverrides.fullName || student?.fullName || appUser?.displayName || "Student",
-        studentEmail: student?.email || appUser?.email || "",
+        studentName: userName,
+        studentEmail: userEmail,
         universityId: university.id,
         universityName: university.name,
         programmeId: programme.id,
@@ -475,7 +483,7 @@ export const StudentApplicationWizard: React.FC = () => {
           history: [
             {
               stage: "Draft",
-              updatedBy: student?.email || "Student",
+              updatedBy: userEmail || "Student",
               timestamp: Date.now(),
               note: "Application draft started by student.",
             },
@@ -514,10 +522,12 @@ export const StudentApplicationWizard: React.FC = () => {
 
     try {
       const now = Date.now();
+      const userEmail = firebaseUser?.email || appUser?.email || student?.email || "";
+      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || firebaseUser?.displayName || "Student";
       const payload: Partial<Application> & Record<string, any> = {
         studentId: uid,
-        studentName: personalOverrides.fullName || student?.fullName || appUser?.displayName || "Student",
-        studentEmail: student?.email || appUser?.email || "",
+        studentName: userName,
+        studentEmail: userEmail,
         universityId: university.id,
         universityName: university.name,
         programmeId: programme.id,
@@ -545,7 +555,7 @@ export const StudentApplicationWizard: React.FC = () => {
           ...payload,
           history: arrayUnion({
             stage: "Submitted",
-            updatedBy: student?.email || "Student",
+            updatedBy: userEmail || "Student",
             timestamp: now,
             note: "Application officially submitted by student for university review.",
           }),
@@ -559,7 +569,7 @@ export const StudentApplicationWizard: React.FC = () => {
           history: [
             {
               stage: "Submitted",
-              updatedBy: student?.email || "Student",
+              updatedBy: userEmail || "Student",
               timestamp: now,
               note: "Application officially submitted by student for university review.",
             },
@@ -982,8 +992,11 @@ export const StudentApplicationWizard: React.FC = () => {
             <div className="space-y-3">
               {wizardRequiredDocSlots.map(({ name: docName, required, hint }) => {
                 const existing = uploadedDocuments.find((d) => {
-                  const t = (d.type || (d as any).documentType || d.name || "");
-                  return isDocumentMatch(t, docName);
+                  const t = (d.type || (d as any).documentType || "");
+                  if (t && normalise(t) === normalise(docName)) return true;
+                  if (t && isDocumentMatch(t, docName)) return true;
+                  const fn = ((d as any).fileName || d.name || "");
+                  return isDocumentMatch(fn, docName);
                 });
 
                 return (
