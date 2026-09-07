@@ -30,7 +30,7 @@ import { Student } from "../../types/student";
 import { Programme, University } from "../../types/university";
 import { Application } from "../../types/application";
 import { assessEligibility } from "../../utils/eligibility";
-import { getApplicationReadiness } from "../../utils/applicationReadiness";
+import { getApplicationReadiness, isDocumentMatch } from "../../utils/applicationReadiness";
 import { uploadStudentDocument, getDocumentBlobOrUrl } from "../../utils/documentStorage";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 
@@ -314,6 +314,56 @@ export const StudentApplicationWizard: React.FC = () => {
     visaReviewed,
   ]);
 
+  // Dynamic required document slots tailored to the university programme + standard requirements
+  const wizardRequiredDocSlots = useMemo(() => {
+    const list: { name: string; required: boolean; hint: string }[] = [];
+    const addedKeys = new Set<string>();
+
+    const addSlot = (name: string, required: boolean, hint: string) => {
+      const key = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!addedKeys.has(key)) {
+        addedKeys.add(key);
+        list.push({ name, required, hint });
+      }
+    };
+
+    // 1. Any university-specific required documents for this programme (e.g. "High School Transcript", "Portfolio")
+    if (programme?.requiredDocuments && programme.requiredDocuments.length > 0) {
+      programme.requiredDocuments.forEach((docName) => {
+        addSlot(docName, true, "Mandatory requirement specified by university admissions.");
+      });
+    }
+
+    // 2. High School Transcript slot (always present, especially important for Undergraduate & Foundation)
+    addSlot(
+      "High School Transcript",
+      Boolean(programme?.level?.toLowerCase().includes("bachelor") || programme?.level?.toLowerCase().includes("foundation")),
+      "Official high school / secondary education marksheet and graduation certificate."
+    );
+
+    // 3. Academic Transcript
+    addSlot("Academic Transcript", true, "Official academic transcript from your most recent study institution.");
+
+    // 4. Passport
+    addSlot("Passport", true, "Valid international passport identity page.");
+
+    // 5. Degree / Graduation Certificate
+    addSlot(
+      "Degree Certificate",
+      !programme?.level?.toLowerCase().includes("bachelor"),
+      "Official graduation award or provisional degree certificate."
+    );
+
+    // 6. Statement of Purpose
+    addSlot("Statement of Purpose", true, "Personal academic statement of purpose (SOP).");
+
+    // 7. English Language & CV
+    addSlot("English Language Certificate", false, "IELTS, PTE, TOEFL, or English medium instruction letter.");
+    addSlot("CV / Resume", false, "Up-to-date professional and academic CV.");
+
+    return list;
+  }, [programme]);
+
   // Document Upload Handler with Firebase Storage
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -326,7 +376,7 @@ export const StudentApplicationWizard: React.FC = () => {
 
     try {
       // Find existing document ID if replacing
-      const existingDoc = uploadedDocuments.find(d => d.type === docType);
+      const existingDoc = uploadedDocuments.find(d => isDocumentMatch(d.type || (d as any).documentType, docType));
       
       // 1. Upload to Document Storage and Firestore via Backend
       const uploadRes = await uploadStudentDocument(
@@ -930,11 +980,10 @@ export const StudentApplicationWizard: React.FC = () => {
             </p>
 
             <div className="space-y-3">
-              {["Passport", "Academic Transcript", "Degree Certificate", "Statement of Purpose"].map((docName) => {
-                const norm = (docName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+              {wizardRequiredDocSlots.map(({ name: docName, required, hint }) => {
                 const existing = uploadedDocuments.find((d) => {
-                  const t = (d.type || (d as any).documentType || d.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-                  return t.includes(norm) || norm.includes(t);
+                  const t = (d.type || (d as any).documentType || d.name || "");
+                  return isDocumentMatch(t, docName);
                 });
 
                 return (
@@ -946,18 +995,26 @@ export const StudentApplicationWizard: React.FC = () => {
                       <div className="flex items-center gap-2 font-semibold text-primary">
                         <FileText className="w-4 h-4 text-emerald-400" />
                         <span>{docName}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                          required ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                        }`}>
+                          {required ? "Mandatory" : "Optional"}
+                        </span>
                         {existing ? (
-                          <span className="text-emerald-400 text-[11px]">✓ Uploaded</span>
+                          <span className="text-emerald-400 text-[11px] font-bold">✓ Uploaded</span>
                         ) : (
                           <span className="text-amber-400 text-[11px]">Pending</span>
                         )}
                       </div>
+                      <p className="text-[11px] text-muted mt-0.5">{hint}</p>
                       {existing && (
-                        <p className="text-[11px] text-muted mt-0.5 truncate max-w-xs">{existing.name}</p>
+                        <p className="text-[11px] text-emerald-400/90 mt-0.5 truncate max-w-xs font-mono">
+                          File: {existing.name}
+                        </p>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {existing && (
                         <button
                           type="button"

@@ -17,6 +17,7 @@ import {
   getDocumentBlobOrUrl, 
   deleteCachedDocumentFile 
 } from "../../utils/documentStorage";
+import { isDocumentMatch } from "../../utils/applicationReadiness";
 import { DEMO_DOCUMENTS } from "../../data/demoData";
 
 export interface VaultDocument {
@@ -55,6 +56,16 @@ export const REQUIRED_STANDARD_DOCS: RequiredDocumentDef[] = [
     acceptedFormats: "PDF, JPG, PNG",
     maxSize: "10 MB",
     requirements: ["All four corners must be visible", "Text must be clearly readable", "Passport must not be expired", "Name must exactly match your profile"]
+  },
+  { 
+    type: "High School Transcript", 
+    label: "High School / Secondary School Transcript", 
+    mandatory: true,
+    whyRequired: "Required by universities to assess secondary education qualifications and foundational subjects.",
+    whoRequiresIt: "Selected University Admissions",
+    acceptedFormats: "PDF, JPG, PNG",
+    maxSize: "15 MB",
+    requirements: ["Must show all subjects and grades", "Include official school stamp or signature", "Certified English translation if not in English"]
   },
   { 
     type: "Academic Transcript", 
@@ -263,12 +274,14 @@ export const StudentDocumentVault: React.FC = () => {
     }
   };
 
-  // Document matching metrics with defensive null-checks
+  // Document matching metrics with intelligent match resolver
   const completedStandardDocs = useMemo(() => {
-    const uploadedTypes = documents.map((d) => (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase());
     return REQUIRED_STANDARD_DOCS.filter((req) => {
-      const target = req.type.toLowerCase();
-      return uploadedTypes.some((u) => u && (u.includes(target) || target.includes(u)));
+      return documents.some((d) => {
+        const t = d.documentType || (d as any).docType || (d as any).type || "";
+        const n = d.fileName || (d as any).name || "";
+        return isDocumentMatch(t, req.type) || isDocumentMatch(n, req.type);
+      });
     });
   }, [documents]);
 
@@ -355,10 +368,10 @@ export const StudentDocumentVault: React.FC = () => {
         <h2 className="text-base font-bold text-white">Standard Admissions Documents</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {REQUIRED_STANDARD_DOCS.map((req) => {
-            const reqTarget = req.type.toLowerCase();
             const uploaded = documents.find((d) => {
-              const t = (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase();
-              return t && (t.includes(reqTarget) || reqTarget.includes(t));
+              const t = d.documentType || (d as any).docType || (d as any).type || "";
+              const n = d.fileName || (d as any).name || "";
+              return isDocumentMatch(t, req.type) || isDocumentMatch(n, req.type);
             });
 
             const isUploading = uploadingType === req.type;
@@ -484,16 +497,16 @@ export const StudentDocumentVault: React.FC = () => {
 
       {/* Additional / Custom Uploaded Documents */}
       {documents.some((d) => {
-        const dType = (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase();
-        return !REQUIRED_STANDARD_DOCS.some((r) => r.type.toLowerCase() === dType);
+        const dType = d.documentType || (d as any).docType || (d as any).type || "";
+        return !REQUIRED_STANDARD_DOCS.some((r) => isDocumentMatch(dType, r.type));
       }) && (
         <section className="space-y-4">
           <h2 className="text-base font-bold text-white">Additional Documents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {documents
               .filter((d) => {
-                const dType = (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase();
-                return !REQUIRED_STANDARD_DOCS.some((r) => r.type.toLowerCase() === dType);
+                const dType = d.documentType || (d as any).docType || (d as any).type || "";
+                return !REQUIRED_STANDARD_DOCS.some((r) => isDocumentMatch(dType, r.type));
               })
               .map((doc) => (
                 <div key={doc.id} className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
