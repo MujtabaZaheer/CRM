@@ -129,6 +129,7 @@ import { CounsellorApplications } from "./pages/counsellor/Applications";
 import { CounsellorDocuments } from "./pages/counsellor/Documents";
 import { CounsellorTasks } from "./pages/counsellor/Tasks";
 import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
+import { CounsellorMessages } from "./pages/counsellor/CounsellorMessages";
 
 import { GlobalDataProvider } from "./contexts/GlobalDataContext";
 import { NotificationProvider } from "./contexts/NotificationProvider";
@@ -209,6 +210,7 @@ export const App: React.FC = () => {
                 <Route path="/admissions" element={<AdmissionsRoute />}>
                   <Route path="dashboard" element={<AdmissionsDashboard />} />
                   <Route path="applications" element={<AdmissionsApplications />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="verification" element={<AdmissionsVerification />} />
                   <Route path="offers" element={<AdmissionsOffers />} />
                   <Route path="tasks" element={<AdmissionsTasks />} />
@@ -221,6 +223,7 @@ export const App: React.FC = () => {
                   <Route path="dashboard" element={<CounsellorDashboard />} />
                   <Route path="leads" element={<CounsellorLeads />} />
                   <Route path="students" element={<CounsellorStudents />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="applications" element={<CounsellorApplications />} />
                   <Route path="documents" element={<CounsellorDocuments />} />
                   <Route path="tasks" element={<CounsellorTasks />} />

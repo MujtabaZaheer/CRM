@@ -37,6 +37,7 @@ interface ChatMessage {
   content: string;
   timestamp: number;
   read: boolean;
+  isInternalNote?: boolean;
 }
 
 interface Conversation {
@@ -234,10 +235,12 @@ export const StudentChat: React.FC = () => {
     const unsubscribe = onSnapshot(
       messagesQuery,
       (snapshot) => {
-        const list: ChatMessage[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as ChatMessage[];
+        const list: ChatMessage[] = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }))
+          .filter((m: any) => !m.isInternalNote) as ChatMessage[];
         setMessages(list);
         setLoadingMessages(false);
       },
