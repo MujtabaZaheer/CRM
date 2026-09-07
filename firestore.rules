@@ -25,7 +25,7 @@ service cloud.firestore {
     match /students/{studentId} {
       allow create: if isStaff() || (signedIn() && (studentId == request.auth.uid || request.resource.data.email == request.auth.token.email));
       allow get: if isStaff() || (signedIn() && (studentId == request.auth.uid || resource.data.email == request.auth.token.email));
-      allow list: if isStaff();
+      allow list: if isStaff() || (signedIn() && (resource.data.email == request.auth.token.email || resource.data.studentId == request.auth.uid || resource.data.id == request.auth.uid));
       allow update: if isStaff() || (signedIn() && (studentId == request.auth.uid || resource.data.email == request.auth.token.email));
       allow delete: if isAdmin();
     }
@@ -67,7 +67,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /tasks/{taskId} { allow read, write: if isStaff(); }
+    match /tasks/{taskId} {
+      allow read: if isStaff() || (signedIn() && (resource.data.assignedTo == request.auth.token.email || resource.data.assignedTo == request.auth.uid));
+      allow write: if isStaff();
+    }
     match /visa_cases/{caseId} { allow read: if isStaff() || ownsStudent(); allow create, update, delete: if isStaff(); }
     match /universities/{universityId} { allow read: if signedIn(); allow write: if isStaff(); }
     match /country_requirements/{countryId} { allow read: if signedIn(); allow write: if isStaff(); }

@@ -4,6 +4,25 @@ import App from './App'
 import { ThemeProvider } from './contexts/ThemeContext'
 import './index.css'
 
+// Prevent background Firestore stream assertions from crashing the React tree
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    const msg = event?.reason?.message || String(event?.reason || "");
+    if (msg.includes("INTERNAL ASSERTION FAILED") || msg.includes("Unexpected state (ID:") || msg.includes("FIRESTORE")) {
+      console.warn("Recovered from background Firestore stream assertion rejection:", msg);
+      event.preventDefault();
+    }
+  });
+
+  window.addEventListener("error", (event) => {
+    const msg = event?.error?.message || event?.message || "";
+    if (msg.includes("INTERNAL ASSERTION FAILED") || msg.includes("Unexpected state (ID:") || msg.includes("FIRESTORE")) {
+      console.warn("Recovered from background Firestore stream assertion error:", msg);
+      event.preventDefault();
+    }
+  });
+}
+
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -11,10 +30,19 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 
   static getDerivedStateFromError(error: Error) {
+    const msg = error?.message || "";
+    if (msg.includes("INTERNAL ASSERTION FAILED") || msg.includes("Unexpected state (ID:")) {
+      console.warn("Suppressed Firestore assertion in ErrorBoundary:", msg);
+      return { hasError: false, error: null };
+    }
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
+    const msg = error?.message || "";
+    if (msg.includes("INTERNAL ASSERTION FAILED") || msg.includes("Unexpected state (ID:")) {
+      return;
+    }
     console.error("EduCRM Uncaught React Error:", error, errorInfo);
   }
 

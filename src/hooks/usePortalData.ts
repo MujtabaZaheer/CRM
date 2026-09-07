@@ -20,7 +20,7 @@ export const usePortalData = () => {
   const [students, setStudents] = useState<Student[]>([]); const [applications, setApplications] = useState<Application[]>([]); const [tasks, setTasks] = useState<Task[]>([]); const [documents, setDocuments] = useState<PortalDocument[]>([]); const [visaCases, setVisaCases] = useState<VisaCase[]>([]); const [requests, setRequests] = useState<SupportRequest[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   const ownStudent = useMemo(() => students.find((student) => student.email === appUser?.email || student.id === appUser?.uid) || (showDemoData ? DEMO_STUDENTS[0] : undefined), [appUser, showDemoData, students]);
-  const ownStudentId = ownStudent?.id;
+  const ownStudentId = ownStudent?.id || (appUser?.role === "student" ? appUser?.uid : undefined);
 
   useEffect(() => {
     let count = 0;

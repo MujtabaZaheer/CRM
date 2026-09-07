@@ -126,8 +126,20 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setUniversities((prev) => (prev.length === 0 && showDemoData ? DEMO_UNIVERSITIES : prev));
     }, 1000);
 
-    // 1. Users
-    const unsubUsers = onSnapshot(
+    const isStudent = appUser.role === "student";
+    const noop = () => {};
+
+    if (isStudent) {
+      markSourceLoaded("users");
+      markSourceLoaded("leads");
+      markSourceLoaded("students");
+      markSourceLoaded("applications");
+      markSourceLoaded("documents");
+      markSourceLoaded("tasks");
+    }
+
+    // 1. Users (Staff only)
+    const unsubUsers = isStudent ? noop : onSnapshot(
       collection(db, "users"),
       (snap) => {
         const list: AppUser[] = [];
@@ -138,8 +150,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (err) => { handleSourceError("users", err); setUsers(showDemoData ? DEMO_USERS : []); }
     );
 
-    // 2. Leads
-    const unsubLeads = onSnapshot(
+    // 2. Leads (Staff only)
+    const unsubLeads = isStudent ? noop : onSnapshot(
       query(collection(db, "leads"), orderBy("createdAt", "desc")),
       (snap) => {
         const list: Lead[] = [];
@@ -150,8 +162,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (err) => { handleSourceError("leads", err); setLeads(showDemoData ? DEMO_LEADS : []); }
     );
 
-    // 3. Students
-    const unsubStudents = onSnapshot(
+    // 3. Students (Staff only for global list)
+    const unsubStudents = isStudent ? noop : onSnapshot(
       query(collection(db, "students"), orderBy("createdAt", "desc")),
       (snap) => {
         const list: Student[] = [];
@@ -162,8 +174,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (err) => { handleSourceError("students", err); setStudents(showDemoData ? DEMO_STUDENTS : []); }
     );
 
-    // 4. Applications
-    const unsubApps = onSnapshot(
+    // 4. Applications (Staff only for global list)
+    const unsubApps = isStudent ? noop : onSnapshot(
       query(collection(db, "applications"), orderBy("createdAt", "desc")),
       (snap) => {
         const list: Application[] = [];
@@ -174,8 +186,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (err) => { handleSourceError("applications", err); setApplications(showDemoData ? DEMO_APPLICATIONS : []); }
     );
 
-    // 5. Student Documents
-    const unsubDocs = onSnapshot(
+    // 5. Student Documents (Staff only for global list)
+    const unsubDocs = isStudent ? noop : onSnapshot(
       query(collection(db, "student_documents"), orderBy("createdAt", "desc")),
       (snap) => {
         const list: StudentDocument[] = [];
@@ -186,8 +198,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (err) => { handleSourceError("documents", err); setDocuments(showDemoData ? DEMO_DOCUMENTS : []); }
     );
 
-    // 6. Tasks
-    const unsubTasks = onSnapshot(
+    // 6. Tasks (Staff only)
+    const unsubTasks = isStudent ? noop : onSnapshot(
       query(collection(db, "tasks"), orderBy("createdAt", "desc")),
       (snap) => {
         const list: Task[] = [];
@@ -198,7 +210,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (err) => { handleSourceError("tasks", err); setTasks(showDemoData ? DEMO_TASKS : []); }
     );
 
-    // 7. Universities
+    // 7. Universities (Accessible by both staff and students)
     const unsubUnivs = onSnapshot(
       collection(db, "universities"),
       (snap) => {
