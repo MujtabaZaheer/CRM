@@ -1,6 +1,7 @@
 import { University } from "../types/university";
+import { getUniversityCampusImage } from "../utils/universityImages";
 
-export const GLOBAL_UNIVERSITIES: University[] = [
+const RAW_GLOBAL_UNIVERSITIES: University[] = [
   // ==========================================================================
   //  1. UNITED KINGDOM (UK)
   // ==========================================================================
@@ -1492,3 +1493,10 @@ export const GLOBAL_UNIVERSITIES: University[] = [
     updatedAt: Date.now() - 86400000 * 70,
   },
 ];
+
+export const GLOBAL_UNIVERSITIES: University[] = RAW_GLOBAL_UNIVERSITIES.map((u) => ({
+  ...u,
+  coverImageUrl: getUniversityCampusImage(u),
+  coverImageAlt: `${u.name} Campus`,
+}));
+

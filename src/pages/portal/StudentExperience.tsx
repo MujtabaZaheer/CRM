@@ -7,12 +7,22 @@ import { Programme, University } from "../../types/university";
 import { assessEligibility } from "../../utils/eligibility";
 import { UniversityExplorerMatcher } from "../../components/portal/UniversityExplorerMatcher";
 
-const fallbackImage = "/sample_transcript.jpg";
+import { getUniversityCampusImage } from "../../utils/universityImages";
+
 const money = (value: number, currency: string) => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
 const programmesFor = (university: University) => university.programmes || [];
 
-
-const Cover: React.FC<{ university: University; className?: string }> = ({ university, className = "" }) => <img src={university.coverImageUrl || university.logoUrl || fallbackImage} alt={university.coverImageAlt || `${university.name} campus`} loading="lazy" onError={(event) => { event.currentTarget.src = fallbackImage; }} className={`object-cover ${className}`} />;
+const Cover: React.FC<{ university: University; className?: string }> = ({ university, className = "" }) => (
+  <img
+    src={getUniversityCampusImage(university)}
+    alt={university.coverImageAlt || `${university.name} campus`}
+    loading="lazy"
+    onError={(event) => {
+      event.currentTarget.src = "/images/campus_uk.jpg";
+    }}
+    className={`object-cover ${className}`}
+  />
+);
 const EligibilityBadge: React.FC<{ programme: Programme; student: ReturnType<typeof usePortalData>["ownStudent"] }> = ({ programme, student }) => { const result = assessEligibility(student, programme); const style = result.status === "eligible" ? "bg-emerald-50 text-emerald-700" : result.status === "not_eligible" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-800"; const label = result.status === "eligible" ? "Meets configured requirements" : result.status === "not_eligible" ? "Needs improvement" : "Needs review"; return <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${style}`}>{label}</span>; };
 
 export const StudentDashboard: React.FC = () => {

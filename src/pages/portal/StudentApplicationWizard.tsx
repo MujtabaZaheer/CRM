@@ -32,6 +32,7 @@ import { Application } from "../../types/application";
 import { assessEligibility } from "../../utils/eligibility";
 import { getApplicationReadiness, isDocumentMatch, normalise } from "../../utils/applicationReadiness";
 import { uploadStudentDocument, getDocumentBlobOrUrl } from "../../utils/documentStorage";
+import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 
 const STEPS = [
@@ -625,7 +626,7 @@ export const StudentApplicationWizard: React.FC = () => {
       {/* Role-Specific Atmospheric Background Layer */}
       <div
         className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
-        style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
+        style={{ backgroundImage: `url('${getUniversityCampusImage(university || universityIdParam)}')` }}
       />
       <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/70 via-white/50 to-white/75 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
 
@@ -722,6 +723,39 @@ export const StudentApplicationWizard: React.FC = () => {
               <p className="text-xs text-secondary mt-0.5">
                 Verify program details, intakes, and admission deadlines before proceeding.
               </p>
+            </div>
+
+            {/* Real University Campus Visual Showcase */}
+            <div className="relative h-48 rounded-2xl overflow-hidden border border-subtle shadow-md group bg-slate-950">
+              <img
+                src={getUniversityCampusImage(university || universityIdParam)}
+                alt={`${university.name} Campus`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/campus_uk.jpg";
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between flex-wrap gap-2">
+                <div>
+                  <span className="bg-emerald-500/25 backdrop-blur-md px-2.5 py-0.5 rounded text-[10px] font-bold text-emerald-400 border border-emerald-500/40">
+                    Official Campus
+                  </span>
+                  <h3 className="text-lg font-bold text-white mt-1 drop-shadow-md">
+                    {university.name}
+                  </h3>
+                  <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
+                    <span>📍 {university.city ? `${university.city}, ` : ""}{university.country}</span>
+                    <span>•</span>
+                    <span className="text-emerald-300">{getUniversityLandmark(university.id)}</span>
+                  </p>
+                </div>
+                {university.globalRanking && (
+                  <span className="text-xs font-bold text-emerald-400 bg-black/70 backdrop-blur-md px-3 py-1 rounded-xl border border-emerald-500/30">
+                    World Rank #{university.globalRanking}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
