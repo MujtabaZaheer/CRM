@@ -177,6 +177,28 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
       // 3. Create role-specific profile document
       if (selectedRole === "student") {
+        let extractedAcademicHistory: any[] = [];
+        let extractedDob = "";
+        let extractedGender = "Prefer not to say";
+        let extractedCity = "";
+        let extractedStudyLevel = "Master's";
+        let extractedEnglish: any = undefined;
+
+        try {
+          const cachedCV = sessionStorage.getItem("student_extracted_cv");
+          if (cachedCV) {
+            const parsed = JSON.parse(cachedCV);
+            if (Array.isArray(parsed.academicRecords) && parsed.academicRecords.length > 0) {
+              extractedAcademicHistory = parsed.academicRecords;
+            }
+            if (parsed.dob) extractedDob = parsed.dob;
+            if (parsed.gender) extractedGender = parsed.gender;
+            if (parsed.city) extractedCity = parsed.city;
+            if (parsed.desiredStudyLevel) extractedStudyLevel = parsed.desiredStudyLevel;
+            if (parsed.englishProficiency) extractedEnglish = parsed.englishProficiency;
+          }
+        } catch (_) {}
+
         await setDoc(doc(db, "students", uid), {
           id: uid,
           fullName: formData.fullName,
@@ -184,8 +206,13 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           phone: formData.phone,
           nationality: formData.nationality,
           countryOfResidence: formData.countryOfResidence,
-          academicHistory: [],
-          profileCompleteness: 30,
+          ...(extractedDob ? { dob: extractedDob } : {}),
+          ...(extractedGender ? { gender: extractedGender } : {}),
+          ...(extractedCity ? { city: extractedCity } : {}),
+          ...(extractedStudyLevel ? { desiredStudyLevel: extractedStudyLevel } : {}),
+          ...(extractedEnglish ? { englishProficiency: extractedEnglish } : {}),
+          academicHistory: extractedAcademicHistory,
+          profileCompleteness: extractedAcademicHistory.length > 0 ? 55 : 30,
           consentGivenAt: Date.now(),
           consentVersion: "v1.0",
           createdAt: Date.now(),

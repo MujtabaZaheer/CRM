@@ -9,7 +9,9 @@ import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 import mammoth from "mammoth";
 import { callGeminiApi, cleanAndParseJson, hasGeminiApiKey } from "./geminiClient";
-import { AcademicRecord } from "../types/student";
+import { AcademicRecord, QualificationLevel } from "../types/student";
+
+export type { QualificationLevel };
 
 // Configure PDF.js worker in browser environment
 if (typeof window !== "undefined" && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -616,76 +618,395 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
 /**
  * Extracts authentic academic records from CV text
  */
-function extractAcademicRecordsFromText(text: string, countryOfResidence: string): AcademicRecord[] {
+/**
+ * Normalizes any qualification string to one of the 5 allowed QualificationLevel union values
+ */
+export function normalizeQualificationLevel(raw?: string): QualificationLevel {
+  if (!raw) return "Bachelor's Degree";
+  const lower = raw.toLowerCase();
+  if (lower.includes("phd") || lower.includes("ph.d") || lower.includes("doctorate") || lower.includes("doctoral")) {
+    return "Doctorate / PhD";
+  }
+  if (lower.includes("master") || lower.includes("msc") || lower.includes("m.sc") || lower.includes("ms") || lower.includes("m.s.") || lower.includes("mba") || lower.includes("mphil") || lower.includes("postgraduate") || lower.includes("llm") || lower.includes("m.eng") || lower.includes("mtech")) {
+    return "Master's Degree";
+  }
+  if (lower.includes("diploma") || lower.includes("associate") || lower.includes("pgd") || lower.includes("certificate") || lower.includes("certification") || lower.includes("hnd") || lower.includes("dae")) {
+    return "Diploma / Certificate";
+  }
+  if (lower.includes("bachelor") || lower.includes("bsc") || lower.includes("b.sc") || lower.includes("bs") || lower.includes("b.s.") || lower.includes("bba") || lower.includes("btech") || lower.includes("b.e.") || lower.includes("undergraduate") || lower.includes("llb") || lower.includes("mbbs") || lower.includes("bds") || lower.includes("pharm") || lower.includes("bcom") || lower.includes("ba") || lower.includes("bcs") || lower.includes("b.eng")) {
+    return "Bachelor's Degree";
+  }
+  if (lower.includes("a-level") || lower.includes("a level") || lower.includes("o-level") || lower.includes("o level") || lower.includes("high school") || lower.includes("secondary") || lower.includes("hssc") || lower.includes("ssc") || lower.includes("fsc") || lower.includes("f.sc") || lower.includes("intermediate") || lower.includes("matric") || lower.includes("12th") || lower.includes("10th") || lower.includes("pre-engineering") || lower.includes("pre-medical") || lower.includes("ics") || lower.includes("icom")) {
+    return "High School / A-Levels";
+  }
+  return "Bachelor's Degree";
+}
+
+export function cleanInstitutionName(raw?: string): string {
+  if (!raw) return "";
+  let cleaned = raw
+    .replace(/^(?:institution|university|college|school|campus|board|academy|alma\s*mater)\s*[:\-]\s*/i, "")
+    .replace(/^[\s•*\-0-9.)]+/, "")
+    .replace(/^(?:from|at|@)\s+/i, "")
+    .replace(/\s*\(\s*(?:19|20)\d{2}\s*[-–to\s]*(?:(?:19|20)\d{2}|present)?\s*\)/gi, "")
+    .replace(/,\s*(?:Lahore|Islamabad|Karachi|Rawalpindi|Peshawar|Multan|Faisalabad|London|Manchester|Toronto|Dubai|Pakistan|United Kingdom|Canada|UK|USA)\b.*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  cleaned = cleaned.replace(/[,;:\-]+$/, "").trim();
+  return cleaned;
+}
+
+/**
+ * Checks if a string or clause represents a credential/degree rather than an institution name
+ */
+export function isQualificationOrDegreeString(text: string): boolean {
+  if (!text) return false;
+  const t = text.trim();
+
+  // 1. High school / Secondary school credentials
+  if (/\b(?:higher\s*secondary|secondary\s*school|high\s*school\s*(?:certificate|diploma)?|school\s*certificate|intermediate|matriculation|matric|o[- ]?levels?|a[- ]?levels?|gcse|igcse|hssc|ssc|f\.?sc|ics|i\.?com)\b/i.test(t)) {
+    // If it mentions university, college, or an education board explicitly, it's not purely a degree
+    if (!/\b(?:universit(?:y|ies)|colleges?|institutes?|board\s*of|academ(?:y|ies)|campuses?)\b/i.test(t)) {
+      return true;
+    }
+  }
+
+  // 2. Degree prefixes or degree credentials
+  const stripped = t.replace(/^[\s•*\-0-9.)]+/, "").trim();
+  if (/^(?:bachelor|master|doctorate|doctor\s*of|ph\.?d|m\.?phil|diploma|associate\s*degree|certificate|b\.?sc|m\.?sc|bs|ms|bba|mba|bcs|b\.?e\.|btech|mtech|llb|llm|mbbs|bds|pharm-?d)\b/i.test(stripped)) {
+    if (!/\b(?:universit(?:y|ies)|colleges?|institutes?|board\s*of|academ(?:y|ies)|campuses?)\b/i.test(stripped)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function extractInstitutionFromText(str: string): string {
+  if (!str) return "";
+
+  // 1. Explicit label: Institution: XYZ or University: ABC
+  const labeled = str.match(/(?:institution|university|college|school|campus|board|academy|alma\s*mater)\s*[:\-]\s*([^\r\n,;]+)/i);
+  if (labeled && labeled[1]) {
+    const cand = cleanInstitutionName(labeled[1]);
+    if (cand && !isQualificationOrDegreeString(cand)) {
+      return cand;
+    }
+  }
+
+  // 2. Look for "from <Institution>" or "at <Institution>" or "@ <Institution>"
+  const fromAtMatch = str.match(/\b(?:from|at|@)\s+([A-Za-z0-9&.,'\s]{3,60})/i);
+  if (fromAtMatch && fromAtMatch[1]) {
+    const cand = cleanInstitutionName(fromAtMatch[1].split(/[,;]/)[0]);
+    if (
+      cand.length >= 3 &&
+      !isQualificationOrDegreeString(cand) &&
+      (/\b(?:universit(?:y|ies)|colleges?|institutes?|academ(?:y|ies)|schools?|polytechnics?|facult(?:y|ies)|board)\b/i.test(cand) ||
+       /\b(LUMS|NUST|FAST(?:-NUCES)?|FAST\s*NUCES|GIKI|IBA|UET|COMSATS|GCU|PIEAS|NED|SZABIST|FCCU|QAU|Harvard|MIT|Stanford|Oxford|Cambridge|UCL)\b/i.test(cand))
+    ) {
+      return cand;
+    }
+  }
+
+  // 3. Split line by commas, pipes, or semicolons to inspect clauses
+  const clauses = str.split(/[,;|]/).map((s) => s.trim()).filter(Boolean);
+  for (const clause of clauses) {
+    if (isQualificationOrDegreeString(clause)) {
+      continue;
+    }
+
+    if (
+      /\b(?:universit(?:y|ies)|colleges?|institutes?|academ(?:y|ies)|polytechnics?|facult(?:y|ies)|board\s*of)\b/i.test(clause) ||
+      /\b(?:grammar\s*schools?|public\s*schools?|cadet\s*colleges?|schools?\s*system|international\s*schools?|convent)\b/i.test(clause) ||
+      /\b(LUMS|NUST|FAST(?:-NUCES)?|FAST\s*NUCES|GIKI|IBA|UET|COMSATS|GCU|PIEAS|NED|SZABIST|FCCU|QAU|Harvard|MIT|Stanford|Oxford|Cambridge|UCL)\b/i.test(clause)
+    ) {
+      const cand = cleanInstitutionName(clause);
+      if (cand.length >= 3) {
+        return cand;
+      }
+    }
+  }
+
+  // 4. Fallback regex patterns
+  const univMatch = str.match(/\b(?:[A-Z][A-Za-z&.,'\s]{1,40}\s+)?(?:Universit(?:y|ies)|Colleges?|Institutes?|Academ(?:y|ies))(?:\s+of\s+[A-Za-z&.,'\s]{1,40})?\b/i);
+  if (univMatch) {
+    const cand = cleanInstitutionName(univMatch[0]);
+    if (cand.length >= 4 && !isQualificationOrDegreeString(cand)) return cand;
+  }
+
+  return "";
+}
+
+export function cleanDegreeTitle(raw?: string): string {
+  if (!raw) return "";
+  let cleaned = raw
+    .replace(/^[\s•*\-0-9.)]+/, "")
+    .replace(/^(?:degree|qualification|course|major|title)\s*[:\-]\s*/i, "")
+    .replace(/\s*\(\s*(?:19|20)\d{2}\s*[-–to\s]*(?:(?:19|20)\d{2}|present|current)?\s*\)/gi, "")
+    .replace(/\b(?:19|20)\d{2}\s*[-–to\s]+(?:(?:19|20)\d{2}|present|current)\b/gi, "")
+    .replace(/\b(?:19|20)\d{2}\b/g, "")
+    .replace(/\b(?:cgpa|gpa|grade|score|marks)\s*[:\-]?\s*(?:[0-5]\.\d{1,2}(?:\s*\/\s*[0-5](?:\.00?)?)?|[5-9]\d%|[1-9]\d%)\b/gi, "")
+    .replace(/,\s*(?:University|College|Institute|Academy|School|FAST|NUST|LUMS|UET|COMSATS|GCU|GIKI|IBA).*$/i, "")
+    .replace(/\b(?:from|at|@)\s+(?:University|College|Institute|Academy|School|FAST|NUST|LUMS|UET|COMSATS|GCU|GIKI|IBA).*$/i, "")
+    .replace(/,\s*\)/g, ")")
+    .replace(/\(\s*,/g, "(")
+    .replace(/\(\s*\)/g, "")
+    .replace(/[^a-zA-Z0-9\s()&/.-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length > 70) {
+    cleaned = cleaned.slice(0, 70).trim();
+  }
+  return cleaned;
+}
+
+export function extractGpaOrGrade(ctxText: string): string {
+  // 1. CGPA / GPA: e.g. CGPA: 3.78 / 4.00 or GPA: 3.65 or 3.78/4.00
+  const gpaMatch = ctxText.match(/\b(?:cgpa|gpa)\s*[:\-]?\s*([0-4]\.\d{1,2}(?:\s*\/\s*4(?:\.00?)?)?|[0-5]\.\d{1,2}\s*\/\s*5(?:\.00?)?|[0-9]\.\d{1,2}\s*\/\s*10(?:\.00?)?|[0-4]\.\d{1,2})/i);
+  if (gpaMatch && gpaMatch[1]) {
+    const val = gpaMatch[1].trim();
+    if (!val.includes("/")) {
+      return `${val} / 4.00`;
+    }
+    return val;
+  }
+
+  // 2. Labeled Grade with percentage or sign: e.g. Grade: A+ (88%) or Grade: 88% or Grade: A+
+  const fullGradeMatch = ctxText.match(/\b(?:grade|result|score|marks)\s*[:\-]?\s*([A-Fa-f][+\-]?\s*(?:\([0-9]{1,3}(?:\.[0-9]{1,2})?%\))?|[0-9]{1,3}(?:\.[0-9]{1,2})?%|[A-Fa-f][+\-]?)/i);
+  if (fullGradeMatch && fullGradeMatch[1]) {
+    return fullGradeMatch[1].trim();
+  }
+
+  // 3. Standalone percentage: 88% or 88.5%
+  const pctMatch = ctxText.match(/\b([5-9][0-9](?:\.[0-9]{1,2})?%|[1-9][0-9]%(?:\s*marks)?)\b/i);
+  if (pctMatch && pctMatch[1]) {
+    return pctMatch[1].trim();
+  }
+
+  // 4. Standalone GPA without "CGPA" label: e.g. "3.78 / 4.00"
+  const plainGpa = ctxText.match(/\b([0-4]\.\d{1,2}\s*\/\s*4(?:\.00?)?|[0-5]\.\d{1,2}\s*\/\s*5(?:\.00?)?)\b/);
+  if (plainGpa && plainGpa[1]) {
+    return plainGpa[1].trim();
+  }
+
+  // 5. Division / Honours: 1st Division, First Class Honours, Distinction
+  const divMatch = ctxText.match(/\b(1st\s*division|first\s*division|distinction|first\s*class(?:\s*honou?rs)?)\b/i);
+  if (divMatch && divMatch[1]) {
+    return divMatch[1].trim();
+  }
+
+  return "";
+}
+
+export function extractCompletionYear(ctxText: string): number {
+  const rangeMatch = ctxText.match(/\b(19[7-9][0-9]|20[0-2][0-9])\s*[-–to\s]+(19[7-9][0-9]|20[0-3][0-9])\b/);
+  if (rangeMatch && rangeMatch[2]) {
+    return parseInt(rangeMatch[2], 10);
+  }
+
+  const labeledMatch = ctxText.match(/(?:passing\s*year|completion\s*year|graduated|year|session)\s*[:\-]?\s*(19[7-9][0-9]|20[0-3][0-9])/i);
+  if (labeledMatch && labeledMatch[1]) {
+    return parseInt(labeledMatch[1], 10);
+  }
+
+  const years = ctxText.match(/\b(19[7-9][0-9]|20[0-2][0-9])\b/g);
+  if (years && years.length > 0) {
+    const numYears = years.map((y) => parseInt(y, 10)).sort((a, b) => b - a);
+    return numYears[0];
+  }
+
+  return 2024;
+}
+
+export function extractCountryForRecord(ctxText: string, defaultCountry: string): string {
+  const lower = ctxText.toLowerCase();
+  for (const country of COMMON_COUNTRIES) {
+    if (lower.includes(country.toLowerCase())) {
+      return country;
+    }
+  }
+  for (const [dem, cName] of Object.entries(DEMONYM_TO_COUNTRY)) {
+    if (lower.includes(dem)) {
+      return cName;
+    }
+  }
+  return defaultCountry;
+}
+
+/**
+ * Extracts authentic, complete academic records from CV text
+ */
+export function extractAcademicRecordsFromText(text: string, countryOfResidence: string): AcademicRecord[] {
   const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter((l) => l.length > 0);
   const records: AcademicRecord[] = [];
 
-  const degreeKeywords = [
-    { level: "Master's Degree", rx: /\b(master'?s?|msc|m\.sc|ms|mba|m\.phil|postgraduate)\b/i },
-    { level: "Bachelor's Degree", rx: /\b(bachelor'?s?|bsc|b\.sc|bs|bba|b\.tech|b\.e\.|undergraduate|b\.eng)\b/i },
-    { level: "High School / A-Levels", rx: /\b(a[- ]?levels?|hssc|fsc|f\.sc|intermediate|high\s*school|matriculation|matric|o[- ]?levels?)\b/i },
-    { level: "Doctorate / PhD", rx: /\b(phd|ph\.d|doctorate|doctoral)\b/i },
+  const degreeDefinitions = [
+    {
+      level: "Doctorate / PhD" as QualificationLevel,
+      rx: /\b(ph\.?d|doctorate|doctor\s*of\s*philosophy|d\.?phil|doctoral)\b/i,
+      defaultTitle: "Doctor of Philosophy (PhD)"
+    },
+    {
+      level: "Master's Degree" as QualificationLevel,
+      rx: /\b(master'?s?|m\.?sc|ms|m\.?s\.|mba|m\.?b\.?a|m\.?phil|postgraduate|ll\.?m|m\.?eng|m\.?tech)\b/i,
+      defaultTitle: "Master's Degree"
+    },
+    {
+      level: "Bachelor's Degree" as QualificationLevel,
+      rx: /\b(bachelor'?s?|b\.?sc|bs|b\.?s\.|bba|b\.?b\.?a|b\.?tech|b\.?e\.|b\.?eng|undergraduate|ll\.?b|mbbs|bds|pharm-?d|bcs|b\.?com|b\.?a\.)\b/i,
+      defaultTitle: "Bachelor's Degree"
+    },
+    {
+      level: "Diploma / Certificate" as QualificationLevel,
+      rx: /\b(diploma|associate\s*degree|postgraduate\s*diploma|pgd|certification|hnd|dae|advanced\s*diploma)\b/i,
+      defaultTitle: "Diploma / Certificate"
+    },
+    {
+      level: "High School / A-Levels" as QualificationLevel,
+      rx: /\b(a[- ]?levels?|o[- ]?levels?|gcse|igcse|high\s*school|secondary\s*school|hssc|ssc|f\.?sc|f\.?a|ics|i\.?com|intermediate|matriculation|matric|12th\s*grade|10th\s*grade|pre[- ]engineering|pre[- ]medical)\b/i,
+      defaultTitle: "High School / Intermediate"
+    }
   ];
 
-  const institutionRegex = /\b([A-Z][A-Za-z&.,'\s]{2,45}(?:University|College|Institute|Academy|School|LUMS|NUST|FAST|GIKI|IBA))\b/i;
-  const yearRegex = /\b(19[89][0-9]|20[0-2][0-9])\b/g;
-  const gpaRegex = /\b(?:gpa|cgpa|grade|score|marks)?\s*[:\-]?\s*([0-4]\.[0-9]{1,2}(?:\s*\/\s*4(?:\.00?)?)?|[5-9][0-9]%|[1-9][0-9]%(?:\s*marks)?)\b/i;
+  // 1. Isolate Education Section if present
+  let scanLines = lines;
+  const eduStartIdx = lines.findIndex((l) =>
+    /\b(?:EDUCATION|ACADEMIC\s*BACKGROUND|ACADEMIC\s*QUALIFICATIONS|EDUCATIONAL\s*QUALIFICATIONS|EDUCATION\s*&\s*QUALIFICATIONS|ACADEMIC\s*HISTORY|ACADEMICS)\b/i.test(l)
+  );
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const dk of degreeKeywords) {
-      if (dk.rx.test(line)) {
-        let degreeTitle = line.replace(/[^a-zA-Z0-9\s()&/.-]/g, "").trim();
-        let institution = "";
-        let year = 2024;
-        let grade = "";
+  if (eduStartIdx !== -1) {
+    const remaining = lines.slice(eduStartIdx + 1);
+    const eduEndIdx = remaining.findIndex((l) =>
+      /\b(?:WORK\s*EXPERIENCE|EMPLOYMENT\s*HISTORY|PROFESSIONAL\s*EXPERIENCE|EXPERIENCE|PROJECTS|SKILLS|TECHNICAL\s*SKILLS|CERTIFICATIONS|PUBLICATIONS|AWARDS|LANGUAGES|REFERENCES)\b/i.test(l)
+    );
+    if (eduEndIdx !== -1) {
+      scanLines = remaining.slice(0, eduEndIdx);
+    } else {
+      scanLines = remaining;
+    }
+  }
 
-        // Inspect context lines around this degree
-        const contextLines = lines.slice(Math.max(0, i - 1), Math.min(lines.length, i + 4));
-        for (const ctx of contextLines) {
-          if (!institution) {
-            const instMatch = ctx.match(institutionRegex);
-            if (instMatch) institution = instMatch[1].trim();
+  // 2. Check for Table rows (pipe | or tab \t delimited)
+  for (const line of scanLines) {
+    if (line.includes("|") || line.includes("\t")) {
+      const cells = line.split(/[|\t]+/).map((c) => c.trim()).filter(Boolean);
+      if (cells.length >= 3) {
+        for (const def of degreeDefinitions) {
+          const matchCell = cells.find((c) => def.rx.test(c));
+          if (matchCell) {
+            const instCell = cells.find((c) => c !== matchCell && /(?:University|College|Institute|School|Academy|FAST|NUST|LUMS|UET|COMSATS|GCU)/i.test(c)) || cells[1] || "";
+            const yearCell = cells.find((c) => /\b(19[7-9][0-9]|20[0-2][0-9])\b/.test(c)) || "";
+            const gpaCell = cells.find((c) => /(?:[0-4]\.\d|%|\bgrade\b)/i.test(c)) || "";
+
+            records.push({
+              institution: cleanInstitutionName(instCell) || "Educational Institution",
+              qualification: def.level,
+              degreeTitle: cleanDegreeTitle(matchCell) || def.defaultTitle,
+              country: extractCountryForRecord(line, countryOfResidence),
+              completionYear: extractCompletionYear(yearCell || line),
+              gradeGpa: extractGpaOrGrade(gpaCell || line) || "Completed"
+            });
+            break;
           }
-          const years = ctx.match(yearRegex);
-          if (years && years.length > 0) {
-            year = parseInt(years[years.length - 1], 10);
-          }
-          if (!grade) {
-            const gpaMatch = ctx.match(gpaRegex);
-            if (gpaMatch && gpaMatch[1]) grade = gpaMatch[1].trim();
+        }
+      }
+    }
+  }
+
+  // 3. Scan standard line blocks
+  for (let i = 0; i < scanLines.length; i++) {
+    const line = scanLines[i];
+    if (!line || /\b(?:education|academic)\b/i.test(line)) continue;
+
+    for (const def of degreeDefinitions) {
+      if (def.rx.test(line)) {
+        // Find previous degree index (boundary above)
+        let prevDegreeIdx = -1;
+        for (let b = i - 1; b >= 0; b--) {
+          if (degreeDefinitions.some((d) => d.rx.test(scanLines[b]))) {
+            prevDegreeIdx = b;
+            break;
           }
         }
 
-        if (degreeTitle.length > 55) {
-          degreeTitle = degreeTitle.slice(0, 55).trim();
+        // Find next degree index (boundary below)
+        let nextDegreeIdx = scanLines.length;
+        for (let a = i + 1; a < scanLines.length; a++) {
+          if (degreeDefinitions.some((d) => d.rx.test(scanLines[a]))) {
+            nextDegreeIdx = a;
+            break;
+          }
         }
+
+        const startCtx = i;
+        const endCtx = Math.min(nextDegreeIdx, i + 4);
+        const contextSlice = scanLines.slice(startCtx, endCtx);
+        const contextStr = contextSlice.join(" ");
+
+        let degreeTitle = cleanDegreeTitle(line);
+        if (!degreeTitle || degreeTitle.length < 3) {
+          degreeTitle = def.defaultTitle;
+        }
+
+        // Search institution in order of proximity within this degree's boundary:
+        // Current line, next line (i+1), line +2, line +3, and fallback to line above (i-1)
+        let institution = extractInstitutionFromText(line);
+        if (!institution) {
+          const candidateOffsets = [1, 2, 3, -1];
+          for (const offset of candidateOffsets) {
+            const targetIdx = i + offset;
+            if (targetIdx > prevDegreeIdx && targetIdx < nextDegreeIdx) {
+              const candLine = scanLines[targetIdx];
+              const candInst = extractInstitutionFromText(candLine);
+              if (candInst) {
+                institution = candInst;
+                break;
+              }
+            }
+          }
+        }
+
+        const completionYear = extractCompletionYear(contextStr);
+        const gradeGpa = extractGpaOrGrade(contextStr) || "Completed";
+        const country = extractCountryForRecord(contextStr, countryOfResidence);
 
         records.push({
-          institution: institution || "Educational Institution",
-          qualification: dk.level as any,
-          degreeTitle: degreeTitle || dk.level,
-          country: countryOfResidence,
-          completionYear: year,
-          gradeGpa: grade || "Completed",
+          institution: institution || "Academic Institution",
+          qualification: def.level,
+          degreeTitle,
+          country,
+          completionYear,
+          gradeGpa
         });
+
         break;
       }
     }
   }
 
-  // Deduplicate by qualification
-  const unique: AcademicRecord[] = [];
-  const seen = new Set<string>();
+  if (records.length === 0 && scanLines !== lines) {
+    return extractAcademicRecordsFromText(lines.join("\n"), countryOfResidence);
+  }
+
+  // Deduplicate identical records (same institution and same degree title)
+  const uniqueRecords: AcademicRecord[] = [];
+  const seenKeys = new Set<string>();
+
   for (const r of records) {
-    if (!seen.has(r.qualification)) {
-      seen.add(r.qualification);
-      unique.push(r);
+    const key = `${r.qualification}_${r.institution.toLowerCase().replace(/[^a-z0-9]/g, "")}_${r.degreeTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueRecords.push(r);
     }
   }
 
-  if (unique.length > 0) {
-    return unique;
+  // Sort: latest completion year first
+  uniqueRecords.sort((a, b) => b.completionYear - a.completionYear);
+
+  if (uniqueRecords.length > 0) {
+    return uniqueRecords;
   }
 
   return [
@@ -794,6 +1115,7 @@ export async function extractStudentCVDetails(fileOrText: File | string, fileNam
   const name = typeof fileOrText === "string" ? (fileName || "Pasted_CV.txt") : fileOrText.name;
 
   let textContent = "";
+  let sourceText = "";
   let inlineData: { mimeType: string; dataBase64: string } | undefined = undefined;
 
   try {
@@ -811,6 +1133,8 @@ export async function extractStudentCVDetails(fileOrText: File | string, fileNam
         };
       }
     }
+
+    sourceText = textContent && textContent.length > 20 ? textContent : (typeof fileOrText === "string" ? fileOrText : name);
 
     // If Gemini API is configured, use it for deep AI extraction
     if (hasGeminiApiKey()) {
@@ -832,12 +1156,12 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
   "desiredStudyLevel": "Bachelor's" | "Master's" | "PhD",
   "academicRecords": [
     {
-      "institution": "School or University name",
-      "qualification": "High School / A-Levels" | "Bachelor's Degree" | "Master's Degree" | "Doctorate / PhD",
-      "degreeTitle": "Degree title",
-      "country": "Country",
+      "institution": "Full School or University name",
+      "qualification": "High School / A-Levels" | "Diploma / Certificate" | "Bachelor's Degree" | "Master's Degree" | "Doctorate / PhD",
+      "degreeTitle": "Degree title / Major",
+      "country": "Country of study",
       "completionYear": number year,
-      "gradeGpa": "GPA / Grade"
+      "gradeGpa": "GPA / Grade / Percentage"
     }
   ]
 }`;
@@ -864,6 +1188,21 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
           parsed.phone = "";
         }
 
+        // Normalize and clean all academic records from AI
+        if (parsed.academicRecords && parsed.academicRecords.length > 0) {
+          parsed.academicRecords = parsed.academicRecords.map((rec) => ({
+            institution: cleanInstitutionName(rec.institution) || "Academic Institution",
+            qualification: normalizeQualificationLevel(rec.qualification || rec.degreeTitle),
+            degreeTitle: cleanDegreeTitle(rec.degreeTitle || rec.qualification),
+            country: rec.country || parsed.countryOfResidence || "Pakistan",
+            completionYear: Number(rec.completionYear) || 2024,
+            gradeGpa: rec.gradeGpa || "Completed",
+          }));
+        } else {
+          // If Gemini didn't return academicRecords, run heuristic parser to extract them!
+          parsed.academicRecords = extractAcademicRecordsFromText(sourceText, parsed.countryOfResidence || "Pakistan");
+        }
+
         parsed.sourceFileName = name;
         return parsed;
       }
@@ -873,6 +1212,8 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
   }
 
   // High-fidelity fallback on extracted text content
-  const sourceText = textContent && textContent.length > 20 ? textContent : (typeof fileOrText === "string" ? fileOrText : name);
+  if (!sourceText) {
+    sourceText = textContent && textContent.length > 20 ? textContent : (typeof fileOrText === "string" ? fileOrText : name);
+  }
   return heuristicExtractFromText(sourceText, name);
 }

@@ -93,4 +93,148 @@ Pakistan
     // Phone MUST NOT be 222222222222222
     expect(result.phone).not.toContain("222222222222222");
   });
+
+  it("should accurately extract multiple academic degrees with correct institutions, years, and GPAs", () => {
+    const multiDegreeCv = `
+Zainab Tariq
+Email: zainab.tariq@gmail.com
+Phone: +92 321 8765432
+Country: Pakistan
+
+ACADEMIC QUALIFICATIONS:
+1. Bachelor of Science in Software Engineering (2020 - 2024)
+   Lahore University of Management Sciences (LUMS), Pakistan
+   CGPA: 3.78 / 4.00
+   Major: Distributed Systems & Machine Learning
+
+2. Higher Secondary School Certificate (F.Sc Pre-Engineering, 2018 - 2020)
+   Kinnaird College for Women, Lahore
+   Grade: A+ (88%)
+    `;
+
+    const result = heuristicExtractFromText(multiDegreeCv);
+
+    expect(result.academicRecords).toBeDefined();
+    expect(result.academicRecords!.length).toBe(2);
+
+    // Record 1: Bachelor's
+    const bachelors = result.academicRecords![0];
+    expect(bachelors.qualification).toBe("Bachelor's Degree");
+    expect(bachelors.degreeTitle).toContain("Bachelor of Science in Software Engineering");
+    expect(bachelors.institution).toContain("Lahore University of Management Sciences");
+    expect(bachelors.completionYear).toBe(2024);
+    expect(bachelors.gradeGpa).toContain("3.78");
+
+    // Record 2: High School
+    const intermediate = result.academicRecords![1];
+    expect(intermediate.qualification).toBe("High School / A-Levels");
+    expect(intermediate.institution).toContain("Kinnaird College");
+    expect(intermediate.completionYear).toBe(2020);
+    expect(intermediate.gradeGpa).toContain("88%");
+  });
+
+  it("should extract institutions starting with 'University of ...' properly instead of generic fallbacks", () => {
+    const univOfCv = `
+Muhammad Usman
+Email: usman@example.com
+Phone: +92 333 1122334
+
+EDUCATION:
+• Master of Science in Computer Science (2022 - 2024)
+  University of the Punjab, Lahore
+  CGPA: 3.85 / 4.00
+• Bachelor of Science in Information Technology (2018 - 2022)
+  University of Engineering and Technology, Lahore
+  CGPA: 3.60 / 4.00
+    `;
+
+    const result = heuristicExtractFromText(univOfCv);
+    expect(result.academicRecords!.length).toBe(2);
+
+    expect(result.academicRecords![0].institution).toContain("University of the Punjab");
+    expect(result.academicRecords![0].qualification).toBe("Master's Degree");
+    expect(result.academicRecords![0].completionYear).toBe(2024);
+
+    expect(result.academicRecords![1].institution).toContain("University of Engineering and Technology");
+    expect(result.academicRecords![1].qualification).toBe("Bachelor's Degree");
+    expect(result.academicRecords![1].completionYear).toBe(2022);
+  });
+
+  it("should extract 3 or 4 qualifications without dropping intermediate or matriculation", () => {
+    const fullAcademicCv = `
+Ahmad Raza
+Email: ahmad.raza@example.com
+Phone: +92 301 5544332
+Country: Pakistan
+
+EDUCATION:
+Master of Science in Data Science (2022 - 2024)
+National University of Sciences and Technology (NUST), Islamabad
+CGPA: 3.82 / 4.00
+
+Bachelor of Science in Computer Science (2018 - 2022)
+FAST National University, Islamabad
+CGPA: 3.55 / 4.00
+
+F.Sc Pre-Engineering (2016 - 2018)
+Punjab Group of Colleges, Rawalpindi
+Marks: 85%
+
+Matriculation in Science (2014 - 2016)
+Army Public School (APS), Rawalpindi
+Grade: A+ (88%)
+    `;
+
+    const result = heuristicExtractFromText(fullAcademicCv);
+    expect(result.academicRecords).toBeDefined();
+    expect(result.academicRecords!.length).toBe(4);
+
+    // Latest first: Master's
+    expect(result.academicRecords![0].qualification).toBe("Master's Degree");
+    expect(result.academicRecords![0].institution).toContain("NUST");
+    expect(result.academicRecords![0].completionYear).toBe(2024);
+    expect(result.academicRecords![0].gradeGpa).toContain("3.82");
+
+    // Bachelor's
+    expect(result.academicRecords![1].qualification).toBe("Bachelor's Degree");
+    expect(result.academicRecords![1].institution).toContain("FAST");
+    expect(result.academicRecords![1].completionYear).toBe(2022);
+    expect(result.academicRecords![1].gradeGpa).toContain("3.55");
+
+    // F.Sc
+    expect(result.academicRecords![2].qualification).toBe("High School / A-Levels");
+    expect(result.academicRecords![2].degreeTitle).toContain("F.Sc");
+    expect(result.academicRecords![2].institution).toContain("Punjab Group of Colleges");
+    expect(result.academicRecords![2].completionYear).toBe(2018);
+
+    // Matric
+    expect(result.academicRecords![3].qualification).toBe("High School / A-Levels");
+    expect(result.academicRecords![3].degreeTitle).toContain("Matriculation");
+    expect(result.academicRecords![3].institution).toContain("Army Public School");
+    expect(result.academicRecords![3].completionYear).toBe(2016);
+  });
+
+  it("should extract inline qualifications with 'from <Institution>' accurately", () => {
+    const inlineCv = `
+Sana Sheikh
+Email: sana.sheikh@test.com
+Phone: +92 345 9988776
+
+ACADEMIC BACKGROUND:
+• BS Electrical Engineering from UET Lahore (2019 - 2023), CGPA: 3.68
+• A-Levels Pre-Engineering from Beaconhouse School System (2017 - 2019), Grade: 3 A*s
+    `;
+
+    const result = heuristicExtractFromText(inlineCv);
+    expect(result.academicRecords!.length).toBe(2);
+
+    expect(result.academicRecords![0].institution).toContain("UET Lahore");
+    expect(result.academicRecords![0].degreeTitle).toContain("BS Electrical Engineering");
+    expect(result.academicRecords![0].completionYear).toBe(2023);
+    expect(result.academicRecords![0].gradeGpa).toContain("3.68");
+
+    expect(result.academicRecords![1].institution).toContain("Beaconhouse");
+    expect(result.academicRecords![1].degreeTitle).toContain("A-Levels");
+    expect(result.academicRecords![1].completionYear).toBe(2019);
+  });
 });

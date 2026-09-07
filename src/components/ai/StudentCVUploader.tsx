@@ -9,6 +9,7 @@ import {
   X,
   FileCode,
   Zap,
+  GraduationCap,
 } from "lucide-react";
 import {
   extractStudentCVDetails,
@@ -179,12 +180,46 @@ export const StudentCVUploader: React.FC<StudentCVUploaderProps> = ({
               <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.dob || "Not specified"}</span>
             </div>
             <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
-              <span className="text-zinc-500 block text-[10px]">Qualification</span>
+              <span className="text-zinc-500 block text-[10px]">Primary Level</span>
               <span className="text-zinc-100 font-semibold truncate block" title={extractedSummary.academicRecords?.[0]?.degreeTitle || extractedSummary.desiredStudyLevel}>
                 {extractedSummary.academicRecords?.[0]?.qualification || extractedSummary.desiredStudyLevel || "—"}
               </span>
             </div>
           </div>
+
+          {/* Detailed Extracted Academic Background Cards */}
+          {extractedSummary.academicRecords && extractedSummary.academicRecords.length > 0 && (
+            <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-300">
+                <span className="flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Academic Qualifications Extracted ({extractedSummary.academicRecords.length})</span>
+                </span>
+                <span className="text-[10px] text-zinc-400">Auto-filled in Section 3 below</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {extractedSummary.academicRecords.map((rec, i) => (
+                  <div key={i} className="p-2.5 bg-zinc-950/90 rounded-lg border border-zinc-800/80 text-[11px] space-y-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-bold text-white truncate" title={rec.degreeTitle}>{rec.degreeTitle || rec.qualification}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-medium shrink-0">
+                        {rec.completionYear || "Completed"}
+                      </span>
+                    </div>
+                    <div className="text-zinc-400 truncate text-[10px] flex items-center justify-between">
+                      <span className="truncate" title={rec.institution}>{rec.institution || "Institution"}</span>
+                      {rec.country && <span className="text-zinc-500 text-[9px] shrink-0 ml-1">({rec.country})</span>}
+                    </div>
+                    {rec.gradeGpa && (
+                      <div className="text-emerald-400/90 text-[10px] font-mono">
+                        Grade / GPA: <span className="text-zinc-200">{rec.gradeGpa}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div
