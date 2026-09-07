@@ -19,6 +19,8 @@ export const DEMO_USERS: AppUser[] = [
   { uid: "usr_6", email: "visa@educrm.demo", displayName: "Priya Sharma", role: "visa_officer", office: "Delhi Hub", createdAt: Date.now() - 500000 },
   { uid: "usr_7", email: "support@educrm.demo", displayName: "James Wilson", role: "support_user", office: "Global Support Desk", createdAt: Date.now() - 400000 },
   { uid: "usr_8", email: "auditor@educrm.demo", displayName: "Rachel Adams", role: "auditor", office: "Compliance HQ", createdAt: Date.now() - 300000 },
+  { uid: "stu_1", email: "aarav.patel@gmail.com", displayName: "Aarav Patel", role: "student", office: "Delhi Hub", branchId: "branch-delhi", tenantId: "tenant-demo", onboardingStatus: "completed", profileCompleted: true, currentStep: 4, createdAt: Date.now() - 86400000 * 10 },
+  { uid: "demo_student", email: "student@educrm.demo", displayName: "Demo Student (New)", role: "student", office: "London HQ", branchId: "branch-london", tenantId: "tenant-demo", onboardingStatus: "not_started", profileCompleted: false, currentStep: 1, createdAt: Date.now() - 86400000 },
 ];
 
 export const DEMO_LEADS: Lead[] = [
@@ -30,9 +32,100 @@ export const DEMO_LEADS: Lead[] = [
 ];
 
 export const DEMO_STUDENTS: Student[] = [
-  { id: "stu_1", fullName: "Aarav Patel", email: "aarav.patel@gmail.com", phone: "+91 98765 43210", countryOfResidence: "India", dob: "2001-05-14", nationality: "Indian", passportNumber: "Z1234567", academicHistory: [{ institution: "Mumbai University", qualification: "Bachelor's Degree", degreeTitle: "BSc IT", country: "India", completionYear: 2023, gradeGpa: "3.8/4.0" }], englishProficiency: { testType: "IELTS", overallScore: "7.5" }, profileCompleteness: 90, createdAt: Date.now() - 86400000 * 10, updatedAt: Date.now() - 86400000 * 10 },
-  { id: "stu_2", fullName: "Li Wei", email: "li.wei@qq.com", phone: "+86 138 0013 8000", countryOfResidence: "China", dob: "2002-08-21", nationality: "Chinese", passportNumber: "E9876543", academicHistory: [{ institution: "Peking High School", qualification: "High School / A-Levels", degreeTitle: "Diploma", country: "China", completionYear: 2024, gradeGpa: "3.6/4.0" }], englishProficiency: { testType: "TOEFL", overallScore: "102" }, profileCompleteness: 85, createdAt: Date.now() - 86400000 * 15, updatedAt: Date.now() - 86400000 * 15 },
-  { id: "stu_3", fullName: "Fatima Al-Mansoor", email: "fatima.m@gmail.com", phone: "+971 50 123 4567", countryOfResidence: "UAE", dob: "2000-11-03", nationality: "Emirati", passportNumber: "N5544332", academicHistory: [{ institution: "Zayed University", qualification: "Bachelor's Degree", degreeTitle: "BBA Finance", country: "UAE", completionYear: 2022, gradeGpa: "3.9/4.0" }], englishProficiency: { testType: "IELTS", overallScore: "8.0" }, profileCompleteness: 100, createdAt: Date.now() - 86400000 * 20, updatedAt: Date.now() - 86400000 * 20 },
+  {
+    id: "stu_1",
+    fullName: "Aarav Patel",
+    email: "aarav.patel@gmail.com",
+    phone: "+91 98765 43210",
+    countryOfResidence: "India",
+    dob: "2001-05-14",
+    nationality: "Indian",
+    passportNumber: "Z1234567",
+    passportExpiry: "2031-05-14",
+    preferredDestination: "UK",
+    preferredDestinations: ["UK", "Canada", "USA"],
+    preferredIntake: "September 2026",
+    budgetAnnualUsd: 35000,
+    academicHistory: [
+      {
+        institution: "Mumbai University",
+        qualification: "Bachelor's Degree",
+        degreeTitle: "BSc IT",
+        country: "India",
+        completionYear: 2023,
+        gradeGpa: "3.8/4.0",
+      },
+    ],
+    englishProficiency: { testType: "IELTS", overallScore: "7.5" },
+    onboardingStatus: "completed",
+    profileCompleted: true,
+    currentStep: 4,
+    profileCompleteness: 100,
+    createdAt: Date.now() - 86400000 * 10,
+    updatedAt: Date.now() - 86400000 * 10,
+  },
+  {
+    id: "stu_2",
+    fullName: "Li Wei",
+    email: "li.wei@qq.com",
+    phone: "+86 138 0013 8000",
+    countryOfResidence: "China",
+    dob: "2002-08-21",
+    nationality: "Chinese",
+    passportNumber: "E9876543",
+    preferredDestination: "Australia",
+    preferredDestinations: ["Australia"],
+    preferredIntake: "July 2026",
+    budgetAnnualUsd: 40000,
+    academicHistory: [
+      {
+        institution: "Peking High School",
+        qualification: "High School / A-Levels",
+        degreeTitle: "Diploma",
+        country: "China",
+        completionYear: 2024,
+        gradeGpa: "3.6/4.0",
+      },
+    ],
+    englishProficiency: { testType: "TOEFL", overallScore: "102" },
+    onboardingStatus: "completed",
+    profileCompleted: true,
+    currentStep: 4,
+    profileCompleteness: 85,
+    createdAt: Date.now() - 86400000 * 15,
+    updatedAt: Date.now() - 86400000 * 15,
+  },
+  {
+    id: "stu_3",
+    fullName: "Fatima Al-Mansoor",
+    email: "fatima.m@gmail.com",
+    phone: "+971 50 123 4567",
+    countryOfResidence: "UAE",
+    dob: "2000-11-03",
+    nationality: "Emirati",
+    passportNumber: "N5544332",
+    preferredDestination: "Canada",
+    preferredDestinations: ["Canada"],
+    preferredIntake: "September 2026",
+    budgetAnnualUsd: 50000,
+    academicHistory: [
+      {
+        institution: "Zayed University",
+        qualification: "Bachelor's Degree",
+        degreeTitle: "BBA Finance",
+        country: "UAE",
+        completionYear: 2022,
+        gradeGpa: "3.9/4.0",
+      },
+    ],
+    englishProficiency: { testType: "IELTS", overallScore: "8.0" },
+    onboardingStatus: "completed",
+    profileCompleted: true,
+    currentStep: 4,
+    profileCompleteness: 100,
+    createdAt: Date.now() - 86400000 * 20,
+    updatedAt: Date.now() - 86400000 * 20,
+  },
 ];
 
 export const DEMO_APPLICATIONS: Application[] = [
@@ -85,8 +178,11 @@ export const DEMO_VISA_CASES: VisaCase[] = [
 
 export const DEMO_DOCUMENTS: StudentDocument[] = [
   { id: "doc_1", studentId: "stu_1", studentName: "Aarav Patel", fileName: "Passport Bio Page.pdf", docType: "Passport", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 8 },
-  { id: "doc_2", studentId: "stu_1", studentName: "Aarav Patel", fileName: "IELTS Official Test Report.pdf", docType: "IELTS / English Test", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 7 },
+  { id: "doc_2", studentId: "stu_1", studentName: "Aarav Patel", fileName: "IELTS Official Test Report (7.5).pdf", docType: "IELTS / English Test", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 7 },
   { id: "doc_3", studentId: "stu_2", studentName: "Li Wei", fileName: "Bachelor Degree Transcript.pdf", docType: "Academic Transcript", fileUrl: "#", status: "Pending", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 4 },
+  { id: "doc_4", studentId: "stu_1", studentName: "Aarav Patel", fileName: "BSc_Information_Technology_Transcripts.pdf", docType: "Academic Transcript", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 6 },
+  { id: "doc_5", studentId: "stu_1", studentName: "Aarav Patel", fileName: "BSc_IT_Degree_Certificate.pdf", docType: "Degree Certificate", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 6 },
+  { id: "doc_6", studentId: "stu_1", studentName: "Aarav Patel", fileName: "Statement_of_Purpose_MSc_CS.pdf", docType: "Personal Statement", fileUrl: "#", status: "Verified", uploadedBy: "counsellor@educrm.demo", createdAt: Date.now() - 86400000 * 5 },
 ];
 
 export const DEMO_TASKS: Task[] = [

@@ -17,8 +17,16 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
 
-  const handleQuickDemoLogin = (role: UserRole) => {
-    loginAsDemoRole(role);
+  const handleQuickDemoLogin = (role: UserRole, options?: { isRegisteredStudent?: boolean }) => {
+    loginAsDemoRole(role, options);
+    if (role === "student") {
+      if (options?.isRegisteredStudent) {
+        navigate("/student/dashboard");
+      } else {
+        navigate("/student/onboarding/step-1");
+      }
+      return;
+    }
     navigate(getRoleDashboardPath(role));
   };
 
@@ -94,6 +102,16 @@ export const Login: React.FC = () => {
             targetRole = "external_agent";
           } else if (lowerEmail.includes("university") || lowerEmail.includes("partner")) {
             targetRole = "university_partner";
+          }
+
+          if (targetRole === "student") {
+            const isRegistered =
+              lowerEmail.includes("registered") ||
+              lowerEmail.includes("aarav") ||
+              lowerEmail.includes("patel") ||
+              lowerEmail === "student@educrm.demo";
+            handleQuickDemoLogin("student", { isRegisteredStudent: isRegistered });
+            return;
           }
 
           // Custom demo account login
@@ -229,10 +247,20 @@ export const Login: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => handleQuickDemoLogin("student")}
-              className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: true })}
+              className="px-2.5 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] ring-1 ring-emerald-500/20"
+              title="Aarav Patel (Already Registered: Dashboard, Applications & Documents)"
             >
-              <span>Student</span>
+              <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Student (Registered)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: false })}
+              className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              title="New Student (Test Onboarding Wizard from Step 1)"
+            >
+              <span>Student (New)</span>
             </button>
             <button
               type="button"
@@ -249,6 +277,22 @@ export const Login: React.FC = () => {
               <span>University</span>
             </button>
           </div>
+        </div>
+
+        {/* Demo Registered Student Fast Access Callout */}
+        <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl space-y-1.5 text-xs">
+          <div className="flex items-center justify-between text-zinc-300 font-semibold text-[11px]">
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              Demo Registered Student: Aarav Patel
+            </span>
+            <span className="text-[10px] text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono">
+              Profile 100%
+            </span>
+          </div>
+          <p className="text-[11px] text-zinc-400">
+            Click <strong className="text-emerald-300">Student (Registered)</strong> above or sign in with <code className="text-emerald-300 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">aarav.patel@gmail.com</code> (any password).
+          </p>
         </div>
 
         <div className="flex items-center space-x-3 my-2">

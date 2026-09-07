@@ -3,13 +3,14 @@ import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
+import { DEMO_STUDENTS } from "../data/demoData";
 
 interface AuthContextType {
   firebaseUser: User | null;
   appUser: AppUser | null;
   loading: boolean;
   isDemoMode: boolean;
-  loginAsDemoRole: (role: UserRole) => void;
+  loginAsDemoRole: (role: UserRole, options?: { isRegisteredStudent?: boolean }) => void;
   logout: () => void;
   refreshFirebaseUser: () => Promise<User | null>;
 }
@@ -37,18 +38,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [loading, setLoading] = useState<boolean>(true);
 
-  const loginAsDemoRole = async (role: UserRole) => {
-    const demoUser: AppUser = {
-      uid: `demo_${role}`,
-      email: `${role}@educrm.demo`,
-      displayName: `Demo ${role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`,
-      role: role,
-      createdAt: Date.now(),
-      office: "London HQ",
-      branchId: "branch-london",
-      tenantId: "tenant-demo",
-      partnerUniversityId: role === "university_partner" ? "univ-oxford" : undefined,
-    };
+  const loginAsDemoRole = async (role: UserRole, options?: { isRegisteredStudent?: boolean }) => {
+    let demoUser: AppUser;
+
+    if (role === "student" && options?.isRegisteredStudent) {
+      demoUser = {
+        uid: "stu_1",
+        email: "aarav.patel@gmail.com",
+        displayName: "Aarav Patel",
+        role: "student",
+        createdAt: Date.now() - 86400000 * 10,
+        office: "Delhi Hub",
+        branchId: "branch-delhi",
+        tenantId: "tenant-demo",
+        onboardingStatus: "completed",
+        profileCompleted: true,
+        currentStep: 4,
+      };
+    } else {
+      demoUser = {
+        uid: `demo_${role}`,
+        email: `${role}@educrm.demo`,
+        displayName: `Demo ${role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`,
+        role: role,
+        createdAt: Date.now(),
+        office: "London HQ",
+        branchId: "branch-london",
+        tenantId: "tenant-demo",
+        partnerUniversityId: role === "university_partner" ? "univ-oxford" : undefined,
+        ...(role === "student"
+          ? { onboardingStatus: "not_started", profileCompleted: false, currentStep: 1 }
+          : {}),
+      };
+    }
+
     try {
       localStorage.setItem("educrm_demo_user", JSON.stringify(demoUser));
     } catch (e) {
@@ -67,8 +90,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         branchId: demoUser.branchId,
         tenantId: demoUser.tenantId,
         createdAt: demoUser.createdAt,
+        onboardingStatus: demoUser.onboardingStatus,
+        profileCompleted: demoUser.profileCompleted,
+        currentStep: demoUser.currentStep,
         ...(demoUser.partnerUniversityId ? { partnerUniversityId: demoUser.partnerUniversityId } : {}),
       }, { merge: true });
+
+      if (role === "student" && options?.isRegisteredStudent) {
+        const demoStudent = DEMO_STUDENTS[0];
+        await setDoc(doc(db, "students", demoUser.uid), {
+          ...demoStudent,
+          id: demoUser.uid,
+          onboardingStatus: "completed",
+          profileCompleted: true,
+          currentStep: 4,
+          updatedAt: Date.now(),
+        }, { merge: true });
+      }
     } catch (err) {
       console.warn("Could not write demo user profile to Firestore (app will still work locally):", err);
     }
