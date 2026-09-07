@@ -10,6 +10,7 @@ import {
 import { UserRole } from "../types/role";
 import { REGISTRATION_CONFIGS, SELF_REGISTERABLE_ROLES } from "../types/registrationConfig";
 import { StudentCVUploader } from "../components/ai/StudentCVUploader";
+import { toNationalityDemonym, toCountryName } from "../utils/cvExtractor";
 import { getRoleBackground } from "../utils/roleBackgrounds";
 
 /* ------------------------------------------------------------------ */
@@ -445,24 +446,33 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           <div className="space-y-3">
             <StudentCVUploader
               onExtracted={(extracted) => {
+                const dem = toNationalityDemonym(extracted.nationality);
+                const matchedNat = NATIONALITIES.includes(dem) ? dem : "Pakistani";
+                const matchedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || "Pakistan";
+
                 setFormData((prev) => ({
                   ...prev,
                   fullName: extracted.fullName || prev.fullName,
                   email: extracted.email || prev.email,
                   phone: extracted.phone || prev.phone,
-                  nationality: NATIONALITIES.includes(extracted.nationality) ? extracted.nationality : prev.nationality || "Pakistani",
-                  countryOfResidence: extracted.countryOfResidence || prev.countryOfResidence || "Pakistan",
+                  nationality: matchedNat,
+                  countryOfResidence: matchedCountry,
                 }));
                 const fieldsFilled = [
                   extracted.fullName && "Full Name",
                   extracted.email && "Email",
                   extracted.phone && "Phone",
-                  extracted.nationality && "Nationality",
-                  extracted.countryOfResidence && "Residence"
+                  matchedNat && "Nationality",
+                  matchedCountry && "Residence",
+                  extracted.dob && "DOB",
                 ].filter(Boolean);
                 setCvNotice(`Extracted: ${fieldsFilled.join(", ")}. Please review below.`);
                 try {
-                  sessionStorage.setItem("student_extracted_cv", JSON.stringify(extracted));
+                  sessionStorage.setItem("student_extracted_cv", JSON.stringify({
+                    ...extracted,
+                    nationality: matchedNat,
+                    countryOfResidence: matchedCountry,
+                  }));
                 } catch (_) {}
               }}
             />

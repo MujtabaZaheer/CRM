@@ -14,3 +14,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+declare module "mammoth" {
+  export function extractRawText(options: { arrayBuffer: ArrayBuffer }): Promise<{ value: string; messages: any[] }>;
+}
+
+declare module "pdfjs-dist/build/pdf.worker.mjs?url" {
+  const url: string;
+  export default url;
+}

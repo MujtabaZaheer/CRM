@@ -157,22 +157,32 @@ export const StudentCVUploader: React.FC<StudentCVUploaderProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-[11px]">
             <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
               <span className="text-zinc-500 block text-[10px]">Name</span>
-              <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.fullName || "—"}</span>
+              <span className="text-zinc-100 font-semibold truncate block" title={extractedSummary.fullName}>{extractedSummary.fullName || "—"}</span>
             </div>
             <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
               <span className="text-zinc-500 block text-[10px]">Email</span>
-              <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.email || "—"}</span>
+              <span className="text-zinc-100 font-semibold truncate block" title={extractedSummary.email}>{extractedSummary.email || "—"}</span>
             </div>
             <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
               <span className="text-zinc-500 block text-[10px]">Phone</span>
               <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.phone || "—"}</span>
             </div>
             <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
-              <span className="text-zinc-500 block text-[10px]">Country</span>
-              <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.countryOfResidence || "—"}</span>
+              <span className="text-zinc-500 block text-[10px]">Country / Nat.</span>
+              <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.countryOfResidence || extractedSummary.nationality || "—"}</span>
+            </div>
+            <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
+              <span className="text-zinc-500 block text-[10px]">Date of Birth</span>
+              <span className="text-zinc-100 font-semibold truncate block">{extractedSummary.dob || "Not specified"}</span>
+            </div>
+            <div className="p-2 bg-zinc-950/80 rounded-lg border border-zinc-800">
+              <span className="text-zinc-500 block text-[10px]">Qualification</span>
+              <span className="text-zinc-100 font-semibold truncate block" title={extractedSummary.academicRecords?.[0]?.degreeTitle || extractedSummary.desiredStudyLevel}>
+                {extractedSummary.academicRecords?.[0]?.qualification || extractedSummary.desiredStudyLevel || "—"}
+              </span>
             </div>
           </div>
         </div>

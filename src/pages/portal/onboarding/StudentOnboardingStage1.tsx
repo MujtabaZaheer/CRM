@@ -20,6 +20,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { AcademicRecord, QualificationLevel, Student } from "../../../types/student";
 import { calculateProfileCompleteness } from "../../../utils/profileCompleteness";
 import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
+import { toCountryName } from "../../../utils/cvExtractor";
 import { getRoleBackground } from "../../../utils/roleBackgrounds";
 
 const STUDY_LEVELS = [
@@ -205,13 +206,26 @@ export const StudentOnboardingStage1: React.FC = () => {
             if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
             if (parsed.lastName && !lastName) setLastName(parsed.lastName);
             if (parsed.phone && !phone) setPhone(parsed.phone);
-            if (parsed.nationality && !nationality) setNationality(parsed.nationality);
-            if (parsed.countryOfResidence && !countryOfResidence) setCountryOfResidence(parsed.countryOfResidence);
+            if (parsed.nationality) {
+              const matchedCountry = toCountryName(parsed.nationality);
+              setNationality(COUNTRIES.includes(matchedCountry) ? matchedCountry : "Pakistan");
+            }
+            if (parsed.countryOfResidence) {
+              const matchedResidence = toCountryName(parsed.countryOfResidence);
+              setCountryOfResidence(COUNTRIES.includes(matchedResidence) ? matchedResidence : "Pakistan");
+            }
             if (parsed.dob && !dob) setDob(parsed.dob);
+            if (parsed.gender && (!gender || gender === "Prefer not to say")) setGender(parsed.gender);
             if (parsed.city && !city) setCity(parsed.city);
             if (parsed.desiredStudyLevel && !desiredStudyLevel) setDesiredStudyLevel(parsed.desiredStudyLevel);
             if (parsed.academicRecords && parsed.academicRecords.length > 0) {
               setAcademicRecords(parsed.academicRecords);
+            }
+            if (parsed.englishProficiency?.overallScore && !englishOverallScore) {
+              setEnglishOverallScore(parsed.englishProficiency.overallScore);
+              if (parsed.englishProficiency.testType) {
+                setEnglishTestType(parsed.englishProficiency.testType);
+              }
             }
           }
         } catch (_) {}
@@ -491,13 +505,25 @@ export const StudentOnboardingStage1: React.FC = () => {
             if (data.lastName) setLastName(data.lastName);
             if (data.dob) setDob(data.dob);
             if (data.gender) setGender(data.gender);
-            if (data.nationality) setNationality(data.nationality);
-            if (data.countryOfResidence) setCountryOfResidence(data.countryOfResidence);
+            if (data.nationality) {
+              const matchedCountry = toCountryName(data.nationality);
+              setNationality(COUNTRIES.includes(matchedCountry) ? matchedCountry : "Pakistan");
+            }
+            if (data.countryOfResidence) {
+              const matchedResidence = toCountryName(data.countryOfResidence);
+              setCountryOfResidence(COUNTRIES.includes(matchedResidence) ? matchedResidence : "Pakistan");
+            }
             if (data.city) setCity(data.city);
             if (data.phone) setPhone(data.phone);
             if (data.desiredStudyLevel) setDesiredStudyLevel(data.desiredStudyLevel);
             if (data.academicRecords && data.academicRecords.length > 0) {
               setAcademicRecords(data.academicRecords);
+            }
+            if (data.englishProficiency?.overallScore) {
+              setEnglishOverallScore(data.englishProficiency.overallScore);
+              if (data.englishProficiency.testType) {
+                setEnglishTestType(data.englishProficiency.testType);
+              }
             }
           }}
         />
