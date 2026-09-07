@@ -31,6 +31,7 @@ import { Student } from "../../types/student";
 import { Programme, University } from "../../types/university";
 import { assessEligibility, EligibilityResult } from "../../utils/eligibility";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
+import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
 
 /* ------------------------------------------------------------------ */
 /*  Local types                                                        */
@@ -283,10 +284,6 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
       const univCountry = normalizeCountry(university.country || "");
       if (activeCountryTab !== "All") {
         if (univCountry !== normalizeCountry(activeCountryTab)) return false;
-      } else if (selectedCountries.length > 0) {
-        if (!selectedCountries.some((c) => normalizeCountry(c) === univCountry)) {
-          return false;
-        }
       }
 
       // Search query
@@ -481,13 +478,13 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
         <button
           type="button"
           onClick={() => setActiveCountryTab("All")}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
             activeCountryTab === "All"
               ? "bg-emerald-500 text-zinc-950 shadow"
               : "bg-elevated text-secondary hover:text-primary hover:bg-hover border border-subtle"
           }`}
         >
-          All Destinations ({allDestinationsList.join(", ")})
+          All Destinations ({allDestinationsList.length} Countries)
         </button>
         {allDestinationsList.map((country) => (
           <button
@@ -653,17 +650,35 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
                   className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm hover:border-default transition-all space-y-5"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-xl bg-elevated border border-subtle flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-                        <Building2 className="w-6 h-6" />
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-subtle flex items-center justify-center shrink-0 shadow-md group">
+                        <img
+                          src={getUniversityCampusImage(university)}
+                          alt={`${university.name} campus`}
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = "/images/campus_uk.jpg";
+                          }}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-bold text-primary font-heading">
-                          {university.name}
-                        </h2>
-                        <p className="text-xs text-secondary flex items-center gap-1.5 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                          {university.city}, {university.country}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-lg font-bold text-primary font-heading">
+                            {university.name}
+                          </h2>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            {university.country}
+                          </span>
+                        </div>
+                        <p className="text-xs text-secondary flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{university.city}, {university.country}</span>
+                          <span className="text-muted">•</span>
+                          <span className="text-muted text-[11px] font-normal truncate max-w-xs sm:max-w-md">
+                            {getUniversityLandmark(university.id || university.name)}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -820,14 +835,28 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
                       </div>
                     </div>
 
-                    <div>
-                      <h3 className="text-base font-bold text-primary font-heading line-clamp-2 leading-tight group-hover:text-emerald-400 transition-colors">
-                        {programme.title}
-                      </h3>
-                      <p className="text-xs text-muted flex items-center gap-1.5 mt-1">
-                        <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="font-medium text-secondary">{university.name}</span>
-                      </p>
+                    <div className="flex items-start gap-3">
+                      <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-subtle shrink-0 shadow-sm mt-0.5">
+                        <img
+                          src={getUniversityCampusImage(university)}
+                          alt={`${university.name} campus`}
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = "/images/campus_uk.jpg";
+                          }}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-bold text-primary font-heading line-clamp-2 leading-tight group-hover:text-emerald-400 transition-colors">
+                          {programme.title}
+                        </h3>
+                        <p className="text-xs text-secondary flex items-center gap-1.5 mt-1 truncate">
+                          <span className="font-semibold truncate">{university.name}</span>
+                          <span className="text-muted">•</span>
+                          <span className="text-muted text-[11px] truncate">{university.city}</span>
+                        </p>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-3 border-t border-subtle/50 text-xs">
@@ -890,6 +919,31 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Real Campus Photography Banner */}
+            <div className="relative h-44 w-full overflow-hidden border-b border-subtle">
+              <img
+                src={getUniversityCampusImage(drawerItem.university)}
+                alt={`${drawerItem.university.name} campus`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/campus_uk.jpg";
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent" />
+              <div className="absolute bottom-3 left-5 right-5 flex items-end justify-between">
+                <div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider backdrop-blur-sm">
+                    {drawerItem.university.country}
+                  </span>
+                  <p className="text-xs font-semibold text-white drop-shadow flex items-center gap-1 mt-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{getUniversityLandmark(drawerItem.university.id || drawerItem.university.name)}</span>
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="p-5 space-y-6">

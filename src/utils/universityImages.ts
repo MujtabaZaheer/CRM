@@ -312,10 +312,129 @@ export const getUniversityCampusImage = (
 
 /**
  * Returns landmark architecture details for a specific university.
+ * Supports University object, ID, or university name string.
  */
-export const getUniversityLandmark = (univId?: string | null): string => {
-  if (univId && REAL_UNIVERSITY_IMAGES[univId]) {
-    return REAL_UNIVERSITY_IMAGES[univId].landmark;
+export const getUniversityLandmark = (
+  universityOrNameOrId?: University | string | null
+): string => {
+  if (!universityOrNameOrId) return "Main Campus & Historic Academic Quad";
+
+  // 1. Direct ID match
+  const id =
+    typeof universityOrNameOrId === "object"
+      ? universityOrNameOrId.id
+      : String(universityOrNameOrId);
+
+  if (id && REAL_UNIVERSITY_IMAGES[id]) {
+    return REAL_UNIVERSITY_IMAGES[id].landmark;
   }
+
+  // 2. Name match
+  const name =
+    typeof universityOrNameOrId === "object"
+      ? universityOrNameOrId.name || ""
+      : String(universityOrNameOrId);
+  const target = clean(name);
+
+  if (!target) return "Main Campus & Historic Academic Quad";
+
+  if (target.includes("sydney") && !target.includes("unsw") && !target.includes("southwales")) {
+    return REAL_UNIVERSITY_IMAGES.univ_syd.landmark;
+  }
+  if (target.includes("melbourne")) {
+    return REAL_UNIVERSITY_IMAGES.univ_melb.landmark;
+  }
+  if (target.includes("unsw") || (target.includes("southwales") && target.includes("sydney"))) {
+    return REAL_UNIVERSITY_IMAGES.univ_unsw.landmark;
+  }
+  if (target.includes("oxford")) {
+    return REAL_UNIVERSITY_IMAGES.univ_oxf.landmark;
+  }
+  if (target.includes("cambridge")) {
+    return REAL_UNIVERSITY_IMAGES.univ_cam.landmark;
+  }
+  if (target.includes("ucl") || target.includes("collegelondon")) {
+    return REAL_UNIVERSITY_IMAGES.univ_ucl.landmark;
+  }
+  if (target.includes("edinburgh")) {
+    return REAL_UNIVERSITY_IMAGES.univ_edin.landmark;
+  }
+  if (target.includes("manchester")) {
+    return REAL_UNIVERSITY_IMAGES.univ_man.landmark;
+  }
+  if (target.includes("birmingham") && !target.includes("dubai")) {
+    return REAL_UNIVERSITY_IMAGES.univ_bham.landmark;
+  }
+  if (target.includes("birmingham") && target.includes("dubai")) {
+    return REAL_UNIVERSITY_IMAGES.univ_bham_dubai.landmark;
+  }
+  if (target.includes("harvard")) {
+    return REAL_UNIVERSITY_IMAGES.univ_harv.landmark;
+  }
+  if (target.includes("stanford")) {
+    return REAL_UNIVERSITY_IMAGES.univ_stan.landmark;
+  }
+  if (target.includes("mit") || target.includes("massachusetts")) {
+    return REAL_UNIVERSITY_IMAGES.univ_mit.landmark;
+  }
+  if (target.includes("berkeley")) {
+    return REAL_UNIVERSITY_IMAGES.univ_ucb.landmark;
+  }
+  if (target.includes("toronto")) {
+    return REAL_UNIVERSITY_IMAGES.univ_tor.landmark;
+  }
+  if (target.includes("britishcolumbia") || target.includes("ubc")) {
+    return REAL_UNIVERSITY_IMAGES.univ_ubc.landmark;
+  }
+  if (target.includes("waterloo")) {
+    return REAL_UNIVERSITY_IMAGES.univ_wat.landmark;
+  }
+  if (target.includes("munich") || target.includes("tum")) {
+    return REAL_UNIVERSITY_IMAGES.univ_tum.landmark;
+  }
+  if (target.includes("lmu") || target.includes("maximilian")) {
+    return REAL_UNIVERSITY_IMAGES.univ_lmu.landmark;
+  }
+  if (target.includes("trinity") || target.includes("tcd")) {
+    return REAL_UNIVERSITY_IMAGES.univ_tcd.landmark;
+  }
+  if (target.includes("ucd") || target.includes("collegedublin")) {
+    return REAL_UNIVERSITY_IMAGES.univ_ucd.landmark;
+  }
+  if (target.includes("auckland")) {
+    return REAL_UNIVERSITY_IMAGES.univ_auck.landmark;
+  }
+  if (target.includes("otago")) {
+    return REAL_UNIVERSITY_IMAGES.univ_otago.landmark;
+  }
+  if (target.includes("canterbury")) {
+    return REAL_UNIVERSITY_IMAGES.univ_cant.landmark;
+  }
+  if (target.includes("khalifa")) {
+    return REAL_UNIVERSITY_IMAGES.univ_khalifa.landmark;
+  }
+  if (target.includes("sorbonne")) {
+    return REAL_UNIVERSITY_IMAGES.univ_sorbonne.landmark;
+  }
+  if (target.includes("psl")) {
+    return REAL_UNIVERSITY_IMAGES.univ_psl.landmark;
+  }
+  if (target.includes("nus") || (target.includes("singapore") && !target.includes("nanyang"))) {
+    return REAL_UNIVERSITY_IMAGES.univ_nus.landmark;
+  }
+  if (target.includes("ntu") || target.includes("nanyang")) {
+    return REAL_UNIVERSITY_IMAGES.univ_ntu.landmark;
+  }
+  if (target.includes("delft")) {
+    return REAL_UNIVERSITY_IMAGES.univ_tudelft.landmark;
+  }
+  if (target.includes("amsterdam")) {
+    return REAL_UNIVERSITY_IMAGES.univ_uva.landmark;
+  }
+  if (target.includes("kth")) {
+    return REAL_UNIVERSITY_IMAGES.univ_kth.landmark;
+  }
+
   return "Main Campus & Historic Academic Quad";
 };
+

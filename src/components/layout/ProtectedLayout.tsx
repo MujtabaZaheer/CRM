@@ -37,16 +37,17 @@ export const ProtectedLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col font-sans relative overflow-x-hidden">
-      {/* Role-Specific Atmospheric Background Layer */}
+      {/* Role-Specific Atmospheric Background Layer with Soft Ambient Diffusion */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-20 dark:opacity-25"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-[0.06] dark:opacity-[0.22] scale-105 filter blur-[0.5px] dark:blur-0"
         style={{ backgroundImage: `url('${roleBackground}')` }}
       />
-      {/* Subtle Ambient Vignette - adaptive for light and dark themes */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/70 via-white/45 to-white/75 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
-      {/* Ambient Gradient Highlights */}
-      <div className="fixed -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="fixed -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none z-0" />
+      {/* High-end Frosted Ambient Vignette - Crystal clean in light mode, deep luminous navy in dark mode */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-slate-50/95 via-slate-50/85 to-slate-100/95 dark:from-slate-950/90 dark:via-slate-950/80 dark:to-slate-950/95" />
+      {/* Futuristic Ambient Gradient Glow Orbs */}
+      <div className="fixed -top-40 -left-40 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="fixed top-1/3 -right-40 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/15 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="fixed -bottom-40 left-1/3 w-96 h-96 bg-teal-500/10 dark:bg-teal-500/15 rounded-full blur-3xl pointer-events-none z-0" />
 
       <div className="relative z-10 flex min-h-screen">
         <Sidebar
