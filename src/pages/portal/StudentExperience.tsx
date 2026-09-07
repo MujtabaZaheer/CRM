@@ -84,6 +84,38 @@ export const StudentDashboard: React.FC = () => {
   const name = ownStudent?.fullName?.split(" ")[0] || "there";
   const completeness = ownStudent?.profileCompleteness || 0;
 
+  // Time-Aware Dynamic Greeting Engine
+  const timeGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return {
+        greeting: `Good morning, ${name}`,
+        emoji: "🌅",
+        subtitle: "Kick off your day and continue your admissions journey.",
+      };
+    }
+    if (hour >= 12 && hour < 17) {
+      return {
+        greeting: `Good afternoon, ${name}`,
+        emoji: "☀️",
+        subtitle: "Track live admissions progress and complete your university tasks.",
+      };
+    }
+    if (hour >= 17 && hour < 22) {
+      return {
+        greeting: `Good evening, ${name}`,
+        emoji: "🌆",
+        subtitle: "Review your admissions milestones, document status, and university offers.",
+      };
+    }
+    // Night (22:00 to 05:00)
+    return {
+      greeting: `Good night, ${name}`,
+      emoji: "🌙",
+      subtitle: "Your applications are active. Review your progress or prepare for tomorrow.",
+    };
+  }, [name]);
+
   // Commercial-Grade Intelligent Next Action Engine
   const nextAction = useMemo(() => {
     // 1. Any offers issued (Highest priority milestone)
@@ -220,10 +252,10 @@ export const StudentDashboard: React.FC = () => {
               </p>
             </div>
             <h1 className="mt-1.5 text-2xl sm:text-3xl font-bold tracking-tight text-primary font-heading">
-              Good morning, {name} 👋
+              {timeGreeting.greeting} {timeGreeting.emoji}
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-secondary">
-              Track real-time university applications, document verification, and admission decisions.
+              {timeGreeting.subtitle}
             </p>
           </div>
           <div className="flex items-center gap-3 bg-elevated/80 px-4 py-2 rounded-full border border-subtle self-start md:self-auto shadow-sm">

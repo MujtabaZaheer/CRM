@@ -154,6 +154,40 @@ export const REAL_UNIVERSITY_IMAGES: Record<string, { image: string; landmark: s
     image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=85",
     landmark: "Historic Valhallavägen Main Courtyard, Stockholm",
   },
+
+  // Aliases matching exact IDs from global universities database
+  univ_mcr: {
+    image: "https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Historic Quadrangle & John Owens Building",
+  },
+  univ_stanford: {
+    image: "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Memorial Church & Historic Main Quad",
+  },
+  univ_harvard: {
+    image: "https://images.unsplash.com/photo-1583373834259-46cc92173cb7?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Harvard Yard & Widener Memorial Library",
+  },
+  univ_toronto: {
+    image: "https://images.unsplash.com/photo-1568792923760-d70635a89fa1?auto=format&fit=crop&w=1600&q=85",
+    landmark: "University College & Front Campus, St. George",
+  },
+  univ_waterloo: {
+    image: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Quantum-Nano Centre & Innovation Park Campus",
+  },
+  univ_auckland: {
+    image: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Old Government House & City Campus Clock Tower",
+  },
+  univ_canterbury: {
+    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Puaka-James Hight Central Library & Ilam Gardens",
+  },
+  univ_amsterdam: {
+    image: "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&w=1600&q=85",
+    landmark: "Roeterseiland Campus & Historic Amsterdam Canals",
+  },
 };
 
 /**

@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { requiresVerifiedEmail } from "../../firebase/config";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Loader2 } from "lucide-react";
-import { getRoleBackground } from "../../utils/roleBackgrounds";
+import { getAtmosphericBackground } from "../../utils/roleBackgrounds";
 
 export const ProtectedLayout: React.FC = () => {
   const { appUser, firebaseUser, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -33,17 +34,17 @@ export const ProtectedLayout: React.FC = () => {
     return <Navigate to="/verify-email" replace />;
   }
 
-  const roleBackground = getRoleBackground(appUser.role);
+  const atmosphericBackground = getAtmosphericBackground(location.pathname, appUser.role);
 
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col font-sans relative overflow-x-hidden">
-      {/* Role-Specific Atmospheric Background Layer - ultra-subtle in light mode, immersive in dark mode */}
+      {/* Context-Aware Atmospheric Background Layer - balanced visibility */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-[0.03] dark:opacity-25"
-        style={{ backgroundImage: `url('${roleBackground}')` }}
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 opacity-[0.09] dark:opacity-[0.22]"
+        style={{ backgroundImage: `url('${atmosphericBackground}')` }}
       />
       {/* Subtle Ambient Vignette - adaptive for light and dark themes */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-slate-50/95 via-slate-50/90 to-slate-100/95 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-slate-50/92 via-slate-50/85 to-slate-100/95 dark:from-[#080d1a]/85 dark:via-[#080d1a]/75 dark:to-[#080d1a]/90 backdrop-blur-[0.5px]" />
       {/* Ambient Gradient Highlights */}
       <div className="fixed -top-40 -left-40 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none z-0" />
       <div className="fixed -bottom-40 -right-40 w-96 h-96 bg-sky-500/10 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none z-0" />
