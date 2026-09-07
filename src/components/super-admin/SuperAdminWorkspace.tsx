@@ -51,6 +51,14 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
   const [editingUserUid, setEditingUserUid] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>("counsellor");
 
+  // Create Staff Account Modal
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [newStaffName, setNewStaffName] = useState("");
+  const [newStaffEmail, setNewStaffEmail] = useState("");
+  const [newStaffRole, setNewStaffRole] = useState<UserRole>("counsellor");
+  const [newStaffOffice, setNewStaffOffice] = useState("London HQ");
+  const [creatingStaff, setCreatingStaff] = useState(false);
+
   // GDPR State
   const [gdprEmail, setGdprEmail] = useState("");
   const [gdprLoading, setGdprLoading] = useState(false);
@@ -137,6 +145,29 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
       setEditingUserUid(null);
     } catch (err: any) {
       setNotice(`Role assignment failed: ${err.message}`);
+    }
+  };
+
+  const handleCreateStaffSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffEmail || !newStaffName) return;
+    setCreatingStaff(true);
+    try {
+      await superAdmin.createStaffUser({
+        email: newStaffEmail,
+        displayName: newStaffName,
+        role: newStaffRole,
+        office: newStaffOffice,
+      });
+      setNotice(`Successfully provisioned ${ROLE_LABELS[newStaffRole]} account for ${newStaffEmail}.`);
+      setShowStaffModal(false);
+      setNewStaffName("");
+      setNewStaffEmail("");
+      setNewStaffRole("counsellor");
+    } catch (err: any) {
+      setNotice(`Failed to create staff user: ${err.message}`);
+    } finally {
+      setCreatingStaff(false);
     }
   };
 
@@ -309,14 +340,23 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
       {/* USERS MANAGEMENT PAGE */}
       {page === "users" && (
         <div className="space-y-4">
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-[var(--text-muted)]" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search user accounts by email, name, role..."
-              className="w-full pl-9 p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg"
-            />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative max-w-md w-full">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[var(--text-muted)]" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search user accounts by email, name, role..."
+                className="w-full pl-9 p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
+              />
+            </div>
+            <button
+              onClick={() => setShowStaffModal(true)}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Staff Account</span>
+            </button>
           </div>
 
           <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl overflow-hidden">
@@ -573,6 +613,109 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               </button>
               <button className="px-4 py-1.5 bg-emerald-500 text-zinc-950 font-bold rounded text-xs">
                 Save Role
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {/* MODAL: ADD STAFF ACCOUNT */}
+      {showStaffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
+          <form
+            onSubmit={handleCreateStaffSubmit}
+            className="w-full max-w-md p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl"
+          >
+            <div>
+              <h2 className="font-bold text-base text-[var(--text-primary)]">
+                Provision New Staff Account
+              </h2>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                Create an internal user account for Counsellor, Finance, Auditor, Support, or Admissions staff.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                Staff Full Name *
+              </label>
+              <input
+                required
+                type="text"
+                value={newStaffName}
+                onChange={(e) => setNewStaffName(e.target.value)}
+                placeholder="e.g. David Kim"
+                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                Staff Email Address *
+              </label>
+              <input
+                required
+                type="email"
+                value={newStaffEmail}
+                onChange={(e) => setNewStaffEmail(e.target.value)}
+                placeholder="e.g. david.kim@educrm.app"
+                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                  Assign System Role *
+                </label>
+                <select
+                  value={newStaffRole}
+                  onChange={(e) => setNewStaffRole(e.target.value as UserRole)}
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="counsellor">Education Counsellor</option>
+                  <option value="finance_officer">Finance &amp; Accounts</option>
+                  <option value="auditor">Auditor &amp; Compliance</option>
+                  <option value="support_user">Support Specialist</option>
+                  <option value="admissions_officer">Admissions Officer</option>
+                  <option value="team_leader">Branch Team Leader</option>
+                  <option value="visa_officer">Visa &amp; Immigration</option>
+                  <option value="organization_admin">Organization Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                  Assigned Branch / Office
+                </label>
+                <select
+                  value={newStaffOffice}
+                  onChange={(e) => setNewStaffOffice(e.target.value)}
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="London HQ">London HQ</option>
+                  <option value="Manchester Branch">Manchester Branch</option>
+                  <option value="Delhi Hub">Delhi Hub</option>
+                  <option value="Dubai Office">Dubai Office</option>
+                  <option value="Sydney Centre">Sydney Centre</option>
+                  <option value="Toronto Office">Toronto Office</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+              <button
+                type="button"
+                onClick={() => setShowStaffModal(false)}
+                className="px-4 py-2 bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={creatingStaff || !newStaffName || !newStaffEmail}
+                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {creatingStaff ? "Provisioning..." : "Create Staff Account"}
               </button>
             </div>
           </form>

@@ -6,9 +6,10 @@ import { auth, db, getEmailActionSettings } from "../firebase/config";
 import {
   UserPlus, AlertCircle, User, Mail, Lock, Phone, Globe, Flag, Eye, EyeOff,
   CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase, Sparkles,
+  MessageSquare, DollarSign, LifeBuoy, FileCheck, Users, FileText,
 } from "lucide-react";
 import { UserRole } from "../types/role";
-import { REGISTRATION_CONFIGS, SELF_REGISTERABLE_ROLES } from "../types/registrationConfig";
+import { REGISTRATION_CONFIGS, EXTERNAL_ROLES, STAFF_ROLES } from "../types/registrationConfig";
 import { StudentCVUploader } from "../components/ai/StudentCVUploader";
 import { toNationalityDemonym, toCountryName } from "../utils/cvExtractor";
 import { getRoleBackground } from "../utils/roleBackgrounds";
@@ -46,6 +47,13 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
   GraduationCap: <GraduationCap className="w-7 h-7" />,
   Handshake: <Handshake className="w-7 h-7" />,
   Building2: <Building2 className="w-7 h-7" />,
+  MessageSquare: <MessageSquare className="w-7 h-7" />,
+  FileCheck: <FileCheck className="w-7 h-7" />,
+  DollarSign: <DollarSign className="w-7 h-7" />,
+  ShieldCheck: <ShieldCheck className="w-7 h-7" />,
+  LifeBuoy: <LifeBuoy className="w-7 h-7" />,
+  Users: <Users className="w-7 h-7" />,
+  FileText: <FileText className="w-7 h-7" />,
 };
 
 const ACCENT_CLASSES: Record<string, { card: string; cardHover: string; border: string; text: string; bg: string; btn: string; btnHover: string; shadow: string }> = {
@@ -79,6 +87,46 @@ const ACCENT_CLASSES: Record<string, { card: string; cardHover: string; border: 
     btnHover: "hover:bg-indigo-400",
     shadow: "shadow-indigo-500/20",
   },
+  purple: {
+    card: "bg-purple-500/5",
+    cardHover: "hover:bg-purple-500/10",
+    border: "border-purple-500/30",
+    text: "text-purple-400",
+    bg: "bg-purple-500/10",
+    btn: "bg-purple-500",
+    btnHover: "hover:bg-purple-400",
+    shadow: "shadow-purple-500/20",
+  },
+  cyan: {
+    card: "bg-cyan-500/5",
+    cardHover: "hover:bg-cyan-500/10",
+    border: "border-cyan-500/30",
+    text: "text-cyan-400",
+    bg: "bg-cyan-500/10",
+    btn: "bg-cyan-500",
+    btnHover: "hover:bg-cyan-400",
+    shadow: "shadow-cyan-500/20",
+  },
+  sky: {
+    card: "bg-sky-500/5",
+    cardHover: "hover:bg-sky-500/10",
+    border: "border-sky-500/30",
+    text: "text-sky-400",
+    bg: "bg-sky-500/10",
+    btn: "bg-sky-500",
+    btnHover: "hover:bg-sky-400",
+    shadow: "shadow-sky-500/20",
+  },
+  teal: {
+    card: "bg-teal-500/5",
+    cardHover: "hover:bg-teal-500/10",
+    border: "border-teal-500/30",
+    text: "text-teal-400",
+    bg: "bg-teal-500/10",
+    btn: "bg-teal-500",
+    btnHover: "hover:bg-teal-400",
+    shadow: "shadow-teal-500/20",
+  },
 };
 
 /* ================================================================== */
@@ -92,6 +140,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
   /* ---- state ---- */
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(initialRole);
+  const [roleCategory, setRoleCategory] = useState<"external" | "staff">(
+    initialRole && STAFF_ROLES.includes(initialRole as any) ? "staff" : "external"
+  );
   const [cvNotice, setCvNotice] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -102,6 +153,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
     agencyName: "",
     universityName: "",
     position: "",
+    office: "London HQ",
     password: "",
     confirmPassword: "",
   });
@@ -170,7 +222,11 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         email: formData.email.toLowerCase(),
         displayName: formData.fullName,
         role: selectedRole,
+        office: formData.office || "London HQ",
+        team: "Global Team",
+        status: "active",
         createdAt: Date.now(),
+        ...(formData.phone ? { phone: formData.phone } : {}),
         ...(selectedRole === "external_agent" ? { agencyName: formData.agencyName } : {}),
         ...(selectedRole === "university_partner" ? { universityName: formData.universityName } : {}),
       });
@@ -348,6 +404,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   /*  ROLE SELECTION SCREEN                                           */
   /* ================================================================ */
   if (!selectedRole) {
+    const activeRoles = roleCategory === "external" ? EXTERNAL_ROLES : STAFF_ROLES;
+
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Dynamic Ambient Background Layer */}
@@ -361,22 +419,48 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-md">
+        <div className={`w-full ${roleCategory === "staff" ? "max-w-5xl" : "max-w-2xl"} bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-md transition-all duration-300`}>
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-zinc-950 font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
               E
             </div>
             <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Create Your Account</h1>
-            <p className="text-zinc-400 text-sm">Select your role to get started with EduCRM</p>
+            <p className="text-zinc-400 text-sm">Select your role category to get started with EduCRM</p>
+
+            {/* Category Switcher Tabs */}
+            <div className="flex items-center justify-center p-1 bg-zinc-950/80 border border-zinc-800 rounded-xl max-w-md mx-auto mt-4">
+              <button
+                type="button"
+                onClick={() => setRoleCategory("external")}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  roleCategory === "external"
+                    ? "bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Applicants & Partners ({EXTERNAL_ROLES.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoleCategory("staff")}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  roleCategory === "staff"
+                    ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Staff & Operations Roles ({STAFF_ROLES.length})
+              </button>
+            </div>
           </div>
 
           {/* Role Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {SELF_REGISTERABLE_ROLES.map((roleKey) => {
+          <div className={`grid grid-cols-1 ${roleCategory === "staff" ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-3"} gap-4`}>
+            {activeRoles.map((roleKey) => {
               const config = REGISTRATION_CONFIGS[roleKey];
               if (!config) return null;
-              const ac = ACCENT_CLASSES[config.accentColor];
+              const ac = ACCENT_CLASSES[config.accentColor] || ACCENT_CLASSES.emerald;
               return (
                 <button
                   key={roleKey}
@@ -384,14 +468,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                   onClick={() => setSelectedRole(roleKey)}
                   className={`group relative p-5 rounded-2xl border transition-all duration-200 text-left
                     ${ac.card} ${ac.cardHover} border-zinc-800 hover:${ac.border}
-                    hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+                    hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer`}
                 >
                   <div className={`w-12 h-12 rounded-xl ${ac.bg} ${ac.text} flex items-center justify-center mb-3`}>
                     {ROLE_ICONS[config.iconName]}
                   </div>
                   <h3 className="text-sm font-bold text-white mb-1">{config.label}</h3>
                   <p className={`text-[11px] font-semibold ${ac.text} mb-2`}>{config.tagline}</p>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">{config.description}</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">{config.description}</p>
                   {/* Arrow indicator */}
                   <div className={`absolute top-4 right-4 w-6 h-6 rounded-full ${ac.bg} ${ac.text} flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
                     <span className="text-xs font-bold">→</span>
@@ -403,10 +487,23 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
           {/* Info note */}
           <p className="text-[11px] text-zinc-500 text-center">
-            Staff, counsellor, admissions, finance, and other internal roles are created by your organization administrator.{" "}
-            <Link to="/accept-invitation" className="text-emerald-400 hover:text-emerald-300 font-semibold">
-              Have an invitation?
-            </Link>
+            {roleCategory === "staff" ? (
+              <span>
+                Internal staff accounts (Counsellor, Finance, Admissions, Audit, Support, Visa) can register directly or be provisioned by a Super Admin in User Management.
+              </span>
+            ) : (
+              <span>
+                Looking for Counsellor, Finance, or Audit staff roles? Switch to the{" "}
+                <button
+                  type="button"
+                  onClick={() => setRoleCategory("staff")}
+                  className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-2"
+                >
+                  Staff & Operations
+                </button>{" "}
+                tab above.
+              </span>
+            )}
           </p>
 
           {/* Sign in link */}
@@ -550,14 +647,16 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             </div>
           </div>
 
-          {/* ---- SHARED: Phone (Student + Agent) ---- */}
-          {(selectedRole === "student" || selectedRole === "external_agent") && (
+          {/* ---- SHARED: Phone (Student + Agent + Staff) ---- */}
+          {(selectedRole === "student" || selectedRole === "external_agent" || STAFF_ROLES.includes(selectedRole as any)) && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Phone Number *</label>
+              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Phone Number {STAFF_ROLES.includes(selectedRole as any) ? "(Optional)" : "*"}</label>
               <div className="relative">
                 <Phone className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
                 <input
-                  type="tel" required value={formData.phone}
+                  type="tel"
+                  required={!STAFF_ROLES.includes(selectedRole as any)}
+                  value={formData.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
                   placeholder="+1 234 567 890"
                   className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
@@ -670,6 +769,32 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                 </div>
               </div>
             </>
+          )}
+
+          {/* ---- STAFF: Assigned Office / Branch ---- */}
+          {STAFF_ROLES.includes(selectedRole as any) && (
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
+                Assigned Office / Regional Hub *
+              </label>
+              <div className="relative">
+                <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <select
+                  value={formData.office}
+                  onChange={(e) => updateField("office", e.target.value)}
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                >
+                  <option value="London HQ">London HQ (United Kingdom)</option>
+                  <option value="Manchester Branch">Manchester Branch (UK)</option>
+                  <option value="Birmingham Office">Birmingham Office (UK)</option>
+                  <option value="Dubai Office">Dubai Office (UAE)</option>
+                  <option value="Toronto Office">Toronto Office (Canada)</option>
+                  <option value="Sydney Office">Sydney Office (Australia)</option>
+                  <option value="Lahore Regional Desk">Lahore Regional Desk</option>
+                  <option value="Islamabad Regional Desk">Islamabad Regional Desk</option>
+                </select>
+              </div>
+            </div>
           )}
 
           {/* ---- Password ---- */}

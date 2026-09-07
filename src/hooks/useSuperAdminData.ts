@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, doc, addDoc, updateDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
@@ -238,6 +238,42 @@ export const useSuperAdminData = () => {
     []
   );
 
+  const createStaffUser = useCallback(
+    async (staffData: {
+      email: string;
+      displayName: string;
+      role: UserRole;
+      office?: string;
+    }) => {
+      try {
+        const uid = `staff_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const newStaff: AppUser = {
+          uid,
+          email: staffData.email.toLowerCase().trim(),
+          displayName: staffData.displayName.trim(),
+          role: staffData.role,
+          office: staffData.office || "London HQ",
+          createdAt: Date.now(),
+        };
+
+        await setDoc(doc(db, "users", uid), newStaff);
+
+        await logAuditEvent(
+          "SUPER_ADMIN_STAFF_PROVISIONED",
+          appUser?.email || "Platform Super Admin",
+          "SuperAdmin",
+          `Provisioned staff user ${staffData.displayName} (${staffData.email}) with role ${staffData.role}`,
+          uid,
+          appUser?.role
+        );
+        return newStaff;
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to create staff account.");
+      }
+    },
+    [appUser]
+  );
+
   return {
     tenants,
     users,
@@ -247,6 +283,7 @@ export const useSuperAdminData = () => {
     createTenant,
     updateTenantStatus,
     updateUserRole,
+    createStaffUser,
     updateGlobalSettings,
     totalLeads: globalData.leads.length,
     totalStudents: globalData.students.length,

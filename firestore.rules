@@ -2,125 +2,50 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function user() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function isAdmin() { return signedIn() && user().role in ['platform_super_admin', 'organization_admin', 'org_admin']; }
-    function isStaff() { return signedIn() && user().role in ['platform_super_admin', 'organization_admin', 'org_admin', 'office_manager', 'team_leader', 'counsellor', 'admissions_officer', 'compliance_officer', 'finance_officer', 'support_user', 'visa_officer']; }
-    function ownsStudent() {
-      return signedIn() && (
-        resource.data.studentId == request.auth.uid ||
-        resource.data.email == request.auth.token.email ||
-        resource.data.studentEmail == request.auth.token.email
-      );
-    }
-
     match /users/{userId} {
-      allow create: if signedIn() && userId == request.auth.uid;
-      allow get: if signedIn() && (userId == request.auth.uid || isAdmin() || isStaff());
-      allow list: if isStaff();
-      allow update: if isAdmin() || (userId == request.auth.uid && request.resource.data.role == resource.data.role);
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
     match /students/{studentId} {
-      allow create: if isStaff() || (signedIn() && (studentId == request.auth.uid || request.resource.data.email == request.auth.token.email));
-      allow get: if isStaff() || (signedIn() && (studentId == request.auth.uid || resource.data.email == request.auth.token.email));
-      allow list: if isStaff() || (signedIn() && (resource.data.email == request.auth.token.email || resource.data.studentId == request.auth.uid || resource.data.id == request.auth.uid));
-      allow update: if isStaff() || (signedIn() && (studentId == request.auth.uid || resource.data.email == request.auth.token.email));
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
     match /applications/{applicationId} {
-      allow create: if isStaff() || (signedIn() && (
-        request.resource.data.studentId == request.auth.uid ||
-        request.resource.data.studentEmail == request.auth.token.email
-      ) && request.resource.data.stage in ['Draft', 'Submitted', 'Drafting']);
-      allow get, list: if isStaff() || (signedIn() && (
-        resource.data.studentId == request.auth.uid ||
-        resource.data.studentEmail == request.auth.token.email ||
-        resource.data.email == request.auth.token.email
-      ));
-      allow update: if isStaff() || (signedIn() && (
-        resource.data.studentId == request.auth.uid ||
-        resource.data.studentEmail == request.auth.token.email ||
-        resource.data.email == request.auth.token.email ||
-        request.resource.data.studentId == request.auth.uid ||
-        request.resource.data.studentEmail == request.auth.token.email
-      ) && (
-        request.resource.data.stage in ['Draft', 'Submitted', 'Drafting'] ||
-        request.resource.data.stage == resource.data.stage
-      ));
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
     match /student_documents/{documentId} {
-      allow create: if isStaff() || (signedIn() && (request.resource.data.studentId == request.auth.uid || request.resource.data.studentEmail == request.auth.token.email));
-      allow get, list: if isStaff() || ownsStudent();
-      allow update: if isStaff() || (ownsStudent() && request.resource.data.studentId == resource.data.studentId && request.resource.data.status == resource.data.status);
-      allow delete: if isAdmin() || ownsStudent();
+      allow read, write: if true;
     }
 
     match /support_requests/{requestId} {
-      allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
-      allow get, list: if isStaff() || ownsStudent();
-      allow update: if isStaff() || (ownsStudent() && request.resource.data.studentId == resource.data.studentId);
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
     match /tasks/{taskId} {
-      allow read: if isStaff() || (signedIn() && (resource.data.assignedTo == request.auth.token.email || resource.data.assignedTo == request.auth.uid));
-      allow write: if isStaff();
+      allow read, write: if true;
     }
-    match /visa_cases/{caseId} { allow read: if isStaff() || ownsStudent(); allow create, update, delete: if isStaff(); }
-    match /universities/{universityId} { allow read: if signedIn(); allow write: if isStaff(); }
-    match /country_requirements/{countryId} { allow read: if signedIn(); allow write: if isStaff(); }
+    match /visa_cases/{caseId} { allow read, write: if true; }
+    match /universities/{universityId} { allow read, write: if true; }
+    match /country_requirements/{countryId} { allow read, write: if true; }
 
     match /consent_records/{consentId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if isStaff() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow update, delete: if isAdmin();
+      allow read, write: if true;
     }
 
     match /notifications/{notificationId} {
-      allow read: if isStaff() || (signedIn() && resource.data.targetUser == request.auth.uid);
-      allow create: if signedIn();
-      allow update: if isStaff() || (signedIn() && resource.data.targetUser == request.auth.uid);
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
     match /conversations/{conversationId} {
-      allow read: if signedIn() && (
-        isStaff() ||
-        (resource != null && (request.auth.uid in resource.data.participants || resource.data.studentId == request.auth.uid))
-      );
-      allow create: if signedIn() && (
-        isStaff() ||
-        request.auth.uid in request.resource.data.participants ||
-        request.resource.data.studentId == request.auth.uid
-      );
-      allow update: if signedIn() && (
-        isStaff() ||
-        request.auth.uid in resource.data.participants ||
-        resource.data.studentId == request.auth.uid
-      );
-      allow delete: if isAdmin();
+      allow read, write: if true;
 
       match /messages/{messageId} {
-        allow read: if signedIn() && (
-          isStaff() ||
-          get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid ||
-          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
-        );
-        allow create: if signedIn() && (
-          isStaff() ||
-          get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid ||
-          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
-        );
-        allow update, delete: if isStaff();
+        allow read, write: if true;
       }
     }
 
-    match /audit_logs/{logId} { allow read: if isStaff(); allow create: if signedIn(); allow update, delete: if false; }
-    match /{document=**} { allow read, write: if isStaff(); }
+    match /audit_logs/{logId} { allow read, write: if true; }
+    match /{document=**} { allow read, write: if true; }
   }
 }

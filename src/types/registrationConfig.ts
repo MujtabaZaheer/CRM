@@ -1,23 +1,47 @@
 import { UserRole } from "./role";
 
 /**
- * Roles that can self-register via the public /register page.
- * Internal staff roles are provisioned via admin invitation only.
+ * Roles that can register via the /register page.
  */
-export const SELF_REGISTERABLE_ROLES: UserRole[] = [
+export const EXTERNAL_ROLES: UserRole[] = [
   "student",
   "external_agent",
   "university_partner",
 ];
 
-/** Metadata describing a role's public registration experience. */
+export const STAFF_ROLES: UserRole[] = [
+  "counsellor",
+  "admissions_officer",
+  "finance_officer",
+  "auditor",
+  "support_user",
+  "team_leader",
+  "visa_officer",
+];
+
+export const SELF_REGISTERABLE_ROLES: UserRole[] = [
+  ...EXTERNAL_ROLES,
+  ...STAFF_ROLES,
+];
+
+/** Metadata describing a role's registration experience. */
 export interface RoleRegistrationConfig {
   role: UserRole;
   label: string;
   tagline: string;
   description: string;
   /** lucide-react icon name (rendered in the component) */
-  iconName: "GraduationCap" | "Handshake" | "Building2";
+  iconName:
+    | "GraduationCap"
+    | "Handshake"
+    | "Building2"
+    | "MessageSquare"
+    | "DollarSign"
+    | "ShieldCheck"
+    | "LifeBuoy"
+    | "FileCheck"
+    | "Users"
+    | "FileText";
   /** Accent color class applied to the role card */
   accentColor: string;
   /** Firestore collection where the role-specific profile is stored */
@@ -54,6 +78,76 @@ export const REGISTRATION_CONFIGS: Record<string, RoleRegistrationConfig> = {
     iconName: "Building2",
     accentColor: "indigo",
     profileCollection: "university_partners",
+  },
+  counsellor: {
+    role: "counsellor",
+    label: "Education Counsellor",
+    tagline: "Student advisory desk & casework",
+    description:
+      "Access student caseloads, verify academic documents, recommend target universities, and provide direct two-way messaging guidance.",
+    iconName: "MessageSquare",
+    accentColor: "emerald",
+    profileCollection: "users",
+  },
+  admissions_officer: {
+    role: "admissions_officer",
+    label: "Admissions Officer",
+    tagline: "Application processing & offer releases",
+    description:
+      "Screen student credentials, verify entry criteria, liaise directly with university partners, and issue conditional/unconditional offers.",
+    iconName: "FileCheck",
+    accentColor: "cyan",
+    profileCollection: "users",
+  },
+  finance_officer: {
+    role: "finance_officer",
+    label: "Finance & Accounts Officer",
+    tagline: "Invoicing, tuition deposits & commissions",
+    description:
+      "Manage student tuition invoices, verify fee deposit receipts, track currency conversions, and process agent commission disbursements.",
+    iconName: "DollarSign",
+    accentColor: "amber",
+    profileCollection: "users",
+  },
+  auditor: {
+    role: "auditor",
+    label: "Compliance Officer & Auditor",
+    tagline: "Audit trails, regulatory logs & GDPR",
+    description:
+      "Inspect immutable system logs, verify admissions compliance regulations, inspect GDPR data requests, and monitor overall integrity.",
+    iconName: "ShieldCheck",
+    accentColor: "purple",
+    profileCollection: "users",
+  },
+  support_user: {
+    role: "support_user",
+    label: "Support Desk Specialist",
+    tagline: "Helpdesk tickets & system troubleshooting",
+    description:
+      "Manage user tickets, resolve technical queries, publish knowledge base solutions, and assist both internal staff and students.",
+    iconName: "LifeBuoy",
+    accentColor: "sky",
+    profileCollection: "users",
+  },
+  team_leader: {
+    role: "team_leader",
+    label: "Branch Team Leader",
+    tagline: "Caseload allocation & performance tracking",
+    description:
+      "Assign incoming student leads to counsellors, monitor team conversion velocity, manage tasks, and track branch targets.",
+    iconName: "Users",
+    accentColor: "indigo",
+    profileCollection: "users",
+  },
+  visa_officer: {
+    role: "visa_officer",
+    label: "Visa & Immigration Officer",
+    tagline: "CAS verification, COE & visa filing",
+    description:
+      "Oversee visa documentation, conduct mock embassy interview sessions, track CAS/COE releases, and log immigration decisions.",
+    iconName: "FileText",
+    accentColor: "teal",
+    profileCollection: "users",
   },
 };
 
