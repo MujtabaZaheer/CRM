@@ -58,9 +58,26 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
               {this.state.error?.message || "An unexpected error occurred while initializing EduCRM."}
             </p>
             <button
-              onClick={() => {
-                localStorage.clear();
-                window.location.href = "/login";
+              onClick={async () => {
+                try {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  if (typeof window !== "undefined" && window.indexedDB) {
+                    if (window.indexedDB.databases) {
+                      const dbs = await window.indexedDB.databases();
+                      for (const dbInfo of dbs) {
+                        if (dbInfo.name) window.indexedDB.deleteDatabase(dbInfo.name);
+                      }
+                    } else {
+                      window.indexedDB.deleteDatabase("edcrm_document_cache");
+                      window.indexedDB.deleteDatabase("firestore/[DEFAULT]/education-crm-9fee2/main");
+                    }
+                  }
+                } catch (e) {
+                  console.error("Cache purge error:", e);
+                } finally {
+                  window.location.href = "/login";
+                }
               }}
               style={{
                 backgroundColor: "#10b981",

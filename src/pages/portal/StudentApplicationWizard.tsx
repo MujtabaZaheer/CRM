@@ -31,7 +31,7 @@ import { Programme, University } from "../../types/university";
 import { Application } from "../../types/application";
 import { assessEligibility } from "../../utils/eligibility";
 import { getApplicationReadiness } from "../../utils/applicationReadiness";
-import { uploadStudentDocument } from "../../utils/documentStorage";
+import { uploadStudentDocument, getDocumentBlobOrUrl } from "../../utils/documentStorage";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 
 const STEPS = [
@@ -266,11 +266,15 @@ export const StudentApplicationWizard: React.FC = () => {
         if (!docsSnap.empty) {
           const existingDocs = docsSnap.docs.map((d) => {
             const data = d.data();
+            const resolvedType = data.documentType || data.docType || data.type || "General Document";
+            const resolvedName = data.fileName || data.name || resolvedType;
             return {
               id: d.id,
-              name: data.fileName || data.documentType,
-              type: data.documentType || "General Document",
-              url: data.fileUrl || "",
+              name: resolvedName,
+              fileName: resolvedName,
+              type: resolvedType,
+              documentType: resolvedType,
+              url: data.fileUrl || data.driveUrl || "",
             };
           });
           setUploadedDocuments(existingDocs);
@@ -334,13 +338,15 @@ export const StudentApplicationWizard: React.FC = () => {
       );
 
       setUploadedDocuments((prev) => {
-        const filtered = prev.filter(d => d.type !== docType);
+        const filtered = prev.filter(d => (d.type || (d as any).documentType) !== docType);
         return [
           ...filtered,
           {
             id: uploadRes.documentId,
             name: file.name,
+            fileName: file.name,
             type: docType,
+            documentType: docType,
             url: uploadRes.driveUrl,
           },
         ];
@@ -356,6 +362,24 @@ export const StudentApplicationWizard: React.FC = () => {
     } finally {
       setUploadingDoc(false);
       e.target.value = "";
+    }
+  };
+
+  // Safe document preview handler pulling from IndexedDB local cache or remote
+  const handlePreviewDocument = async (docId: string, fallbackUrl?: string) => {
+    try {
+      const previewUrl = await getDocumentBlobOrUrl(docId, fallbackUrl);
+      if (previewUrl) {
+        window.open(previewUrl, "_blank", "noopener,noreferrer");
+      } else if (fallbackUrl) {
+        window.open(fallbackUrl, "_blank");
+      } else {
+        setSaveNotice("Document is safely stored for application submission.");
+        setTimeout(() => setSaveNotice(null), 3000);
+      }
+    } catch (e) {
+      console.warn("Preview error:", e);
+      if (fallbackUrl) window.open(fallbackUrl, "_blank");
     }
   };
 
@@ -621,7 +645,7 @@ export const StudentApplicationWizard: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 space-y-6">
+      <main className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 mt-6 space-y-6">
         {error && (
           <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -907,8 +931,11 @@ export const StudentApplicationWizard: React.FC = () => {
 
             <div className="space-y-3">
               {["Passport", "Academic Transcript", "Degree Certificate", "Statement of Purpose"].map((docName) => {
-                const norm = docName.toLowerCase().replace(/[^a-z0-9]/g, "");
-                const existing = uploadedDocuments.find((d) => d.type.toLowerCase().replace(/[^a-z0-9]/g, "").includes(norm));
+                const norm = (docName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                const existing = uploadedDocuments.find((d) => {
+                  const t = (d.type || (d as any).documentType || d.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                  return t.includes(norm) || norm.includes(t);
+                });
 
                 return (
                   <div
@@ -931,15 +958,14 @@ export const StudentApplicationWizard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {existing?.url && (
-                        <a
-                          href={existing.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-lg bg-elevated hover:bg-hover text-primary font-semibold border border-subtle"
+                      {existing && (
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewDocument(existing.id, existing.url)}
+                          className="px-3 py-1.5 rounded-lg bg-elevated hover:bg-hover text-primary font-semibold border border-subtle cursor-pointer transition-colors"
                         >
                           Preview
-                        </a>
+                        </button>
                       )}
                       <label className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold cursor-pointer transition-colors flex items-center gap-1">
                         <Upload className="w-3.5 h-3.5" />

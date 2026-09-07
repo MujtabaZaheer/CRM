@@ -218,9 +218,9 @@ export const Documents: React.FC = () => {
 
   const filteredDocs = documents.filter((d) => {
     const matchesSearch =
-      d.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.docType.toLowerCase().includes(searchQuery.toLowerCase());
+      (d.studentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.fileName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.docType || (d as any).documentType || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchesSearch) return false;
 

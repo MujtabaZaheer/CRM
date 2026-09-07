@@ -275,9 +275,11 @@ export const StudentOnboardingStage4: React.FC = () => {
     <div className="min-h-screen bg-main text-primary font-sans pb-20 relative overflow-hidden">
       {/* Role-Specific Atmospheric Background Layer */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-15 dark:opacity-20"
         style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
       />
+      {/* Ambient Vignette Overlay for crisp text contrast */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/80 via-white/60 to-white/85 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-950/90" />
       {/* ---- Sticky Header ---- */}
       <div className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -321,7 +323,7 @@ export const StudentOnboardingStage4: React.FC = () => {
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-8 mt-6 space-y-8">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 mt-6 space-y-8">
         {/* Banner */}
         <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-surface to-surface border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in shadow-sm">
           <div className="flex items-center gap-4">

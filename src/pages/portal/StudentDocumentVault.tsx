@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
-import { uploadStudentDocument } from "../../utils/documentStorage";
+import { 
+  uploadStudentDocument, 
+  getDocumentBlobOrUrl, 
+  deleteCachedDocumentFile 
+} from "../../utils/documentStorage";
 import { DEMO_DOCUMENTS } from "../../data/demoData";
 
 export interface VaultDocument {
@@ -127,14 +131,28 @@ export const StudentDocumentVault: React.FC = () => {
       const snap = await getDocs(q);
       const docsList: VaultDocument[] = [];
       snap.docs.forEach((d) => {
-        docsList.push({ id: d.id, ...d.data() } as VaultDocument);
+        const data = d.data();
+        const resolvedType = data.documentType || data.docType || data.type || "General Document";
+        const resolvedName = data.fileName || data.name || resolvedType;
+        docsList.push({
+          id: d.id,
+          studentId: data.studentId || uid,
+          documentType: resolvedType,
+          fileName: resolvedName,
+          fileUrl: data.fileUrl || data.driveUrl || "",
+          filePath: data.filePath || `students/${uid}/${resolvedName}`,
+          fileSize: data.fileSize || data.size || 0,
+          status: (data.status === "Verified" || data.status === "Pending" || data.status === "Rejected" ? data.status : "Pending") as VaultDocument["status"],
+          createdAt: data.createdAt || Date.now(),
+          ...data,
+        } as VaultDocument);
       });
       if (docsList.length === 0 && (uid === "stu_1" || appUser?.email === "aarav.patel@gmail.com" || appUser?.role === "student")) {
         const fallback = DEMO_DOCUMENTS.filter((d) => d.studentId === "stu_1").map((d) => ({
           id: d.id,
           studentId: uid,
-          documentType: d.docType,
-          fileName: d.fileName,
+          documentType: d.docType || "Academic Transcript",
+          fileName: d.fileName || "transcript.pdf",
           fileUrl: "/sample_transcript.jpg",
           filePath: `students/${uid}/${d.fileName}`,
           fileSize: 2048576,
@@ -151,8 +169,8 @@ export const StudentDocumentVault: React.FC = () => {
         const fallback = DEMO_DOCUMENTS.filter((d) => d.studentId === "stu_1").map((d) => ({
           id: d.id,
           studentId: uid,
-          documentType: d.docType,
-          fileName: d.fileName,
+          documentType: d.docType || "Academic Transcript",
+          fileName: d.fileName || "transcript.pdf",
           fileUrl: "/sample_transcript.jpg",
           filePath: `students/${uid}/${d.fileName}`,
           fileSize: 2048576,
@@ -178,13 +196,9 @@ export const StudentDocumentVault: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Upload to Firebase Storage and Save to Firestore via Backend Transaction
       await uploadStudentDocument(uid, file, docType);
-
       setNotice(`${docType} uploaded successfully.`);
       setTimeout(() => setNotice(null), 3000);
-      
-      // Reload documents to get the fresh data from Firestore
       loadDocuments();
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -200,11 +214,28 @@ export const StudentDocumentVault: React.FC = () => {
     if (!window.confirm("Are you sure you want to remove this document?")) return;
     try {
       await deleteDoc(doc(db, "student_documents", docId));
+      await deleteCachedDocumentFile(docId);
       setDocuments((prev) => prev.filter((d) => d.id !== docId));
       setNotice("Document removed.");
       setTimeout(() => setNotice(null), 2500);
     } catch (err: any) {
       setError("Could not delete document.");
+    }
+  };
+
+  // Preview document handler with local cache resilience
+  const handlePreviewDocument = async (docItem: VaultDocument) => {
+    try {
+      const previewUrl = await getDocumentBlobOrUrl(docItem.id, docItem.fileUrl);
+      if (previewUrl) {
+        window.open(previewUrl, "_blank", "noopener,noreferrer");
+      } else {
+        setNotice(`Document file is locally stored and ready for admissions processing.`);
+        setTimeout(() => setNotice(null), 3500);
+      }
+    } catch (e) {
+      console.warn("Preview error:", e);
+      if (docItem.fileUrl) window.open(docItem.fileUrl, "_blank");
     }
   };
 
@@ -217,12 +248,8 @@ export const StudentDocumentVault: React.FC = () => {
     setError(null);
 
     try {
-      // Backend handles Firestore creation
       await uploadStudentDocument(uid, selectedFile, customDocType.trim());
-
-      setDocuments((prev) => [...prev]); // We'll rely on loadDocuments()
       loadDocuments();
-      
       setNotice(`${customDocType} uploaded successfully.`);
       setTimeout(() => setNotice(null), 3000);
       setIsCustomModalOpen(false);
@@ -236,12 +263,13 @@ export const StudentDocumentVault: React.FC = () => {
     }
   };
 
-  // Document matching metrics
+  // Document matching metrics with defensive null-checks
   const completedStandardDocs = useMemo(() => {
-    const uploadedTypes = documents.map((d) => d.documentType.toLowerCase());
-    return REQUIRED_STANDARD_DOCS.filter((req) =>
-      uploadedTypes.some((u) => u.includes(req.type.toLowerCase()) || req.type.toLowerCase().includes(u))
-    );
+    const uploadedTypes = documents.map((d) => (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase());
+    return REQUIRED_STANDARD_DOCS.filter((req) => {
+      const target = req.type.toLowerCase();
+      return uploadedTypes.some((u) => u && (u.includes(target) || target.includes(u)));
+    });
   }, [documents]);
 
   const mandatoryCount = REQUIRED_STANDARD_DOCS.filter((r) => r.mandatory).length;
@@ -325,14 +353,13 @@ export const StudentDocumentVault: React.FC = () => {
       {/* Standard Required Slots */}
       <section className="space-y-4">
         <h2 className="text-base font-bold text-white">Standard Admissions Documents</h2>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {REQUIRED_STANDARD_DOCS.map((req) => {
-            const uploaded = documents.find(
-              (d) =>
-                d.documentType.toLowerCase().includes(req.type.toLowerCase()) ||
-                req.type.toLowerCase().includes(d.documentType.toLowerCase())
-            );
+            const reqTarget = req.type.toLowerCase();
+            const uploaded = documents.find((d) => {
+              const t = (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase();
+              return t && (t.includes(reqTarget) || reqTarget.includes(t));
+            });
 
             const isUploading = uploadingType === req.type;
 
@@ -408,15 +435,14 @@ export const StudentDocumentVault: React.FC = () => {
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80">
                   {uploaded ? (
                     <div className="flex items-center gap-2">
-                      <a
-                        href={uploaded.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 flex items-center gap-1 cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewDocument(uploaded)}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-3.5 h-3.5 text-emerald-400" />
                         Preview
-                      </a>
+                      </button>
 
                       <button
                         type="button"
@@ -457,12 +483,18 @@ export const StudentDocumentVault: React.FC = () => {
       </section>
 
       {/* Additional / Custom Uploaded Documents */}
-      {documents.some((d) => !REQUIRED_STANDARD_DOCS.some((r) => r.type === d.documentType)) && (
+      {documents.some((d) => {
+        const dType = (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase();
+        return !REQUIRED_STANDARD_DOCS.some((r) => r.type.toLowerCase() === dType);
+      }) && (
         <section className="space-y-4">
           <h2 className="text-base font-bold text-white">Additional Documents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {documents
-              .filter((d) => !REQUIRED_STANDARD_DOCS.some((r) => r.type === d.documentType))
+              .filter((d) => {
+                const dType = (d.documentType || (d as any).docType || (d as any).type || "").toLowerCase();
+                return !REQUIRED_STANDARD_DOCS.some((r) => r.type.toLowerCase() === dType);
+              })
               .map((doc) => (
                 <div key={doc.id} className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
                   <div>
@@ -470,14 +502,14 @@ export const StudentDocumentVault: React.FC = () => {
                     <p className="text-xs text-zinc-400 truncate max-w-xs">{doc.fileName}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <a
-                      href={doc.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-xs text-zinc-300"
+                    <button
+                      type="button"
+                      onClick={() => handlePreviewDocument(doc)}
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
                     >
+                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
                       Preview
-                    </a>
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(doc.id)}

@@ -317,9 +317,11 @@ export const StudentOnboardingStage2: React.FC = () => {
     <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
       {/* Role-Specific Atmospheric Background Layer */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-15 dark:opacity-20"
         style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
       />
+      {/* Ambient Vignette Overlay for crisp text contrast */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/80 via-white/60 to-white/85 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-950/90" />
       {/* ---- Sticky Header ---- */}
       <div className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -362,7 +364,7 @@ export const StudentOnboardingStage2: React.FC = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 mt-6">
         {/* ---- Error ---- */}
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-sm flex items-center gap-2 animate-fade-in">

@@ -51,26 +51,26 @@
   html.light {
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
-    --bg-card-alt: rgba(248, 250, 252, 0.9);
+    --bg-card-alt: #f1f5f9;
     --bg-elevated: #f1f5f9;
-    --bg-input: #f1f5f9;
-    --bg-hover: rgba(226, 232, 240, 0.6);
+    --bg-input: #ffffff;
+    --bg-hover: rgba(241, 245, 249, 0.9);
 
     --border-default: #e2e8f0;
-    --border-subtle: rgba(226, 232, 240, 0.6);
+    --border-subtle: #f1f5f9;
 
     --text-primary: #0f172a;
-    --text-secondary: #475569;
+    --text-secondary: #334155;
     --text-muted: #64748b;
     --text-placeholder: #94a3b8;
 
-    --backdrop: rgba(15, 23, 42, 0.5);
+    --backdrop: rgba(15, 23, 42, 0.4);
 
-    --bg-sidebar: rgba(255, 255, 255, 0.75);
-    --bg-sidebar-border: rgba(0, 0, 0, 0.08);
+    --bg-sidebar: #ffffff;
+    --bg-sidebar-border: rgba(226, 232, 240, 0.9);
 
     --select-bg: #10b981;
-    --select-text: #0f172a;
+    --select-text: #ffffff;
   }
 
   body {
@@ -83,22 +83,7 @@
     position: relative;
   }
 
-  /* Global subtle background image layer */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background: url('/images/campus_uk.jpg') center / cover no-repeat fixed;
-    opacity: 0.16;
-  }
-
-  html.light body::after {
-    opacity: 0.12;
-  }
-
-  /* Ensure body children sit above the ::after layer */
+  /* Root container */
   body > #root {
     position: relative;
     z-index: 1;

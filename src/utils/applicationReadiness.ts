@@ -6,7 +6,7 @@ import { EligibilityResult } from "./eligibility";
 export interface ReadinessItem { key: string; label: string; state: "complete" | "missing" | "warning"; detail: string; }
 export interface ApplicationReadiness { percentage: number; ready: boolean; items: ReadinessItem[]; }
 
-const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+const normalise = (value?: string | null) => (value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 export const getApplicationReadiness = (student: Student | undefined, programme: Programme | undefined, documents: PortalDocument[], eligibility: EligibilityResult | undefined, responses: Record<string, unknown>, declarationAccepted: boolean): ApplicationReadiness => {
   const items: ReadinessItem[] = [];
@@ -14,7 +14,12 @@ export const getApplicationReadiness = (student: Student | undefined, programme:
   items.push({ key: "profile", label: "Profile", state: profileReady ? "complete" : "missing", detail: profileReady ? "Personal and academic information is available." : "Complete your personal and academic profile." });
   items.push({ key: "eligibility", label: "Eligibility", state: eligibility?.status === "eligible" ? "complete" : eligibility?.status === "not_eligible" ? "warning" : "missing", detail: eligibility?.disclaimer || "Select a programme to assess eligibility." });
   for (const name of programme?.requiredDocuments || []) {
-    const present = documents.some((document) => normalise(document.documentType).includes(normalise(name)) || normalise(document.fileName).includes(normalise(name)));
+    const present = (documents || []).some((document: any) => {
+      const docType = document?.documentType || document?.type || "";
+      const docName = document?.fileName || document?.name || "";
+      const normTarget = normalise(name);
+      return normalise(docType).includes(normTarget) || normalise(docName).includes(normTarget);
+    });
     items.push({ key: `document-${name}`, label: name, state: present ? "complete" : "missing", detail: present ? "Uploaded to your document vault." : "Upload this required document." });
   }
   for (const field of programme?.applicationForm || []) if (field.required) {

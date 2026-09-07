@@ -398,9 +398,11 @@ export const StudentOnboardingStage3: React.FC = () => {
     <div className="min-h-screen bg-main relative overflow-hidden text-primary font-sans pb-16">
       {/* Role-Specific Atmospheric Background Layer */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-15 dark:opacity-20"
         style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
       />
+      {/* Ambient Vignette Overlay to ensure perfect contrast and text readability */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/80 via-white/60 to-white/85 dark:from-slate-950/85 dark:via-slate-950/70 dark:to-slate-950/90" />
       {/* ---- Sticky Header ---- */}
       <div className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -459,7 +461,7 @@ export const StudentOnboardingStage3: React.FC = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-6 space-y-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 mt-6 space-y-6">
         {/* Applied Alert Notification Toast */}
         {appliedNotice && (
           <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm flex items-center justify-between gap-3 animate-fade-in shadow-lg shadow-emerald-500/10">
