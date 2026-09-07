@@ -61,6 +61,15 @@ const SUBJECT_AREAS = [
   "Law & Legal Studies",
 ];
 
+export const normalizeCountry = (c: string): string => {
+  const s = (c || "").toLowerCase().trim();
+  if (s === "uk" || s === "great britain" || s === "england") return "united kingdom";
+  if (s === "usa" || s === "us" || s === "america") return "united states";
+  if (s === "uae" || s === "emirates" || s === "dubai") return "united arab emirates";
+  if (s === "nz") return "new zealand";
+  return s;
+};
+
 /* ------------------------------------------------------------------ */
 /*  Debounce hook                                                      */
 /* ------------------------------------------------------------------ */
@@ -127,7 +136,7 @@ export const StudentOnboardingStage3: React.FC = () => {
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [activeCountryTab, setActiveCountryTab] = useState<string>("All");
-  const [maxBudget, setMaxBudget] = useState<number>(60000);
+  const [maxBudget, setMaxBudget] = useState<number>(100000);
   const [onlyEligible, setOnlyEligible] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("universities");
@@ -157,7 +166,8 @@ export const StudentOnboardingStage3: React.FC = () => {
             if (sd.desiredStudyLevel.includes("Master")) setSelectedLevels(["Master's"]);
             else if (sd.desiredStudyLevel.includes("Bachelor")) setSelectedLevels(["Bachelor's"]);
           }
-          if (sd.budgetAnnualUsd) setMaxBudget(sd.budgetAnnualUsd);
+          // Default to 100,000 (unconstrained / All Budgets) so students see all universities across all destinations
+          setMaxBudget(100000);
           if (sd.preferredDestinations?.length) {
             setSelectedCountries(sd.preferredDestinations);
           } else if (sd.preferredDestination) {
@@ -169,13 +179,27 @@ export const StudentOnboardingStage3: React.FC = () => {
         const univSnap = await getDocs(collection(db, "universities"));
         let fetched = univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University));
         if (fetched.length === 0) {
-          fetched = DEMO_UNIVERSITIES;
+          fetched = [...DEMO_UNIVERSITIES];
         } else {
+          const combined = [...fetched];
           DEMO_UNIVERSITIES.forEach((demo) => {
-            if (!fetched.some((u) => u.name.toLowerCase() === demo.name.toLowerCase())) {
-              fetched.push(demo);
+            const existingIdx = combined.findIndex(
+              (u) => u.name.toLowerCase() === demo.name.toLowerCase() || (u.id && u.id === demo.id)
+            );
+            if (existingIdx === -1) {
+              combined.push(demo);
+            } else {
+              const existingProgIds = new Set((combined[existingIdx].programmes || []).map((p) => p.id));
+              const missingProgs = (demo.programmes || []).filter((p) => !existingProgIds.has(p.id));
+              if (missingProgs.length > 0) {
+                combined[existingIdx] = {
+                  ...combined[existingIdx],
+                  programmes: [...(combined[existingIdx].programmes || []), ...missingProgs],
+                };
+              }
             }
           });
+          fetched = combined;
         }
         setUniversities(fetched);
 
@@ -213,7 +237,7 @@ export const StudentOnboardingStage3: React.FC = () => {
         let score = 50;
         const reasons: string[] = [];
 
-        const countryMatch = dests.some((d) => d.toLowerCase().trim() === (univ.country || "").toLowerCase().trim());
+        const countryMatch = dests.some((d) => normalizeCountry(d) === normalizeCountry(univ.country || ""));
         if (countryMatch) { score += 20; reasons.push(`Destination match: ${univ.country}`); }
 
         const pl = prog.level || "";
@@ -230,7 +254,7 @@ export const StudentOnboardingStage3: React.FC = () => {
         }
 
         const fee = prog.tuitionFeeAnnual || 25000;
-        if (fee <= maxBudget) { score += 10; reasons.push("Within tuition budget"); }
+        if (maxBudget >= 100000 || fee <= maxBudget) { score += 10; reasons.push("Within tuition budget"); }
         else if (fee > maxBudget * 1.3) score -= 10;
 
         results.push({
@@ -249,10 +273,11 @@ export const StudentOnboardingStage3: React.FC = () => {
   const filteredMatches = useMemo(() => {
     return matchedPrograms.filter(({ university, programme, eligibility }) => {
       // Country tab filter
+      const univCountry = normalizeCountry(university.country || "");
       if (activeCountryTab !== "All") {
-        if ((university.country || "").toLowerCase().trim() !== activeCountryTab.toLowerCase().trim()) return false;
+        if (univCountry !== normalizeCountry(activeCountryTab)) return false;
       } else if (selectedCountries.length > 0) {
-        if (!selectedCountries.some((c) => c.toLowerCase().trim() === (university.country || "").toLowerCase().trim())) {
+        if (!selectedCountries.some((c) => normalizeCountry(c) === univCountry)) {
           return false;
         }
       }
@@ -291,9 +316,11 @@ export const StudentOnboardingStage3: React.FC = () => {
         if (!matchesField) return false;
       }
 
-      // Tuition budget
-      const fee = programme.tuitionFeeAnnual || 0;
-      if (fee > maxBudget) return false;
+      // Tuition budget (only filter if user set a specific budget below 100,000)
+      if (maxBudget < 100000) {
+        const fee = programme.tuitionFeeAnnual || 0;
+        if (fee > maxBudget) return false;
+      }
 
       // Eligibility only
       if (onlyEligible && eligibility.status === "not_eligible") return false;
@@ -457,13 +484,14 @@ export const StudentOnboardingStage3: React.FC = () => {
             </span>
             <button
               onClick={() => setActiveCountryTab("All")}
+              title={selectedCountries.length > 0 ? selectedCountries.join(", ") : "All Destinations"}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeCountryTab === "All"
                   ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
                   : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
               }`}
             >
-              All Destinations ({selectedCountries.length > 0 ? selectedCountries.join(", ") : "Worldwide"})
+              All Destinations ({selectedCountries.length > 0 ? `${selectedCountries.length} Selected` : "Worldwide"})
             </button>
 
             {selectedCountries.map((c) => (
@@ -595,13 +623,15 @@ export const StudentOnboardingStage3: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-secondary uppercase tracking-wider">Max Tuition / Yr</span>
-                  <span className="font-bold text-emerald-400">${maxBudget.toLocaleString()}</span>
+                  <span className="font-bold text-emerald-400">
+                    {maxBudget >= 100000 ? "Any Tuition ($100k+)" : `$${maxBudget.toLocaleString()}`}
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={5000}
-                  max={80000}
-                  step={2500}
+                  max={100000}
+                  step={5000}
                   value={maxBudget}
                   onChange={(e) => setMaxBudget(Number(e.target.value))}
                   className="w-full accent-emerald-500 cursor-pointer"

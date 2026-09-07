@@ -141,7 +141,27 @@ export const StudentOnboardingStage4: React.FC = () => {
       const univSnap = await getDocs(collection(db, "universities"));
       let univs = univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University));
       if (univs.length === 0) {
-        univs = DEMO_UNIVERSITIES;
+        univs = [...DEMO_UNIVERSITIES];
+      } else {
+        const combined = [...univs];
+        DEMO_UNIVERSITIES.forEach((demo) => {
+          const existingIdx = combined.findIndex(
+            (u) => u.name.toLowerCase() === demo.name.toLowerCase() || (u.id && u.id === demo.id)
+          );
+          if (existingIdx === -1) {
+            combined.push(demo);
+          } else {
+            const existingProgIds = new Set((combined[existingIdx].programmes || []).map((p) => p.id));
+            const missingProgs = (demo.programmes || []).filter((p) => !existingProgIds.has(p.id));
+            if (missingProgs.length > 0) {
+              combined[existingIdx] = {
+                ...combined[existingIdx],
+                programmes: [...(combined[existingIdx].programmes || []), ...missingProgs],
+              };
+            }
+          }
+        });
+        univs = combined;
       }
 
       const matches: ShortlistedMatch[] = [];
