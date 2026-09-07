@@ -145,7 +145,7 @@ export const App: React.FC = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/student-register" element={<Navigate to="/register" replace />} />
+              <Route path="/student-register" element={<Register defaultRole="student" />} />
               <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
               {/* Public Form Routes (Unauthenticated) */}

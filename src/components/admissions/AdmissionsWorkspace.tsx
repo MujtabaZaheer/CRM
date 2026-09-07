@@ -190,8 +190,13 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
   return (
     <div className="space-y-6 text-xs p-2 sm:p-4">
       {/* Top Banner / Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <div className="relative overflow-hidden rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
+          style={{ backgroundImage: `url('/images/campus_uk.jpg')` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-card)] via-[var(--bg-card)]/90 to-transparent pointer-events-none" />
+        <div className="relative z-10">
           <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)] capitalize flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-emerald-400" />
             Admissions {page}
@@ -200,7 +205,7 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
             Application processing, academic eligibility verification, conditional offers, and CAS compliance.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="relative z-10 flex items-center gap-2">
           {page === "offers" && (
             <button
               onClick={() => setShowDecisionModal(true)}

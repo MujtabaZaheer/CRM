@@ -68,7 +68,12 @@ export const CounsellorDashboard: React.FC = () => {
 
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--bg-card)] border border-[var(--border-default)] p-6 sq-card relative overflow-hidden">
-        <div className="space-y-1 z-10">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
+          style={{ backgroundImage: `url('/images/role_counsellor.jpg')` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-card)] via-[var(--bg-card)]/90 to-transparent pointer-events-none" />
+        <div className="space-y-1 relative z-10">
           <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 sq-badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono mb-2">
             <span>Role: Education Counsellor</span>
           </div>
@@ -77,17 +82,17 @@ export const CounsellorDashboard: React.FC = () => {
             Track prospective students, manage university applications, handle document verification, and manage daily student follow-ups.
           </p>
         </div>
-        <div className="flex items-center space-x-3 z-10">
+        <div className="flex items-center space-x-3 relative z-10">
           <button
             onClick={() => setIsTaskModalOpen(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold sq-btn text-xs shadow-lg shadow-emerald-500/20 transition-all"
+            className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold sq-btn text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Create Task</span>
           </button>
           <Link
             to="/counsellor/programme-matcher"
-            className="flex items-center space-x-2 px-4 py-2.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] font-semibold sq-btn text-xs transition-all"
+            className="flex items-center space-x-2 px-4 py-2.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] font-semibold sq-btn text-xs transition-all cursor-pointer"
           >
             <Search className="w-4 h-4 text-emerald-400" />
             <span>Course Matcher</span>

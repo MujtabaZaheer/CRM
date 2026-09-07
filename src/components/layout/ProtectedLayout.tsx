@@ -38,12 +38,14 @@ export const ProtectedLayout: React.FC = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col font-sans relative overflow-x-hidden">
       {/* Role-Specific Atmospheric Background Layer */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-[0.07] dark:opacity-[0.06]"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-25"
         style={{ backgroundImage: `url('${roleBackground}')` }}
       />
+      {/* Darkening / Tint Vignette so text remains crystal clear */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/85" />
       {/* Ambient Gradient Highlights */}
-      <div className="fixed -top-40 -left-40 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="fixed -bottom-40 -right-40 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="fixed -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="fixed -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none z-0" />
 
       <div className="relative z-10 flex min-h-screen">
         <Sidebar

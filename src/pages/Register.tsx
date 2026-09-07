@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, addDoc, collection } from "firebase/firestore";
 import { auth, db, getEmailActionSettings } from "../firebase/config";
 import {
   UserPlus, AlertCircle, User, Mail, Lock, Phone, Globe, Flag, Eye, EyeOff,
-  CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase,
+  CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase, Sparkles,
 } from "lucide-react";
 import { UserRole } from "../types/role";
 import { REGISTRATION_CONFIGS, SELF_REGISTERABLE_ROLES } from "../types/registrationConfig";
@@ -83,10 +83,15 @@ const ACCENT_CLASSES: Record<string, { card: string; cardHover: string; border: 
 /* ================================================================== */
 /*  REGISTER COMPONENT                                                */
 /* ================================================================== */
-export const Register: React.FC = () => {
+export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryRole = (searchParams.get("role") as UserRole) || null;
+  const initialRole = defaultRole || queryRole;
+
   /* ---- state ---- */
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(initialRole);
+  const [cvNotice, setCvNotice] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -319,9 +324,11 @@ export const Register: React.FC = () => {
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Dynamic Ambient Background Layer */}
         <div
-          className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.08]"
+          className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20"
           style={{ backgroundImage: `url('/images/student_welcome_banner.jpg')` }}
         />
+        {/* Subtle Dark Vignette for contrast */}
+        <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-zinc-950/70 via-zinc-950/40 to-zinc-950/80" />
         {/* Background Glows */}
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -395,9 +402,11 @@ export const Register: React.FC = () => {
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Dynamic Role Background Image */}
       <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-[0.08]"
+        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20"
         style={{ backgroundImage: `url('${roleBg}')` }}
       />
+      {/* Dark Vignette Overlay for Readability */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-zinc-950/70 via-zinc-950/40 to-zinc-950/80" />
       {/* Background Glows */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -406,7 +415,7 @@ export const Register: React.FC = () => {
         {/* Back button */}
         <button
           type="button"
-          onClick={() => { setSelectedRole(null); setError(null); }}
+          onClick={() => { setSelectedRole(null); setError(null); setCvNotice(null); }}
           className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -433,21 +442,46 @@ export const Register: React.FC = () => {
 
         {/* AI Student CV Auto-Fill Dropzone */}
         {selectedRole === "student" && (
-          <StudentCVUploader
-            onExtracted={(extracted) => {
-              setFormData((prev) => ({
-                ...prev,
-                fullName: extracted.fullName || prev.fullName,
-                email: extracted.email || prev.email,
-                phone: extracted.phone || prev.phone,
-                nationality: NATIONALITIES.includes(extracted.nationality) ? extracted.nationality : prev.nationality || "Pakistani",
-                countryOfResidence: extracted.countryOfResidence || prev.countryOfResidence || "Pakistan",
-              }));
-              try {
-                sessionStorage.setItem("student_extracted_cv", JSON.stringify(extracted));
-              } catch (_) {}
-            }}
-          />
+          <div className="space-y-3">
+            <StudentCVUploader
+              onExtracted={(extracted) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  fullName: extracted.fullName || prev.fullName,
+                  email: extracted.email || prev.email,
+                  phone: extracted.phone || prev.phone,
+                  nationality: NATIONALITIES.includes(extracted.nationality) ? extracted.nationality : prev.nationality || "Pakistani",
+                  countryOfResidence: extracted.countryOfResidence || prev.countryOfResidence || "Pakistan",
+                }));
+                const fieldsFilled = [
+                  extracted.fullName && "Full Name",
+                  extracted.email && "Email",
+                  extracted.phone && "Phone",
+                  extracted.nationality && "Nationality",
+                  extracted.countryOfResidence && "Residence"
+                ].filter(Boolean);
+                setCvNotice(`Extracted: ${fieldsFilled.join(", ")}. Please review below.`);
+                try {
+                  sessionStorage.setItem("student_extracted_cv", JSON.stringify(extracted));
+                } catch (_) {}
+              }}
+            />
+            {cvNotice && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-emerald-400 text-xs animate-in fade-in duration-300">
+                <span className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>{cvNotice}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCvNotice(null)}
+                  className="text-zinc-400 hover:text-white ml-2 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

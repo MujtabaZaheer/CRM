@@ -57,8 +57,13 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
   return (
     <div className="space-y-6 text-xs p-2 sm:p-4">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <div className="relative overflow-hidden rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
+          style={{ backgroundImage: `url('/images/role_agent.jpg')` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-card)] via-[var(--bg-card)]/90 to-transparent pointer-events-none" />
+        <div className="relative z-10">
           <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)] capitalize flex items-center gap-2">
             <Users2 className="w-6 h-6 text-emerald-400" />
             External Agent Portal — {page}
@@ -67,10 +72,10 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
             Submit student referrals, monitor application milestones, and track referral commissions.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="relative z-10 flex items-center gap-2">
           <button
             onClick={handleCopyLink}
-            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold rounded-lg hover:bg-emerald-500/20 transition-all"
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold rounded-lg hover:bg-emerald-500/20 transition-all cursor-pointer"
           >
             <Link2 className="w-4 h-4" />
             {copyNotice ? "Tracking Link Copied!" : "Copy Referral Link"}

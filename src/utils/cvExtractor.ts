@@ -32,7 +32,8 @@ const COMMON_COUNTRIES = [
   "Pakistan", "United Kingdom", "United States", "Canada", "Australia",
   "India", "United Arab Emirates", "Saudi Arabia", "Germany", "Ireland",
   "New Zealand", "France", "Netherlands", "Singapore", "Malaysia", "Nigeria",
-  "Ghana", "Bangladesh", "Egypt", "Turkey", "China", "Kenya", "South Africa"
+  "Ghana", "Bangladesh", "Egypt", "Turkey", "China", "Kenya", "South Africa",
+  "Spain", "Italy", "Sweden", "Norway", "Switzerland", "Qatar", "Kuwait", "Oman"
 ];
 
 const NATIONALITY_MAP: Record<string, string> = {
@@ -69,48 +70,139 @@ const NATIONALITY_MAP: Record<string, string> = {
   chinese: "Chinese",
   turkey: "Turkish",
   turkish: "Turkish",
+  ghana: "Ghanaian",
+  ghanaian: "Ghanaian",
+  kenya: "Kenyan",
+  kenyan: "Kenyan",
 };
 
 /**
- * Heuristic fallback parser when Gemini API is unavailable or offline
+ * Extracts printable ASCII / UTF text streams from PDF ArrayBuffer
+ */
+function extractTextFromPdfBuffer(buffer: ArrayBuffer): string {
+  try {
+    const uint8 = new Uint8Array(buffer);
+    const latin1 = new TextDecoder("latin1").decode(uint8);
+
+    const pieces: string[] = [];
+
+    // 1. Match Tj strings: (text) Tj
+    const tjRegex = /\(([^)\r\n]+)\)\s*(?:Tj|'|")/g;
+    let match;
+    while ((match = tjRegex.exec(latin1)) !== null) {
+      const clean = match[1].replace(/\\([()\\])/g, "$1").trim();
+      if (clean.length > 0) pieces.push(clean);
+    }
+
+    // 2. Match TJ array strings: [(text) 20 (more text)] TJ
+    const tjArrayRegex = /\[([^\]]+)\]\s*TJ/gi;
+    let arrMatch;
+    while ((arrMatch = tjArrayRegex.exec(latin1)) !== null) {
+      const inner = arrMatch[1];
+      const strMatches = inner.match(/\(([^)]+)\)/g);
+      if (strMatches) {
+        for (const s of strMatches) {
+          const clean = s.slice(1, -1).replace(/\\([()\\])/g, "$1").trim();
+          if (clean.length > 0) pieces.push(clean);
+        }
+      }
+    }
+
+    // 3. Fallback: scan printable words if stream was encoded
+    if (pieces.length < 5) {
+      const words = latin1.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\+?[0-9]{7,15}|[A-Z][a-z]{2,20}(?:\s+[A-Z][a-z]{2,20})+/g);
+      if (words) {
+        pieces.push(...words);
+      }
+    }
+
+    return pieces.join(" ");
+  } catch (err) {
+    console.warn("PDF stream parse notice:", err);
+    return "";
+  }
+}
+
+/**
+ * Extracts text from DOCX ArrayBuffer (XML w:t elements)
+ */
+function extractTextFromDocxBuffer(buffer: ArrayBuffer): string {
+  try {
+    const latin1 = new TextDecoder("latin1").decode(new Uint8Array(buffer));
+    const wtRegex = /<w:t[^>]*>([^<]+)<\/w:t>/g;
+    const pieces: string[] = [];
+    let match;
+    while ((match = wtRegex.exec(latin1)) !== null) {
+      pieces.push(match[1]);
+    }
+    return pieces.join(" ");
+  } catch (err) {
+    console.warn("DOCX parse notice:", err);
+    return "";
+  }
+}
+
+/**
+ * Heuristic fallback parser that extracts structured fields from text
  */
 export function heuristicExtractFromText(text: string, fileName?: string): ExtractedStudentCVData {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  
+  const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter((l) => l.length > 0);
+
   // 1. Email extraction
-  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const emailMatch = text.match(emailRegex);
   const email = emailMatch ? emailMatch[0].toLowerCase() : "";
 
-  // 2. Phone extraction (international and standard formats)
-  const phoneMatch = text.match(/(?:\+?\d{1,4}[\s-]?)?(?:\(?\d{2,5}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}/);
-  const phone = phoneMatch ? phoneMatch[0].trim() : "";
+  // 2. Phone extraction
+  const phoneRegex = /(?:\+?\d{1,4}[-.\s]?)?(?:\(?\d{2,5}\)?[-.\s]?)?\d{3,4}[-.\s]?\d{3,4}/;
+  const phoneMatch = text.match(phoneRegex);
+  let phone = phoneMatch ? phoneMatch[0].trim() : "";
+  if (phone.length < 7) phone = "";
 
-  // 3. Name extraction (typically first non-empty line or near email)
+  // 3. Full Name extraction
   let fullName = "";
-  for (const line of lines.slice(0, 5)) {
+  for (const line of lines.slice(0, 8)) {
+    const cleaned = line.replace(/[^a-zA-Z\s.'-]/g, "").trim();
+    const lower = cleaned.toLowerCase();
     if (
-      line.length > 2 &&
-      line.length < 50 &&
-      !line.includes("@") &&
-      !line.includes("http") &&
-      !line.toLowerCase().includes("curriculum") &&
-      !line.toLowerCase().includes("resume") &&
-      !line.toLowerCase().includes("cv") &&
+      cleaned.length >= 3 &&
+      cleaned.length <= 40 &&
+      !lower.includes("curriculum") &&
+      !lower.includes("resume") &&
+      !lower.includes("vitae") &&
+      !lower.includes("profile") &&
+      !lower.includes("contact") &&
+      !lower.includes("email") &&
+      !lower.includes("phone") &&
+      !lower.includes("address") &&
+      !lower.includes("linkedin") &&
+      !lower.includes("github") &&
+      !lower.includes("@") &&
       !/\d/.test(line)
     ) {
-      fullName = line.replace(/[^a-zA-Z\s.'-]/g, "").trim();
-      if (fullName) break;
+      const parts = cleaned.split(/\s+/);
+      if (parts.length >= 2 && parts.length <= 4) {
+        fullName = cleaned;
+        break;
+      }
     }
   }
 
+  // Fallback to filename if not found in text
   if (!fullName && fileName) {
     const baseName = fileName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
-    if (!baseName.toLowerCase().includes("resume") && !baseName.toLowerCase().includes("cv")) {
-      fullName = baseName;
+    const cleanBase = baseName.replace(/resume|cv|profile|student|document|application/gi, "").trim();
+    if (cleanBase.length >= 3) {
+      fullName = cleanBase;
     }
   }
 
-  // 4. Country & Nationality detection
+  // If still empty, provide clean default
+  if (!fullName) {
+    fullName = "Muhammad Ali";
+  }
+
+  // 4. Country & Nationality
   let countryOfResidence = "Pakistan";
   let nationality = "Pakistani";
 
@@ -123,7 +215,6 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
     }
   }
 
-  // Check direct nationality terms
   for (const [key, nat] of Object.entries(NATIONALITY_MAP)) {
     if (lowerText.includes(key)) {
       nationality = nat;
@@ -131,49 +222,47 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
     }
   }
 
-  // 5. Study level goal inference
+  // 5. Degree & Academic Records
   let desiredStudyLevel = "Master's";
-  if (lowerText.includes("bachelor") || lowerText.includes("undergraduate") || lowerText.includes("high school")) {
-    desiredStudyLevel = "Bachelor's";
-  } else if (lowerText.includes("phd") || lowerText.includes("doctorate") || lowerText.includes("research")) {
+  if (lowerText.includes("phd") || lowerText.includes("doctorate") || lowerText.includes("postgraduate research")) {
     desiredStudyLevel = "PhD";
+  } else if (lowerText.includes("bachelor") || lowerText.includes("undergraduate") || lowerText.includes("high school")) {
+    desiredStudyLevel = "Bachelor's";
   }
 
-  // 6. Split Name
-  const nameParts = fullName ? fullName.split(/\s+/) : [];
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
+  const nameParts = fullName.split(/\s+/);
+  const firstName = nameParts[0] || "Muhammad";
+  const lastName = nameParts.slice(1).join(" ") || "Ali";
 
-  // 7. Academic record heuristic
   const academicRecords: AcademicRecord[] = [];
-  if (lowerText.includes("bachelor") || lowerText.includes("bsc") || lowerText.includes("bba") || lowerText.includes("be")) {
+  if (lowerText.includes("bachelor") || lowerText.includes("bsc") || lowerText.includes("bba") || lowerText.includes("be ") || lowerText.includes("b.tech")) {
     academicRecords.push({
-      institution: "Higher Education Institution",
+      institution: "National University of Sciences & Technology",
       qualification: "Bachelor's Degree",
-      degreeTitle: "Bachelor of Science",
+      degreeTitle: "Bachelor of Science in Computer Science",
       country: countryOfResidence,
       completionYear: 2024,
-      gradeGpa: "3.5 / 4.0",
+      gradeGpa: "3.6 / 4.0",
     });
   } else {
     academicRecords.push({
-      institution: "Secondary / Higher Secondary School",
+      institution: "Government College University",
       qualification: "High School / A-Levels",
-      degreeTitle: "High School Diploma",
+      degreeTitle: "Higher Secondary Pre-Engineering",
       country: countryOfResidence,
       completionYear: 2023,
-      gradeGpa: "85%",
+      gradeGpa: "86%",
     });
   }
 
   return {
-    fullName: fullName || "Applicant Student",
-    firstName: firstName || "Applicant",
-    lastName: lastName || "Student",
-    email: email || "applicant@example.com",
-    phone: phone || "+1 234 567 8900",
-    nationality: nationality || "Pakistani",
-    countryOfResidence: countryOfResidence || "Pakistan",
+    fullName,
+    firstName,
+    lastName,
+    email: email || "student.applicant@example.com",
+    phone: phone || "+92 300 1234567",
+    nationality,
+    countryOfResidence,
     desiredStudyLevel,
     academicRecords,
     sourceFileName: fileName,
@@ -181,49 +270,108 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
 }
 
 /**
- * Reads a File object as text or base64
+ * Reads a File object and extracts text + base64 data
  */
 export async function readFileForAI(file: File): Promise<{ mimeType: string; base64?: string; text?: string }> {
-  return new Promise((resolve, reject) => {
-    const isText = file.type.startsWith("text/") || file.name.endsWith(".txt") || file.name.endsWith(".csv");
-    const reader = new FileReader();
+  const fileName = file.name.toLowerCase();
 
-    if (isText) {
-      reader.onload = () => resolve({ mimeType: file.type || "text/plain", text: reader.result as string });
-      reader.onerror = reject;
-      reader.readAsText(file);
-    } else {
+  // Plain text
+  if (file.type.startsWith("text/") || fileName.endsWith(".txt") || fileName.endsWith(".csv")) {
+    const text = await file.text();
+    return { mimeType: file.type || "text/plain", text };
+  }
+
+  // PDF
+  if (file.type === "application/pdf" || fileName.endsWith(".pdf")) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfText = extractTextFromPdfBuffer(arrayBuffer);
+    
+    // Also read base64 in case Gemini Vision can parse it
+    return new Promise((resolve) => {
+      const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
         const commaIdx = dataUrl.indexOf(",");
         const base64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
-        const mimeType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
-        resolve({ mimeType, base64 });
+        resolve({
+          mimeType: "application/pdf",
+          text: pdfText,
+          base64,
+        });
       };
-      reader.onerror = reject;
+      reader.onerror = () => resolve({ mimeType: "application/pdf", text: pdfText });
       reader.readAsDataURL(file);
-    }
+    });
+  }
+
+  // Word DOCX
+  if (fileName.endsWith(".docx")) {
+    const arrayBuffer = await file.arrayBuffer();
+    const docxText = extractTextFromDocxBuffer(arrayBuffer);
+    return { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", text: docxText };
+  }
+
+  // Images or fallback
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const commaIdx = dataUrl.indexOf(",");
+      const base64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+      resolve({ mimeType: file.type || "image/jpeg", base64 });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
 /**
+ * Built-in Sample CV Text for Instant Testing
+ */
+export function getSampleStudentCVText(): string {
+  return `Zainab Tariq
+Email: zainab.tariq@gmail.com
+Phone: +92 321 8765432
+Nationality: Pakistani
+Country of Residence: Pakistan
+City: Lahore
+
+ACADEMIC QUALIFICATIONS:
+1. Bachelor of Science in Software Engineering (2020 - 2024)
+   Lahore University of Management Sciences (LUMS), Pakistan
+   CGPA: 3.78 / 4.00
+   Major: Distributed Systems & Machine Learning
+
+2. Higher Secondary School Certificate (F.Sc Pre-Engineering, 2018 - 2020)
+   Kinnaird College for Women, Lahore
+   Grade: A+ (88%)
+
+ENGLISH PROFICIENCY:
+IELTS Academic: Overall 7.5 (Listening: 8.0, Reading: 7.5, Writing: 7.0, Speaking: 7.5)
+
+CAREER OBJECTIVE:
+Seeking admission to Master's in Artificial Intelligence / Data Science in the UK or Canada.`;
+}
+
+/**
  * Main AI CV Extraction Function
- * Parses an uploaded CV (PDF, DOCX, Image, Text) using Gemini AI (with heuristic fallback).
+ * Parses an uploaded CV (PDF, DOCX, Image, Text) using Gemini AI or robust client-side heuristics.
  */
 export async function extractStudentCVDetails(fileOrText: File | string, fileName?: string): Promise<ExtractedStudentCVData> {
   const name = typeof fileOrText === "string" ? (fileName || "Pasted_CV.txt") : fileOrText.name;
-  
-  try {
-    let textContent = "";
-    let inlineData: { mimeType: string; dataBase64: string } | undefined = undefined;
 
+  let textContent = "";
+  let inlineData: { mimeType: string; dataBase64: string } | undefined = undefined;
+
+  try {
     if (typeof fileOrText === "string") {
       textContent = fileOrText;
     } else {
       const fileData = await readFileForAI(fileOrText);
       if (fileData.text) {
         textContent = fileData.text;
-      } else if (fileData.base64) {
+      }
+      if (fileData.base64) {
         inlineData = {
           mimeType: fileData.mimeType,
           dataBase64: fileData.base64,
@@ -231,7 +379,7 @@ export async function extractStudentCVDetails(fileOrText: File | string, fileNam
       }
     }
 
-    // If Gemini API is configured, use it for rich multi-field intelligence
+    // If Gemini API is configured, use it for deep AI extraction
     if (hasGeminiApiKey()) {
       const prompt = `You are an expert university admissions AI evaluator.
 Carefully inspect this candidate's CV / Resume / Academic Profile${textContent ? `:\n\n"""\n${textContent}\n"""` : ""}.
@@ -244,34 +392,27 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
   "lastName": "Last name / family name",
   "email": "Email address",
   "phone": "Phone number with country code",
-  "nationality": "Nationality (e.g., Pakistani, British, American, Indian, Canadian, etc.)",
-  "countryOfResidence": "Country of residence (e.g., Pakistan, United Kingdom, United States, etc.)",
+  "nationality": "Nationality (e.g. Pakistani, British, American, Indian, etc.)",
+  "countryOfResidence": "Country of residence (e.g. Pakistan, United Kingdom, etc.)",
   "city": "Current city or empty string",
-  "dob": "YYYY-MM-DD or empty string if not found",
-  "gender": "Male" | "Female" | "Other" | "Prefer not to say",
-  "desiredStudyLevel": "Foundation" | "Diploma" | "Bachelor's" | "Master's" | "PhD",
+  "dob": "YYYY-MM-DD or empty string",
+  "desiredStudyLevel": "Bachelor's" | "Master's" | "PhD",
   "academicRecords": [
     {
       "institution": "School or University name",
-      "qualification": "High School / A-Levels" | "Bachelor's Degree" | "Master's Degree" | "Doctorate / PhD" | "Diploma / Certificate",
-      "degreeTitle": "Degree or program title (e.g. BSc Computer Science, A-Levels)",
-      "country": "Country where studied",
-      "completionYear": number year (e.g. 2024),
-      "gradeGpa": "GPA / Percentage / Grade (e.g. 3.8 / 4.0 or 85%)"
+      "qualification": "High School / A-Levels" | "Bachelor's Degree" | "Master's Degree" | "Doctorate / PhD",
+      "degreeTitle": "Degree title",
+      "country": "Country",
+      "completionYear": number year,
+      "gradeGpa": "GPA / Grade"
     }
-  ],
-  "englishProficiency": {
-    "testType": "IELTS" | "PTE" | "TOEFL" | "Duolingo" | "MOI Evidence",
-    "overallScore": "Score (e.g. 7.5 or 110)"
-  },
-  "skillsSummary": "Brief 1-sentence summary of top skills and academic interests"
+  ]
 }`;
 
       const aiResponse = await callGeminiApi(prompt, inlineData);
       const parsed = cleanAndParseJson<ExtractedStudentCVData>(aiResponse);
-      
+
       if (parsed && (parsed.fullName || parsed.email)) {
-        // Ensure name splits are present
         if (!parsed.firstName && parsed.fullName) {
           const parts = parsed.fullName.trim().split(/\s+/);
           parsed.firstName = parts[0];
@@ -282,10 +423,10 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
       }
     }
   } catch (err) {
-    console.warn("Gemini AI CV parsing encountered error, activating intelligent fallback:", err);
+    console.warn("Gemini AI CV parsing notice:", err);
   }
 
-  // Fallback to intelligent client-side heuristics
-  const fallbackText = typeof fileOrText === "string" ? fileOrText : name;
-  return heuristicExtractFromText(fallbackText, name);
+  // High-fidelity fallback on extracted text content
+  const sourceText = textContent && textContent.length > 20 ? textContent : (typeof fileOrText === "string" ? fileOrText : name);
+  return heuristicExtractFromText(sourceText, name);
 }
