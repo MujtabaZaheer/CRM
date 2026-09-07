@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Search, X, Users, GraduationCap, FileText, FileCheck, ArrowRight } from "lucide-react";
+import { Search, X, Users, GraduationCap, FileText, FileCheck, ArrowRight, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const GlobalSearch: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
-  const { leads, students, applications, documents } = useGlobalData();
+  const { leads, students, applications, documents, universities } = useGlobalData();
+  const { appUser } = useAuth();
+  const isStudent = appUser?.role === "student";
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -24,6 +27,22 @@ export const GlobalSearch: React.FC = () => {
   }, [isOpen]);
 
   const q = query.trim().toLowerCase();
+
+  const matchedUniversities = q
+    ? (universities || [])
+        .filter(
+          (u) =>
+            u.name?.toLowerCase().includes(q) ||
+            u.country?.toLowerCase().includes(q) ||
+            u.city?.toLowerCase().includes(q) ||
+            (u.programmes || []).some(
+              (p) =>
+                p.title?.toLowerCase().includes(q) ||
+                p.level?.toLowerCase().includes(q)
+            )
+        )
+        .slice(0, 4)
+    : [];
 
   const matchedLeads = q
     ? leads.filter(
@@ -65,7 +84,11 @@ export const GlobalSearch: React.FC = () => {
     : [];
 
   const totalMatches =
-    matchedLeads.length + matchedStudents.length + matchedApps.length + matchedDocs.length;
+    matchedUniversities.length +
+    matchedLeads.length +
+    matchedStudents.length +
+    matchedApps.length +
+    matchedDocs.length;
 
   const handleSelect = (path: string) => {
     setIsOpen(false);
@@ -126,8 +149,41 @@ export const GlobalSearch: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  {/* Leads Results */}
-                  {matchedLeads.length > 0 && (
+                  {/* Universities Results */}
+                  {matchedUniversities.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center space-x-1.5 px-2">
+                        <Building2 className="w-3 h-3" />
+                        <span>Universities & Programs ({matchedUniversities.length})</span>
+                      </div>
+                      {matchedUniversities.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() =>
+                            handleSelect(
+                              isStudent
+                                ? `/student/universities/${item.id}`
+                                : `/universities`
+                            )
+                          }
+                          className="p-2.5 rounded-lg hover:bg-[var(--bg-hover)] cursor-pointer flex items-center justify-between group transition-colors"
+                        >
+                          <div>
+                            <div className="text-xs font-semibold text-[var(--text-primary)]">
+                              {item.name}
+                            </div>
+                            <div className="text-[10px] text-[var(--text-secondary)]">
+                              {item.city}, {item.country} • {(item.programmes || []).length} programmes
+                            </div>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Leads Results (Staff only) */}
+                  {!isStudent && matchedLeads.length > 0 && (
                     <div className="space-y-1">
                       <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider flex items-center space-x-1.5 px-2">
                         <Users className="w-3 h-3" />
@@ -149,8 +205,8 @@ export const GlobalSearch: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Students Results */}
-                  {matchedStudents.length > 0 && (
+                  {/* Students Results (Staff only) */}
+                  {!isStudent && matchedStudents.length > 0 && (
                     <div className="space-y-1">
                       <div className="text-[10px] uppercase font-bold text-teal-400 tracking-wider flex items-center space-x-1.5 px-2">
                         <GraduationCap className="w-3 h-3" />
@@ -182,7 +238,13 @@ export const GlobalSearch: React.FC = () => {
                       {matchedApps.map((item) => (
                         <div
                           key={item.id}
-                          onClick={() => handleSelect("/applications")}
+                          onClick={() =>
+                            handleSelect(
+                              isStudent
+                                ? `/student/applications/${item.id}`
+                                : `/applications`
+                            )
+                          }
                           className="p-2.5 rounded-lg hover:bg-[var(--bg-hover)] cursor-pointer flex items-center justify-between group transition-colors"
                         >
                           <div>
@@ -209,7 +271,11 @@ export const GlobalSearch: React.FC = () => {
                       {matchedDocs.map((item) => (
                         <div
                           key={item.id}
-                          onClick={() => handleSelect("/documents")}
+                          onClick={() =>
+                            handleSelect(
+                              isStudent ? `/student/documents` : `/documents`
+                            )
+                          }
                           className="p-2.5 rounded-lg hover:bg-[var(--bg-hover)] cursor-pointer flex items-center justify-between group transition-colors"
                         >
                           <div>

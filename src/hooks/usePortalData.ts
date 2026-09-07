@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, doc, deleteDoc, getDocs, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
@@ -113,7 +113,27 @@ export const usePortalData = () => {
         createdAt: Date.now(),
       });
     }
-    return created.id;
   }, [ownStudent, appUser]);
-  return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument, createApplication };
+
+  const deleteDraftApplication = useCallback(async (appId: string) => {
+    // Only allow deleting drafts
+    const target = applications.find((a) => a.id === appId);
+    if (!target) {
+      // Optimistic local filter if in local state
+      setApplications((prev) => prev.filter((a) => a.id !== appId));
+      return;
+    }
+    if (target.stage !== "Draft" && target.applicationStatus !== "Draft") {
+      throw new Error("Only draft applications can be removed. Submitted applications must be handled by admissions staff.");
+    }
+    // Optimistic removal
+    setApplications((prev) => prev.filter((a) => a.id !== appId));
+    try {
+      await deleteDoc(doc(db, "applications", appId));
+    } catch (err: any) {
+      console.warn("Could not delete from Firestore:", err);
+    }
+  }, [applications]);
+
+  return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument, createApplication, deleteDraftApplication };
 };

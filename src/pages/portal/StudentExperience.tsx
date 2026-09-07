@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { usePortalData } from "../../hooks/usePortalData";
@@ -77,7 +78,7 @@ const EligibilityBadge: React.FC<{
 };
 
 export const StudentDashboard: React.FC = () => {
-  const { ownStudent, ownApplications, ownDocuments, ownTasks } = usePortalData();
+  const { ownStudent, ownApplications, ownDocuments, ownTasks, deleteDraftApplication } = usePortalData();
   const { universities } = useGlobalData();
   const navigate = useNavigate();
 
@@ -466,22 +467,40 @@ export const StudentDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Right: Stage Status Badge */}
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-subtle/50">
-                        <span
-                          className={`rounded-full px-3 py-1 text-[11px] font-bold border ${
-                            isDraft
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                              : isOffer
-                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                              : "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"
-                          }`}
-                        >
-                          {application.stage}
-                        </span>
-                        <p className="text-[11px] text-muted mt-1 font-medium">
+                      {/* Right: Stage Status Badge & Action */}
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-subtle/50 gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-full px-3 py-1 text-[11px] font-bold border ${
+                              isDraft
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                : isOffer
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                                : "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"
+                            }`}
+                          >
+                            {application.stage}
+                          </span>
+                          {isDraft && (
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (window.confirm(`Delete draft application for ${application.universityName}?`)) {
+                                  await deleteDraftApplication(application.id);
+                                }
+                              }}
+                              className="p-1 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+                              title="Delete Draft"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted font-medium">
                           {isDraft
-                            ? "Click to continue application →"
+                            ? "Click to continue draft →"
                             : isOffer
                             ? "Official offer issued"
                             : "Under admissions evaluation"}

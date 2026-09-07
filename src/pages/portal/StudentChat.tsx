@@ -24,10 +24,17 @@ import {
   GraduationCap,
   Clock,
   HelpCircle,
+  Bot,
+  UserCheck,
+  ArrowRight,
+  RefreshCw,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePortalData } from "../../hooks/usePortalData";
+import { useGlobalData } from "../../contexts/GlobalDataContext";
+import { getAICounselReply, AICounselMessage } from "../../utils/aiCounselEngine";
 
 interface ChatMessage {
   id: string;
@@ -65,8 +72,30 @@ const STARTER_PROMPTS = [
 
 export const StudentChat: React.FC = () => {
   const { appUser } = useAuth();
-  const { ownStudent } = usePortalData();
+  const { ownStudent, ownApplications } = usePortalData();
+  const { universities } = useGlobalData();
 
+  // Mode Switcher: Human Counsellor vs AI Advisor
+  const [chatMode, setChatMode] = useState<"counsellor" | "ai">("counsellor");
+
+  // AI Chat State
+  const [aiMessages, setAiMessages] = useState<AICounselMessage[]>([
+    {
+      id: "welcome-ai",
+      sender: "ai",
+      content: `Hello ${ownStudent?.fullName?.split(" ")[0] || "there"}! 👋 I am your **EduCRM AI Education Counsellor & System Guide**.\n\nI can counsel you on university selection, clarify admission requirements, guide you on how to delete or resume draft applications, and help navigate every feature of this portal. How can I assist your admissions journey today?`,
+      timestamp: Date.now(),
+      suggestions: [
+        "Recommend top universities matching my qualification",
+        "How do I delete an unwanted draft application?",
+        "What documents are required for an official application?",
+      ],
+    },
+  ]);
+  const [aiInputText, setAiInputText] = useState("");
+  const [aiThinking, setAiThinking] = useState(false);
+
+  // Human Counsellor State
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -325,10 +354,70 @@ export const StudentChat: React.FC = () => {
     }
   };
 
+  // 4. Send Message to AI Counsellor
+  const handleSendAiMessage = async (customText?: string) => {
+    const text = (customText || aiInputText).trim();
+    if (!text || aiThinking) return;
+
+    const userMsgId = `usr-${Date.now()}`;
+    const userMsg: AICounselMessage = {
+      id: userMsgId,
+      sender: "user",
+      content: text,
+      timestamp: Date.now(),
+    };
+
+    setAiMessages((prev) => [...prev, userMsg]);
+    setAiInputText("");
+    setAiThinking(true);
+
+    try {
+      const history = aiMessages.map((m) => ({
+        role: (m.sender === "user" ? "user" : "assistant") as "user" | "assistant",
+        content: m.content,
+      }));
+
+      const context = {
+        student: ownStudent,
+        applications: ownApplications,
+        universities,
+      };
+
+      const result = await getAICounselReply(text, history, context);
+
+      const aiMsg: AICounselMessage = {
+        id: `ai-${Date.now()}`,
+        sender: "ai",
+        content: result.reply,
+        timestamp: Date.now(),
+        suggestions: result.suggestions,
+        actionLink: result.actionLink,
+      };
+
+      setAiMessages((prev) => [...prev, aiMsg]);
+    } catch (err: any) {
+      console.error("AI Counsellor reply error:", err);
+      const errorMsg: AICounselMessage = {
+        id: `err-${Date.now()}`,
+        sender: "ai",
+        content:
+          "I experienced a temporary network issue. Please ask again or feel free to switch to the **Dedicated Counsellor** tab to message our human advisory desk.",
+        timestamp: Date.now(),
+      };
+      setAiMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setAiThinking(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (chatMode === "ai") {
+        handleSendAiMessage();
+      } else {
+        handleSendMessage();
+      }
     }
   };
 
@@ -368,302 +457,629 @@ export const StudentChat: React.FC = () => {
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)] flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-emerald-400" />
-            Counsellor Advisory Desk
+            {chatMode === "ai" ? (
+              <>
+                <Bot className="w-6 h-6 text-emerald-400" />
+                AI Education Counsellor &amp; Guide
+              </>
+            ) : (
+              <>
+                <MessageSquare className="w-6 h-6 text-emerald-400" />
+                Counsellor Advisory Desk
+              </>
+            )}
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Connect directly with your dedicated education counsellor for application guidance, document reviews, and interview prep.
+            {chatMode === "ai"
+              ? "Instant AI advising: Explore university requirements, get system help, learn how to delete drafts, and prepare your application."
+              : "Connect directly with your dedicated education counsellor for application guidance, document reviews, and interview prep."}
           </p>
         </div>
 
-        {/* Status Indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold self-start sm:self-auto">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Active Advisory Channel
+        {/* Mode Selector Switcher */}
+        <div className="flex items-center p-1 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-xs">
+          <button
+            type="button"
+            onClick={() => setChatMode("counsellor")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              chatMode === "counsellor"
+                ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Dedicated Counsellor</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatMode("ai")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              chatMode === "ai"
+                ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>AI Counsellor &amp; Guide</span>
+          </button>
         </div>
       </header>
 
       {/* Main Chat Grid */}
       <div className="grid lg:grid-cols-12 gap-6 h-[720px]">
-        {/* Left Sidebar / Counsellor Info Card */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* Counsellor Profile Card */}
-          <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm space-y-4">
-            <div className="flex items-center gap-3.5">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-xl flex items-center justify-center shadow-md">
-                  {counsellorInfo.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .slice(0, 2)
-                    .join("")}
+        {chatMode === "ai" ? (
+          /* =================== AI COUNSELLOR SIDEBAR =================== */
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            {/* AI Advisor Profile Card */}
+            <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-emerald-500/30 shadow-sm space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 text-zinc-950 font-bold text-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <Bot className="w-8 h-8" />
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-[var(--bg-card)] animate-pulse" />
                 </div>
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[var(--bg-card)]" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
+                      EduCRM AI Advisor
+                    </h3>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      AI 2.5
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-400 font-medium">
+                    Personal Admissions &amp; System Guide
+                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Active 24/7 &bull; Instant Help
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
-                  {counsellorInfo.name}
-                </h3>
-                <p className="text-xs text-emerald-400 font-medium">
-                  {counsellorInfo.role}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] truncate">
-                  {counsellorInfo.email}
-                </p>
+
+              <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2.5 text-xs text-[var(--text-secondary)]">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Tailored recommendations based on your profile</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>Deep database of global university programs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Step-by-step CRM portal assistance &amp; draft help</span>
+                </div>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2.5 text-xs text-[var(--text-secondary)]">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Verified Education Consultant</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-sky-400 shrink-0" />
-                <span>Typical response time: within 2 hours</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-purple-400 shrink-0" />
-                <span>Specialized in UK, Canada, Australia & USA</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Help & Guidance Box */}
-          <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm flex-1 flex flex-col justify-between space-y-4">
-            <div>
-              <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--text-muted)] flex items-center gap-1.5 mb-3">
-                <HelpCircle className="w-4 h-4 text-amber-400" />
-                How your counsellor helps
-              </h4>
-              <ul className="space-y-2.5 text-xs text-[var(--text-secondary)]">
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                  <span>Program matching & eligibility pre-screening</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                  <span>Statement of Purpose (SOP) critique & editing</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                  <span>Document verification before university submission</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                  <span>Visa interview preparation & guidance</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
-              <p className="font-semibold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> Need urgent assistance?
-              </p>
-              <p className="text-[11px] text-[var(--text-muted)]">
-                Messages posted here are tracked with priority notifications to our admissions office.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Area: Conversation Messages & Input Area */}
-        <div className="lg:col-span-8 flex flex-col rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm overflow-hidden h-full">
-          {/* Chat Room Top Bar */}
-          <div className="px-6 py-4 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
+            {/* AI Quick Starters & Capabilities */}
+            <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm flex-1 flex flex-col justify-between space-y-4">
               <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                  {counsellorInfo.name}
-                </h3>
-                <p className="text-[11px] text-[var(--text-muted)]">
-                  Direct Student Advisory Chat &bull; Encrypted &amp; Logged
-                </p>
-              </div>
-            </div>
-
-            {conversation && (
-              <span className="text-xs text-[var(--text-muted)] font-mono">
-                Thread #{conversation.id.slice(-6)}
-              </span>
-            )}
-          </div>
-
-          {/* Error Banner if any */}
-          {errorMessage && (
-            <div className="px-4 py-2.5 bg-rose-500/10 border-b border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Messages Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {loadingConv || loadingMessages ? (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-[var(--text-muted)]">
-                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                <p className="text-sm">Connecting to advisory channel...</p>
-              </div>
-            ) : messages.length === 0 ? (
-              /* Empty State */
-              <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto py-8">
-                <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 shadow-inner">
-                  <MessageSquare className="w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-bold text-[var(--text-primary)]">
-                  Start a conversation with your counsellor
-                </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-1.5 mb-6">
-                  Have questions about universities, program requirements, or document submissions? Send a message below or pick a quick starter prompt.
-                </p>
-
-                {/* Quick Starter Chips */}
-                <div className="grid gap-2 w-full text-left">
-                  {STARTER_PROMPTS.map((prompt, idx) => (
+                <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--text-muted)] flex items-center gap-1.5 mb-3">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  Quick Topics
+                </h4>
+                <div className="space-y-2">
+                  {[
+                    {
+                      label: "Recommend universities for my profile",
+                      icon: "🎓",
+                    },
+                    {
+                      label: "How do I delete my draft applications?",
+                      icon: "🗑️",
+                    },
+                    {
+                      label: "What documents do I need to prepare?",
+                      icon: "📑",
+                    },
+                    {
+                      label: "How do I submit an official application?",
+                      icon: "🚀",
+                    },
+                  ].map((item, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleSendMessage(prompt)}
-                      disabled={sending}
-                      className="p-3 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] hover:border-emerald-500/40 hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-between group disabled:opacity-50"
+                      type="button"
+                      onClick={() => handleSendAiMessage(item.label)}
+                      disabled={aiThinking}
+                      className="w-full text-left p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] hover:border-emerald-500/40 hover:bg-[var(--bg-hover)] text-xs text-[var(--text-secondary)] hover:text-emerald-300 transition-all flex items-center justify-between group disabled:opacity-50 cursor-pointer"
                     >
-                      <span className="truncate pr-2">{prompt}</span>
-                      <Send className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      <span className="truncate pr-2">
+                        <span className="mr-1.5">{item.icon}</span>
+                        {item.label}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </button>
                   ))}
                 </div>
               </div>
-            ) : (
-              /* Message Timeline */
-              groupedMessages.map((group, gIdx) => (
-                <div key={gIdx} className="space-y-4">
-                  {/* Date Separator */}
-                  <div className="flex items-center gap-3 my-4">
-                    <div className="flex-1 h-px bg-[var(--border-subtle)]" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] px-3 py-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                      {group.date}
-                    </span>
-                    <div className="flex-1 h-px bg-[var(--border-subtle)]" />
-                  </div>
 
-                  {group.items.map((msg) => {
-                    const isOwn = msg.senderId === appUser?.uid;
-
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex gap-3 ${
-                          isOwn ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        {!isOwn && (
-                          <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-1 shadow">
-                            {counsellorInfo.name[0] || "C"}
-                          </div>
-                        )}
-
-                        <div
-                          className={`max-w-[75%] rounded-2xl p-4 space-y-1.5 shadow-sm ${
-                            isOwn
-                              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none"
-                              : "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-tl-none"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-4 text-[11px]">
-                            <span
-                              className={`font-semibold ${
-                                isOwn ? "text-emerald-100" : "text-emerald-400"
-                              }`}
-                            >
-                              {isOwn ? "You" : msg.senderName}
-                            </span>
-                            <span
-                              className={`${
-                                isOwn ? "text-emerald-200" : "text-[var(--text-muted)]"
-                              }`}
-                            >
-                              {formatTime(msg.timestamp)}
-                            </span>
-                          </div>
-
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                            {msg.content}
-                          </p>
-
-                          {isOwn && (
-                            <div className="flex justify-end text-emerald-200 pt-0.5">
-                              {msg.read ? (
-                                <CheckCheck className="w-3.5 h-3.5" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5" />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Quick Prompts Drawer (when there are already messages) */}
-          {messages.length > 0 && (
-            <div className="px-6 py-2 bg-[var(--bg-main)] border-t border-[var(--border-subtle)] flex items-center gap-2 overflow-x-auto no-scrollbar">
-              <span className="text-[11px] font-semibold text-[var(--text-muted)] shrink-0 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-emerald-400" /> Quick ask:
-              </span>
-              {STARTER_PROMPTS.slice(0, 3).map((prompt, i) => (
-                <button
-                  key={i}
-                  onClick={() => setInputText(prompt)}
-                  className="px-2.5 py-1 text-[11px] rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30 whitespace-nowrap transition-colors"
-                >
-                  {prompt.length > 40 ? prompt.slice(0, 37) + "..." : prompt}
-                </button>
-              ))}
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5" /> Need Official Review?
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Switch to the Dedicated Counsellor tab anytime to message your assigned counsellor directly.
+                </p>
+              </div>
             </div>
-          )}
+          </div>
+        ) : (
+          /* =================== HUMAN COUNSELLOR SIDEBAR =================== */
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            {/* Counsellor Profile Card */}
+            <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-bold text-xl flex items-center justify-center shadow-md">
+                    {counsellorInfo.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[var(--bg-card)]" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
+                    {counsellorInfo.name}
+                  </h3>
+                  <p className="text-xs text-emerald-400 font-medium">
+                    {counsellorInfo.role}
+                  </p>
+                  <p className="text-xs text-[var(--text-muted)] truncate">
+                    {counsellorInfo.email}
+                  </p>
+                </div>
+              </div>
 
-          {/* Message Input Form */}
-          <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)]">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="flex items-end gap-3"
-            >
-              <div className="flex-1 relative">
-                <textarea
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
-                  rows={2}
-                  className="w-full p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-default)] focus:border-emerald-500 focus:outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] resize-none transition-colors"
-                />
+              <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2.5 text-xs text-[var(--text-secondary)]">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Verified Education Consultant</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Typical response time: within 2 hours</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>Specialized in UK, Canada, Australia & USA</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Help & Guidance Box */}
+            <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm flex-1 flex flex-col justify-between space-y-4">
+              <div>
+                <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--text-muted)] flex items-center gap-1.5 mb-3">
+                  <HelpCircle className="w-4 h-4 text-amber-400" />
+                  How your counsellor helps
+                </h4>
+                <ul className="space-y-2.5 text-xs text-[var(--text-secondary)]">
+                  <li className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <span>Program matching & eligibility pre-screening</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <span>Statement of Purpose (SOP) critique & editing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <span>Document verification before university submission</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <span>Visa interview preparation & guidance</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> Need urgent assistance?
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Messages posted here are tracked with priority notifications to our admissions office.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =================== RIGHT AREA: CHAT TIMELINE & INPUT =================== */}
+        {chatMode === "ai" ? (
+          /* AI Chat Room */
+          <div className="lg:col-span-8 flex flex-col rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm overflow-hidden h-full">
+            {/* AI Room Top Bar */}
+            <div className="px-6 py-4 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    AI Counsellor &amp; Guide
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      Live Intelligent Advisor
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Equipped with your profile, program database &amp; CRM guide
+                  </p>
+                </div>
               </div>
 
               <button
-                type="submit"
-                disabled={!inputText.trim() || sending}
-                className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-emerald-500/20 active:scale-95 shrink-0"
+                type="button"
+                onClick={() =>
+                  setAiMessages([
+                    {
+                      id: "welcome-ai",
+                      sender: "ai",
+                      content: `Hello ${
+                        ownStudent?.fullName?.split(" ")[0] || "there"
+                      }! 👋 I am your **EduCRM AI Education Counsellor & System Guide**.\n\nI can counsel you on university selection, clarify admission requirements, guide you on how to delete or resume draft applications, and help navigate every feature of this portal. How can I assist your admissions journey today?`,
+                      timestamp: Date.now(),
+                      suggestions: [
+                        "Recommend top universities matching my qualification",
+                        "How do I delete an unwanted draft application?",
+                        "What documents are required for an official application?",
+                      ],
+                    },
+                  ])
+                }
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors cursor-pointer"
+                title="Reset AI conversation"
               >
-                {sending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <span>Send</span>
-                    <Send className="w-4 h-4" />
-                  </>
-                )}
+                <RefreshCw className="w-3 h-3" />
+                <span>Reset</span>
               </button>
-            </form>
+            </div>
+
+            {/* AI Messages Scroll Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {aiMessages.map((msg) => {
+                const isUser = msg.sender === "user";
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex gap-3 ${
+                      isUser ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    {!isUser && (
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-zinc-950 font-bold text-xs flex items-center justify-center shrink-0 mt-1 shadow">
+                        <Bot className="w-5 h-5 text-zinc-950" />
+                      </div>
+                    )}
+
+                    <div
+                      className={`max-w-[80%] rounded-2xl p-4 space-y-2.5 shadow-sm ${
+                        isUser
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none"
+                          : "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-tl-none"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-4 text-[11px]">
+                        <span
+                          className={`font-semibold flex items-center gap-1.5 ${
+                            isUser ? "text-emerald-100" : "text-emerald-400"
+                          }`}
+                        >
+                          {isUser ? "You" : "AI Counsellor"}
+                          {!isUser && (
+                            <span className="text-[9px] px-1 rounded bg-emerald-500/20 text-emerald-300">
+                              AI
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={`${
+                            isUser ? "text-emerald-200" : "text-[var(--text-muted)]"
+                          }`}
+                        >
+                          {formatTime(msg.timestamp)}
+                        </span>
+                      </div>
+
+                      {/* Message Content */}
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                        {msg.content}
+                      </div>
+
+                      {/* Action Link Button if present */}
+                      {msg.actionLink && (
+                        <div className="pt-2 border-t border-[var(--border-subtle)]">
+                          <Link
+                            to={msg.actionLink.url}
+                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold transition-all shadow-sm"
+                          >
+                            <span>{msg.actionLink.label}</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Suggestions chips */}
+                      {msg.suggestions && msg.suggestions.length > 0 && (
+                        <div className="pt-2 space-y-1.5 border-t border-[var(--border-subtle)]">
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)]">
+                            Suggested Next Steps:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {msg.suggestions.map((sug, sIdx) => (
+                              <button
+                                key={sIdx}
+                                type="button"
+                                onClick={() => handleSendAiMessage(sug)}
+                                disabled={aiThinking}
+                                className="px-2.5 py-1 text-xs rounded-lg bg-[var(--bg-card)] border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/10 text-emerald-300 text-left transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                💡 {sug}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* AI Thinking Indicator */}
+              {aiThinking && (
+                <div className="flex gap-3 justify-start items-center">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-zinc-950 font-bold text-xs flex items-center justify-center shrink-0 shadow">
+                    <Bot className="w-5 h-5 text-zinc-950 animate-bounce" />
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-tl-none flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    <span>Analyzing profile &amp; formulating advice...</span>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* AI Message Input Form */}
+            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)]">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendAiMessage();
+                }}
+                className="flex items-end gap-3"
+              >
+                <div className="flex-1 relative">
+                  <textarea
+                    value={aiInputText}
+                    onChange={(e) => setAiInputText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask AI: 'Recommend best universities', 'How do I delete drafts?', 'Check my requirements'..."
+                    rows={2}
+                    className="w-full p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-default)] focus:border-emerald-500 focus:outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] resize-none transition-colors"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!aiInputText.trim() || aiThinking}
+                  className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-emerald-500/20 active:scale-95 shrink-0 cursor-pointer"
+                >
+                  {aiThinking ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Ask AI</span>
+                      <Sparkles className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Human Counsellor Room */
+          <div className="lg:col-span-8 flex flex-col rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm overflow-hidden h-full">
+            {/* Chat Room Top Bar */}
+            <div className="px-6 py-4 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    {counsellorInfo.name}
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Direct Student Advisory Chat &bull; Encrypted &amp; Logged
+                  </p>
+                </div>
+              </div>
+
+              {conversation && (
+                <span className="text-xs text-[var(--text-muted)] font-mono">
+                  Thread #{conversation.id.slice(-6)}
+                </span>
+              )}
+            </div>
+
+            {/* Error Banner if any */}
+            {errorMessage && (
+              <div className="px-4 py-2.5 bg-rose-500/10 border-b border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Messages Scroll Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {loadingConv || loadingMessages ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-[var(--text-muted)]">
+                  <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                  <p className="text-sm">Connecting to advisory channel...</p>
+                </div>
+              ) : messages.length === 0 ? (
+                /* Empty State */
+                <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto py-8">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 shadow-inner">
+                    <MessageSquare className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[var(--text-primary)]">
+                    Start a conversation with your counsellor
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1.5 mb-6">
+                    Have questions about universities, program requirements, or document submissions? Send a message below or pick a quick starter prompt.
+                  </p>
+
+                  {/* Quick Starter Chips */}
+                  <div className="grid gap-2 w-full text-left">
+                    {STARTER_PROMPTS.map((prompt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSendMessage(prompt)}
+                        disabled={sending}
+                        className="p-3 text-xs rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] hover:border-emerald-500/40 hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-between group disabled:opacity-50 cursor-pointer"
+                      >
+                        <span className="truncate pr-2">{prompt}</span>
+                        <Send className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Message Timeline */
+                groupedMessages.map((group, gIdx) => (
+                  <div key={gIdx} className="space-y-4">
+                    {/* Date Separator */}
+                    <div className="flex items-center gap-3 my-4">
+                      <div className="flex-1 h-px bg-[var(--border-subtle)]" />
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] px-3 py-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+                        {group.date}
+                      </span>
+                      <div className="flex-1 h-px bg-[var(--border-subtle)]" />
+                    </div>
+
+                    {group.items.map((msg) => {
+                      const isOwn = msg.senderId === appUser?.uid;
+
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex gap-3 ${
+                            isOwn ? "justify-end" : "justify-start"
+                          }`}
+                        >
+                          {!isOwn && (
+                            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-1 shadow">
+                              {counsellorInfo.name[0] || "C"}
+                            </div>
+                          )}
+
+                          <div
+                            className={`max-w-[75%] rounded-2xl p-4 space-y-1.5 shadow-sm ${
+                              isOwn
+                                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none"
+                                : "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-tl-none"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-4 text-[11px]">
+                              <span
+                                className={`font-semibold ${
+                                  isOwn ? "text-emerald-100" : "text-emerald-400"
+                                }`}
+                              >
+                                {isOwn ? "You" : msg.senderName}
+                              </span>
+                              <span
+                                className={`${
+                                  isOwn ? "text-emerald-200" : "text-[var(--text-muted)]"
+                                }`}
+                              >
+                                {formatTime(msg.timestamp)}
+                              </span>
+                            </div>
+
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                              {msg.content}
+                            </p>
+
+                            {isOwn && (
+                              <div className="flex justify-end text-emerald-200 pt-0.5">
+                                {msg.read ? (
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Quick Prompts Drawer (when there are already messages) */}
+            {messages.length > 0 && (
+              <div className="px-6 py-2 bg-[var(--bg-main)] border-t border-[var(--border-subtle)] flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <span className="text-[11px] font-semibold text-[var(--text-muted)] shrink-0 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-emerald-400" /> Quick ask:
+                </span>
+                {STARTER_PROMPTS.slice(0, 3).map((prompt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setInputText(prompt)}
+                    className="px-2.5 py-1 text-[11px] rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30 whitespace-nowrap transition-colors cursor-pointer"
+                  >
+                    {prompt.length > 40 ? prompt.slice(0, 37) + "..." : prompt}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Message Input Form */}
+            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)]">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="flex items-end gap-3"
+              >
+                <div className="flex-1 relative">
+                  <textarea
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
+                    rows={2}
+                    className="w-full p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-default)] focus:border-emerald-500 focus:outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] resize-none transition-colors"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!inputText.trim() || sending}
+                  className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-emerald-500/20 active:scale-95 shrink-0 cursor-pointer"
+                >
+                  {sending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Send</span>
+                      <Send className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

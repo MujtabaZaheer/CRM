@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Loader2,
   Plus,
+  Search,
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
@@ -132,6 +133,7 @@ export const StudentDocumentVault: React.FC = () => {
   const [customDocType, setCustomDocType] = useState("");
   const [customExpiryDate, setCustomExpiryDate] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const uid = firebaseUser?.uid || appUser?.uid;
 
@@ -288,6 +290,24 @@ export const StudentDocumentVault: React.FC = () => {
   const mandatoryCount = REQUIRED_STANDARD_DOCS.filter((r) => r.mandatory).length;
   const completedMandatoryCount = completedStandardDocs.filter((r) => r.mandatory).length;
 
+  const q = searchQuery.toLowerCase().trim();
+  const filteredStandardDocs = useMemo(() => {
+    return REQUIRED_STANDARD_DOCS.filter((req) => {
+      if (!q) return true;
+      const uploaded = documents.find((d) => {
+        const t = d.documentType || (d as any).docType || (d as any).type || "";
+        const n = d.fileName || (d as any).name || "";
+        return isDocumentMatch(t, req.type) || isDocumentMatch(n, req.type);
+      });
+      return (
+        req.label.toLowerCase().includes(q) ||
+        req.type.toLowerCase().includes(q) ||
+        req.whyRequired.toLowerCase().includes(q) ||
+        (uploaded && (uploaded.fileName || "").toLowerCase().includes(q))
+      );
+    });
+  }, [documents, q]);
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center text-zinc-400">
@@ -312,7 +332,17 @@ export const StudentDocumentVault: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search documents..."
+              className="pl-8 pr-3 py-2 rounded-xl bg-zinc-800/80 border border-zinc-700 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 w-44 sm:w-56 transition-colors"
+            />
+          </div>
           <button
             type="button"
             onClick={() => setIsCustomModalOpen(true)}
@@ -366,8 +396,13 @@ export const StudentDocumentVault: React.FC = () => {
       {/* Standard Required Slots */}
       <section className="space-y-4">
         <h2 className="text-base font-bold text-white">Standard Admissions Documents</h2>
+        {filteredStandardDocs.length === 0 && (
+          <div className="p-8 text-center rounded-2xl bg-zinc-900/50 border border-dashed border-zinc-800 text-zinc-400 text-xs">
+            No standard documents match "{searchQuery}".
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {REQUIRED_STANDARD_DOCS.map((req) => {
+          {filteredStandardDocs.map((req) => {
             const uploaded = documents.find((d) => {
               const t = d.documentType || (d as any).docType || (d as any).type || "";
               const n = d.fileName || (d as any).name || "";
@@ -506,7 +541,14 @@ export const StudentDocumentVault: React.FC = () => {
             {documents
               .filter((d) => {
                 const dType = d.documentType || (d as any).docType || (d as any).type || "";
-                return !REQUIRED_STANDARD_DOCS.some((r) => isDocumentMatch(dType, r.type));
+                const isCustom = !REQUIRED_STANDARD_DOCS.some((r) => isDocumentMatch(dType, r.type));
+                if (!isCustom) return false;
+                if (!q) return true;
+                return (
+                  dType.toLowerCase().includes(q) ||
+                  (d.fileName || "").toLowerCase().includes(q) ||
+                  (d.remarks || "").toLowerCase().includes(q)
+                );
               })
               .map((doc) => (
                 <div key={doc.id} className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">

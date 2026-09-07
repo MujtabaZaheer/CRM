@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { usePortalData } from "../../hooks/usePortalData";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
@@ -16,6 +16,8 @@ import {
   ExternalLink,
   MapPin,
   ShieldCheck,
+  Trash2,
+  Search,
 } from "lucide-react";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
 
@@ -60,7 +62,35 @@ const getStageBadgeStyle = (stage: string) => {
 };
 
 export const StudentApplications: React.FC = () => {
-  const { ownApplications } = usePortalData();
+  const { ownApplications, deleteDraftApplication } = usePortalData();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteDraft = async (appId: string, universityName: string) => {
+    if (!window.confirm(`Are you sure you want to delete your draft application for ${universityName}? This action cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(appId);
+    try {
+      await deleteDraftApplication(appId);
+    } catch (err: any) {
+      alert(err.message || "Failed to delete draft application.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filteredApplications = ownApplications.filter((app) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (app.universityName || "").toLowerCase().includes(q) ||
+      (app.programmeName || "").toLowerCase().includes(q) ||
+      (app.applicationNumber || "").toLowerCase().includes(q) ||
+      (app.stage || "").toLowerCase().includes(q) ||
+      (app.intake || "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12 font-sans animate-fade-in">
@@ -86,9 +116,24 @@ export const StudentApplications: React.FC = () => {
         </Link>
       </header>
 
+      {/* Search Bar */}
+      {ownApplications.length > 0 && (
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search applications by university, program, stage, or ref..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] focus:border-emerald-500 focus:outline-none transition-colors"
+          />
+        </div>
+      )}
+
       {/* Applications Grid */}
       <div className="grid gap-5 md:grid-cols-2">
-        {ownApplications.map((app) => {
+        {filteredApplications.map((app) => {
+          const isDraft = app.stage === "Draft" || app.applicationStatus === "Draft";
           const isApproved =
             app.stage === "Unconditional Offer" ||
             app.stage === "CAS Issued" ||
@@ -116,13 +161,28 @@ export const StudentApplications: React.FC = () => {
                     </p>
                   </div>
 
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold border shrink-0 ${getStageBadgeStyle(
-                      app.stage
-                    )}`}
-                  >
-                    {app.stage}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold border ${getStageBadgeStyle(
+                        app.stage
+                      )}`}
+                    >
+                      {app.stage}
+                    </span>
+
+                    {/* Delete Draft Button */}
+                    {isDraft && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDraft(app.id, app.universityName)}
+                        disabled={deletingId === app.id}
+                        className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer"
+                        title="Delete draft application"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {isApproved && (
@@ -152,8 +212,8 @@ export const StudentApplications: React.FC = () => {
                   {app.nextAction ||
                     (isApproved
                       ? "Next Step: Accept offer and verify fee deposit."
-                      : app.stage === "Draft"
-                      ? "Draft in progress — click below to continue."
+                      : isDraft
+                      ? "Draft in progress — click below to continue or delete if no longer needed."
                       : "Your application is undergoing active internal review.")}
                 </p>
               </div>
@@ -164,17 +224,49 @@ export const StudentApplications: React.FC = () => {
                   {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : "Recently"}
                 </span>
 
-                <Link
-                  to={`/student/applications/${app.id}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
-                >
-                  {app.stage === "Draft" ? "Continue Draft →" : "View Details & Timeline →"}
-                </Link>
+                <div className="flex items-center gap-3">
+                  {isDraft && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDraft(app.id, app.universityName)}
+                      disabled={deletingId === app.id}
+                      className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+                    >
+                      Delete Draft
+                    </button>
+                  )}
+
+                  <Link
+                    to={`/student/applications/${app.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    {isDraft ? "Continue Draft →" : "View Details & Timeline →"}
+                  </Link>
+                </div>
               </div>
             </article>
           );
         })}
       </div>
+
+      {ownApplications.length > 0 && filteredApplications.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-muted)] space-y-3">
+          <Search className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-40" />
+          <h3 className="text-sm font-bold text-[var(--text-primary)]">
+            No applications match "{searchQuery}"
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Try searching by university name, intake, program, or application reference.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-emerald-400 font-semibold hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+          >
+            Clear Search
+          </button>
+        </div>
+      )}
 
       {!ownApplications.length && (
         <div className="rounded-2xl border border-dashed border-[var(--border-default)] p-12 text-center text-[var(--text-muted)] space-y-4">
@@ -202,7 +294,7 @@ export const StudentApplications: React.FC = () => {
 export const StudentApplicationDetail: React.FC = () => {
   const { applicationId } = useParams();
   const navigate = useNavigate();
-  const { ownApplications, ownDocuments } = usePortalData();
+  const { ownApplications, ownDocuments, deleteDraftApplication } = usePortalData();
   const { universities } = useGlobalData();
 
   const app = ownApplications.find((item) => item.id === applicationId);
@@ -286,6 +378,30 @@ export const StudentApplicationDetail: React.FC = () => {
               <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed / Approved Status
               </span>
+            )}
+            {(app.stage === "Draft" || app.applicationStatus === "Draft") && (
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm(`Delete this draft application for ${app.universityName}?`)) {
+                      await deleteDraftApplication(app.id);
+                      navigate("/student/applications");
+                    }
+                  }}
+                  className="px-3 py-1 text-xs font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete Draft</span>
+                </button>
+                <Link
+                  to={`/student/new-application?universityId=${app.universityId}&programmeId=${app.programmeId}`}
+                  className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 transition-colors flex items-center gap-1"
+                >
+                  <span>Continue</span>
+                  <span>→</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>
