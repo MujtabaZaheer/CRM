@@ -19,6 +19,10 @@ import {
   CheckCheck,
   ExternalLink,
   X,
+  Paperclip,
+  FileText,
+  Eye,
+  Download,
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
@@ -26,6 +30,12 @@ import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { logAuditEvent } from "../../utils/auditLogger";
 import { Task, TaskPriority } from "../../types/task";
 import { Link } from "react-router-dom";
+import { ChatAttachment } from "../../utils/aiCounselEngine";
+import {
+  cacheDocumentFile,
+  getCachedDocumentFile,
+  getDocumentBlobOrUrl,
+} from "../../utils/documentStorage";
 
 interface ChatMessage {
   id: string;
@@ -36,6 +46,7 @@ interface ChatMessage {
   timestamp: number;
   read: boolean;
   isInternalNote?: boolean;
+  attachments?: ChatAttachment[];
 }
 
 interface ConversationItem {
@@ -80,6 +91,84 @@ export const CounsellorMessages: React.FC = () => {
   const [taskPriority, setTaskPriority] = useState<TaskPriority>("Medium");
   const [taskDescription, setTaskDescription] = useState("");
   const [savingTask, setSavingTask] = useState(false);
+
+  // Attachments & Lightbox state
+  const [stagedAttachments, setStagedAttachments] = useState<{
+    id: string;
+    file: File;
+    name: string;
+    size: number;
+    type: string;
+    dataUrl: string;
+    isImage: boolean;
+  }[]>([]);
+  const [lightboxAttachment, setLightboxAttachment] = useState<ChatAttachment | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const list: typeof stagedAttachments = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 15 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 15MB limit.`);
+        continue;
+      }
+      const isImage = file.type.startsWith("image/");
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      list.push({
+        id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type || (isImage ? "image/jpeg" : "application/pdf"),
+        dataUrl,
+        isImage,
+      });
+    }
+
+    setStagedAttachments((prev) => [...prev, ...list]);
+    e.target.value = "";
+  };
+
+  const handleRemoveStagedAttachment = (id: string) => {
+    setStagedAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleOpenAttachment = async (att: ChatAttachment) => {
+    if (att.type.startsWith("image/")) {
+      let fullData = att.dataUrl || att.fileUrl || "";
+      if (!fullData || fullData.length < 5000) {
+        const cached = await getCachedDocumentFile(att.id);
+        if (cached) fullData = cached;
+      }
+      setLightboxAttachment({ ...att, dataUrl: fullData || att.dataUrl });
+      return;
+    }
+
+    try {
+      const blobUrl = await getDocumentBlobOrUrl(att.id, att.fileUrl);
+      if (blobUrl) {
+        window.open(blobUrl, "_blank");
+      } else if (att.fileUrl) {
+        window.open(att.fileUrl, "_blank");
+      } else if (att.dataUrl) {
+        window.open(att.dataUrl, "_blank");
+      } else {
+        alert(`Opening ${att.name}...`);
+      }
+    } catch (err) {
+      console.warn("Could not open document attachment:", err);
+    }
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -203,8 +292,9 @@ export const CounsellorMessages: React.FC = () => {
   // Send message or internal note handler
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const text = inputText.trim();
-    if (!text || !selectedConvId || !activeConv || sending) return;
+    const rawText = inputText.trim();
+    const hasAttachments = stagedAttachments.length > 0;
+    if ((!rawText && !hasAttachments) || !selectedConvId || !activeConv || sending) return;
 
     setSending(true);
     const now = Date.now();
@@ -214,7 +304,22 @@ export const CounsellorMessages: React.FC = () => {
       appUser?.email?.split("@")[0] ||
       (appUser?.role === "counsellor" ? "Education Counsellor" : "Admissions Team");
 
+    const text = rawText || (hasAttachments ? `📎 Attached ${stagedAttachments.length} file(s): ${stagedAttachments.map((a) => a.name).join(", ")}` : "");
+
     try {
+      // Process attachments
+      const finalAttachments: ChatAttachment[] = [];
+      for (const att of stagedAttachments) {
+        await cacheDocumentFile(att.id, att.dataUrl, att.name, att.type);
+        finalAttachments.push({
+          id: att.id,
+          name: att.name,
+          type: att.type,
+          size: att.size,
+          dataUrl: att.isImage ? att.dataUrl.slice(0, 10000) : undefined,
+        });
+      }
+
       const newMsg: Omit<ChatMessage, "id"> = {
         senderId: appUser?.uid || "staff",
         senderName,
@@ -223,6 +328,7 @@ export const CounsellorMessages: React.FC = () => {
         timestamp: now,
         read: false,
         isInternalNote,
+        ...(finalAttachments.length > 0 ? { attachments: finalAttachments } : {}),
       };
 
       // 1. Add to subcollection
@@ -230,6 +336,8 @@ export const CounsellorMessages: React.FC = () => {
         collection(db, "conversations", selectedConvId, "messages"),
         newMsg
       );
+
+      setStagedAttachments([]);
 
       // 2. If it's NOT an internal note, update parent conversation
       if (!isInternalNote) {
@@ -635,6 +743,53 @@ export const CounsellorMessages: React.FC = () => {
                             {msg.content}
                           </p>
 
+                          {/* Render Attachments */}
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="pt-2 mt-1 border-t border-white/15 space-y-1.5">
+                              <div className="flex flex-wrap gap-2">
+                                {msg.attachments.map((att) => {
+                                  const isImg = att.type?.startsWith("image/");
+                                  return isImg ? (
+                                    <div
+                                      key={att.id}
+                                      onClick={() => handleOpenAttachment(att)}
+                                      className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/20 hover:border-emerald-400 bg-black/20 transition-all shadow-sm"
+                                    >
+                                      <img
+                                        src={att.dataUrl || att.fileUrl || "/placeholder-image.png"}
+                                        alt={att.name}
+                                        className="w-28 h-20 object-cover group-hover:scale-105 transition-transform duration-200"
+                                      />
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-1.5 text-[9px] text-white">
+                                        <span className="truncate">{att.name}</span>
+                                        <span className="flex items-center gap-1 text-emerald-300">
+                                          <Eye className="w-2.5 h-2.5" /> View
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      key={att.id}
+                                      onClick={() => handleOpenAttachment(att)}
+                                      className="flex items-center gap-2 p-2 rounded-xl bg-black/25 hover:bg-black/40 border border-white/15 hover:border-emerald-400/60 cursor-pointer transition-all text-[11px] text-white"
+                                    >
+                                      <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                                        <FileText className="w-3.5 h-3.5" />
+                                      </div>
+                                      <div className="min-w-0 max-w-[140px]">
+                                        <p className="font-medium truncate">{att.name}</p>
+                                        <p className="text-[9px] text-emerald-200/80">
+                                          {att.size ? `${(att.size / 1024).toFixed(0)} KB` : "Doc"}
+                                        </p>
+                                      </div>
+                                      <Download className="w-3 h-3 text-emerald-300/70 ml-1 shrink-0" />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
                           {isStaff && (
                             <div className="flex justify-end text-emerald-200 pt-0.5">
                               {msg.read ? (
@@ -689,7 +844,62 @@ export const CounsellorMessages: React.FC = () => {
                   )}
                 </div>
 
-                <form onSubmit={handleSendMessage} className="flex items-end gap-3">
+                {/* Staged Attachments Preview Strip */}
+                {stagedAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pb-2 border-b border-[var(--border-subtle)]">
+                    {stagedAttachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[var(--bg-card)] border border-emerald-500/40 text-xs text-[var(--text-primary)] shadow-sm"
+                      >
+                        {att.isImage ? (
+                          <img
+                            src={att.dataUrl}
+                            alt={att.name}
+                            className="w-7 h-7 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                            <FileText className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                        <div className="min-w-0 max-w-[120px]">
+                          <p className="text-[11px] font-semibold truncate">{att.name}</p>
+                          <p className="text-[9px] text-[var(--text-muted)]">
+                            {(att.size / 1024).toFixed(0)} KB
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStagedAttachment(att.id)}
+                          className="p-1 rounded-md text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          title="Remove attachment"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <form onSubmit={handleSendMessage} className="flex items-end gap-2.5">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-emerald-500/40 text-[var(--text-muted)] hover:text-emerald-400 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                    title="Attach document or photo"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+
                   <div className="flex-1 relative">
                     <textarea
                       value={inputText}
@@ -716,7 +926,7 @@ export const CounsellorMessages: React.FC = () => {
 
                   <button
                     type="submit"
-                    disabled={!inputText.trim() || sending}
+                    disabled={(!inputText.trim() && stagedAttachments.length === 0) || sending}
                     className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shrink-0 active:scale-95 ${
                       isInternalNote
                         ? "bg-amber-500 hover:bg-amber-400 text-zinc-950"
@@ -842,6 +1052,66 @@ export const CounsellorMessages: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox / Modal for Image Preview */}
+      {lightboxAttachment && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setLightboxAttachment(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-elevated)]">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-bold text-sm text-[var(--text-primary)] truncate">
+                  {lightboxAttachment.name}
+                </span>
+                {lightboxAttachment.size && (
+                  <span className="text-xs text-[var(--text-muted)] shrink-0">
+                    ({(lightboxAttachment.size / 1024).toFixed(0)} KB)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = lightboxAttachment.dataUrl || lightboxAttachment.fileUrl;
+                    if (url) {
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = lightboxAttachment.name;
+                      a.click();
+                    }
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-emerald-400 transition-colors cursor-pointer"
+                  title="Download"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxAttachment(null)}
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 flex items-center justify-center overflow-auto max-h-[calc(90vh-60px)] bg-black/40">
+              <img
+                src={lightboxAttachment.dataUrl || lightboxAttachment.fileUrl}
+                alt={lightboxAttachment.name}
+                className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-md"
+              />
+            </div>
           </div>
         </div>
       )}

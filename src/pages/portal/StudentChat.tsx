@@ -28,13 +28,29 @@ import {
   UserCheck,
   ArrowRight,
   RefreshCw,
+  Paperclip,
+  FileText,
+  Download,
+  Eye,
+  X,
+  FileCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePortalData } from "../../hooks/usePortalData";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
-import { getAICounselReply, AICounselMessage } from "../../utils/aiCounselEngine";
+import {
+  getAICounselReply,
+  AICounselMessage,
+  ChatAttachment,
+} from "../../utils/aiCounselEngine";
+import {
+  cacheDocumentFile,
+  getCachedDocumentFile,
+  getDocumentBlobOrUrl,
+  uploadStudentDocument,
+} from "../../utils/documentStorage";
 
 interface ChatMessage {
   id: string;
@@ -45,6 +61,7 @@ interface ChatMessage {
   timestamp: number;
   read: boolean;
   isInternalNote?: boolean;
+  attachments?: ChatAttachment[];
 }
 
 interface Conversation {
@@ -63,32 +80,75 @@ interface Conversation {
   updatedAt: number;
 }
 
+interface PendingAttachment {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+  dataUrl: string;
+  isImage: boolean;
+}
+
 const STARTER_PROMPTS = [
+  "how to choose best university across the world and select best program according to my qualification",
+  "Could you please check my documents and verify if anything is missing?",
   "Can you review my profile and recommend top matching universities?",
   "What are the upcoming application deadlines for the September intake?",
-  "Could you please check my documents and verify if anything is missing?",
-  "I have a question regarding visa requirements and financial proof.",
 ];
+
+// Helper to generate a small, lightweight thumbnail for fast rendering
+const createThumbnail = (dataUrl: string, maxWidth = 260, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let w = img.width;
+      let h = img.height;
+      if (w > maxWidth) {
+        h = Math.round((h * maxWidth) / w);
+        w = maxWidth;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+};
 
 export const StudentChat: React.FC = () => {
   const { appUser } = useAuth();
-  const { ownStudent, ownApplications } = usePortalData();
+  const { ownStudent, ownApplications, ownDocuments } = usePortalData();
   const { universities } = useGlobalData();
 
   // Mode Switcher: Human Counsellor vs AI Advisor
   const [chatMode, setChatMode] = useState<"counsellor" | "ai">("counsellor");
+
+  // Attachment Staging State (shared across modes or for currently active input)
+  const [stagedAttachments, setStagedAttachments] = useState<PendingAttachment[]>([]);
+  const [lightboxAttachment, setLightboxAttachment] = useState<ChatAttachment | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // AI Chat State
   const [aiMessages, setAiMessages] = useState<AICounselMessage[]>([
     {
       id: "welcome-ai",
       sender: "ai",
-      content: `Hello ${ownStudent?.fullName?.split(" ")[0] || "there"}! 👋 I am your **EduCRM AI Education Counsellor & System Guide**.\n\nI can counsel you on university selection, clarify admission requirements, guide you on how to delete or resume draft applications, and help navigate every feature of this portal. How can I assist your admissions journey today?`,
+      content: `Hello ${ownStudent?.fullName?.split(" ")[0] || "there"}! 👋 I am your **EduCRM AI Education Counsellor & System Guide**.\n\nI can counsel you on university selection, evaluate your qualification and uploaded documents, guide you on how to delete or resume draft applications, and help navigate every feature of this portal. You can also attach pictures or documents anytime. How can I assist your admissions journey today?`,
       timestamp: Date.now(),
       suggestions: [
+        "how to choose best university across the world and select best program according to my qualification",
+        "Could you please check my documents and verify if anything is missing?",
         "Recommend top universities matching my qualification",
         "How do I delete an unwanted draft application?",
-        "What documents are required for an official application?",
       ],
     },
   ]);
@@ -125,7 +185,75 @@ export const StudentChat: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, aiMessages]);
+
+  // Handle file selection from file picker
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newAttachments: PendingAttachment[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 15 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds the 15MB limit.`);
+        continue;
+      }
+      const isImage = file.type.startsWith("image/");
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      newAttachments.push({
+        id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type || (isImage ? "image/jpeg" : "application/pdf"),
+        dataUrl,
+        isImage,
+      });
+    }
+
+    setStagedAttachments((prev) => [...prev, ...newAttachments]);
+    e.target.value = "";
+  };
+
+  const handleRemoveStagedAttachment = (id: string) => {
+    setStagedAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  // Open / view attachment handler
+  const handleOpenAttachment = async (att: ChatAttachment) => {
+    if (att.type.startsWith("image/")) {
+      let fullData = att.dataUrl || att.fileUrl || "";
+      if (!fullData || fullData.length < 5000) {
+        const cached = await getCachedDocumentFile(att.id);
+        if (cached) fullData = cached;
+      }
+      setLightboxAttachment({ ...att, dataUrl: fullData || att.dataUrl });
+      return;
+    }
+
+    // Document (PDF, DOCX, TXT)
+    try {
+      const blobUrl = await getDocumentBlobOrUrl(att.id, att.fileUrl);
+      if (blobUrl) {
+        window.open(blobUrl, "_blank");
+      } else if (att.fileUrl) {
+        window.open(att.fileUrl, "_blank");
+      } else if (att.dataUrl) {
+        window.open(att.dataUrl, "_blank");
+      } else {
+        alert(`Opening ${att.name}... You can also find this file in your Document Vault.`);
+      }
+    } catch (err) {
+      console.warn("Could not open document attachment:", err);
+    }
+  };
 
   // 1. Resolve Counsellor & Find/Create Conversation
   useEffect(() => {
@@ -138,13 +266,11 @@ export const StudentChat: React.FC = () => {
       setErrorMessage(null);
 
       try {
-        // Step A: Determine assigned counsellor
         let assignedId = ownStudent?.assignedCounsellorId;
         let assignedName = "Admissions Advisory Team";
         let assignedEmail = "admissions@crm.internal";
         let assignedRole = "Senior Academic Advisor";
 
-        // Try to fetch counsellor profile from users collection
         if (assignedId) {
           try {
             const userSnap = await getDocs(
@@ -160,7 +286,6 @@ export const StudentChat: React.FC = () => {
             console.warn("Could not fetch assigned counsellor document:", err);
           }
         } else {
-          // If no assigned counsellor, query for any available counsellor or staff
           try {
             const staffSnap = await getDocs(
               query(collection(db, "users"), where("role", "in", ["counsellor", "team_leader", "org_admin"]), limit(1))
@@ -189,7 +314,6 @@ export const StudentChat: React.FC = () => {
           });
         }
 
-        // Step B: Check for existing conversation with this student
         const convQuery = query(
           collection(db, "conversations"),
           where("studentId", "==", appUser.uid),
@@ -202,7 +326,6 @@ export const StudentChat: React.FC = () => {
           const convData = { id: convDoc.id, ...convDoc.data() } as Conversation;
           if (isMounted) setConversation(convData);
         } else {
-          // Create new conversation
           const studentName =
             appUser.displayName ||
             ownStudent?.fullName ||
@@ -283,10 +406,11 @@ export const StudentChat: React.FC = () => {
     return () => unsubscribe();
   }, [conversation?.id]);
 
-  // 3. Send Message Handler
+  // 3. Send Message to Human Counsellor
   const handleSendMessage = async (textToSend?: string) => {
-    const content = (textToSend || inputText).trim();
-    if (!content || !conversation?.id || !appUser?.uid || sending) return;
+    const rawContent = (textToSend || inputText).trim();
+    const hasAttachments = stagedAttachments.length > 0;
+    if ((!rawContent && !hasAttachments) || !conversation?.id || !appUser?.uid || sending) return;
 
     setSending(true);
     setErrorMessage(null);
@@ -297,15 +421,52 @@ export const StudentChat: React.FC = () => {
       appUser.email?.split("@")[0] ||
       "Student";
 
+    const content = rawContent || (hasAttachments ? `📎 Attached ${stagedAttachments.length} file(s): ${stagedAttachments.map((a) => a.name).join(", ")}` : "");
+
     try {
       const now = Date.now();
-      const newMsg = {
+
+      // Process and cache staged attachments
+      const finalAttachments: ChatAttachment[] = [];
+      for (const att of stagedAttachments) {
+        let thumbnail = "";
+        if (att.isImage) {
+          thumbnail = await createThumbnail(att.dataUrl, 260, 0.75);
+        }
+
+        // Cache in local IndexedDB
+        await cacheDocumentFile(att.id, att.dataUrl, att.name, att.type);
+
+        // Also register in student_documents collection for permanent audit
+        try {
+          await uploadStudentDocument(
+            appUser.uid,
+            att.file,
+            att.isImage ? "Chat Photo" : "Chat Document",
+            undefined,
+            att.id
+          );
+        } catch (uErr) {
+          console.warn("Could not register attachment into student_documents:", uErr);
+        }
+
+        finalAttachments.push({
+          id: att.id,
+          name: att.name,
+          type: att.type,
+          size: att.size,
+          dataUrl: att.isImage ? thumbnail : undefined,
+        });
+      }
+
+      const newMsg: Omit<ChatMessage, "id"> = {
         senderId: appUser.uid,
         senderName,
-        senderRole: "student" as const,
+        senderRole: "student",
         content,
         timestamp: now,
         read: false,
+        ...(finalAttachments.length > 0 ? { attachments: finalAttachments } : {}),
       };
 
       // Add to subcollection
@@ -337,15 +498,15 @@ export const StudentChat: React.FC = () => {
             message: content.length > 80 ? content.slice(0, 77) + "..." : content,
             read: false,
             createdAt: now,
-            link: `/counsellor/students`,
+            link: `/counsellor/messages`,
           });
         } catch (notifErr) {
-          // Non-blocking notification error
           console.warn("Could not dispatch counsellor notification:", notifErr);
         }
       }
 
       setInputText("");
+      setStagedAttachments([]);
     } catch (err: any) {
       console.error("Error sending message:", err);
       setErrorMessage(err.message || "Failed to send message. Please try again.");
@@ -356,8 +517,43 @@ export const StudentChat: React.FC = () => {
 
   // 4. Send Message to AI Counsellor
   const handleSendAiMessage = async (customText?: string) => {
-    const text = (customText || aiInputText).trim();
-    if (!text || aiThinking) return;
+    const rawText = (customText || aiInputText).trim();
+    const hasAttachments = stagedAttachments.length > 0;
+    if ((!rawText && !hasAttachments) || aiThinking) return;
+
+    const text = rawText || (hasAttachments ? `Please review the attached document(s): ${stagedAttachments.map((a) => a.name).join(", ")}` : "");
+
+    // Process attachments for AI
+    const formattedAttachments: ChatAttachment[] = [];
+    for (const att of stagedAttachments) {
+      let thumbnail = "";
+      if (att.isImage) {
+        thumbnail = await createThumbnail(att.dataUrl, 260, 0.75);
+      }
+      await cacheDocumentFile(att.id, att.dataUrl, att.name, att.type);
+
+      if (appUser?.uid) {
+        try {
+          await uploadStudentDocument(
+            appUser.uid,
+            att.file,
+            att.isImage ? "Chat Photo" : "Chat Document",
+            undefined,
+            att.id
+          );
+        } catch (uErr) {
+          console.warn("Could not register attachment into student_documents:", uErr);
+        }
+      }
+
+      formattedAttachments.push({
+        id: att.id,
+        name: att.name,
+        type: att.type,
+        size: att.size,
+        dataUrl: att.isImage ? thumbnail : att.dataUrl,
+      });
+    }
 
     const userMsgId = `usr-${Date.now()}`;
     const userMsg: AICounselMessage = {
@@ -365,10 +561,12 @@ export const StudentChat: React.FC = () => {
       sender: "user",
       content: text,
       timestamp: Date.now(),
+      ...(formattedAttachments.length > 0 ? { attachments: formattedAttachments } : {}),
     };
 
     setAiMessages((prev) => [...prev, userMsg]);
     setAiInputText("");
+    setStagedAttachments([]);
     setAiThinking(true);
 
     try {
@@ -381,6 +579,8 @@ export const StudentChat: React.FC = () => {
         student: ownStudent,
         applications: ownApplications,
         universities,
+        documents: ownDocuments,
+        activeAttachments: formattedAttachments,
       };
 
       const result = await getAICounselReply(text, history, context);
@@ -421,7 +621,6 @@ export const StudentChat: React.FC = () => {
     }
   };
 
-  // Format timestamp helper
   const formatTime = (ts: number) => {
     const date = new Date(ts);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -436,7 +635,6 @@ export const StudentChat: React.FC = () => {
     });
   };
 
-  // Group messages by calendar day
   const groupedMessages = useMemo(() => {
     const groups: { date: string; items: ChatMessage[] }[] = [];
     messages.forEach((msg) => {
@@ -453,6 +651,16 @@ export const StudentChat: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Hidden file input for picture & document attachments */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.txt"
+        className="hidden"
+      />
+
       {/* Header Banner */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -471,7 +679,7 @@ export const StudentChat: React.FC = () => {
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
             {chatMode === "ai"
-              ? "Instant AI advising: Explore university requirements, get system help, learn how to delete drafts, and prepare your application."
+              ? "Instant AI advising: Check your documents, explore program matching, evaluate targeted universities, and get comprehensive guidance."
               : "Connect directly with your dedicated education counsellor for application guidance, document reviews, and interview prep."}
           </p>
         </div>
@@ -506,7 +714,7 @@ export const StudentChat: React.FC = () => {
       </header>
 
       {/* Main Chat Grid */}
-      <div className="grid lg:grid-cols-12 gap-6 h-[720px]">
+      <div className="grid lg:grid-cols-12 gap-6 h-[740px]">
         {chatMode === "ai" ? (
           /* =================== AI COUNSELLOR SIDEBAR =================== */
           <div className="lg:col-span-4 flex flex-col gap-4">
@@ -543,6 +751,10 @@ export const StudentChat: React.FC = () => {
                   <span>Tailored recommendations based on your profile</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-teal-400 shrink-0" />
+                  <span>Analyzes uploaded documents &amp; attachments</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-cyan-400 shrink-0" />
                   <span>Deep database of global university programs</span>
                 </div>
@@ -563,20 +775,24 @@ export const StudentChat: React.FC = () => {
                 <div className="space-y-2">
                   {[
                     {
-                      label: "Recommend universities for my profile",
+                      label: "how to choose best university across the world and select best program according to my qualification",
+                      display: "How to choose best university & program by qualification",
                       icon: "🎓",
                     },
                     {
-                      label: "How do I delete my draft applications?",
-                      icon: "🗑️",
-                    },
-                    {
-                      label: "What documents do I need to prepare?",
+                      label: "Could you please check my documents and verify if anything is missing?",
+                      display: "Check my documents & application readiness",
                       icon: "📑",
                     },
                     {
-                      label: "How do I submit an official application?",
-                      icon: "🚀",
+                      label: "Review my targeted universities and active applications",
+                      display: "Review my targeted universities",
+                      icon: "🏛️",
+                    },
+                    {
+                      label: "How do I delete an unwanted draft application?",
+                      display: "How do I delete my draft applications?",
+                      icon: "🗑️",
                     },
                   ].map((item, idx) => (
                     <button
@@ -588,7 +804,7 @@ export const StudentChat: React.FC = () => {
                     >
                       <span className="truncate pr-2">
                         <span className="mr-1.5">{item.icon}</span>
-                        {item.label}
+                        {item.display}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </button>
@@ -598,7 +814,7 @@ export const StudentChat: React.FC = () => {
 
               <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5" /> Need Official Review?
+                  <UserCheck className="w-3.5 h-3.5" /> Need Official Human Review?
                 </p>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Switch to the Dedicated Counsellor tab anytime to message your assigned counsellor directly.
@@ -646,7 +862,7 @@ export const StudentChat: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>Specialized in UK, Canada, Australia & USA</span>
+                  <span>Specialized in UK, Canada, Australia &amp; USA</span>
                 </div>
               </div>
             </div>
@@ -661,19 +877,19 @@ export const StudentChat: React.FC = () => {
                 <ul className="space-y-2.5 text-xs text-[var(--text-secondary)]">
                   <li className="flex items-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Program matching & eligibility pre-screening</span>
+                    <span>Program matching &amp; eligibility pre-screening</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Statement of Purpose (SOP) critique & editing</span>
+                    <span>Statement of Purpose (SOP) critique &amp; editing</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Document verification before university submission</span>
+                    <span>Document &amp; picture verification before university submission</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Visa interview preparation & guidance</span>
+                    <span>Visa interview preparation &amp; guidance</span>
                   </li>
                 </ul>
               </div>
@@ -683,7 +899,7 @@ export const StudentChat: React.FC = () => {
                   <Sparkles className="w-3.5 h-3.5" /> Need urgent assistance?
                 </p>
                 <p className="text-[11px] text-[var(--text-muted)]">
-                  Messages posted here are tracked with priority notifications to our admissions office.
+                  Messages and documents posted here are tracked with priority notifications to our admissions office.
                 </p>
               </div>
             </div>
@@ -706,7 +922,7 @@ export const StudentChat: React.FC = () => {
                     </span>
                   </h3>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    Equipped with your profile, program database &amp; CRM guide
+                    Equipped with your profile, uploaded documents &amp; targeted universities
                   </p>
                 </div>
               </div>
@@ -720,12 +936,13 @@ export const StudentChat: React.FC = () => {
                       sender: "ai",
                       content: `Hello ${
                         ownStudent?.fullName?.split(" ")[0] || "there"
-                      }! 👋 I am your **EduCRM AI Education Counsellor & System Guide**.\n\nI can counsel you on university selection, clarify admission requirements, guide you on how to delete or resume draft applications, and help navigate every feature of this portal. How can I assist your admissions journey today?`,
+                      }! 👋 I am your **EduCRM AI Education Counsellor & System Guide**.\n\nI can counsel you on university selection, evaluate your qualification and uploaded documents, guide you on how to delete or resume draft applications, and help navigate every feature of this portal. You can also attach pictures or documents anytime. How can I assist your admissions journey today?`,
                       timestamp: Date.now(),
                       suggestions: [
+                        "how to choose best university across the world and select best program according to my qualification",
+                        "Could you please check my documents and verify if anything is missing?",
                         "Recommend top universities matching my qualification",
                         "How do I delete an unwanted draft application?",
-                        "What documents are required for an official application?",
                       ],
                     },
                   ])
@@ -756,7 +973,7 @@ export const StudentChat: React.FC = () => {
                     )}
 
                     <div
-                      className={`max-w-[80%] rounded-2xl p-4 space-y-2.5 shadow-sm ${
+                      className={`max-w-[85%] rounded-2xl p-4 space-y-2.5 shadow-sm ${
                         isUser
                           ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none"
                           : "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-tl-none"
@@ -788,6 +1005,53 @@ export const StudentChat: React.FC = () => {
                       <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                         {msg.content}
                       </div>
+
+                      {/* Message Attachments */}
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="pt-2 mt-2 border-t border-white/10 space-y-2">
+                          <div className="flex flex-wrap gap-2">
+                            {msg.attachments.map((att) => {
+                              const isImg = att.type?.startsWith("image/");
+                              return isImg ? (
+                                <div
+                                  key={att.id}
+                                  onClick={() => handleOpenAttachment(att)}
+                                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/20 hover:border-emerald-400 bg-black/20 transition-all shadow-sm"
+                                >
+                                  <img
+                                    src={att.dataUrl || att.fileUrl || "/placeholder-image.png"}
+                                    alt={att.name}
+                                    className="w-32 h-24 object-cover group-hover:scale-105 transition-transform duration-200"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 text-[10px] text-white">
+                                    <span className="truncate font-medium">{att.name}</span>
+                                    <span className="flex items-center gap-1 text-emerald-300 mt-0.5">
+                                      <Eye className="w-3 h-3" /> View image
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  key={att.id}
+                                  onClick={() => handleOpenAttachment(att)}
+                                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/25 hover:bg-black/40 border border-white/15 hover:border-emerald-400/60 cursor-pointer transition-all text-xs text-white"
+                                >
+                                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                                    <FileText className="w-4 h-4" />
+                                  </div>
+                                  <div className="min-w-0 max-w-[160px]">
+                                    <p className="font-semibold truncate">{att.name}</p>
+                                    <p className="text-[10px] text-emerald-200/80">
+                                      {att.size ? `${(att.size / 1024).toFixed(0)} KB` : "Document"} &bull; Click to open
+                                    </p>
+                                  </div>
+                                  <Download className="w-3.5 h-3.5 text-emerald-300/70 ml-1 shrink-0" />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Action Link Button if present */}
                       {msg.actionLink && (
@@ -836,7 +1100,7 @@ export const StudentChat: React.FC = () => {
                   </div>
                   <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-tl-none flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                     <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                    <span>Analyzing profile &amp; formulating advice...</span>
+                    <span>Analyzing profile, documents &amp; formulating advice...</span>
                   </div>
                 </div>
               )}
@@ -845,20 +1109,68 @@ export const StudentChat: React.FC = () => {
             </div>
 
             {/* AI Message Input Form */}
-            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)]">
+            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)] space-y-2.5">
+              {/* Staged Attachments Preview Strip */}
+              {stagedAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 pb-2.5 border-b border-[var(--border-subtle)]">
+                  {stagedAttachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[var(--bg-card)] border border-emerald-500/40 text-xs text-[var(--text-primary)] shadow-sm"
+                    >
+                      {att.isImage ? (
+                        <img
+                          src={att.dataUrl}
+                          alt={att.name}
+                          className="w-8 h-8 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                      )}
+                      <div className="min-w-0 max-w-[140px]">
+                        <p className="text-xs font-semibold truncate">{att.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">
+                          {(att.size / 1024).toFixed(0)} KB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStagedAttachment(att.id)}
+                        className="p-1 rounded-md text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Remove attachment"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendAiMessage();
                 }}
-                className="flex items-end gap-3"
+                className="flex items-end gap-2.5"
               >
+                {/* Attach Picture or Document button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-3 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-emerald-500/40 text-[var(--text-muted)] hover:text-emerald-400 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                  title="Attach picture or document (PDF, DOCX, JPG, PNG)"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+
                 <div className="flex-1 relative">
                   <textarea
                     value={aiInputText}
                     onChange={(e) => setAiInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask AI: 'Recommend best universities', 'How do I delete drafts?', 'Check my requirements'..."
+                    placeholder="Ask AI: 'how to choose best university & program', 'check my documents', 'verify requirements'..."
                     rows={2}
                     className="w-full p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-default)] focus:border-emerald-500 focus:outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] resize-none transition-colors"
                   />
@@ -866,7 +1178,7 @@ export const StudentChat: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={!aiInputText.trim() || aiThinking}
+                  disabled={(!aiInputText.trim() && stagedAttachments.length === 0) || aiThinking}
                   className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-emerald-500/20 active:scale-95 shrink-0 cursor-pointer"
                 >
                   {aiThinking ? (
@@ -930,7 +1242,7 @@ export const StudentChat: React.FC = () => {
                     Start a conversation with your counsellor
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] mt-1.5 mb-6">
-                    Have questions about universities, program requirements, or document submissions? Send a message below or pick a quick starter prompt.
+                    Have questions about universities, program requirements, or document submissions? Send a message, attach documents, or pick a prompt below.
                   </p>
 
                   {/* Quick Starter Chips */}
@@ -1005,6 +1317,53 @@ export const StudentChat: React.FC = () => {
                               {msg.content}
                             </p>
 
+                            {/* Message Attachments */}
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="pt-2 mt-2 border-t border-white/10 space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {msg.attachments.map((att) => {
+                                    const isImg = att.type?.startsWith("image/");
+                                    return isImg ? (
+                                      <div
+                                        key={att.id}
+                                        onClick={() => handleOpenAttachment(att)}
+                                        className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/20 hover:border-emerald-400 bg-black/20 transition-all shadow-sm"
+                                      >
+                                        <img
+                                          src={att.dataUrl || att.fileUrl || "/placeholder-image.png"}
+                                          alt={att.name}
+                                          className="w-32 h-24 object-cover group-hover:scale-105 transition-transform duration-200"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 text-[10px] text-white">
+                                          <span className="truncate font-medium">{att.name}</span>
+                                          <span className="flex items-center gap-1 text-emerald-300 mt-0.5">
+                                            <Eye className="w-3 h-3" /> View image
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div
+                                        key={att.id}
+                                        onClick={() => handleOpenAttachment(att)}
+                                        className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/25 hover:bg-black/40 border border-white/15 hover:border-emerald-400/60 cursor-pointer transition-all text-xs text-white"
+                                      >
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                                          <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div className="min-w-0 max-w-[160px]">
+                                          <p className="font-semibold truncate">{att.name}</p>
+                                          <p className="text-[10px] text-emerald-200/80">
+                                            {att.size ? `${(att.size / 1024).toFixed(0)} KB` : "Document"} &bull; Click to open
+                                          </p>
+                                        </div>
+                                        <Download className="w-3.5 h-3.5 text-emerald-300/70 ml-1 shrink-0" />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
                             {isOwn && (
                               <div className="flex justify-end text-emerald-200 pt-0.5">
                                 {msg.read ? (
@@ -1030,7 +1389,7 @@ export const StudentChat: React.FC = () => {
                 <span className="text-[11px] font-semibold text-[var(--text-muted)] shrink-0 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-emerald-400" /> Quick ask:
                 </span>
-                {STARTER_PROMPTS.slice(0, 3).map((prompt, i) => (
+                {STARTER_PROMPTS.map((prompt, i) => (
                   <button
                     key={i}
                     onClick={() => setInputText(prompt)}
@@ -1043,14 +1402,62 @@ export const StudentChat: React.FC = () => {
             )}
 
             {/* Message Input Form */}
-            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)]">
+            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)] space-y-2.5">
+              {/* Staged Attachments Preview Strip */}
+              {stagedAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 pb-2.5 border-b border-[var(--border-subtle)]">
+                  {stagedAttachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[var(--bg-card)] border border-emerald-500/40 text-xs text-[var(--text-primary)] shadow-sm"
+                    >
+                      {att.isImage ? (
+                        <img
+                          src={att.dataUrl}
+                          alt={att.name}
+                          className="w-8 h-8 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                      )}
+                      <div className="min-w-0 max-w-[140px]">
+                        <p className="text-xs font-semibold truncate">{att.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">
+                          {(att.size / 1024).toFixed(0)} KB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStagedAttachment(att.id)}
+                        className="p-1 rounded-md text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Remove attachment"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendMessage();
                 }}
-                className="flex items-end gap-3"
+                className="flex items-end gap-2.5"
               >
+                {/* Attach Picture or Document button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-3 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] hover:border-emerald-500/40 text-[var(--text-muted)] hover:text-emerald-400 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                  title="Attach picture or document (PDF, DOCX, JPG, PNG)"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+
                 <div className="flex-1 relative">
                   <textarea
                     value={inputText}
@@ -1064,7 +1471,7 @@ export const StudentChat: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={!inputText.trim() || sending}
+                  disabled={(!inputText.trim() && stagedAttachments.length === 0) || sending}
                   className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-emerald-500/20 active:scale-95 shrink-0 cursor-pointer"
                 >
                   {sending ? (
@@ -1081,6 +1488,66 @@ export const StudentChat: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Lightbox / Modal for Image Preview */}
+      {lightboxAttachment && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setLightboxAttachment(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-elevated)]">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-bold text-sm text-[var(--text-primary)] truncate">
+                  {lightboxAttachment.name}
+                </span>
+                {lightboxAttachment.size && (
+                  <span className="text-xs text-[var(--text-muted)] shrink-0">
+                    ({(lightboxAttachment.size / 1024).toFixed(0)} KB)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = lightboxAttachment.dataUrl || lightboxAttachment.fileUrl;
+                    if (url) {
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = lightboxAttachment.name;
+                      a.click();
+                    }
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-emerald-400 transition-colors cursor-pointer"
+                  title="Download"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxAttachment(null)}
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 flex items-center justify-center overflow-auto max-h-[calc(90vh-60px)] bg-black/40">
+              <img
+                src={lightboxAttachment.dataUrl || lightboxAttachment.fileUrl}
+                alt={lightboxAttachment.name}
+                className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-md"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
