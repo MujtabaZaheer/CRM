@@ -35,14 +35,22 @@ export const TeamLeaderTeamMembers: React.FC = () => {
     const cLeads = leads.filter(l => l.assignedTo === c.uid || l.assignedTo === c.email).length;
     const cApps = applications.filter(a => a.assignedCounsellor === c.email).length;
     const cTasks = tasks.filter(t => t.assignedTo === c.email && t.status !== "Completed").length;
-    // Mock performance score based on applications and task turnaround
+    
+    const workloadScore = cApps + cTasks;
+    const capacityStatus: "Light" | "Optimal" | "Heavy" | "Overloaded" = 
+      workloadScore > 20 ? "Overloaded" :
+      workloadScore > 12 ? "Heavy" :
+      workloadScore > 4 ? "Optimal" : "Light";
+
+    // Performance score based on applications and task turnaround
     const baseScore = 75 + (cApps * 4) - (cTasks * 2);
     const score = Math.max(50, Math.min(99, baseScore));
     return {
       leadsCount: cLeads,
       appsCount: cApps,
       tasksCount: cTasks,
-      performanceScore: score
+      performanceScore: score,
+      capacityStatus
     };
   };
 
@@ -65,9 +73,7 @@ export const TeamLeaderTeamMembers: React.FC = () => {
                             email.toLowerCase().includes(searchQuery.toLowerCase());
       
       const stats = getMemberStats(c);
-      const matchesStatus = statusFilter === "All" || 
-                            (statusFilter === "Overloaded" && stats.tasksCount > 3) ||
-                            (statusFilter === "Optimal" && stats.tasksCount <= 3);
+      const matchesStatus = statusFilter === "All" || stats.capacityStatus === statusFilter;
 
       return matchesSearch && matchesStatus;
     })
@@ -150,9 +156,11 @@ export const TeamLeaderTeamMembers: React.FC = () => {
                 }}
                 className="px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
-                <option value="All" className="bg-[var(--bg-card)]">All Workloads</option>
-                <option value="Overloaded" className="bg-[var(--bg-card)]">High Workload (&gt;3 Tasks)</option>
-                <option value="Optimal" className="bg-[var(--bg-card)]">Optimal Workload (&le;3 Tasks)</option>
+                <option value="All" className="bg-[var(--bg-card)]">All Capacities</option>
+                <option value="Light" className="bg-[var(--bg-card)]">Light Load (&lt;5 Items)</option>
+                <option value="Optimal" className="bg-[var(--bg-card)]">Optimal (5-12 Items)</option>
+                <option value="Heavy" className="bg-[var(--bg-card)]">Heavy Load (13-20 Items)</option>
+                <option value="Overloaded" className="bg-[var(--bg-card)]">Overloaded (&gt;20 Items)</option>
               </select>
             </div>
           </div>
@@ -206,7 +214,6 @@ export const TeamLeaderTeamMembers: React.FC = () => {
                 ) : (
                   paginatedCounsellors.map((c) => {
                     const stats = getMemberStats(c);
-                    const isOverloaded = stats.tasksCount > 3;
                     return (
                       <tr key={c.uid} className="hover:bg-[var(--bg-hover)] transition-colors">
                         <td className="py-3 px-4 font-semibold text-[var(--text-primary)] flex items-center space-x-2.5">
@@ -250,11 +257,15 @@ export const TeamLeaderTeamMembers: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 sq-pill font-semibold text-[10px] border ${
-                            isOverloaded 
-                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20" 
+                            stats.capacityStatus === "Overloaded"
+                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              : stats.capacityStatus === "Heavy"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : stats.capacityStatus === "Optimal"
+                              ? "bg-teal-500/10 text-teal-400 border-teal-500/20"
                               : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                           }`}>
-                            {isOverloaded ? "Overloaded" : "Optimal"}
+                            {stats.capacityStatus}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right">

@@ -28,33 +28,30 @@ export const useTeamLeaderData = () => {
   } = useGlobalData();
   
   // Scopes (defaulting if not assigned yet)
-  const office = appUser?.office || "Toronto Office";
-  const team = appUser?.team || "Americas Team";
+  const office = appUser?.office || "London HQ";
+  const team = appUser?.team || "Global Team";
 
   // Filter team members (Counsellors under the same office & team, with fallback to all counsellors)
   const scopedCounsellors = users.filter(
-    (u) => u.role === "counsellor" && u.office === office && u.team === team
+    (u) => u.role === "counsellor" && (!appUser?.office || u.office === office) && (!appUser?.team || u.team === team)
   );
   const counsellors = scopedCounsellors.length > 0 ? scopedCounsellors : users.filter((u) => u.role === "counsellor");
 
   const teamCounsellorEmails = counsellors.map((c) => c.email);
   const teamCounsellorUids = counsellors.map((c) => c.uid);
 
-  // Filter Applications
-  const filteredTeamApplications = applications.filter((app) => {
-    if (!app.assignedCounsellor) return false;
-    // Check if the application is assigned to one of the team's counsellors or the leader themselves
+  // Applications Pool:
+  // Team Leader oversees applications assigned to their team counsellors + all unassigned applications needing distribution
+  const teamApplications = applications.filter((app) => {
+    if (!app.assignedCounsellor) return true; // Unassigned applications always visible for allocation
     return (
       teamCounsellorEmails.includes(app.assignedCounsellor) ||
       app.assignedCounsellor === appUser?.email
     );
   });
-  const teamApplications = filteredTeamApplications.length > 0 ? filteredTeamApplications : applications;
 
-  // Unassigned applications must be available to a leader for initial allocation.
-  const assignmentApplications = applications.filter(
-    (app) => !app.assignedCounsellor || teamApplications.some((teamApp) => teamApp.id === app.id)
-  );
+  const unassignedApplications = teamApplications.filter((app) => !app.assignedCounsellor);
+  const assignedApplications = teamApplications.filter((app) => !!app.assignedCounsellor);
 
   // Filter Leads (including unassigned leads in the same office/team context, or assigned to counsellors/leader)
   const filteredTeamLeads = leads.filter((lead) => {
@@ -70,7 +67,7 @@ export const useTeamLeaderData = () => {
 
   // Filter Students
   const teamStudents = students.filter((student) => {
-    if (!student.assignedCounsellorId) return false;
+    if (!student.assignedCounsellorId) return true; // Show unassigned students
     return (
       teamCounsellorUids.includes(student.assignedCounsellorId) ||
       teamCounsellorEmails.includes(student.assignedCounsellorId) ||
@@ -89,6 +86,17 @@ export const useTeamLeaderData = () => {
     const isCreatedByLeader = task.createdBy === appUser?.email;
     return isAssignedToTeam || isCreatedByLeader;
   });
+
+  // Helper to strip undefined values for Firestore
+  const cleanPayload = (obj: Record<string, any>) => {
+    const cleaned: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) {
+        cleaned[k] = v;
+      }
+    }
+    return cleaned;
+  };
 
   // Actions
   const assignApplication = useCallback(async (appId: string, counsellorEmail: string) => {
@@ -192,26 +200,27 @@ export const useTeamLeaderData = () => {
     linkedEntityType?: "lead" | "student" | "application"
   ) => {
     const newTaskId = `task-${Date.now()}`;
-    const newTask: Task = {
+    const rawTask: Task = {
       id: newTaskId,
       title,
       description,
       dueDate,
       priority,
       status: "Open",
-      linkedEntityId: linkedEntityId || undefined,
-      linkedEntityName: linkedEntityName || undefined,
-      linkedEntityType: linkedEntityType || undefined,
       assignedTo: assignedToEmail,
       createdBy: appUser?.email || "Team Leader",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
+    if (linkedEntityId) rawTask.linkedEntityId = linkedEntityId;
+    if (linkedEntityName) rawTask.linkedEntityName = linkedEntityName;
+    if (linkedEntityType) rawTask.linkedEntityType = linkedEntityType;
 
-    addTask(newTask);
+    addTask(rawTask);
 
     try {
-      const docRef = await addDoc(collection(db, "tasks"), newTask);
+      const sanitizedPayload = cleanPayload(rawTask);
+      const docRef = await addDoc(collection(db, "tasks"), sanitizedPayload);
       await logAuditEvent(
         "TASK_CREATED",
         appUser?.email || "Unknown",
@@ -240,21 +249,75 @@ export const useTeamLeaderData = () => {
     }
   }, [updateGlobalTask]);
 
+  // SLA / High-priority Escalation (CRM.pdf 3.11.9)
+  const escalateTask = useCallback(async (taskId: string) => {
+    updateGlobalTask(taskId, { priority: "High", updatedAt: Date.now() });
+
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, {
+        priority: "High",
+        updatedAt: Date.now()
+      });
+      await logAuditEvent(
+        "TASK_ESCALATED",
+        appUser?.email || "Team Leader",
+        "Task",
+        `Escalated task ${taskId} to High Priority (SLA Escalation)`,
+        taskId,
+        appUser?.role
+      );
+    } catch (err) {
+      console.warn("Firestore task escalation notice:", err);
+    }
+  }, [appUser, updateGlobalTask]);
+
+  // Workload Auto-Balancing (CRM.pdf Page 1 & 40)
+  const autoBalanceWorkloads = useCallback(async (): Promise<number> => {
+    const unassigned = applications.filter((a) => !a.assignedCounsellor);
+    if (unassigned.length === 0 || counsellors.length === 0) return 0;
+
+    // Track dynamic loads
+    const loads = counsellors.map((c) => ({
+      counsellor: c,
+      count: applications.filter((a) => a.assignedCounsellor === c.email).length
+    }));
+
+    let distributed = 0;
+    for (const app of unassigned) {
+      loads.sort((a, b) => a.count - b.count);
+      const target = loads[0];
+
+      await assignApplication(app.id, target.counsellor.email);
+      target.count++;
+      distributed++;
+    }
+
+    return distributed;
+  }, [applications, counsellors, assignApplication]);
+
   return {
     office,
     team,
     counsellors,
     applications: teamApplications,
-    assignmentApplications,
+    assignmentApplications: teamApplications,
+    unassignedApplications,
+    assignedApplications,
     leads: teamLeads,
     students: teamStudents,
     tasks: teamTasks,
+    allApplications: applications,
+    allStudents: students,
+    allLeads: leads,
     loading,
     error,
     assignApplication,
     bulkAssignApplications,
     assignLead,
     createTask,
-    toggleTask
+    toggleTask,
+    escalateTask,
+    autoBalanceWorkloads
   };
 };

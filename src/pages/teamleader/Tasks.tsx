@@ -20,8 +20,12 @@ export const TeamLeaderTasks: React.FC = () => {
   const {
     counsellors,
     tasks,
+    allStudents,
+    allLeads,
+    allApplications,
     createTask,
-    toggleTask
+    toggleTask,
+    escalateTask
   } = useTeamLeaderData();
 
   // Filters state
@@ -36,6 +40,7 @@ export const TeamLeaderTasks: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [inspectedTask, setInspectedTask] = useState<Task | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successToast, setSuccessToast] = useState("");
 
   // Creation form state
   const [title, setTitle] = useState("");
@@ -43,8 +48,8 @@ export const TeamLeaderTasks: React.FC = () => {
   const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
   const [priority, setPriority] = useState<TaskPriority>("Medium");
   const [assignedTo, setAssignedTo] = useState("");
-  const [linkedName, setLinkedName] = useState("");
-  const linkedType = "student";
+  const [linkedType, setLinkedType] = useState<"none" | "student" | "lead" | "application">("none");
+  const [selectedEntityId, setSelectedEntityId] = useState("");
 
   // Categorize tasks
   const nowStr = new Date().toISOString().split("T")[0];
@@ -77,15 +82,25 @@ export const TeamLeaderTasks: React.FC = () => {
     }
 
     try {
+      let entityName: string | undefined = undefined;
+      if (linkedType === "student") {
+        entityName = allStudents.find((s) => s.id === selectedEntityId)?.fullName;
+      } else if (linkedType === "lead") {
+        entityName = allLeads.find((l) => l.id === selectedEntityId)?.fullName;
+      } else if (linkedType === "application") {
+        const app = allApplications.find((a) => a.id === selectedEntityId);
+        entityName = app ? `${app.applicationNumber} - ${app.studentName}` : undefined;
+      }
+
       await createTask(
         title,
         description,
         dueDate,
         priority,
         assignedTo,
-        undefined,
-        linkedName || undefined,
-        linkedName ? linkedType : undefined
+        selectedEntityId || undefined,
+        entityName,
+        linkedType === "none" ? undefined : linkedType
       );
 
       // Reset Form
@@ -94,9 +109,12 @@ export const TeamLeaderTasks: React.FC = () => {
       setDueDate(new Date().toISOString().split("T")[0]);
       setPriority("Medium");
       setAssignedTo("");
-      setLinkedName("");
+      setLinkedType("none");
+      setSelectedEntityId("");
       setErrorMsg("");
       setIsAddModalOpen(false);
+      setSuccessToast("Task scheduled and assigned successfully!");
+      setTimeout(() => setSuccessToast(""), 4000);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to create task.");
     }
@@ -190,9 +208,22 @@ export const TeamLeaderTasks: React.FC = () => {
           }`}>
             {t.priority}
           </span>
+          {t.priority !== "High" && t.priority !== "Urgent" && t.status !== "Completed" && (
+            <button
+              onClick={() => {
+                escalateTask(t.id);
+                setSuccessToast(`Task "${t.title}" escalated to High Priority!`);
+                setTimeout(() => setSuccessToast(""), 4000);
+              }}
+              title="Escalate to High Priority (CRM.pdf 3.11.9)"
+              className="px-1.5 py-0.5 sq-badge bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-[9px] transition-colors cursor-pointer"
+            >
+              Escalate
+            </button>
+          )}
           <button
             onClick={() => toggleTask(t.id, t.status)}
-            className="p-1 sq-avatar bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30"
+            className="p-1 sq-avatar bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30 cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />
           </button>
@@ -221,6 +252,13 @@ export const TeamLeaderTasks: React.FC = () => {
             <span>Create Task Allocation</span>
           </button>
         </div>
+
+        {successToast && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 sq-badge flex items-center space-x-2 font-medium">
+            <Check className="w-4 h-4" />
+            <span>{successToast}</span>
+          </div>
+        )}
 
         {/* Toolbar & Filters */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-default)] p-4 sq-card flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -460,16 +498,58 @@ export const TeamLeaderTasks: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[var(--text-secondary)] mb-1 uppercase font-bold text-[10px]">Linked Student</label>
-                    <input
-                      type="text"
-                      value={linkedName}
-                      onChange={(e) => setLinkedName(e.target.value)}
-                      placeholder="e.g. Student Name"
+                    <label className="block text-[var(--text-secondary)] mb-1 uppercase font-bold text-[10px]">Linked Record Type</label>
+                    <select
+                      value={linkedType}
+                      onChange={(e) => {
+                        setLinkedType(e.target.value as any);
+                        setSelectedEntityId("");
+                      }}
                       className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
-                    />
+                    >
+                      <option value="none">None (General Task)</option>
+                      <option value="student">Student Profile</option>
+                      <option value="lead">Recruitment Lead</option>
+                      <option value="application">University Application</option>
+                    </select>
                   </div>
+
+                  {linkedType !== "none" && (
+                    <div>
+                      <label className="block text-[var(--text-secondary)] mb-1 uppercase font-bold text-[10px]">
+                        Select Linked {linkedType.toUpperCase()} *
+                      </label>
+                      <select
+                        value={selectedEntityId}
+                        required
+                        onChange={(e) => setSelectedEntityId(e.target.value)}
+                        className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
+                      >
+                        <option value="">-- Choose {linkedType} --</option>
+                        {linkedType === "student" &&
+                          allStudents.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.fullName} ({s.email || s.id})
+                            </option>
+                          ))}
+                        {linkedType === "lead" &&
+                          allLeads.map((l) => (
+                            <option key={l.id} value={l.id}>
+                              {l.fullName} ({l.destinationCountry || "Lead"})
+                            </option>
+                          ))}
+                        {linkedType === "application" &&
+                          allApplications.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.applicationNumber} - {a.studentName} ({a.universityName})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-3 border-t border-[var(--border-default)]">

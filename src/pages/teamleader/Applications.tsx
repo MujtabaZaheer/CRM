@@ -12,7 +12,10 @@ import {
   Clock,
   Globe,
   Building,
-  X
+  X,
+  AlertTriangle,
+  UserCheck,
+  Check
 } from "lucide-react";
 import { Application, ApplicationStage } from "../../types/application";
 
@@ -37,6 +40,7 @@ export const TeamLeaderApplications: React.FC = () => {
     counsellors,
     applications,
     students,
+    assignApplication,
     loading
   } = useTeamLeaderData();
 
@@ -45,12 +49,23 @@ export const TeamLeaderApplications: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState("All");
   const [selectedCounsellor, setSelectedCounsellor] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("All");
+  const [quickFilter, setQuickFilter] = useState<"all" | "unassigned" | "overdue">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Selected App details drawer/modal
   const [viewApp, setViewApp] = useState<Application | null>(null);
+  const [drawerCounsellor, setDrawerCounsellor] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
+
+  // SLA Calculation (CRM.pdf 3.6.9)
+  const isOverdue = (app: Application) => {
+    if (["Enrolled", "Rejected", "Withdrawn"].includes(app.stage)) return false;
+    const lastTime = app.updatedAt || app.createdAt || 0;
+    const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+    return Date.now() - lastTime > fourteenDaysMs;
+  };
 
   // Sorting helper
   const handleSort = (field: string) => {
@@ -84,8 +99,12 @@ export const TeamLeaderApplications: React.FC = () => {
       const matchesStage = selectedStage === "All" || app.stage === selectedStage;
       const matchesCounsellor = selectedCounsellor === "All" || app.assignedCounsellor === selectedCounsellor;
       const matchesCountry = selectedCountry === "All" || studentCountry === selectedCountry;
+      const matchesQuick = 
+        quickFilter === "all" ? true :
+        quickFilter === "unassigned" ? !app.assignedCounsellor :
+        isOverdue(app);
 
-      return matchesSearch && matchesStage && matchesCounsellor && matchesCountry;
+      return matchesSearch && matchesStage && matchesCounsellor && matchesCountry && matchesQuick;
     })
     .sort((a, b) => {
       let valA: any = a[sortField as keyof Application] || "";
@@ -101,6 +120,21 @@ export const TeamLeaderApplications: React.FC = () => {
       return 0;
     });
 
+  const unassignedCount = applications.filter(a => !a.assignedCounsellor).length;
+  const overdueCount = applications.filter(a => isOverdue(a)).length;
+
+  const handleInlineReassign = async (appId: string, counsellorEmail: string) => {
+    if (!counsellorEmail) return;
+    try {
+      await assignApplication(appId, counsellorEmail);
+      setActionSuccess("Application reassigned successfully!");
+      setTimeout(() => setActionSuccess(""), 4000);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reassign application.");
+    }
+  };
+
   // Pagination
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredApps.length / itemsPerPage);
@@ -113,12 +147,56 @@ export const TeamLeaderApplications: React.FC = () => {
     <RoleGate allowedRoles={["team_leader"]}>
       <div className="space-y-6 text-xs">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">Team Application Tracker</h1>
-          <p className="text-[var(--text-secondary)] mt-1">
-            Global university submissions, intake stages, and tracking details within team office bounds.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">Team Application Tracker</h1>
+            <p className="text-[var(--text-secondary)] mt-1">
+              Global university submissions, intake stages, and tracking details within team office bounds.
+            </p>
+          </div>
+
+          {/* Quick Filter Chips */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => { setQuickFilter("all"); setCurrentPage(1); }}
+              className={`px-3 py-1.5 sq-badge font-semibold transition-all cursor-pointer ${
+                quickFilter === "all"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold"
+                  : "bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)]"
+              }`}
+            >
+              All ({applications.length})
+            </button>
+            <button
+              onClick={() => { setQuickFilter("unassigned"); setCurrentPage(1); }}
+              className={`px-3 py-1.5 sq-badge font-semibold transition-all cursor-pointer ${
+                quickFilter === "unassigned"
+                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold"
+                  : "bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)]"
+              }`}
+            >
+              Unassigned ({unassignedCount})
+            </button>
+            <button
+              onClick={() => { setQuickFilter("overdue"); setCurrentPage(1); }}
+              className={`px-3 py-1.5 sq-badge font-semibold transition-all cursor-pointer flex items-center space-x-1 ${
+                quickFilter === "overdue"
+                  ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold"
+                  : "bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)]"
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3 text-rose-400" />
+              <span>SLA Overdue ({overdueCount})</span>
+            </button>
+          </div>
         </div>
+
+        {actionSuccess && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 sq-badge flex items-center space-x-2 font-medium">
+            <Check className="w-4 h-4" />
+            <span>{actionSuccess}</span>
+          </div>
+        )}
 
         {/* Filters Toolbar */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-default)] p-4 sq-card space-y-3">
@@ -276,29 +354,45 @@ export const TeamLeaderApplications: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 font-semibold">{app.intake}</td>
                       <td className="py-3 px-4 font-semibold">
-                        {app.assignedCounsellor ? (
-                          <span className="px-2 py-0.5 sq-badge bg-[var(--bg-elevated)] border border-[var(--border-default)]">
-                            {app.assignedCounsellor.split("@")[0]}
-                          </span>
-                        ) : (
-                          <span className="text-rose-400">Unassigned</span>
-                        )}
+                        <select
+                          value={app.assignedCounsellor || ""}
+                          onChange={(e) => handleInlineReassign(app.id, e.target.value)}
+                          className="px-2 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-input text-[11px] text-[var(--text-primary)]"
+                        >
+                          <option value="">-- Unassigned --</option>
+                          {counsellors.map((c) => (
+                            <option key={c.uid} value={c.email}>
+                              {c.displayName || c.email.split("@")[0]}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 sq-badge font-bold border ${
-                          app.stage === "Enrolled"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : app.stage === "Rejected"
-                            ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                            : "bg-teal-500/10 text-teal-400 border-teal-500/20"
-                        }`}>
-                          {app.stage}
-                        </span>
+                        <div className="flex flex-col space-y-1">
+                          <span className={`px-2 py-0.5 sq-badge font-bold border ${
+                            app.stage === "Enrolled"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : app.stage === "Rejected"
+                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              : "bg-teal-500/10 text-teal-400 border-teal-500/20"
+                          }`}>
+                            {app.stage}
+                          </span>
+                          {isOverdue(app) && (
+                            <span className="px-1.5 py-0.5 sq-badge bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-mono flex items-center space-x-1">
+                              <AlertTriangle className="w-2.5 h-2.5 text-rose-400 animate-pulse" />
+                              <span>SLA Overdue</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <button
-                          onClick={() => setViewApp(app)}
-                          className="p-1.5 text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-500/10 sq-btn transition-all"
+                          onClick={() => {
+                            setViewApp(app);
+                            setDrawerCounsellor(app.assignedCounsellor || "");
+                          }}
+                          className="p-1.5 text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-500/10 sq-btn transition-all cursor-pointer"
                           title="View Application Details"
                         >
                           <Eye className="w-4 h-4" />
@@ -375,6 +469,40 @@ export const TeamLeaderApplications: React.FC = () => {
                   <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card space-y-1">
                     <span className="text-[10px] text-[var(--text-muted)] block uppercase font-bold">Origin Country</span>
                     <span className="text-[var(--text-primary)] font-semibold">{getStudentCountry(viewApp.studentId)}</span>
+                  </div>
+                </div>
+
+                {/* Counsellor Allocation in Drawer */}
+                <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card space-y-2">
+                  <span className="text-[10px] text-[var(--text-muted)] block uppercase font-bold flex items-center space-x-1">
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Assigned Recruiter / Counsellor</span>
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={drawerCounsellor}
+                      onChange={(e) => setDrawerCounsellor(e.target.value)}
+                      className="flex-1 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)]"
+                    >
+                      <option value="">-- Unassigned --</option>
+                      {counsellors.map((c) => (
+                        <option key={c.uid} value={c.email}>
+                          {c.displayName || c.email} ({c.email.split("@")[0]})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={async () => {
+                        if (drawerCounsellor) {
+                          await handleInlineReassign(viewApp.id, drawerCounsellor);
+                          setViewApp({ ...viewApp, assignedCounsellor: drawerCounsellor });
+                        }
+                      }}
+                      disabled={!drawerCounsellor || drawerCounsellor === viewApp.assignedCounsellor}
+                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-zinc-950 font-bold sq-btn text-xs transition-colors cursor-pointer"
+                    >
+                      Save
+                    </button>
                   </div>
                 </div>
 

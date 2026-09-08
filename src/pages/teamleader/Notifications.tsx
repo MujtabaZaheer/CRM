@@ -12,6 +12,7 @@ import {
   Inbox,
   CheckSquare
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface NotificationItem {
   id: string;
@@ -85,7 +86,21 @@ export const TeamLeaderNotifications: React.FC = () => {
       }
     });
 
-    // 3. Static historical notifications for allocation
+    // 3. Unassigned Applications Waiting Alert
+    applications.forEach(a => {
+      if (!a.assignedCounsellor) {
+        items.push({
+          id: `app-unassigned-${a.id}`,
+          title: "Unassigned Application Waiting",
+          description: `Application ${a.applicationNumber} for ${a.studentName} (${a.universityName}) needs counsellor allocation.`,
+          time: "Action Required",
+          type: "assignments",
+          isRead: false
+        });
+      }
+    });
+
+    // 4. Static historical notifications for allocation
     const staticItems: NotificationItem[] = [
       {
         id: "static-1",
@@ -255,7 +270,33 @@ export const TeamLeaderNotifications: React.FC = () => {
                       )}
                     </div>
                     <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">{n.description}</p>
-                    <span className="text-[9px] text-[var(--text-muted)] font-mono block mt-1.5">{n.time}</span>
+                    <div className="flex items-center space-x-3 mt-2">
+                      <span className="text-[9px] text-[var(--text-muted)] font-mono">{n.time}</span>
+                      {n.type === "assignments" && (
+                        <Link
+                          to="/team-leader/assign-applications"
+                          className="text-[10px] text-emerald-400 hover:underline font-bold"
+                        >
+                          Go to Assignment Desk &rarr;
+                        </Link>
+                      )}
+                      {(n.type === "deadlines" || n.type === "tasks") && (
+                        <Link
+                          to="/team-leader/tasks"
+                          className="text-[10px] text-amber-400 hover:underline font-bold"
+                        >
+                          Review Task &rarr;
+                        </Link>
+                      )}
+                      {(n.type === "documents" || n.type === "applications") && (
+                        <Link
+                          to="/team-leader/applications"
+                          className="text-[10px] text-sky-400 hover:underline font-bold"
+                        >
+                          Track Application &rarr;
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
 

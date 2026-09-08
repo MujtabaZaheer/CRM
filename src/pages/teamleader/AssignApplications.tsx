@@ -8,7 +8,8 @@ import {
   UserCheck, 
   Activity, 
   Check, 
-  AlertCircle
+  AlertCircle,
+  Scale
 } from "lucide-react";
 
 interface AuditLog {
@@ -19,28 +20,65 @@ interface AuditLog {
   timestamp: number;
 }
 
+const ALL_STAGES = [
+  "All",
+  "Draft",
+  "Initial Review",
+  "Documents Pending",
+  "Submitted",
+  "University Reviewing",
+  "Conditional Offer",
+  "Unconditional Offer",
+  "Deposit Paid",
+  "CAS Issued",
+  "Visa Approved",
+  "Enrolled",
+  "Rejected",
+  "Withdrawn"
+];
+
 export const TeamLeaderAssignApplications: React.FC = () => {
   const {
     counsellors,
     assignmentApplications,
     loading,
     assignApplication,
-    bulkAssignApplications
+    bulkAssignApplications,
+    autoBalanceWorkloads
   } = useTeamLeaderData();
 
   // State
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [targetCounsellor, setTargetCounsellor] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const stageFilter = "All";
+  const [selectedStage, setSelectedStage] = useState("All");
   const [counsellorFilter, setCounsellorFilter] = useState("All");
   const [assignmentLogs, setAssignmentLogs] = useState<AuditLog[]>([]);
   const [loadError, setLoadError] = useState("");
+  const [isBalancing, setIsBalancing] = useState(false);
 
   // Modals
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [singleAppToAssign, setSingleAppToAssign] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+
+  const handleAutoBalance = async () => {
+    setIsBalancing(true);
+    try {
+      const count = await autoBalanceWorkloads();
+      if (count > 0) {
+        setSuccessMessage(`Auto-balanced ${count} unassigned applications across team counsellors!`);
+      } else {
+        setSuccessMessage("No unassigned applications found to auto-balance.");
+      }
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to auto-balance workloads.");
+    } finally {
+      setIsBalancing(false);
+    }
+  };
 
   // Fetch assignment logs
   useEffect(() => {
@@ -118,7 +156,7 @@ export const TeamLeaderAssignApplications: React.FC = () => {
     const queryStr = searchQuery.toLowerCase();
     
     const matchesSearch = name.includes(queryStr) || num.includes(queryStr) || uni.includes(queryStr);
-    const matchesStage = stageFilter === "All" || app.stage === stageFilter;
+    const matchesStage = selectedStage === "All" || app.stage === selectedStage;
     const matchesCounsellor = counsellorFilter === "All" || 
                               (counsellorFilter === "Unassigned" && !app.assignedCounsellor) ||
                               app.assignedCounsellor === counsellorFilter;
@@ -126,15 +164,78 @@ export const TeamLeaderAssignApplications: React.FC = () => {
     return matchesSearch && matchesStage && matchesCounsellor;
   });
 
+  const unassignedCount = assignmentApplications.filter(a => !a.assignedCounsellor).length;
+
   return (
     <RoleGate allowedRoles={["team_leader"]}>
       <div className="space-y-6 text-xs">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">Application Assignments</h1>
-          <p className="text-[var(--text-secondary)] mt-1">
-            Delegate students to team counsellors, reassign files, and monitor load balancing.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">Application Assignments & Workloads</h1>
+            <p className="text-[var(--text-secondary)] mt-1">
+              Delegate student files to team counsellors, balance workloads, and prevent processing bottlenecks.
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleAutoBalance}
+              disabled={isBalancing || unassignedCount === 0}
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-zinc-950 font-bold sq-btn shadow-md transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Scale className="w-4 h-4" />
+              <span>{isBalancing ? "Balancing..." : `Auto-Balance (${unassignedCount} Unassigned)`}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Counsellor Workload Distribution Preview */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border-default)] p-4 sq-card space-y-3">
+          <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2">
+            <span className="font-bold text-[var(--text-primary)] flex items-center space-x-2">
+              <UserCheck className="w-4 h-4 text-emerald-400" />
+              <span>Team Counsellor Capacity & Workload Balance</span>
+            </span>
+            <span className="text-[11px] text-[var(--text-muted)]">
+              Click any counsellor to select as target for bulk assignment
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {counsellors.map((c) => {
+              const count = assignmentApplications.filter(a => a.assignedCounsellor === c.email).length;
+              const isSelected = targetCounsellor === c.email;
+              const status = count > 20 ? "Overloaded" : count > 12 ? "Heavy" : count > 4 ? "Optimal" : "Light";
+              const badgeClass = 
+                status === "Overloaded" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
+                status === "Heavy" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                status === "Optimal" ? "bg-teal-500/10 text-teal-400 border-teal-500/20" :
+                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+
+              return (
+                <div
+                  key={c.uid}
+                  onClick={() => setTargetCounsellor(c.email)}
+                  className={`p-3 bg-[var(--bg-elevated)] border sq-card cursor-pointer transition-all ${
+                    isSelected ? "border-emerald-500 ring-1 ring-emerald-500/50" : "border-[var(--border-default)] hover:border-[var(--border-hover)]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[var(--text-primary)] truncate">
+                      {c.displayName || c.email.split("@")[0]}
+                    </span>
+                    <span className={`px-2 py-0.5 sq-badge text-[9px] font-mono border ${badgeClass}`}>
+                      {status}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-[11px] text-[var(--text-muted)]">Active Files:</span>
+                    <span className="text-lg font-bold font-heading text-emerald-400">{count}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Success Banner */}
@@ -210,12 +311,24 @@ export const TeamLeaderAssignApplications: React.FC = () => {
               </div>
 
               <select
+                value={selectedStage}
+                onChange={(e) => setSelectedStage(e.target.value)}
+                className="px-2.5 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
+              >
+                {ALL_STAGES.map((s) => (
+                  <option key={s} value={s}>
+                    {s === "All" ? "All Stages" : s}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={counsellorFilter}
                 onChange={(e) => setCounsellorFilter(e.target.value)}
-                className="px-2 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
+                className="px-2.5 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
               >
                 <option value="All">All Assignments</option>
-                <option value="Unassigned">Unassigned</option>
+                <option value="Unassigned">Unassigned Only</option>
                 {counsellors.map((c) => (
                   <option key={c.uid} value={c.email}>
                     {c.displayName || c.email}

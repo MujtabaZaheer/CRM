@@ -7,7 +7,6 @@ import {
   Users2, 
   FileText, 
   TrendingUp, 
-  Clock, 
   Building2, 
   Globe, 
   Bell, 
@@ -18,6 +17,7 @@ import {
   Activity, 
   AlertTriangle 
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { 
   ResponsiveContainer, 
   PieChart, 
@@ -53,6 +53,7 @@ export const TeamLeaderDashboard: React.FC = () => {
     team,
     counsellors,
     applications,
+    unassignedApplications,
     leads,
     students,
     tasks,
@@ -61,6 +62,8 @@ export const TeamLeaderDashboard: React.FC = () => {
 
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [activityError, setActivityError] = useState("");
+
+  const unassignedCount = (unassignedApplications || []).length;
 
   // Fetch recent logs
   useEffect(() => {
@@ -100,8 +103,6 @@ export const TeamLeaderDashboard: React.FC = () => {
     return new Date(t.dueDate) < now;
   }).length;
 
-  // Simulated avg response time & conversion score
-  const avgResponseTime = assignedApps > 10 ? "2.1 hours" : "2.8 hours";
   const conversionRate = assignedLeads > 0 
     ? Math.round((applications.filter(a => ["Enrolled", "Visa Approved", "Unconditional Offer"].includes(a.stage)).length / assignedLeads) * 100)
     : 0;
@@ -192,14 +193,30 @@ export const TeamLeaderDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center space-x-3 text-xs bg-[var(--bg-card)] border border-[var(--border-default)] p-3 sq-card">
-            <div>
-              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Office Scope</span>
-              <span className="text-[var(--text-primary)] font-bold">{office}</span>
-            </div>
-            <div className="border-l border-[var(--border-default)] pl-3">
-              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Recruitment Team</span>
-              <span className="text-[var(--text-primary)] font-bold">{team}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/team-leader/assign-applications"
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold sq-btn text-xs shadow-md transition-all cursor-pointer"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Assign Workloads ({unassignedCount})</span>
+            </Link>
+            <Link
+              to="/team-leader/tasks"
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-default)] font-semibold sq-btn text-xs transition-all cursor-pointer"
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span>Review Tasks</span>
+            </Link>
+            <div className="flex items-center space-x-3 text-xs bg-[var(--bg-card)] border border-[var(--border-default)] p-2.5 sq-card">
+              <div>
+                <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider block">Office Scope</span>
+                <span className="text-[var(--text-primary)] font-bold">{office}</span>
+              </div>
+              <div className="border-l border-[var(--border-default)] pl-3">
+                <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider block">Team</span>
+                <span className="text-[var(--text-primary)] font-bold">{team}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -298,14 +315,17 @@ export const TeamLeaderDashboard: React.FC = () => {
               <span className="text-[9px] text-rose-400/80 font-mono">Immediate follow-ups</span>
             </div>
 
-            <div className="p-4 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card hover-lift space-y-1 col-span-2 sm:col-span-1">
+            <Link
+              to="/team-leader/assign-applications"
+              className="p-4 bg-[var(--bg-card)] border border-[var(--border-default)] hover:border-amber-500/30 sq-card hover-lift space-y-1 col-span-2 sm:col-span-1 block"
+            >
               <div className="flex items-center justify-between text-[var(--text-muted)] text-[10px] uppercase font-bold tracking-wider">
-                <span>Avg Response Time</span>
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Unassigned Files</span>
+                <UserCheck className="w-3.5 h-3.5 text-amber-400" />
               </div>
-              <div className="text-xl font-bold text-[var(--text-primary)]">{avgResponseTime}</div>
-              <span className="text-[9px] text-indigo-400 font-mono">Counsellor lead pick</span>
-            </div>
+              <div className="text-xl font-bold text-amber-400">{unassignedCount}</div>
+              <span className="text-[9px] text-amber-400/80 font-mono">Needs delegation</span>
+            </Link>
           </div>
         )}
 
