@@ -88,6 +88,7 @@ export interface Application {
   clonedFrom?: string; // applicationId this was cloned from
   casRefNumber?: string;
   casIssuedAt?: number;
+  tenantId?: string;
   history?: ApplicationHistoryItem[];
   createdAt: number;
   updatedAt: number;

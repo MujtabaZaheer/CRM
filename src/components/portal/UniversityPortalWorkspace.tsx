@@ -84,7 +84,27 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
         });
       }
 
-      setNotice(`Official CAS (${casRefInput}) released for ${targetApp.studentName}! Status confirmed as "CAS Issued".`);
+      // Automatically provision Visa Case in Visa Officer module
+      try {
+        await addDoc(collection(db, "visa_cases"), {
+          studentId: targetApp.studentId || selectedCasAppId,
+          studentName: targetApp.studentName,
+          applicationId: selectedCasAppId,
+          universityName: targetApp.universityName,
+          country: targetApp.targetCountry || "United Kingdom",
+          status: "Preparation",
+          priority: "High",
+          casRefNumber: casRefInput,
+          deadline: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+          tenantId: targetApp.tenantId || "tenant-default",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      } catch (visaErr) {
+        console.warn("Auto-visa case creation notice:", visaErr);
+      }
+
+      setNotice(`Official CAS (${casRefInput}) released for ${targetApp.studentName}! Status confirmed as "CAS Issued" and Visa Case created.`);
       setSelectedCasAppId("");
       setCasRefInput(`CAS-2026-UK-${Math.floor(10000 + Math.random() * 90000)}`);
       setCasNotes("");

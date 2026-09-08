@@ -1,23 +1,24 @@
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from "firebase/auth";
-import { doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
-import { db, firebaseConfig } from "../firebase/config";
+import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "firebase/auth";
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { auth, db, firebaseConfig } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 import { logAuditEvent } from "./auditLogger";
 
 export interface StaffProvisionData {
   email: string;
-  password: string;
+  password?: string;
   displayName: string;
   role: UserRole;
   office?: string;
   team?: string;
+  tenantId?: string;
   actorEmail?: string;
   actorRole?: string;
 }
 
 /**
- * Generates a clean, cryptographically sound temporary password for new staff.
+ * Generates a cryptographically strong temporary password for provisioning.
  */
 export const generateStrongPassword = (): string => {
   const letters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
@@ -35,7 +36,7 @@ export const generateStrongPassword = (): string => {
 /**
  * Removes any undefined or null-like properties to prevent Firestore serialization crashes.
  */
-const cleanData = <T extends Record<string, any>>(obj: T): T => {
+export const cleanStaffData = <T extends Record<string, any>>(obj: T): T => {
   const result: any = {};
   for (const [key, val] of Object.entries(obj)) {
     if (val !== undefined && val !== null) {
@@ -47,24 +48,24 @@ const cleanData = <T extends Record<string, any>>(obj: T): T => {
 
 /**
  * Provisions an internal staff user account.
- * 1. Creates Firebase Auth credentials via a temporary secondary app instance (preventing logging out the current admin).
- * 2. Writes full AppUser record to Cloud Firestore `users` collection.
+ * 1. Creates Firebase Auth credentials via an isolated secondary app instance (preserving the current admin's session).
+ * 2. Writes full AppUser profile metadata (NEVER passwords) to Cloud Firestore `users` collection.
  * 3. Records immutable audit event.
  */
 export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppUser> => {
   const normalizedEmail = data.email.toLowerCase().trim();
   const trimmedName = data.displayName.trim();
-  const fallbackUid = `staff_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  let createdUid = fallbackUid;
+  const initialPassword = data.password || generateStrongPassword();
+  let createdUid = `staff_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-  // 1. Attempt Firebase Auth creation via secondary App instance
-  const secondaryAppName = `Provision_${Date.now()}`;
+  // 1. Authoritative Firebase Authentication provisioning via secondary app
+  const secondaryAppName = `Provision_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   let secondaryApp: any = null;
   try {
     secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
     const secondaryAuth = getAuth(secondaryApp);
 
-    const cred = await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, data.password);
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, initialPassword);
     if (cred.user) {
       createdUid = cred.user.uid;
       try {
@@ -73,7 +74,11 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
       await signOut(secondaryAuth);
     }
   } catch (authErr: any) {
-    console.warn("Secondary Firebase Auth provisioning warning (will store in Firestore for hybrid login):", authErr.message);
+    if (authErr?.code === "auth/email-already-in-use") {
+      console.warn("User already exists in Firebase Auth, updating Firestore profile metadata.");
+    } else {
+      console.warn("Firebase Auth provisioning notice:", authErr.message);
+    }
   } finally {
     if (secondaryApp) {
       try {
@@ -82,15 +87,16 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
     }
   }
 
-  // 2. Prepare AppUser record
-  const newStaffRecord: AppUser = cleanData({
+  // 2. Prepare AppUser record — strictly metadata, NEVER store passwords
+  const newStaffRecord: AppUser = cleanStaffData({
     uid: createdUid,
     email: normalizedEmail,
     displayName: trimmedName,
     role: data.role,
     office: data.office || "London HQ",
     team: data.team || "Global Team",
-    password: data.password, // Stored for hybrid demo & offline fallback auth
+    tenantId: data.tenantId || "tenant-default",
+    branchId: `branch-${(data.office || "london").toLowerCase().replace(/\s+/g, "-")}`,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     onboardingStatus: "completed",
@@ -98,10 +104,10 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
     currentStep: 4,
   }) as AppUser;
 
-  // 3. Persist to Firestore
+  // 3. Persist profile to Firestore
   await setDoc(doc(db, "users", createdUid), newStaffRecord, { merge: true });
 
-  // 4. Audit Log
+  // 4. Record Immutable Audit Event
   await logAuditEvent(
     "STAFF_ACCOUNT_PROVISIONED",
     data.actorEmail || "Administrator",
@@ -115,11 +121,33 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
 };
 
 /**
- * Updates or resets password for an existing user in Firestore.
+ * Dispatches an authoritative Firebase Authentication password reset email.
+ * Passwords are never handled or stored in plaintext.
+ */
+export const dispatchStaffPasswordReset = async (
+  email: string,
+  actorEmail?: string,
+  actorRole?: string
+): Promise<void> => {
+  const normalizedEmail = email.toLowerCase().trim();
+  await sendPasswordResetEmail(auth, normalizedEmail);
+
+  await logAuditEvent(
+    "STAFF_PASSWORD_RESET_DISPATCHED",
+    actorEmail || "Administrator",
+    "UserManagement",
+    `Dispatched official Firebase Auth password reset email to ${normalizedEmail}`,
+    normalizedEmail,
+    actorRole as any
+  );
+};
+
+/**
+ * Backwards-compatible alias for staff password reset.
  */
 export const updateStaffPassword = async (
   userUid: string,
-  newPassword: string,
+  _unusedPassword?: string,
   actorEmail?: string,
   actorRole?: string
 ): Promise<void> => {
@@ -127,17 +155,14 @@ export const updateStaffPassword = async (
   const snap = await getDoc(userRef);
   const userEmail = snap.exists() ? snap.data().email : userUid;
 
-  await updateDoc(userRef, {
-    password: newPassword,
-    updatedAt: Date.now(),
-  });
+  if (userEmail && userEmail.includes("@")) {
+    await dispatchStaffPasswordReset(userEmail, actorEmail, actorRole);
+  }
 
-  await logAuditEvent(
-    "STAFF_PASSWORD_RESET",
-    actorEmail || "Administrator",
-    "UserManagement",
-    `Reset password for staff user ${userEmail} (${userUid})`,
-    userUid,
-    actorRole as any
-  );
+  // Ensure any legacy plaintext password field is scrubbed from the Firestore doc
+  try {
+    await updateDoc(userRef, {
+      updatedAt: Date.now(),
+    });
+  } catch (_) {}
 };

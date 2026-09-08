@@ -63,6 +63,5 @@ export interface AppUser {
   onboardingStatus?: "not_started" | "in_progress" | "completed";
   profileCompleted?: boolean;
   currentStep?: number;
-  password?: string;
   updatedAt?: number;
 }

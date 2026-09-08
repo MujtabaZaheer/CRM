@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { Lead, LeadSource, LeadStage } from "../types/lead";
+import { Lead, LeadInteraction, LeadSource, LeadStage } from "../types/lead";
+import { Student } from "../types/student";
 import { RoleGate } from "../components/layout/RoleGate";
+import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
-import { Plus, X, UserPlus, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye, Copy, ShieldAlert, CheckCircle2, MessageSquarePlus, Clock, Flame } from "lucide-react";
+import { logAuditEvent } from "../utils/auditLogger";
+import { Plus, X, UserPlus, UserCheck, Search, Filter, Mail, Phone, Globe, BookOpen, Download, RotateCcw, Eye, Copy, ShieldAlert, CheckCircle2, MessageSquarePlus, Clock, Flame } from "lucide-react";
 import { detectDuplicateLeads, mergeDuplicateLeads, DuplicateCluster, LeadRecord } from "../utils/dataQuality";
 import { autoAssignLead } from "../utils/leadRouter";
 import { calculateLeadScore } from "../utils/leadScoring";
@@ -31,9 +34,12 @@ const LEAD_SOURCES: LeadSource[] = [
 ];
 
 export const LeadsContent: React.FC = () => {
-  const { leads, addLead, updateLead, initialLoading: loading } = useGlobalData();
+  const { appUser } = useAuth();
+  const { leads, students, addLead, updateLead, addStudent, initialLoading: loading } = useGlobalData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [converting, setConverting] = useState(false);
+  const [conversionNotice, setConversionNotice] = useState<string | null>(null);
 
   // Form State & Validation
   const [fullName, setFullName] = useState("");
@@ -105,6 +111,100 @@ export const LeadsContent: React.FC = () => {
       console.error("Error adding interaction:", err);
     } finally {
       setAddingInteraction(false);
+    }
+  };
+
+  const handleConvertToStudent = async (lead: Lead) => {
+    setConverting(true);
+    setConversionNotice(null);
+    try {
+      const existing = students.find((s) => s.email.toLowerCase() === lead.email.toLowerCase());
+      if (existing) {
+        setConversionNotice(`Student profile already exists for ${lead.email} (ID: ${existing.id}). Linking lead.`);
+        updateLead(lead.id, { stage: "Converted", updatedAt: Date.now() });
+        try {
+          await updateDoc(doc(db, "leads", lead.id), { stage: "Converted", updatedAt: Date.now() });
+        } catch (_) {}
+        setConverting(false);
+        return;
+      }
+
+      const newStudentId = `stu_${Date.now()}`;
+      const newStudent: Student = {
+        id: newStudentId,
+        fullName: lead.fullName,
+        email: lead.email,
+        phone: lead.phone,
+        nationality: lead.nationality || "Not specified",
+        countryOfResidence: lead.countryOfResidence || "Not specified",
+        preferredDestination: lead.destinationCountry,
+        preferredProgram: lead.programInterest,
+        assignedCounsellor: lead.assignedCounsellor,
+        assignedCounsellorId: lead.assignedTo,
+        office: lead.office || appUser?.office || "London HQ",
+        tenantId: lead.tenantId || (appUser as any)?.tenantId || "tenant-default",
+        profileCompleteness: 55,
+        academicHistory: lead.programInterest
+          ? [
+              {
+                institution: "Prior Institution",
+                qualification: "Bachelor's Degree",
+                degreeTitle: lead.programInterest,
+                country: lead.nationality || "Unknown",
+                completionYear: 2025,
+                gradeGpa: "3.2 / 4.0",
+              },
+            ]
+          : [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      addStudent(newStudent);
+      try {
+        await addDoc(collection(db, "students"), newStudent);
+      } catch (err) {
+        console.warn("Firestore student creation notice:", err);
+      }
+
+      const conversionLog: LeadInteraction = {
+        id: `conv_${Date.now()}`,
+        timestamp: Date.now(),
+        type: "Stage Change",
+        summary: `Converted to Student Profile (ID: ${newStudentId}). Profile initialized.`,
+        performedBy: appUser?.displayName || "Counsellor",
+      };
+      const updatedLogs: LeadInteraction[] = [conversionLog, ...(lead.interactionLog || [])];
+
+      updateLead(lead.id, {
+        stage: "Converted",
+        interactionLog: updatedLogs,
+        updatedAt: Date.now(),
+      });
+
+      try {
+        await updateDoc(doc(db, "leads", lead.id), {
+          stage: "Converted",
+          interactionLog: updatedLogs,
+          updatedAt: Date.now(),
+        });
+      } catch (_) {}
+
+      await logAuditEvent(
+        "LEAD_CONVERTED_TO_STUDENT",
+        appUser?.email || "Counsellor",
+        "Lead",
+        `Converted lead ${lead.fullName} (${lead.email}) to student profile ${newStudentId}`,
+        lead.id,
+        appUser?.role
+      );
+
+      setConversionNotice(`Successfully converted! Student profile #${newStudentId} is now active.`);
+      setSelectedLead((prev) => (prev ? { ...prev, stage: "Converted", interactionLog: updatedLogs } : null));
+    } catch (err: any) {
+      setConversionNotice(`Conversion failed: ${err.message}`);
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -616,10 +716,32 @@ export const LeadsContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
+            {conversionNotice && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-400 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>{conversionNotice}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-[var(--border-default)]">
+              {selectedLead.stage !== "Converted" ? (
+                <button
+                  type="button"
+                  disabled={converting}
+                  onClick={() => handleConvertToStudent(selectedLead)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold sq-btn flex items-center gap-1.5 shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>{converting ? "Converting..." : "Convert to Student Profile"}</span>
+                </button>
+              ) : (
+                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled as Registered Student
+                </span>
+              )}
               <button
                 onClick={() => setSelectedLead(null)}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold sq-btn"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold sq-btn cursor-pointer"
               >
                 Close Profile
               </button>

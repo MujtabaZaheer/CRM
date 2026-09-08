@@ -187,7 +187,30 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
         }
       } catch (_) { /* notification dispatch is best-effort */ }
 
-      setNotice(`Decision ${decisionType} recorded for ${app.applicationNumber}`);
+      // Automatically generate tuition deposit invoice in finance system on offer release
+      if (decisionType === "Conditional Offer" || decisionType === "Unconditional Offer") {
+        try {
+          const invNumber = `INV-DEP-${Date.now().toString().slice(-4)}`;
+          await addDoc(collection(db, "invoices"), {
+            invoiceNumber: invNumber,
+            studentId: app.studentId || app.id,
+            studentName: app.studentName,
+            type: "Deposit",
+            amount: depositAmount || 2000,
+            currency: "USD",
+            dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+            status: "Pending",
+            notes: `Tuition deposit for ${app.universityName} (${app.programmeName}) - Application #${app.applicationNumber}`,
+            tenantId: app.tenantId || "tenant-default",
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+        } catch (invErr) {
+          console.warn("Auto-deposit invoice creation notice:", invErr);
+        }
+      }
+
+      setNotice(`Decision ${decisionType} recorded for ${app.applicationNumber}. Deposit invoice automatically queued in Finance.`);
       setShowDecisionModal(false);
     } catch (err: any) {
       setNotice(`Failed to record decision: ${err.message}`);

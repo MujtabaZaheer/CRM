@@ -49,6 +49,8 @@ export interface Lead {
   lostReason?: string;
   agentUid?: string;
   agentName?: string;
+  tenantId?: string;
+  office?: string;
   createdAt: number;
   updatedAt: number;
 }

@@ -122,6 +122,10 @@ export interface Student {
   
   profileCompleteness: number; // 0-100%
   assignedCounsellorId?: string;
+  assignedCounsellor?: string;
+  preferredProgram?: string;
+  office?: string;
+  tenantId?: string;
   notes?: string;
 
   // Consent

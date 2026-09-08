@@ -2,50 +2,200 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper authorization functions
+    function signedIn() { return request.auth != null; }
+    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function hasRole(role) { return signedIn() && profile().role == role; }
+    function isPlatformAdmin() { return hasRole('platform_super_admin'); }
+    function isOrgAdmin() { return hasRole('org_admin'); }
+    function isAdmin() { return isPlatformAdmin() || isOrgAdmin(); }
+    function isCounsellor() { return hasRole('counsellor'); }
+    function isAdmissionsOfficer() { return hasRole('admissions_officer'); }
+    function isTeamLeader() { return hasRole('team_leader'); }
+    function isFinanceOfficer() { return hasRole('finance_officer'); }
+    function isVisaOfficer() { return hasRole('visa_officer'); }
+    function isSupportUser() { return hasRole('support_user'); }
+    function isAuditor() { return hasRole('auditor'); }
+    function isExternalAgent() { return hasRole('external_agent'); }
+    function isUniversityPartner() { return hasRole('university_partner'); }
+    function isStudent() { return hasRole('student'); }
+    function isOperationalStaff() {
+      return isAdmin() || isCounsellor() || isAdmissionsOfficer() || isTeamLeader() || isVisaOfficer() || isFinanceOfficer() || isSupportUser();
+    }
+    function studentOwner(student) { return isStudent() && (student.email == request.auth.token.email || student.id == request.auth.uid); }
+    function ownsStudent(studentId) { return studentOwner(get(/databases/$(database)/documents/students/$(studentId)).data); }
+    function agentOwns(data) { return isExternalAgent() && (data.agentUid == request.auth.uid || data.agentUserId == request.auth.uid); }
+    function universityOwns(data) { return isUniversityPartner() && data.partnerUniversityId == profile().partnerUniversityId; }
+
+    // User Directory: Strict security, never expose passwords
     match /users/{userId} {
-      allow read, write: if true;
+      allow get: if signedIn();
+      allow list: if isAdmin() || isOperationalStaff() || isAuditor();
+      allow create: if signedIn();
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow delete: if isPlatformAdmin();
     }
 
+    // Leads Management
+    match /leads/{leadId} {
+      allow read: if isOperationalStaff() || isAuditor() || agentOwns(resource.data);
+      allow create: if isOperationalStaff() || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
+      allow update: if isOperationalStaff() || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid);
+      allow delete: if isAdmin();
+    }
+
+    // Students Directory
     match /students/{studentId} {
-      allow read, write: if true;
+      allow read: if isOperationalStaff() || isAuditor()
+        || studentOwner(resource.data) || agentOwns(resource.data)
+        || (isUniversityPartner() && resource.data.partnerUniversityId == profile().partnerUniversityId);
+      allow create: if isOperationalStaff()
+        || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
+      allow update: if isOperationalStaff() || (signedIn() && resource.data.email == request.auth.token.email)
+        || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid);
+      allow delete: if isAdmin();
     }
 
+    // Applications Lifecycle
     match /applications/{applicationId} {
-      allow read, write: if true;
+      allow read: if isOperationalStaff() || isAuditor()
+        || ownsStudent(resource.data.studentId) || agentOwns(resource.data) || universityOwns(resource.data);
+      allow create: if isOperationalStaff() || isStudent()
+        || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
+      allow update: if isOperationalStaff()
+        || (isStudent() && ownsStudent(resource.data.studentId))
+        || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid)
+        || (universityOwns(resource.data) && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['stage', 'partnerDecision', 'partnerDecisionAt', 'casRefNumber', 'casIssuedAt', 'updatedAt']));
+      allow delete: if isAdmin();
     }
 
+    // Student Documents Vault
     match /student_documents/{documentId} {
-      allow read, write: if true;
+      allow read: if isOperationalStaff() || isAuditor()
+        || ownsStudent(resource.data.studentId) || agentOwns(resource.data)
+        || (isUniversityPartner() && resource.data.universityId == profile().partnerUniversityId);
+      allow create: if isOperationalStaff()
+        || (isStudent() && ownsStudent(request.resource.data.studentId))
+        || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
+      allow update: if isOperationalStaff()
+        || (isStudent() && ownsStudent(resource.data.studentId) && request.resource.data.status == 'Pending')
+        || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid);
+      allow delete: if isAdmin();
     }
 
-    match /support_requests/{requestId} {
-      allow read, write: if true;
-    }
-
+    // Tasks and Workflow Engine
     match /tasks/{taskId} {
-      allow read, write: if true;
-    }
-    match /visa_cases/{caseId} { allow read, write: if true; }
-    match /universities/{universityId} { allow read, write: if true; }
-    match /country_requirements/{countryId} { allow read, write: if true; }
-
-    match /consent_records/{consentId} {
-      allow read, write: if true;
-    }
-
-    match /notifications/{notificationId} {
-      allow read, write: if true;
+      allow read: if isOperationalStaff() || isAuditor()
+        || (isStudent() && resource.data.assignedTo == request.auth.token.email);
+      allow create: if isOperationalStaff();
+      allow update: if isOperationalStaff()
+        || (isStudent() && resource.data.assignedTo == request.auth.token.email && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt']));
+      allow delete: if isAdmin();
     }
 
+    // Visa Case Records
+    match /visa_cases/{caseId} {
+      allow read: if isOperationalStaff() || isAuditor() || ownsStudent(resource.data.studentId);
+      allow create, update: if isAdmin() || isVisaOfficer() || isOperationalStaff();
+      allow delete: if isAdmin();
+    }
+
+    // Support Operations
+    match /support_requests/{requestId} {
+      allow read: if isOperationalStaff() || isAuditor() || ownsStudent(resource.data.studentId);
+      allow create: if isOperationalStaff() || (isStudent() && ownsStudent(request.resource.data.studentId));
+      allow update: if isOperationalStaff();
+      allow delete: if isAdmin();
+    }
+
+    match /support_tickets/{ticketId} {
+      allow read: if isOperationalStaff() || isAuditor() || resource.data.userEmail == request.auth.token.email;
+      allow create: if signedIn();
+      allow update: if isOperationalStaff();
+      allow delete: if isAdmin();
+    }
+
+    match /support_articles/{articleId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin() || isSupportUser();
+    }
+
+    // Financial Operations (Invoices, Payments, Refunds, Commissions)
+    match /invoices/{id} {
+      allow read: if isAdmin() || isFinanceOfficer() || isAuditor() || ownsStudent(resource.data.studentId);
+      allow create, update: if isAdmin() || isFinanceOfficer() || isOperationalStaff();
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{id} {
+      allow read: if isAdmin() || isFinanceOfficer() || isAuditor() || ownsStudent(resource.data.studentId);
+      allow create, update: if isAdmin() || isFinanceOfficer();
+      allow delete: if isAdmin();
+    }
+
+    match /refunds/{id} {
+      allow read: if isAdmin() || isFinanceOfficer() || isAuditor();
+      allow create, update: if isAdmin() || isFinanceOfficer();
+      allow delete: if isAdmin();
+    }
+
+    match /commissions/{id} {
+      allow read: if isAdmin() || isFinanceOfficer() || isAuditor()
+        || (isExternalAgent() && resource.data.agentUid == request.auth.uid);
+      allow create: if isAdmin() || isFinanceOfficer() || isExternalAgent();
+      allow update: if isAdmin() || isFinanceOfficer();
+      allow delete: if isAdmin();
+    }
+
+    // System Master Data
+    match /universities/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin() || isAdmissionsOfficer();
+    }
+
+    match /country_requirements/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /tenants/{id} {
+      allow read, create, update, delete: if isPlatformAdmin();
+    }
+
+    match /global_settings/{id} {
+      allow read, create, update, delete: if isPlatformAdmin();
+    }
+
+    // Notifications
+    match /notifications/{id} {
+      allow read: if signedIn() && (resource.data.targetUser == request.auth.uid || resource.data.targetUser == request.auth.token.email || isAdmin());
+      allow create: if signedIn();
+      allow update: if signedIn() && (resource.data.targetUser == request.auth.uid || resource.data.targetUser == request.auth.token.email);
+      allow delete: if isAdmin();
+    }
+
+    // Student Conversations & Messages
     match /conversations/{conversationId} {
-      allow read, write: if true;
+      allow read, write: if signedIn();
 
       match /messages/{messageId} {
-        allow read, write: if true;
+        allow read, write: if signedIn();
       }
     }
 
-    match /audit_logs/{logId} { allow read, write: if true; }
-    match /{document=**} { allow read, write: if true; }
+    // Immutable Append-Only Audit Trail
+    // Signed-in users and automated workflows can append logs; updates and deletions are strictly forbidden
+    match /audit_logs/{logId} {
+      allow read: if isAdmin() || isAuditor();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    // Default deny rule for any unspecified path
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

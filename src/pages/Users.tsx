@@ -156,11 +156,11 @@ export const Users: React.FC = () => {
         appUser?.email || "Organization Admin",
         appUser?.role || "org_admin"
       );
-      setNotice(`Password successfully updated for ${passwordUserEmail}.`);
+      setNotice(`Secure password reset email dispatched to ${passwordUserEmail}. Plaintext credentials are never stored.`);
       setPasswordUserUid(null);
       setNewPasswordInput("");
     } catch (err: any) {
-      setNotice(`Password update failed: ${err.message}`);
+      setNotice(`Failed to send password reset: ${err.message}`);
     } finally {
       setUpdatingPassword(false);
     }

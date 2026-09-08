@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { db } from "../firebase/config";
 import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import { Application, ApplicationStage } from "../types/application";
@@ -36,12 +37,20 @@ const STAGES: ApplicationStage[] = [
 ];
 
 export const Applications: React.FC = () => {
+  const location = useLocation();
   const { appUser } = useAuth();
   const { applications, students, addApplication, updateApplication, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [expandedDocAppId, setExpandedDocAppId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.preselectedStudentId) {
+      setStudentId(location.state.preselectedStudentId);
+      setIsAddModalOpen(true);
+    }
+  }, [location.state]);
 
   // Clone Modal State
   const [cloneModalApp, setCloneModalApp] = useState<Application | null>(null);

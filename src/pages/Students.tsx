@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import { collection, addDoc } from "firebase/firestore";
 import { Student, QualificationLevel } from "../types/student";
@@ -7,9 +8,10 @@ import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { getStudentJourneyFeed, JourneyEvent, STANDARD_JOURNEY_MILESTONES } from "../utils/studentJourney";
-import { Plus, Search, Eye, GraduationCap, AlertCircle, X, Mail, Phone, Globe, BookOpen, Award, History } from "lucide-react";
+import { Plus, Search, Eye, GraduationCap, AlertCircle, X, Mail, Phone, Globe, BookOpen, Award, History, FilePlus } from "lucide-react";
 
 export const Students: React.FC = () => {
+  const navigate = useNavigate();
   const { appUser } = useAuth();
   const { students, addStudent, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
@@ -577,10 +579,25 @@ export const Students: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--border-default)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate("/applications", {
+                      state: {
+                        preselectedStudentId: selectedStudent.id,
+                        preselectedStudentName: selectedStudent.fullName,
+                      },
+                    });
+                  }}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+                >
+                  <FilePlus className="w-4 h-4" />
+                  <span>+ Create Application</span>
+                </button>
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold rounded-xl text-xs"
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold rounded-xl text-xs cursor-pointer"
                 >
                   Close
                 </button>

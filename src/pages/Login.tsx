@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
-import { auth, db, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
+import { auth, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
-import { AppUser, UserRole } from "../types/role";
+import { UserRole } from "../types/role";
 import { getRoleDashboardPath } from "../types/registrationConfig";
 import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield, UserPlus } from "lucide-react";
 
@@ -70,40 +69,10 @@ export const Login: React.FC = () => {
         navigate("/");
         return;
       } catch (firebaseErr: any) {
-        console.warn("Firebase Auth attempt warning:", firebaseErr?.code || firebaseErr?.message);
-        
-        // 2. Hybrid Fallback: If in Demo Mode OR if API key is unconfigured/invalid
-        const errCode = firebaseErr?.code || "";
-        const errMsg = firebaseErr?.message || "";
-        const isApiKeyError = errCode.includes("api-key-not-valid") || errMsg.includes("api-key-not-valid");
+        const lowerEmail = email.toLowerCase().trim();
+        const isDemoEmail = lowerEmail.endsWith("@educrm.demo");
 
-        if (isDemoMode || isApiKeyError || errCode === "auth/user-not-found" || errCode === "auth/invalid-credential") {
-          const lowerEmail = email.toLowerCase().trim();
-
-          // 2a. Check if account was provisioned in Firestore with custom credentials
-          try {
-            const userQ = query(collection(db, "users"), where("email", "==", lowerEmail), limit(1));
-            const userSnap = await getDocs(userQ);
-            if (!userSnap.empty) {
-              const matchedDoc = userSnap.docs[0];
-              const matchedUser = { uid: matchedDoc.id, ...matchedDoc.data() } as AppUser;
-
-              // If a custom password was set by admin, verify it
-              if (matchedUser.password && matchedUser.password !== password) {
-                setError("Incorrect password for this staff account. Please verify your credentials or contact your administrator.");
-                setLoading(false);
-                return;
-              }
-
-              // Store session and authenticate
-              localStorage.setItem("educrm_demo_user", JSON.stringify(matchedUser));
-              loginAsDemoRole(matchedUser.role);
-              navigate(getRoleDashboardPath(matchedUser.role));
-              return;
-            }
-          } catch (queryErr) {
-            console.warn("Firestore user check warning (proceeding to role match):", queryErr);
-          }
+        if (isDemoMode && isDemoEmail) {
 
           let targetRole: UserRole = "counsellor";
 
