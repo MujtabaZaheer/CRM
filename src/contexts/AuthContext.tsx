@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, onAuthStateChanged } from "firebase/auth";
+import { User, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
@@ -79,6 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setAppUser(demoUser);
     setLoading(false);
+
+    // Synchronize authoritative Firebase Auth session for demo role
+    try {
+      await signInWithEmailAndPassword(auth, demoUser.email, "EduCrmDemo2026!");
+    } catch (authErr) {
+      console.warn("Demo Firebase Auth session notice:", authErr);
+    }
 
     try {
       await setDoc(doc(db, "users", demoUser.uid), {

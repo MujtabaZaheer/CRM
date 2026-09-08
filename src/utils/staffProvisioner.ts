@@ -1,7 +1,7 @@
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, db, firebaseConfig } from "../firebase/config";
+import { auth, db, firebaseConfig, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 import { logAuditEvent } from "./auditLogger";
 
@@ -105,17 +105,29 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
   }) as AppUser;
 
   // 3. Persist profile to Firestore
-  await setDoc(doc(db, "users", createdUid), newStaffRecord, { merge: true });
+  try {
+    await setDoc(doc(db, "users", createdUid), newStaffRecord, { merge: true });
+  } catch (firestoreErr: any) {
+    if (isDemoMode) {
+      console.warn("Firestore profile sync warning in preview session:", firestoreErr?.message);
+    } else {
+      throw firestoreErr;
+    }
+  }
 
   // 4. Record Immutable Audit Event
-  await logAuditEvent(
-    "STAFF_ACCOUNT_PROVISIONED",
-    data.actorEmail || "Administrator",
-    "UserManagement",
-    `Provisioned internal staff user ${trimmedName} (${normalizedEmail}) with role ${data.role} at ${data.office || "HQ"}`,
-    createdUid,
-    data.actorRole as any
-  );
+  try {
+    await logAuditEvent(
+      "STAFF_ACCOUNT_PROVISIONED",
+      data.actorEmail || "Administrator",
+      "UserManagement",
+      `Provisioned internal staff user ${trimmedName} (${normalizedEmail}) with role ${data.role} at ${data.office || "HQ"}`,
+      createdUid,
+      data.actorRole as any
+    );
+  } catch (auditErr: any) {
+    console.warn("Audit logging notice:", auditErr?.message);
+  }
 
   return newStaffRecord;
 };

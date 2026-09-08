@@ -122,7 +122,7 @@ export const Users: React.FC = () => {
     if (!newName || !newEmail || !newPassword) return;
     setProvisioning(true);
     try {
-      await provisionStaffUser({
+      const newStaff = await provisionStaffUser({
         displayName: newName,
         email: newEmail,
         password: newPassword,
@@ -132,6 +132,7 @@ export const Users: React.FC = () => {
         actorEmail: appUser?.email || "Organization Admin",
         actorRole: appUser?.role || "org_admin",
       });
+      setUsersList((prev) => [newStaff, ...prev.filter((u) => u.email !== newStaff.email)]);
       setNotice(`Successfully provisioned ${ROLE_LABELS[newRole]} account for ${newEmail} with custom password.`);
       setShowProvisionModal(false);
       setNewName("");

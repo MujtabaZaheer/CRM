@@ -259,6 +259,7 @@ export const useSuperAdminData = () => {
           actorEmail: appUser?.email || "Platform Super Admin",
           actorRole: appUser?.role || "platform_super_admin",
         });
+        setUsers((prev) => [newStaff, ...prev.filter((u) => u.email !== newStaff.email)]);
         return newStaff;
       } catch (err: any) {
         throw new Error(err.message || "Failed to create staff account.");
