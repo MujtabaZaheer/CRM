@@ -124,6 +124,22 @@ const createThumbnail = (dataUrl: string, maxWidth = 260, quality = 0.7): Promis
   });
 };
 
+// Helper to recursively remove undefined properties before writing to Firestore
+const sanitizeForFirestore = <T,>(data: T): T => {
+  if (data === undefined) return null as any;
+  if (data === null || typeof data !== "object") return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeForFirestore(item)) as any;
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      clean[key] = sanitizeForFirestore(value);
+    }
+  }
+  return clean as T;
+};
+
 export const StudentChat: React.FC = () => {
   const { appUser } = useAuth();
   const { ownStudent, ownApplications, ownDocuments } = usePortalData();
@@ -450,29 +466,34 @@ export const StudentChat: React.FC = () => {
           console.warn("Could not register attachment into student_documents:", uErr);
         }
 
-        finalAttachments.push({
+        const cleanItem: ChatAttachment = {
           id: att.id,
           name: att.name,
-          type: att.type,
-          size: att.size,
-          dataUrl: att.isImage ? thumbnail : undefined,
-        });
+          type: att.type || (att.isImage ? "image/jpeg" : "application/pdf"),
+          size: typeof att.size === "number" ? att.size : 0,
+        };
+        if (att.isImage && thumbnail) {
+          cleanItem.dataUrl = thumbnail;
+        }
+        finalAttachments.push(cleanItem);
       }
 
-      const newMsg: Omit<ChatMessage, "id"> = {
+      const newMsg: Record<string, any> = {
         senderId: appUser.uid,
         senderName,
         senderRole: "student",
         content,
         timestamp: now,
         read: false,
-        ...(finalAttachments.length > 0 ? { attachments: finalAttachments } : {}),
       };
+      if (finalAttachments.length > 0) {
+        newMsg.attachments = finalAttachments;
+      }
 
-      // Add to subcollection
+      // Add to subcollection with strict sanitization to prevent undefined errors
       await addDoc(
         collection(db, "conversations", conversation.id, "messages"),
-        newMsg
+        sanitizeForFirestore(newMsg)
       );
 
       // Update parent conversation

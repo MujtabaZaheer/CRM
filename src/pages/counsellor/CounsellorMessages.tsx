@@ -49,6 +49,22 @@ interface ChatMessage {
   attachments?: ChatAttachment[];
 }
 
+// Helper to recursively remove undefined properties before writing to Firestore
+const sanitizeForFirestore = <T,>(data: T): T => {
+  if (data === undefined) return null as any;
+  if (data === null || typeof data !== "object") return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeForFirestore(item)) as any;
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      clean[key] = sanitizeForFirestore(value);
+    }
+  }
+  return clean as T;
+};
+
 interface ConversationItem {
   id: string;
   studentId: string;
@@ -311,30 +327,35 @@ export const CounsellorMessages: React.FC = () => {
       const finalAttachments: ChatAttachment[] = [];
       for (const att of stagedAttachments) {
         await cacheDocumentFile(att.id, att.dataUrl, att.name, att.type);
-        finalAttachments.push({
+        const cleanItem: ChatAttachment = {
           id: att.id,
           name: att.name,
-          type: att.type,
-          size: att.size,
-          dataUrl: att.isImage ? att.dataUrl.slice(0, 10000) : undefined,
-        });
+          type: att.type || (att.isImage ? "image/jpeg" : "application/pdf"),
+          size: typeof att.size === "number" ? att.size : 0,
+        };
+        if (att.isImage && att.dataUrl) {
+          cleanItem.dataUrl = att.dataUrl.slice(0, 10000);
+        }
+        finalAttachments.push(cleanItem);
       }
 
-      const newMsg: Omit<ChatMessage, "id"> = {
+      const newMsg: Record<string, any> = {
         senderId: appUser?.uid || "staff",
         senderName,
         senderRole,
         content: text,
         timestamp: now,
         read: false,
-        isInternalNote,
-        ...(finalAttachments.length > 0 ? { attachments: finalAttachments } : {}),
+        isInternalNote: Boolean(isInternalNote),
       };
+      if (finalAttachments.length > 0) {
+        newMsg.attachments = finalAttachments;
+      }
 
-      // 1. Add to subcollection
+      // 1. Add to subcollection with sanitization
       await addDoc(
         collection(db, "conversations", selectedConvId, "messages"),
-        newMsg
+        sanitizeForFirestore(newMsg)
       );
 
       setStagedAttachments([]);
