@@ -11,7 +11,8 @@ import {
   TrendingUp,
   AlertCircle,
   Search,
-  ChevronRight
+  ChevronRight,
+  FolderCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -20,6 +21,7 @@ export const CounsellorDashboard: React.FC = () => {
     leads,
     students,
     applications,
+    documents,
     tasks,
     loading,
     error,
@@ -34,6 +36,10 @@ export const CounsellorDashboard: React.FC = () => {
 
   const openTasks = tasks.filter((t) => t.status === "Open");
   const overdueTasks = openTasks.filter((t) => new Date(t.dueDate) < new Date());
+
+  const pendingDocumentsCount = documents.filter(
+    (d) => d.status === "Pending" || d.status === "Received"
+  ).length;
 
   const convertedLeadsCount = leads.filter((l) => l.stage === "Converted").length;
   const leadConversionRate = leads.length > 0 ? Math.round((convertedLeadsCount / leads.length) * 100) : 0;
@@ -101,7 +107,7 @@ export const CounsellorDashboard: React.FC = () => {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Link
           to="/counsellor/leads"
           className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] hover:border-emerald-500/30 sq-card space-y-2 transition-all group"
@@ -127,8 +133,23 @@ export const CounsellorDashboard: React.FC = () => {
           </div>
           <div className="text-3xl font-extrabold font-heading text-[var(--text-primary)]">{students.length}</div>
           <div className="flex items-center justify-between text-[10px]">
-            <span className="text-teal-400 font-medium">Student profiles</span>
+            <span className="text-teal-400 font-medium">Student accounts</span>
             <ArrowUpRight className="w-3 h-3 text-[var(--text-muted)] group-hover:text-teal-400" />
+          </div>
+        </Link>
+
+        <Link
+          to="/counsellor/documents"
+          className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] hover:border-violet-500/30 sq-card space-y-2 transition-all group"
+        >
+          <div className="flex items-center justify-between text-[var(--text-muted)] text-xs">
+            <span>Pending Docs</span>
+            <FolderCheck className="w-4 h-4 text-violet-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <div className="text-3xl font-extrabold font-heading text-[var(--text-primary)]">{pendingDocumentsCount}</div>
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-violet-400 font-medium">To verify</span>
+            <ArrowUpRight className="w-3 h-3 text-[var(--text-muted)] group-hover:text-violet-400" />
           </div>
         </Link>
 
@@ -312,6 +333,10 @@ export const CounsellorDashboard: React.FC = () => {
                   <span className="font-mono font-bold text-[var(--text-primary)]">
                     {applications.filter((a) => a.stage === "Submitted" || a.stage === "Unconditional Offer").length}
                   </span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-[var(--text-muted)]">Pending Documents</span>
+                  <span className="font-mono font-bold text-violet-400">{pendingDocumentsCount}</span>
                 </div>
               </div>
             </div>

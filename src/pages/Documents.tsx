@@ -12,13 +12,19 @@ import { Upload, Search, AlertTriangle, X, File, Sparkles, Download, History, Sh
 
 export type DocumentType =
   | "Passport"
+  | "National ID"
+  | "Photograph"
   | "Academic Transcript"
   | "Degree Certificate"
   | "IELTS / English Test"
+  | "CV / Resume"
   | "Personal Statement"
   | "Reference Letter"
   | "Financial Proof"
+  | "Sponsor Documents"
   | "Visa Document"
+  | "Offer Letter"
+  | "CAS or COE"
   | "Other";
 
 export interface DocumentVersion {

@@ -25,6 +25,7 @@ export const useCounsellorData = () => {
     documents,
     tasks,
     universities,
+    users,
     initialLoading: loading,
     error,
     addTask,
@@ -45,23 +46,59 @@ export const useCounsellorData = () => {
     appUser?.role === "org_admin" ||
     appUser?.role === "office_manager";
 
+  // Retain ONLY students who have a registered student account, and deduplicate by email
+  const studentUsers = users.filter((u) => u.role === "student");
+  const validStudentUids = new Set(studentUsers.map((u) => u.uid));
+  const validStudentEmails = new Set(
+    studentUsers.map((u) => (u.email || "").toLowerCase().trim()).filter(Boolean)
+  );
+
+  const accountStudents = students.filter((s) => {
+    const sEmail = (s.email || "").toLowerCase().trim();
+    if (validStudentUids.has(s.id)) return true;
+    if (sEmail && validStudentEmails.has(sEmail)) return true;
+    return false;
+  });
+
+  // Deduplicate by email so each real student individual appears once
+  const uniqueStudentsMap = new Map<string, Student>();
+  for (const s of (accountStudents.length > 0 ? accountStudents : students)) {
+    const key = (s.email || "").toLowerCase().trim() || s.id;
+    if (!uniqueStudentsMap.has(key)) {
+      uniqueStudentsMap.set(key, s);
+    }
+  }
+  const cleanStudents = Array.from(uniqueStudentsMap.values());
+
   const filteredLeads = leads.filter((l) => l.assignedTo === userUid || l.assignedTo === userEmail);
   const myLeads = isAdminOrManager || filteredLeads.length === 0 ? leads : filteredLeads;
 
-  const filteredStudents = students.filter((s) => s.assignedCounsellorId === userUid || s.assignedCounsellorId === userEmail);
-  const myStudents = isAdminOrManager || filteredStudents.length === 0 ? students : filteredStudents;
+  const filteredStudents = cleanStudents.filter(
+    (s) =>
+      s.assignedCounsellorId === userUid ||
+      s.assignedCounsellorId === userEmail ||
+      !s.assignedCounsellorId
+  );
+  const myStudents = isAdminOrManager || filteredStudents.length === 0 ? cleanStudents : filteredStudents;
 
   const myStudentIds = myStudents.map((s) => s.id);
+  const myStudentEmails = new Set(myStudents.map((s) => (s.email || "").toLowerCase().trim()));
 
   const filteredApplications = applications.filter(
     (a) =>
       a.assignedCounsellor === userEmail ||
       a.assignedCounsellor === userUid ||
-      myStudentIds.includes(a.studentId)
+      myStudentIds.includes(a.studentId) ||
+      (a.studentEmail && myStudentEmails.has(a.studentEmail.toLowerCase().trim()))
   );
   const myApplications = isAdminOrManager || filteredApplications.length === 0 ? applications : filteredApplications;
 
-  const filteredDocuments = documents.filter((d) => myStudentIds.includes(d.studentId) || d.uploadedBy === userEmail);
+  const filteredDocuments = documents.filter(
+    (d) =>
+      myStudentIds.includes(d.studentId) ||
+      d.uploadedBy === userEmail ||
+      (d.studentName && myStudents.some((s) => s.fullName.toLowerCase() === d.studentName.toLowerCase()))
+  );
   const myDocuments = isAdminOrManager || filteredDocuments.length === 0 ? documents : filteredDocuments;
 
   const filteredTasks = tasks.filter((t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail);
