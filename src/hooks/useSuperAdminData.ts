@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, doc, addDoc, updateDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
@@ -241,34 +241,44 @@ export const useSuperAdminData = () => {
   const createStaffUser = useCallback(
     async (staffData: {
       email: string;
+      password?: string;
       displayName: string;
       role: UserRole;
       office?: string;
+      team?: string;
     }) => {
       try {
-        const uid = `staff_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-        const newStaff: AppUser = {
-          uid,
-          email: staffData.email.toLowerCase().trim(),
-          displayName: staffData.displayName.trim(),
+        const { provisionStaffUser, generateStrongPassword } = await import("../utils/staffProvisioner");
+        const newStaff = await provisionStaffUser({
+          email: staffData.email,
+          password: staffData.password || generateStrongPassword(),
+          displayName: staffData.displayName,
           role: staffData.role,
           office: staffData.office || "London HQ",
-          createdAt: Date.now(),
-        };
-
-        await setDoc(doc(db, "users", uid), newStaff);
-
-        await logAuditEvent(
-          "SUPER_ADMIN_STAFF_PROVISIONED",
-          appUser?.email || "Platform Super Admin",
-          "SuperAdmin",
-          `Provisioned staff user ${staffData.displayName} (${staffData.email}) with role ${staffData.role}`,
-          uid,
-          appUser?.role
-        );
+          team: staffData.team || "Global Team",
+          actorEmail: appUser?.email || "Platform Super Admin",
+          actorRole: appUser?.role || "platform_super_admin",
+        });
         return newStaff;
       } catch (err: any) {
         throw new Error(err.message || "Failed to create staff account.");
+      }
+    },
+    [appUser]
+  );
+
+  const updateUserPassword = useCallback(
+    async (userUid: string, newPassword: string) => {
+      try {
+        const { updateStaffPassword } = await import("../utils/staffProvisioner");
+        await updateStaffPassword(
+          userUid,
+          newPassword,
+          appUser?.email || "Platform Super Admin",
+          appUser?.role || "platform_super_admin"
+        );
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to update user password.");
       }
     },
     [appUser]
@@ -284,6 +294,7 @@ export const useSuperAdminData = () => {
     updateTenantStatus,
     updateUserRole,
     createStaffUser,
+    updateUserPassword,
     updateGlobalSettings,
     totalLeads: globalData.leads.length,
     totalStudents: globalData.students.length,

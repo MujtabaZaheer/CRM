@@ -16,6 +16,16 @@ import {
 
 import { DEMO_ARTICLES, DEMO_TICKETS } from "../data/demoData";
 
+const cleanPayload = <T extends Record<string, any>>(obj: T): T => {
+  const cleaned: any = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined && val !== null) {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+};
+
 export const useSupportData = () => {
   const { appUser } = useAuth();
   const { showDemoData } = useGlobalData();
@@ -80,7 +90,7 @@ export const useSupportData = () => {
     }) => {
       try {
         const ticketNumber = `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-        const payload: Omit<SupportTicket, "id"> = {
+        const payload: Omit<SupportTicket, "id"> = cleanPayload({
           ticketNumber,
           title: ticketData.title,
           description: ticketData.description,
@@ -93,7 +103,7 @@ export const useSupportData = () => {
           comments: [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
-        };
+        });
 
         const docRef = await addDoc(collection(db, "support_tickets"), payload);
 
@@ -177,10 +187,34 @@ export const useSupportData = () => {
     [appUser, tickets]
   );
 
+  const escalateTicket = useCallback(
+    async (ticketId: string, reason?: string) => {
+      try {
+        const target = tickets.find((t) => t.id === ticketId);
+        await updateDoc(doc(db, "support_tickets", ticketId), {
+          priority: "Urgent",
+          updatedAt: Date.now(),
+        });
+
+        await logAuditEvent(
+          "SUPPORT_TICKET_ESCALATED",
+          appUser?.email || "Support Agent",
+          "Support",
+          `Escalated ticket ${target?.ticketNumber || ticketId} to Urgent priority. ${reason || ""}`,
+          ticketId,
+          appUser?.role
+        );
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to escalate ticket.");
+      }
+    },
+    [appUser, tickets]
+  );
+
   const createArticle = useCallback(
     async (article: { title: string; category: SupportCategory; content: string; tags: string[] }) => {
       try {
-        const payload: Omit<SupportArticle, "id"> = {
+        const payload: Omit<SupportArticle, "id"> = cleanPayload({
           title: article.title,
           category: article.category,
           content: article.content,
@@ -190,7 +224,7 @@ export const useSupportData = () => {
           helpfulCount: 0,
           createdAt: Date.now(),
           updatedAt: Date.now(),
-        };
+        });
 
         const docRef = await addDoc(collection(db, "support_articles"), payload);
 
@@ -237,6 +271,7 @@ export const useSupportData = () => {
     loading,
     createTicket,
     updateTicketStatus,
+    escalateTicket,
     addTicketComment,
     createArticle,
   };

@@ -458,15 +458,42 @@ export const SupportWorkspace: React.FC<{ page: SupportSubPage }> = ({ page }) =
             <BookOpen className="w-8 h-8 text-emerald-400" />
             <h2 className="font-bold text-base text-[var(--text-primary)]">Support SLA & Resolution Analytics</h2>
             <p className="text-[var(--text-secondary)]">
-              Turn-around time tracking, escalation frequency, and user satisfaction indicators.
+              Turn-around time tracking, escalation frequency, resolution trends, and compliance metrics.
             </p>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-lg flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export Support Report
-            </button>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button
+                onClick={() => {
+                  const headers = ["Ticket ID", "Title", "Category", "Priority", "Status", "User Email", "Created At"];
+                  const rows = support.tickets.map((t) => [
+                    t.ticketNumber,
+                    `"${(t.title || "").replace(/"/g, '""')}"`,
+                    t.category,
+                    t.priority,
+                    t.status,
+                    t.userEmail,
+                    new Date(t.createdAt).toISOString(),
+                  ]);
+                  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+                  const encodedUri = encodeURI(csvContent);
+                  const link = document.createElement("a");
+                  link.setAttribute("href", encodedUri);
+                  link.setAttribute("download", `Support_Tickets_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                }}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg flex items-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
+              >
+                <Download className="w-4 h-4" />
+                Export Tickets (CSV)
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] font-bold rounded-lg flex items-center gap-2 hover:bg-[var(--bg-hover)] cursor-pointer"
+              >
+                Print / Save PDF
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -474,21 +501,39 @@ export const SupportWorkspace: React.FC<{ page: SupportSubPage }> = ({ page }) =
       {/* NOTIFICATIONS PAGE */}
       {page === "notifications" && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl p-4 space-y-3">
-          <h2 className="font-bold text-sm text-[var(--text-primary)]">Urgent Ticket Escalations</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-sm text-[var(--text-primary)]">Urgent Ticket Escalations</h2>
+            <span className="text-[10px] text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+              Live Priority Queue
+            </span>
+          </div>
           <div className="space-y-2">
             {support.tickets
               .filter((t) => t.priority === "Urgent" || t.priority === "High")
               .map((t) => (
-                <div key={t.id} className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg flex items-center justify-between">
+                <div key={t.id} className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                     <span>
-                      Ticket <strong>{t.ticketNumber}</strong> ({t.title}) marked high priority.
+                      Ticket <strong className="text-emerald-400 font-mono">{t.ticketNumber}</strong> ({t.title}) marked <strong>{t.priority}</strong> priority.
                     </span>
                   </div>
-                  <PriorityBadge value={t.priority} />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <PriorityBadge value={t.priority} />
+                    <button
+                      onClick={() => setSelectedTicketId(t.id)}
+                      className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-bold rounded text-xs cursor-pointer"
+                    >
+                      Inspect &amp; Respond
+                    </button>
+                  </div>
                 </div>
               ))}
+            {support.tickets.filter((t) => t.priority === "Urgent" || t.priority === "High").length === 0 && (
+              <div className="p-6 text-center text-[var(--text-muted)]">
+                No urgent tickets requiring immediate escalation.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -499,13 +544,31 @@ export const SupportWorkspace: React.FC<{ page: SupportSubPage }> = ({ page }) =
           <div className="w-full max-w-2xl p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-[var(--border-default)] pb-3">
               <div>
-                <span className="text-xs font-mono font-bold text-emerald-400">{selectedTicket.ticketNumber}</span>
-                <h2 className="font-bold text-base text-[var(--text-primary)]">{selectedTicket.title}</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-emerald-400">{selectedTicket.ticketNumber}</span>
+                  <PriorityBadge value={selectedTicket.priority} />
+                  <StatusBadge value={selectedTicket.status} />
+                </div>
+                <h2 className="font-bold text-base text-[var(--text-primary)] mt-1">{selectedTicket.title}</h2>
                 <div className="text-xs text-[var(--text-secondary)]">From {selectedTicket.userEmail} ({selectedTicket.category})</div>
               </div>
-              <button onClick={() => setSelectedTicketId(null)} className="font-bold text-xs hover:underline">
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedTicket.priority !== "Urgent" && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await support.escalateTicket(selectedTicket.id, "Manually escalated by support agent.");
+                      setNotice(`Ticket ${selectedTicket.ticketNumber} escalated to Urgent priority.`);
+                    }}
+                    className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 font-bold rounded text-xs cursor-pointer"
+                  >
+                    Escalate to Urgent
+                  </button>
+                )}
+                <button onClick={() => setSelectedTicketId(null)} className="font-bold text-xs hover:underline cursor-pointer">
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg text-xs">

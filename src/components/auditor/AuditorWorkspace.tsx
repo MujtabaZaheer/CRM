@@ -197,7 +197,31 @@ export const AuditorWorkspace: React.FC<{ page: AuditorSubPage }> = ({ page }) =
                 <option value="Finance">Finance</option>
                 <option value="Support">Support</option>
                 <option value="System">System</option>
+                <option value="UserManagement">User Management</option>
+                <option value="ComplianceAudit">Compliance Audit</option>
               </select>
+              <button
+                onClick={() => {
+                  const headers = ["Timestamp", "Action Event", "Actor / Email", "Module", "Details"];
+                  const rows = filteredLogs.map((l) => [
+                    new Date(l.timestamp).toISOString(),
+                    l.action,
+                    l.actorEmail,
+                    l.module,
+                    `"${(l.details || "").replace(/"/g, '""')}"`,
+                  ]);
+                  const csv = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+                  const link = document.createElement("a");
+                  link.setAttribute("href", encodeURI(csv));
+                  link.setAttribute("download", `Immutable_Audit_Trail_${new Date().toISOString().slice(0, 10)}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                }}
+                className="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
+              >
+                <Download className="w-3.5 h-3.5" /> Export CSV
+              </button>
             </div>
           </div>
 
@@ -266,7 +290,7 @@ export const AuditorWorkspace: React.FC<{ page: AuditorSubPage }> = ({ page }) =
                     <td className="p-3 text-right">
                       <button
                         onClick={() => setInspectTarget(app)}
-                        className="px-3 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] font-bold rounded flex items-center gap-1 ml-auto text-xs"
+                        className="px-3 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] font-bold rounded flex items-center gap-1 ml-auto text-xs cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5 text-emerald-400" /> Inspect
                       </button>
@@ -282,14 +306,30 @@ export const AuditorWorkspace: React.FC<{ page: AuditorSubPage }> = ({ page }) =
       {/* SYSTEM LOGS PAGE */}
       {page === "system-logs" && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl p-4 space-y-4">
-          <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-            <Activity className="w-4 h-4 text-emerald-400" /> System Security & Access Logs
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" /> System Security & Access Logs
+            </h2>
+            <button
+              onClick={() => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditor.logs, null, 2));
+                const link = document.createElement("a");
+                link.setAttribute("href", dataStr);
+                link.setAttribute("download", `Security_Logs_Export_${new Date().toISOString().slice(0, 10)}.json`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+              }}
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg flex items-center gap-1.5 text-xs cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" /> Export JSON
+            </button>
+          </div>
           <div className="font-mono text-[11px] bg-zinc-950 p-4 rounded-lg space-y-2 border border-zinc-800 max-h-96 overflow-y-auto">
             {auditor.logs.map((l) => (
               <div key={l.id} className="text-zinc-400 border-b border-zinc-900 pb-1">
                 <span className="text-emerald-400">[{new Date(l.timestamp).toISOString()}]</span>{" "}
-                <span className="text-amber-400">{l.action}</span> by <span className="text-teal-400">{l.actorEmail}</span> - {l.details}
+                <span className="text-amber-400 font-bold">{l.action}</span> by <span className="text-teal-400">{l.actorEmail}</span> - {l.details}
               </div>
             ))}
           </div>
@@ -301,14 +341,37 @@ export const AuditorWorkspace: React.FC<{ page: AuditorSubPage }> = ({ page }) =
         <div className="p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-4 max-w-xl">
           <h2 className="font-bold text-base text-[var(--text-primary)]">Audit Compliance & Inspection Summary</h2>
           <p className="text-[var(--text-secondary)]">
-            Export official read-only audit certificate and compliance validation record.
+            Export official read-only audit certificate and compliance validation record for institutional governance and regulators.
           </p>
-          <button
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-lg flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" /> Export Compliance Audit Report
-          </button>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold rounded-lg flex items-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Print / Save PDF Certificate
+            </button>
+            <button
+              onClick={() => {
+                const headers = ["Metric", "Value"];
+                const rows = [
+                  ["Total Audit Events Recorded", auditor.metrics.totalAuditEvents],
+                  ["Critical Security Events", auditor.metrics.criticalSecurityEvents],
+                  ["Compliance Pass Rate", `${auditor.metrics.compliancePassRate}%`],
+                  ["Total Entities Audited", auditor.metrics.totalEntitiesAudited],
+                ];
+                const csv = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+                const link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csv));
+                link.setAttribute("download", `Compliance_Metric_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+              }}
+              className="px-4 py-2 bg-[var(--bg-elevated)] border border-[var(--border-default)] font-bold rounded-lg flex items-center gap-2 hover:bg-[var(--bg-hover)] cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Export CSV Summary
+            </button>
+          </div>
         </div>
       )}
 
@@ -321,10 +384,16 @@ export const AuditorWorkspace: React.FC<{ page: AuditorSubPage }> = ({ page }) =
               .filter((l) => l.action.includes("FLAGGED") || l.action.includes("SECURITY"))
               .map((l) => (
                 <div key={l.id} className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-lg flex items-center justify-between">
-                  <span>{l.details}</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">{new Date(l.timestamp).toLocaleTimeString()}</span>
+                  <div className="space-y-0.5">
+                    <span className="font-bold block text-xs">{l.action}</span>
+                    <span className="text-[11px] text-zinc-300">{l.details}</span>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono shrink-0 ml-3">{new Date(l.timestamp).toLocaleTimeString()}</span>
                 </div>
               ))}
+            {auditor.logs.filter((l) => l.action.includes("FLAGGED") || l.action.includes("SECURITY")).length === 0 && (
+              <div className="p-6 text-center text-[var(--text-muted)]">No active compliance flags. System status clean.</div>
+            )}
           </div>
         </div>
       )}
@@ -332,22 +401,59 @@ export const AuditorWorkspace: React.FC<{ page: AuditorSubPage }> = ({ page }) =
       {/* INSPECTION MODAL */}
       {inspectTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
-          <div className="w-full max-w-lg p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-xl space-y-4">
+          <div className="w-full max-w-lg p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b border-[var(--border-default)] pb-3">
-              <h2 className="font-bold text-sm text-[var(--text-primary)]">Read-Only Application Audit</h2>
-              <button onClick={() => setInspectTarget(null)} className="font-bold hover:underline">
+              <div>
+                <span className="text-xs font-mono font-bold text-emerald-400">{inspectTarget.applicationNumber}</span>
+                <h2 className="font-bold text-base text-[var(--text-primary)]">{inspectTarget.studentName}</h2>
+              </div>
+              <button onClick={() => setInspectTarget(null)} className="font-bold text-xs hover:underline cursor-pointer">
                 Close
               </button>
             </div>
             <div className="space-y-2 text-xs">
-              <div><strong>Application No:</strong> {inspectTarget.applicationNumber}</div>
-              <div><strong>Student:</strong> {inspectTarget.studentName}</div>
-              <div><strong>University:</strong> {inspectTarget.universityName}</div>
-              <div><strong>Stage:</strong> {inspectTarget.stage}</div>
-              <div><strong>Intake:</strong> {inspectTarget.intake}</div>
+              <div className="grid grid-cols-2 gap-2 bg-[var(--bg-elevated)] p-3 rounded-xl border border-[var(--border-default)]">
+                <div><span className="text-[var(--text-muted)] block">University:</span> <strong>{inspectTarget.universityName}</strong></div>
+                <div><span className="text-[var(--text-muted)] block">Programme:</span> <strong>{inspectTarget.programmeName}</strong></div>
+                <div><span className="text-[var(--text-muted)] block">Current Stage:</span> <strong>{inspectTarget.stage}</strong></div>
+                <div><span className="text-[var(--text-muted)] block">Intake:</span> <strong>{inspectTarget.intake}</strong></div>
+              </div>
             </div>
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded text-[11px]">
-              🔒 All data presented in read-only immutable view. No modification allowed.
+
+            {/* Compliance Checklist */}
+            <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+              <span className="font-bold text-xs block text-[var(--text-primary)]">Mandatory Compliance Checks</span>
+              <div className="space-y-1.5 text-xs">
+                {[
+                  "ID & Passport Validity",
+                  "Academic Transcript Authentication",
+                  "English Proficiency Credential (IELTS/TOEFL)",
+                  "Financial Affidavit & Proof of Funds"
+                ].map((check) => (
+                  <div key={check} className="p-2 bg-[var(--bg-elevated)] rounded-lg flex items-center justify-between">
+                    <span className="text-zinc-300 text-[11px]">{check}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleRunComplianceAudit(inspectTarget.id, inspectTarget.studentName, true)}
+                        className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded hover:bg-emerald-500/20 cursor-pointer"
+                      >
+                        Pass
+                      </button>
+                      <button
+                        onClick={() => handleRunComplianceAudit(inspectTarget.id, inspectTarget.studentName, false)}
+                        className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold rounded hover:bg-rose-500/20 cursor-pointer"
+                      >
+                        Flag
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[11px] flex items-center gap-2">
+              <Lock className="w-4 h-4 shrink-0" />
+              <span>All data presented in read-only immutable view. Action audits are cryptographically hashed and recorded to Firestore.</span>
             </div>
           </div>
         </div>

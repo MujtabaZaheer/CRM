@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 
 import { getFunctions } from "firebase/functions";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB9s5vfoVYc8feVi6we1Dy4l95_phOA2lU",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "education-crm-9fee2.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "education-crm-9fee2",

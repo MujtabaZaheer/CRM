@@ -51,12 +51,22 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
   const [editingUserUid, setEditingUserUid] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>("counsellor");
 
+  // User Password Reset Modal
+  const [passwordUserUid, setPasswordUserUid] = useState<string | null>(null);
+  const [passwordUserEmail, setPasswordUserEmail] = useState<string>("");
+  const [newPasswordInput, setNewPasswordInput] = useState<string>("");
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
   // Create Staff Account Modal
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [newStaffName, setNewStaffName] = useState("");
   const [newStaffEmail, setNewStaffEmail] = useState("");
+  const [newStaffPassword, setNewStaffPassword] = useState("Edu-Pass2026!");
   const [newStaffRole, setNewStaffRole] = useState<UserRole>("counsellor");
   const [newStaffOffice, setNewStaffOffice] = useState("London HQ");
+  const [newStaffTeam, setNewStaffTeam] = useState("Global Team");
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
   const [creatingStaff, setCreatingStaff] = useState(false);
 
   // GDPR State
@@ -155,19 +165,38 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
     try {
       await superAdmin.createStaffUser({
         email: newStaffEmail,
+        password: newStaffPassword,
         displayName: newStaffName,
         role: newStaffRole,
         office: newStaffOffice,
+        team: newStaffTeam,
       });
-      setNotice(`Successfully provisioned ${ROLE_LABELS[newStaffRole]} account for ${newStaffEmail}.`);
+      setNotice(`Successfully provisioned ${ROLE_LABELS[newStaffRole]} account for ${newStaffEmail} with custom password.`);
       setShowStaffModal(false);
       setNewStaffName("");
       setNewStaffEmail("");
       setNewStaffRole("counsellor");
+      setNewStaffPassword("Edu-Pass2026!");
     } catch (err: any) {
       setNotice(`Failed to create staff user: ${err.message}`);
     } finally {
       setCreatingStaff(false);
+    }
+  };
+
+  const handleUpdatePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordUserUid || !newPasswordInput) return;
+    setUpdatingPassword(true);
+    try {
+      await superAdmin.updateUserPassword(passwordUserUid, newPasswordInput);
+      setNotice(`Password successfully reset for user ${passwordUserEmail}`);
+      setPasswordUserUid(null);
+      setNewPasswordInput("");
+    } catch (err: any) {
+      setNotice(`Password update failed: ${err.message}`);
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -367,7 +396,7 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                   <th className="p-3">Display Name</th>
                   <th className="p-3">Assigned Role</th>
                   <th className="p-3">Office</th>
-                  <th className="p-3 text-right">Reassign Role</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)] text-xs">
@@ -377,13 +406,24 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                     <td className="p-3 text-[var(--text-secondary)]">{u.displayName || "N/A"}</td>
                     <td className="p-3 font-semibold text-emerald-400">{ROLE_LABELS[u.role] || u.role}</td>
                     <td className="p-3 text-[var(--text-secondary)]">{u.office || "Main Office"}</td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setPasswordUserUid(u.uid);
+                          setPasswordUserEmail(u.email);
+                          setNewPasswordInput("Edu-Pass2026!");
+                        }}
+                        className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold rounded hover:bg-amber-500/20 flex items-center gap-1 cursor-pointer"
+                        title="Set or reset account password"
+                      >
+                        <Lock className="w-3 h-3" /> Password
+                      </button>
                       <button
                         onClick={() => {
                           setEditingUserUid(u.uid);
                           setSelectedRole(u.role);
                         }}
-                        className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded hover:bg-emerald-500/20"
+                        className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded hover:bg-emerald-500/20 cursor-pointer"
                       >
                         Change Role
                       </button>
@@ -623,14 +663,14 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
           <form
             onSubmit={handleCreateStaffSubmit}
-            className="w-full max-w-md p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl"
+            className="w-full max-w-lg p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl"
           >
             <div>
               <h2 className="font-bold text-base text-[var(--text-primary)]">
                 Provision New Staff Account
               </h2>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                Create an internal user account for Counsellor, Finance, Auditor, Support, or Admissions staff.
+                Create an internal user account for non-signup roles with full credentials, office, and team assignment.
               </p>
             </div>
 
@@ -662,6 +702,45 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               />
             </div>
 
+            {/* Set Password Input */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">
+                  Account Password *
+                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { generateStrongPassword } = await import("../../utils/staffProvisioner");
+                    setNewStaffPassword(generateStrongPassword());
+                  }}
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
+                >
+                  Generate Strong Password
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  required
+                  type={showStaffPassword ? "text" : "password"}
+                  value={newStaffPassword}
+                  onChange={(e) => setNewStaffPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="w-full p-2.5 pr-20 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] font-mono focus:border-emerald-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowStaffPassword(!showStaffPassword)}
+                  className="absolute right-2.5 top-2.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium cursor-pointer"
+                >
+                  {showStaffPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
+                The staff member can sign in immediately using this password.
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
@@ -673,13 +752,17 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                   className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
                 >
                   <option value="counsellor">Education Counsellor</option>
-                  <option value="finance_officer">Finance &amp; Accounts</option>
+                  <option value="team_leader">Branch Team Leader</option>
+                  <option value="admissions_officer">Admissions Officer</option>
+                  <option value="finance_officer">Finance Officer</option>
                   <option value="auditor">Auditor &amp; Compliance</option>
                   <option value="support_user">Support Specialist</option>
-                  <option value="admissions_officer">Admissions Officer</option>
-                  <option value="team_leader">Branch Team Leader</option>
-                  <option value="visa_officer">Visa &amp; Immigration</option>
-                  <option value="organization_admin">Organization Admin</option>
+                  <option value="visa_officer">Visa Officer</option>
+                  <option value="external_agent">External Agent</option>
+                  <option value="university_partner">University Partner</option>
+                  <option value="office_manager">Office Manager</option>
+                  <option value="org_admin">Organization Admin</option>
+                  <option value="platform_super_admin">Platform Super Admin</option>
                 </select>
               </div>
 
@@ -702,6 +785,23 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                Assigned Team
+              </label>
+              <select
+                value={newStaffTeam}
+                onChange={(e) => setNewStaffTeam(e.target.value)}
+                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="Global Team">Global Team</option>
+                <option value="Europe Team">Europe Team</option>
+                <option value="North America Team">North America Team</option>
+                <option value="Asia-Pacific Team">Asia-Pacific Team</option>
+                <option value="Americas Team">Americas Team</option>
+              </select>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
               <button
                 type="button"
@@ -712,10 +812,84 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               </button>
               <button
                 type="submit"
-                disabled={creatingStaff || !newStaffName || !newStaffEmail}
+                disabled={creatingStaff || !newStaffName || !newStaffEmail || !newStaffPassword}
                 className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
               >
                 {creatingStaff ? "Provisioning..." : "Create Staff Account"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: RESET / CHANGE PASSWORD */}
+      {passwordUserUid && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
+          <form
+            onSubmit={handleUpdatePasswordSubmit}
+            className="w-full max-w-md p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl"
+          >
+            <div>
+              <h2 className="font-bold text-base text-[var(--text-primary)] flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-400" /> Reset Staff Password
+              </h2>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                Set a new password for <strong className="text-[var(--text-primary)]">{passwordUserEmail}</strong>.
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">
+                  New Password *
+                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { generateStrongPassword } = await import("../../utils/staffProvisioner");
+                    setNewPasswordInput(generateStrongPassword());
+                  }}
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
+                >
+                  Generate Strong Password
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  required
+                  type={showPasswordInput ? "text" : "password"}
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="Enter minimum 6 characters"
+                  className="w-full p-2.5 pr-20 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] font-mono focus:border-emerald-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordInput(!showPasswordInput)}
+                  className="absolute right-2.5 top-2.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium cursor-pointer"
+                >
+                  {showPasswordInput ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setPasswordUserUid(null);
+                  setNewPasswordInput("");
+                }}
+                className="px-4 py-2 bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updatingPassword || !newPasswordInput}
+                className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {updatingPassword ? "Updating..." : "Save Password"}
               </button>
             </div>
           </form>
