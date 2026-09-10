@@ -140,9 +140,6 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
   /* ---- state ---- */
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(initialRole);
-  const [roleCategory, setRoleCategory] = useState<"external" | "staff">(
-    initialRole && STAFF_ROLES.includes(initialRole as any) ? "staff" : "external"
-  );
   const [cvNotice, setCvNotice] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -404,7 +401,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   /*  ROLE SELECTION SCREEN                                           */
   /* ================================================================ */
   if (!selectedRole) {
-    const activeRoles = roleCategory === "external" ? EXTERNAL_ROLES : STAFF_ROLES;
+    const activeRoles = EXTERNAL_ROLES;
 
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
@@ -419,44 +416,18 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className={`w-full ${roleCategory === "staff" ? "max-w-5xl" : "max-w-2xl"} bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-md transition-all duration-300`}>
+        <div className="w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-md transition-all duration-300">
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-zinc-950 font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
               E
             </div>
             <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Create Your Account</h1>
-            <p className="text-zinc-400 text-sm">Select your role category to get started with EduCRM</p>
-
-            {/* Category Switcher Tabs */}
-            <div className="flex items-center justify-center p-1 bg-zinc-950/80 border border-zinc-800 rounded-xl max-w-md mx-auto mt-4">
-              <button
-                type="button"
-                onClick={() => setRoleCategory("external")}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  roleCategory === "external"
-                    ? "bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Applicants & Partners ({EXTERNAL_ROLES.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setRoleCategory("staff")}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  roleCategory === "staff"
-                    ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Staff & Operations Roles ({STAFF_ROLES.length})
-              </button>
-            </div>
+            <p className="text-zinc-400 text-sm">Select your role to get started with EduCRM</p>
           </div>
 
           {/* Role Cards */}
-          <div className={`grid grid-cols-1 ${roleCategory === "staff" ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-3"} gap-4`}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {activeRoles.map((roleKey) => {
               const config = REGISTRATION_CONFIGS[roleKey];
               if (!config) return null;
@@ -487,23 +458,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
           {/* Info note */}
           <p className="text-[11px] text-zinc-500 text-center">
-            {roleCategory === "staff" ? (
-              <span>
-                Internal staff accounts (Counsellor, Finance, Admissions, Audit, Support, Visa) can register directly or be provisioned by a Super Admin in User Management.
-              </span>
-            ) : (
-              <span>
-                Looking for Counsellor, Finance, or Audit staff roles? Switch to the{" "}
-                <button
-                  type="button"
-                  onClick={() => setRoleCategory("staff")}
-                  className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-2"
-                >
-                  Staff & Operations
-                </button>{" "}
-                tab above.
-              </span>
-            )}
+            Internal staff accounts (Counsellor, Finance, Admissions, Audit, Support, Visa) are provisioned by your organization's Super Admin.
+            Contact your administrator if you need a staff account.
           </p>
 
           {/* Sign in link */}

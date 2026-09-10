@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 import { DEMO_STUDENTS } from "../data/demoData";
@@ -159,21 +159,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (docSnap.exists()) {
               setAppUser(docSnap.data() as AppUser);
             } else {
-              // Auto-provision basic profile if missing so live sign-in succeeds
+              // Auto-provision basic profile if missing.
+              // IMPORTANT: Check if the user was invited with a specific role
+              // before defaulting to student (fixes counsellor/staff seeing student onboarding).
+              let assignedRole: UserRole = "student";
+              let assignedOffice = "Main Office";
+              let onboardingStatus: "not_started" | "in_progress" | "completed" = "not_started";
+              let profileCompleted = false;
+
+              try {
+                const invQuery = query(
+                  collection(db, "invitations"),
+                  where("email", "==", (user.email || "").toLowerCase()),
+                  where("status", "==", "pending")
+                );
+                const invSnap = await getDocs(invQuery);
+                if (!invSnap.empty) {
+                  const invData = invSnap.docs[0].data();
+                  assignedRole = invData.role || "student";
+                  assignedOffice = invData.office || "Main Office";
+                }
+              } catch (invErr) {
+                console.warn("Could not check invitations:", invErr);
+              }
+
+              const isAdminRole = assignedRole === "platform_super_admin" || assignedRole === "org_admin";
+              if (isAdminRole) {
+                onboardingStatus = "completed";
+                profileCompleted = true;
+              }
+
               const defaultProfile: AppUser = {
                 uid: user.uid,
                 email: user.email || "user@educrm.app",
                 displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
-                // A missing profile must never grant administrative access. Staff are
-                // provisioned by an administrator; a newly discovered account starts
-                // with the least-privileged student role.
-                role: "student",
+                role: assignedRole,
                 createdAt: Date.now(),
-                office: "Main Office",
+                office: assignedOffice,
                 branchId: "branch-main",
                 tenantId: "tenant-default",
-                onboardingStatus: "not_started",
-                profileCompleted: false,
+                onboardingStatus,
+                profileCompleted,
                 currentStep: 1,
               };
               try {

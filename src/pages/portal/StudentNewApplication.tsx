@@ -28,7 +28,13 @@ export const StudentNewApplication: React.FC = () => {
   useEffect(() => {
     const fetchUnivs = async () => {
       try {
-        const snap = await getDocs(collection(db, "universities"));
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 3500)
+        );
+        const snap = await Promise.race([
+          getDocs(collection(db, "universities")),
+          timeoutPromise,
+        ]);
         const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as University));
         DEMO_UNIVERSITIES.forEach(demo => {
           if (!data.some(u => u.id === demo.id || u.name.toLowerCase() === demo.name.toLowerCase())) {
@@ -51,7 +57,20 @@ export const StudentNewApplication: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error("Error fetching universities", err);
+        console.warn("Error or timeout fetching universities, falling back to catalog:", err);
+        setUniversities(DEMO_UNIVERSITIES);
+        if (urlProgId) {
+          const u = DEMO_UNIVERSITIES.find(univ => (urlUnivId && univ.id === urlUnivId) || univ.programmes?.some(p => p.id === urlProgId));
+          if (u) {
+            setSelectedCountry(u.country);
+            setSelectedUnivId(u.id);
+            const p = u.programmes?.find(prog => prog.id === urlProgId);
+            if (p) {
+              setSelectedProgId(p.id);
+              if (p.intakes?.[0]) setSelectedIntake(p.intakes[0]);
+            }
+          }
+        }
       } finally {
         setLoading(false);
       }

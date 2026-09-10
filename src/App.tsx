@@ -133,6 +133,7 @@ import { CounsellorMessages } from "./pages/counsellor/CounsellorMessages";
 
 import { GlobalDataProvider } from "./contexts/GlobalDataContext";
 import { NotificationProvider } from "./contexts/NotificationProvider";
+import { RoleGate } from "./components/layout/RoleGate";
 
 export const App: React.FC = () => {
   return (
@@ -172,7 +173,16 @@ export const App: React.FC = () => {
               {/* Protected Application Routes */}
               <Route element={<ProtectedLayout />}>
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/leads" element={<Leads />} />
+                <Route
+                  path="/leads"
+                  element={
+                    <RoleGate allowedRoles={["platform_super_admin", "org_admin", "counsellor", "office_manager", "team_leader", "admissions_officer"]}>
+                      <Leads />
+                    </RoleGate>
+                  }
+                />
+                <Route path="/apply/:programmeId" element={<StudentNewApplication />} />
+                <Route path="/apply" element={<StudentNewApplication />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/applications" element={<Applications />} />
                 <Route path="/calendar" element={<CalendarPage />} />

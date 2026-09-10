@@ -6,36 +6,26 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function hasUserDoc() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function hasRole(role) { return hasUserDoc() && profile().role == role; }
-    function isPlatformAdmin() {
+    // Roles are strictly validated via verified Firestore user profile or auth custom claims
+    function hasRole(role) {
       return signedIn() && (
-        hasRole('platform_super_admin') ||
-        (request.auth.token.email != null && (
-          request.auth.token.email in ['admin@educrm.com', 'platform_super_admin@educrm.demo', 'superadmin@educrm.demo'] ||
-          request.auth.token.email.matches('.*super_admin.*') ||
-          request.auth.token.email.matches('.*superadmin.*')
-        ))
+        (request.auth.token != null && request.auth.token.role == role) ||
+        (hasUserDoc() && profile().role == role)
       );
     }
-    function isOrgAdmin() {
-      return signedIn() && (
-        hasRole('org_admin') ||
-        (request.auth.token.email != null && (
-          request.auth.token.email in ['orgadmin@educrm.com', 'org_admin@educrm.demo']
-        ))
-      );
-    }
+    function isPlatformAdmin() { return hasRole('platform_super_admin'); }
+    function isOrgAdmin() { return hasRole('org_admin'); }
     function isAdmin() { return isPlatformAdmin() || isOrgAdmin(); }
-    function isCounsellor() { return hasRole('counsellor') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*counsellor.*')); }
-    function isAdmissionsOfficer() { return hasRole('admissions_officer') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*admissions.*')); }
-    function isTeamLeader() { return hasRole('team_leader') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*team_leader.*')); }
-    function isFinanceOfficer() { return hasRole('finance_officer') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*finance.*')); }
-    function isVisaOfficer() { return hasRole('visa_officer') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*visa.*')); }
-    function isSupportUser() { return hasRole('support_user') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*support.*')); }
-    function isAuditor() { return hasRole('auditor') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*auditor.*')); }
-    function isExternalAgent() { return hasRole('external_agent') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*agent.*')); }
-    function isUniversityPartner() { return hasRole('university_partner') || (signedIn() && request.auth.token.email != null && request.auth.token.email.matches('.*university.*')); }
-    function isStudent() { return hasRole('student') || (signedIn() && request.auth.token.email != null && (request.auth.token.email.matches('.*student.*') || request.auth.token.email == 'aarav.patel@gmail.com')); }
+    function isCounsellor() { return hasRole('counsellor'); }
+    function isAdmissionsOfficer() { return hasRole('admissions_officer'); }
+    function isTeamLeader() { return hasRole('team_leader'); }
+    function isFinanceOfficer() { return hasRole('finance_officer'); }
+    function isVisaOfficer() { return hasRole('visa_officer'); }
+    function isSupportUser() { return hasRole('support_user'); }
+    function isAuditor() { return hasRole('auditor') || hasRole('compliance_officer'); }
+    function isExternalAgent() { return hasRole('external_agent'); }
+    function isUniversityPartner() { return hasRole('university_partner'); }
+    function isStudent() { return hasRole('student'); }
     function isOperationalStaff() {
       return isAdmin() || isCounsellor() || isAdmissionsOfficer() || isTeamLeader() || isVisaOfficer() || isFinanceOfficer() || isSupportUser();
     }
@@ -44,12 +34,25 @@ service cloud.firestore {
     function agentOwns(data) { return isExternalAgent() && (data.agentUid == request.auth.uid || data.agentUserId == request.auth.uid); }
     function universityOwns(data) { return isUniversityPartner() && data.partnerUniversityId == profile().partnerUniversityId; }
 
-    // User Directory: Strict security, never expose passwords
+    // User Directory: Strict security, never expose passwords or allow self-elevation
     match /users/{userId} {
       allow get: if signedIn();
       allow list: if isAdmin() || isOperationalStaff() || isAuditor();
-      allow create: if signedIn();
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      // Only administrators can provision privileged staff or admin accounts.
+      // Self-service signups can only create standard non-privileged student or external partner accounts.
+      allow create: if signedIn() && (
+        isAdmin() ||
+        (request.auth.uid == userId && (
+          !('role' in request.resource.data) ||
+          request.resource.data.role == 'student' ||
+          request.resource.data.role in ['student', 'external_agent', 'university_partner']
+        ))
+      );
+      // Non-admins can update personal profile fields, but can NEVER elevate role, tenant, or permissions.
+      allow update: if isAdmin() || (
+        signedIn() && request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenantId', 'partnerUniversityId', 'isSuperAdmin', 'admin'])
+      );
       allow delete: if isPlatformAdmin();
     }
 
@@ -193,12 +196,36 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Student Conversations & Messages
+    // Student Conversations & Messages: Strict participant and ownership verification
+    function canAccessConversation(conv) {
+      return signedIn() && (
+        isAdmin() ||
+        isOperationalStaff() ||
+        conv.studentId == request.auth.uid ||
+        (request.auth.token.email != null && conv.studentEmail == request.auth.token.email) ||
+        (conv.participants != null && request.auth.uid in conv.participants) ||
+        conv.counsellorId == request.auth.uid
+      );
+    }
+
     match /conversations/{conversationId} {
-      allow read, write: if signedIn();
+      allow read: if canAccessConversation(resource.data);
+      allow create: if signedIn() && (
+        isOperationalStaff() ||
+        request.resource.data.studentId == request.auth.uid ||
+        (request.auth.token.email != null && request.resource.data.studentEmail == request.auth.token.email) ||
+        (request.resource.data.participants != null && request.auth.uid in request.resource.data.participants)
+      );
+      allow update: if canAccessConversation(resource.data);
+      allow delete: if isAdmin();
 
       match /messages/{messageId} {
-        allow read, write: if signedIn();
+        allow read: if canAccessConversation(get(/databases/$(database)/documents/conversations/$(conversationId)).data);
+        allow create: if signedIn() && canAccessConversation(get(/databases/$(database)/documents/conversations/$(conversationId)).data) && (
+          isOperationalStaff() || request.resource.data.senderId == request.auth.uid
+        );
+        allow update: if signedIn() && canAccessConversation(get(/databases/$(database)/documents/conversations/$(conversationId)).data);
+        allow delete: if isAdmin();
       }
     }
 

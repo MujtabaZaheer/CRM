@@ -19,9 +19,12 @@ export const STAFF_ROLES: UserRole[] = [
   "visa_officer",
 ];
 
+/**
+ * Only external/applicant roles can self-register via /register.
+ * Staff & operations roles are provisioned by Super Admin via email invitation.
+ */
 export const SELF_REGISTERABLE_ROLES: UserRole[] = [
   ...EXTERNAL_ROLES,
-  ...STAFF_ROLES,
 ];
 
 /** Metadata describing a role's registration experience. */

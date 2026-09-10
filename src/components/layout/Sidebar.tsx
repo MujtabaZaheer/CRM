@@ -52,7 +52,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", path: "/", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Leads", path: "/leads", icon: <Users2 className="w-4 h-4" /> },
+  { 
+    label: "Leads", 
+    path: "/leads", 
+    icon: <Users2 className="w-4 h-4" />, 
+    rolesAllowed: ["platform_super_admin", "org_admin", "counsellor", "office_manager", "team_leader", "admissions_officer"] 
+  },
   { label: "Students", path: "/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Applications", path: "/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "Calendar", path: "/calendar", icon: <Calendar className="w-4 h-4" /> },

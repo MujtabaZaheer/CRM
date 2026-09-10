@@ -268,6 +268,49 @@ export const useSuperAdminData = () => {
     [appUser]
   );
 
+  const createStaffInvitation = useCallback(
+    async (invData: {
+      email: string;
+      role: UserRole;
+      office?: string;
+    }) => {
+      try {
+        const { doc, setDoc } = await import("firebase/firestore");
+        const token = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        const normalizedEmail = invData.email.toLowerCase().trim();
+
+        await setDoc(doc(db, "invitations", token), {
+          token,
+          email: normalizedEmail,
+          role: invData.role,
+          office: invData.office || "Main Office",
+          status: "pending",
+          invitedBy: appUser?.email || "Platform Super Admin",
+          invitedByRole: appUser?.role || "platform_super_admin",
+          createdAt: Date.now(),
+        });
+
+        // Log audit event
+        try {
+          const { logAuditEvent } = await import("../utils/auditLogger");
+          await logAuditEvent(
+            "STAFF_INVITATION_CREATED",
+            appUser?.email || "Platform Super Admin",
+            "UserManagement",
+            `Created staff invitation for ${normalizedEmail} with role ${invData.role} at ${invData.office || "Main Office"}. Token: ${token}`,
+            normalizedEmail,
+            appUser?.role as any
+          );
+        } catch (_) {}
+
+        return token;
+      } catch (err: any) {
+        throw new Error(err.message || "Failed to create invitation.");
+      }
+    },
+    [appUser]
+  );
+
   const updateUserPassword = useCallback(
     async (userUid: string, newPassword: string) => {
       try {
@@ -295,6 +338,7 @@ export const useSuperAdminData = () => {
     updateTenantStatus,
     updateUserRole,
     createStaffUser,
+    createStaffInvitation,
     updateUserPassword,
     updateGlobalSettings,
     totalLeads: globalData.leads.length,
@@ -303,3 +347,4 @@ export const useSuperAdminData = () => {
     totalDocuments: globalData.documents.length,
   };
 };
+

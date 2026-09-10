@@ -60,13 +60,13 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
 
   // Create Staff Account Modal
   const [showStaffModal, setShowStaffModal] = useState(false);
-  const [newStaffName, setNewStaffName] = useState("");
+  const [_newStaffName, _setNewStaffName] = useState("");
   const [newStaffEmail, setNewStaffEmail] = useState("");
-  const [newStaffPassword, setNewStaffPassword] = useState("Edu-Pass2026!");
+  const [_newStaffPassword, _setNewStaffPassword] = useState("Edu-Pass2026!");
   const [newStaffRole, setNewStaffRole] = useState<UserRole>("counsellor");
   const [newStaffOffice, setNewStaffOffice] = useState("London HQ");
-  const [newStaffTeam, setNewStaffTeam] = useState("Global Team");
-  const [showStaffPassword, setShowStaffPassword] = useState(false);
+  const [_newStaffTeam, _setNewStaffTeam] = useState("Global Team");
+  const [_showStaffPassword, _setShowStaffPassword] = useState(false);
   const [creatingStaff, setCreatingStaff] = useState(false);
 
   // GDPR State
@@ -160,25 +160,20 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
 
   const handleCreateStaffSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStaffEmail || !newStaffName) return;
+    if (!newStaffEmail) return;
     setCreatingStaff(true);
     try {
-      await superAdmin.createStaffUser({
+      await superAdmin.createStaffInvitation({
         email: newStaffEmail,
-        password: newStaffPassword,
-        displayName: newStaffName,
         role: newStaffRole,
         office: newStaffOffice,
-        team: newStaffTeam,
       });
-      setNotice(`Successfully provisioned ${ROLE_LABELS[newStaffRole]} account for ${newStaffEmail} with custom password.`);
+      setNotice(`Invitation created for ${newStaffEmail} as ${ROLE_LABELS[newStaffRole]}. They can now register at /accept-invitation.`);
       setShowStaffModal(false);
-      setNewStaffName("");
       setNewStaffEmail("");
       setNewStaffRole("counsellor");
-      setNewStaffPassword("Edu-Pass2026!");
     } catch (err: any) {
-      setNotice(`Failed to create staff user: ${err.message}`);
+      setNotice(`Failed to create invitation: ${err.message}`);
     } finally {
       setCreatingStaff(false);
     }
@@ -658,34 +653,20 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
           </form>
         </div>
       )}
-      {/* MODAL: ADD STAFF ACCOUNT */}
+      {/* MODAL: ADD STAFF ACCOUNT (Email-Only Invitation) */}
       {showStaffModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)] overflow-auto">
           <form
             onSubmit={handleCreateStaffSubmit}
-            className="w-full max-w-lg p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl"
+            className="w-full max-w-lg p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl my-auto"
           >
             <div>
               <h2 className="font-bold text-base text-[var(--text-primary)]">
-                Provision New Staff Account
+                Invite Staff Member
               </h2>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                Create an internal user account for non-signup roles with full credentials, office, and team assignment.
+                Enter the staff member's email address. They will receive an invitation to create their account and complete onboarding.
               </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                Staff Full Name *
-              </label>
-              <input
-                required
-                type="text"
-                value={newStaffName}
-                onChange={(e) => setNewStaffName(e.target.value)}
-                placeholder="e.g. David Kim"
-                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
-              />
             </div>
 
             <div>
@@ -697,48 +678,9 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                 type="email"
                 value={newStaffEmail}
                 onChange={(e) => setNewStaffEmail(e.target.value)}
-                placeholder="e.g. david.kim@educrm.app"
+                placeholder="e.g. sarah.jenkins@company.com"
                 className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
               />
-            </div>
-
-            {/* Set Password Input */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">
-                  Account Password *
-                </label>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const { generateStrongPassword } = await import("../../utils/staffProvisioner");
-                    setNewStaffPassword(generateStrongPassword());
-                  }}
-                  className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
-                >
-                  Generate Strong Password
-                </button>
-              </div>
-              <div className="relative">
-                <input
-                  required
-                  type={showStaffPassword ? "text" : "password"}
-                  value={newStaffPassword}
-                  onChange={(e) => setNewStaffPassword(e.target.value)}
-                  placeholder="Minimum 6 characters"
-                  className="w-full p-2.5 pr-20 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] font-mono focus:border-emerald-500 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowStaffPassword(!showStaffPassword)}
-                  className="absolute right-2.5 top-2.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium cursor-pointer"
-                >
-                  {showStaffPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-              <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
-                The staff member can sign in immediately using this password.
-              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -775,6 +717,7 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                   onChange={(e) => setNewStaffOffice(e.target.value)}
                   className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
                 >
+                  <option value="Main Office">Main Office</option>
                   <option value="London HQ">London HQ</option>
                   <option value="Manchester Branch">Manchester Branch</option>
                   <option value="Delhi Hub">Delhi Hub</option>
@@ -785,21 +728,8 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                Assigned Team
-              </label>
-              <select
-                value={newStaffTeam}
-                onChange={(e) => setNewStaffTeam(e.target.value)}
-                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
-              >
-                <option value="Global Team">Global Team</option>
-                <option value="Europe Team">Europe Team</option>
-                <option value="North America Team">North America Team</option>
-                <option value="Asia-Pacific Team">Asia-Pacific Team</option>
-                <option value="Americas Team">Americas Team</option>
-              </select>
+            <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-xs text-emerald-400">
+              <strong>How it works:</strong> An invitation will be created for this email. The staff member visits the <strong>/accept-invitation</strong> page, creates their account using this email, verifies it, and then activates their assigned role. They will complete a brief onboarding to set up their profile.
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
@@ -812,10 +742,10 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               </button>
               <button
                 type="submit"
-                disabled={creatingStaff || !newStaffName || !newStaffEmail || !newStaffPassword}
+                disabled={creatingStaff || !newStaffEmail}
                 className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
               >
-                {creatingStaff ? "Provisioning..." : "Create Staff Account"}
+                {creatingStaff ? "Creating Invitation..." : "Send Staff Invitation"}
               </button>
             </div>
           </form>

@@ -23,6 +23,8 @@ import {
   HelpCircle,
   Edit3,
   Send,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
@@ -49,6 +51,8 @@ const STEPS = [
   { num: 11, title: "Submit" },
 ];
 
+export type WizardState = "LOADING" | "SUCCESS" | "EMPTY" | "ERROR" | "TIMEOUT" | "RETRY";
+
 export const StudentApplicationWizard: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
   const navigate = useNavigate();
@@ -59,6 +63,8 @@ export const StudentApplicationWizard: React.FC = () => {
   const programmeIdParam = searchParams.get("programmeId") || params.programmeId || params.id || "";
   const intakeParam = searchParams.get("intake") || "";
 
+  const [wizardState, setWizardState] = useState<WizardState>("LOADING");
+  const [retryCount, setRetryCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<Student | null>(null);
   const [university, setUniversity] = useState<University | null>(null);
@@ -99,34 +105,86 @@ export const StudentApplicationWizard: React.FC = () => {
 
   const allDeclarationsAccepted = declaration1 && declaration2 && declaration3;
 
-  // Load student, university, program & any existing draft
+  const handleRetry = () => {
+    setWizardState("LOADING");
+    setError(null);
+    setLoading(true);
+    setRetryCount((c) => c + 1);
+  };
+
+  const handleRecoverWithDemo = () => {
+    setWizardState("LOADING");
+    setError(null);
+    const demo = DEMO_UNIVERSITIES[0];
+    setUniversity(demo);
+    setProgramme(demo.programmes?.[0] || null);
+    if (demo.programmes?.[0]?.intakes?.[0]) {
+      setSelectedIntake(demo.programmes[0].intakes[0]);
+    }
+    setWizardState("SUCCESS");
+    setLoading(false);
+  };
+
+  // Helper with explicit timeout to prevent indefinite spinner hang
+  const withTimeout = <T,>(promise: Promise<T>, ms = 3500): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        const err = new Error("Database request timed out after 3.5s");
+        (err as any).name = "TimeoutError";
+        setTimeout(() => reject(err), ms);
+      }),
+    ]);
+  };
+
+  // Load student, university, program & any existing draft with robust recovery
   useEffect(() => {
+    let isCancelled = false;
+
     const initWizard = async () => {
+      setWizardState("LOADING");
+      setError(null);
+      setLoading(true);
+
       const uid = firebaseUser?.uid || appUser?.uid;
-      if (!uid) return;
 
       try {
-        // 1. Fetch student master profile from both students/{uid} and users/{uid}
-        const studentSnap = await getDoc(doc(db, "students", uid));
-        const userSnap = await getDoc(doc(db, "users", uid));
-        const userData = userSnap.exists() ? userSnap.data() : null;
-
         let studentData: Student | null = null;
-        if (studentSnap.exists()) {
-          studentData = studentSnap.data() as Student;
-        } else if (userData) {
-          studentData = {
-            id: uid,
-            fullName: userData.displayName || "",
-            email: userData.email || "",
-            phone: userData.phone || "",
-            countryOfResidence: userData.countryOfResidence || "",
-            nationality: userData.nationality || "",
-            profileCompleteness: 30,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          } as Student;
+        let userData: any = null;
+
+        if (uid) {
+          try {
+            // Attempt fetching student master profile with timeout protection
+            const [studentSnap, userSnap] = await withTimeout(
+              Promise.all([
+                getDoc(doc(db, "students", uid)),
+                getDoc(doc(db, "users", uid)),
+              ]),
+              3500
+            );
+
+            if (userSnap.exists()) userData = userSnap.data();
+            if (studentSnap.exists()) {
+              studentData = studentSnap.data() as Student;
+            } else if (userData) {
+              studentData = {
+                id: uid,
+                fullName: userData.displayName || "",
+                email: userData.email || "",
+                phone: userData.phone || "",
+                countryOfResidence: userData.countryOfResidence || "",
+                nationality: userData.nationality || "",
+                profileCompleteness: 30,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              } as Student;
+            }
+          } catch (profileErr: any) {
+            console.warn("Could not load Firestore profile, falling back to local session:", profileErr);
+          }
         }
+
+        if (isCancelled) return;
 
         const resolvedName =
           studentData?.fullName ||
@@ -150,11 +208,18 @@ export const StudentApplicationWizard: React.FC = () => {
           passportNumber: studentData?.passportNumber || "",
         });
 
-        // 2. Fetch universities (DB + DEMO catalog for universal coverage)
-        const univSnap = await getDocs(collection(db, "universities"));
-        const allUnivs: University[] = univSnap.docs.map(
-          (uDoc) => ({ id: uDoc.id, ...uDoc.data() } as University)
-        );
+        // 2. Fetch universities with timeout protection and catalog fallback
+        let allUnivs: University[] = [];
+        try {
+          const univSnap = await withTimeout(getDocs(collection(db, "universities")), 3500);
+          allUnivs = univSnap.docs.map(
+            (uDoc) => ({ id: uDoc.id, ...uDoc.data() } as University)
+          );
+        } catch (univErr: any) {
+          console.warn("Firestore universities query delayed or offline, loading catalog:", univErr);
+        }
+
+        // Always merge / fallback to demo universities catalog
         DEMO_UNIVERSITIES.forEach((demo) => {
           if (
             !allUnivs.some(
@@ -166,6 +231,8 @@ export const StudentApplicationWizard: React.FC = () => {
             allUnivs.push(demo);
           }
         });
+
+        if (isCancelled) return;
 
         let foundUniv: University | null = null;
         let foundProg: Programme | null = null;
@@ -206,89 +273,122 @@ export const StudentApplicationWizard: React.FC = () => {
           setSelectedIntake(foundProg.intakes[0]);
         }
 
-        // 3. Check for existing application for this student + prog
-        if (foundUniv && foundProg) {
-          const appQ = query(
-            collection(db, "applications"),
-            where("studentId", "==", uid),
-            where("universityId", "==", foundUniv.id),
-            where("programmeId", "==", foundProg.id)
-          );
-          const appSnap = await getDocs(appQ);
-          if (!appSnap.empty) {
-            const existingApp = appSnap.docs[0].data() as Application & Record<string, any>;
-            
-            if (existingApp.applicationStatus !== "Draft") {
-              setError("You have already applied to this program. Please check your Dashboard for status.");
-              setLoading(false);
-              return;
-            }
+        // If no university or programme could be identified, transition to EMPTY
+        if (!foundUniv || !foundProg) {
+          setWizardState("EMPTY");
+          setLoading(false);
+          return;
+        }
 
-            setApplicationId(appSnap.docs[0].id);
-            if (existingApp.currentStep) setCurrentStep(existingApp.currentStep);
-            if (existingApp.personalStatement) setPersonalStatement(existingApp.personalStatement);
-            if (existingApp.formResponses) setQuestionResponses(existingApp.formResponses);
-            if (existingApp.intake) setSelectedIntake(existingApp.intake);
-          } else {
-            // Force create Draft immediately so it shows on Dashboard
-            const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-            const newRef = await addDoc(collection(db, "applications"), {
-              applicationNumber: appNumber,
-              studentId: uid,
-              studentName: resolvedName,
-              studentEmail: firebaseUser?.email || studentData?.email || userData?.email || appUser?.email || "",
-              universityId: foundUniv.id,
-              universityName: foundUniv.name,
-              programmeId: foundProg.id,
-              programmeName: foundProg.title,
-              intake: foundProg.intakes?.[0] || "September 2027",
-              targetCountry: foundUniv.country,
-              stage: "Draft",
-              applicationStatus: "Draft",
-              currentStep: 1,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              history: [
-                {
-                  stage: "Draft",
-                  updatedBy: studentData?.email || "Student",
-                  timestamp: Date.now(),
-                  note: "Application draft started by student.",
-                },
-              ],
-            });
-            setApplicationId(newRef.id);
+        // 3. Check for existing application for this student + prog
+        if (uid && foundUniv && foundProg) {
+          try {
+            const appQ = query(
+              collection(db, "applications"),
+              where("studentId", "==", uid),
+              where("universityId", "==", foundUniv.id),
+              where("programmeId", "==", foundProg.id)
+            );
+            const appSnap = await withTimeout(getDocs(appQ), 3500);
+            if (!appSnap.empty) {
+              const existingApp = appSnap.docs[0].data() as Application & Record<string, any>;
+              if (existingApp.applicationStatus !== "Draft") {
+                setError("You have already applied to this program. Please check your Dashboard for status.");
+                setWizardState("SUCCESS");
+                setLoading(false);
+                return;
+              }
+              setApplicationId(appSnap.docs[0].id);
+              if (existingApp.currentStep) setCurrentStep(existingApp.currentStep);
+              if (existingApp.personalStatement) setPersonalStatement(existingApp.personalStatement);
+              if (existingApp.formResponses) setQuestionResponses(existingApp.formResponses);
+              if (existingApp.intake) setSelectedIntake(existingApp.intake);
+            } else {
+              // Force create Draft immediately
+              const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+              const newRef = await addDoc(collection(db, "applications"), {
+                applicationNumber: appNumber,
+                studentId: uid,
+                studentName: resolvedName,
+                studentEmail: firebaseUser?.email || studentData?.email || userData?.email || appUser?.email || "",
+                universityId: foundUniv.id,
+                universityName: foundUniv.name,
+                programmeId: foundProg.id,
+                programmeName: foundProg.title,
+                intake: foundProg.intakes?.[0] || "September 2027",
+                targetCountry: foundUniv.country,
+                stage: "Draft",
+                applicationStatus: "Draft",
+                currentStep: 1,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                history: [
+                  {
+                    stage: "Draft",
+                    updatedBy: studentData?.email || "Student",
+                    timestamp: Date.now(),
+                    note: "Application draft started by student.",
+                  },
+                ],
+              });
+              setApplicationId(newRef.id);
+            }
+          } catch (appErr) {
+            console.warn("Could not sync application draft with Firestore:", appErr);
           }
         }
 
         // 4. Load existing documents from student_documents collection
-        const docsQ = query(collection(db, "student_documents"), where("studentId", "==", uid));
-        const docsSnap = await getDocs(docsQ);
-        if (!docsSnap.empty) {
-          const existingDocs = docsSnap.docs.map((d) => {
-            const data = d.data();
-            const resolvedType = data.documentType || data.docType || data.type || "General Document";
-            const resolvedName = data.fileName || data.name || resolvedType;
-            return {
-              id: d.id,
-              name: resolvedName,
-              fileName: resolvedName,
-              type: resolvedType,
-              documentType: resolvedType,
-              url: data.fileUrl || data.driveUrl || "",
-            };
-          });
-          setUploadedDocuments(existingDocs);
+        if (uid) {
+          try {
+            const docsQ = query(collection(db, "student_documents"), where("studentId", "==", uid));
+            const docsSnap = await withTimeout(getDocs(docsQ), 3500);
+            if (!docsSnap.empty) {
+              const existingDocs = docsSnap.docs.map((d) => {
+                const data = d.data();
+                const resolvedType = data.documentType || data.docType || data.type || "General Document";
+                const resolvedName = data.fileName || data.name || resolvedType;
+                return {
+                  id: d.id,
+                  name: resolvedName,
+                  fileName: resolvedName,
+                  type: resolvedType,
+                  documentType: resolvedType,
+                  url: data.fileUrl || data.driveUrl || "",
+                };
+              });
+              setUploadedDocuments(existingDocs);
+            }
+          } catch (docErr) {
+            console.warn("Could not load student documents:", docErr);
+          }
+        }
+
+        if (!isCancelled) {
+          setWizardState("SUCCESS");
         }
       } catch (err: any) {
         console.warn("Wizard initialization error:", err);
+        if (err?.name === "TimeoutError") {
+          setWizardState("TIMEOUT");
+          setError("The request timed out while contacting the server.");
+        } else {
+          setWizardState("ERROR");
+          setError(err?.message || "Failed to load application data.");
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     initWizard();
-  }, [appUser, firebaseUser, universityIdParam, programmeIdParam]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [appUser, firebaseUser, universityIdParam, programmeIdParam, retryCount]);
 
   // Compute eligibility
   const eligibility = useMemo(() => {
@@ -601,22 +701,80 @@ export const StudentApplicationWizard: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (wizardState === "LOADING" || loading) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center text-muted">
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center text-muted gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+        <p className="text-xs text-muted">Loading application wizard...</p>
       </div>
     );
   }
 
-  if (!university || !programme) {
+  if (wizardState === "TIMEOUT") {
     return (
-      <div className="min-h-screen bg-transparent p-8 text-center text-primary space-y-4">
-        <h2 className="text-xl font-bold">No Program Selected</h2>
-        <p className="text-sm text-muted">Please choose a university program through the Program Matcher.</p>
-        <Link to="/student/onboarding/program-matcher" className="text-emerald-400 font-bold underline">
-          Open Program Matcher →
-        </Link>
+      <div className="min-h-screen bg-transparent p-8 flex items-center justify-center">
+        <div className="max-w-md w-full bg-surface border border-subtle rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <Clock className="w-12 h-12 text-amber-400 mx-auto" />
+          <h2 className="text-xl font-bold text-primary">Connection Timeout</h2>
+          <p className="text-sm text-muted">
+            {error || "The server took too long to respond. You can retry the request or load the catalog offline."}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl flex items-center gap-2 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" /> Retry
+            </button>
+            <button
+              type="button"
+              onClick={handleRecoverWithDemo}
+              className="px-4 py-2 bg-elevated hover:bg-hover text-primary font-semibold text-sm rounded-xl border border-subtle cursor-pointer"
+            >
+              Load Offline Catalog
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (wizardState === "ERROR") {
+    return (
+      <div className="min-h-screen bg-transparent p-8 flex items-center justify-center">
+        <div className="max-w-md w-full bg-surface border border-red-500/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
+          <h2 className="text-xl font-bold text-primary">Unable to Load Application</h2>
+          <p className="text-sm text-muted">
+            {error || "An error occurred while loading your application data."}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl flex items-center gap-2 mx-auto cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" /> Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (wizardState === "EMPTY" || !university || !programme) {
+    return (
+      <div className="min-h-screen bg-transparent p-8 text-center text-primary space-y-4 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-surface border border-subtle rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <HelpCircle className="w-12 h-12 text-zinc-400 mx-auto" />
+          <h2 className="text-xl font-bold text-primary">No Program Selected</h2>
+          <p className="text-sm text-muted">Please choose a university program through the Program Matcher.</p>
+          <Link
+            to="/student/onboarding/program-matcher"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl cursor-pointer"
+          >
+            Open Program Matcher →
+          </Link>
+        </div>
       </div>
     );
   }

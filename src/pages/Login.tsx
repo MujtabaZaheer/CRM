@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
 import { getRoleDashboardPath } from "../types/registrationConfig";
 import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield, UserPlus } from "lucide-react";
+import { bootstrapAdminAccounts } from "../utils/bootstrapAdmins";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,11 @@ export const Login: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
+
+  // Bootstrap admin accounts on first load (idempotent)
+  useEffect(() => {
+    bootstrapAdminAccounts().catch(() => {});
+  }, []);
 
   const handleQuickDemoLogin = (role: UserRole, options?: { isRegisteredStudent?: boolean }) => {
     loginAsDemoRole(role, options);
@@ -74,31 +80,33 @@ export const Login: React.FC = () => {
 
         if (isDemoMode && isDemoEmail) {
 
-          let targetRole: UserRole = "counsellor";
+          // Strict mapping of predefined demo accounts: No substring wildcard inference
+          const EXACT_DEMO_ROLE_MAP: Record<string, UserRole> = {
+            "platform_super_admin@educrm.demo": "platform_super_admin",
+            "superadmin@educrm.demo": "platform_super_admin",
+            "admin@educrm.demo": "platform_super_admin",
+            "orgadmin@educrm.demo": "org_admin",
+            "org_admin@educrm.demo": "org_admin",
+            "counsellor@educrm.demo": "counsellor",
+            "team_leader@educrm.demo": "team_leader",
+            "teamleader@educrm.demo": "team_leader",
+            "admissions@educrm.demo": "admissions_officer",
+            "admissions_officer@educrm.demo": "admissions_officer",
+            "finance@educrm.demo": "finance_officer",
+            "finance_officer@educrm.demo": "finance_officer",
+            "support@educrm.demo": "support_user",
+            "support_user@educrm.demo": "support_user",
+            "auditor@educrm.demo": "auditor",
+            "visa@educrm.demo": "visa_officer",
+            "visa_officer@educrm.demo": "visa_officer",
+            "external_agent@educrm.demo": "external_agent",
+            "agent@educrm.demo": "external_agent",
+            "university_partner@educrm.demo": "university_partner",
+            "university@educrm.demo": "university_partner",
+            "student@educrm.demo": "student",
+          };
 
-          if (lowerEmail.includes("superadmin") || lowerEmail.includes("super_admin") || lowerEmail.includes("admin")) {
-            targetRole = "platform_super_admin";
-          } else if (lowerEmail.includes("counsellor") || lowerEmail.includes("counselor")) {
-            targetRole = "counsellor";
-          } else if (lowerEmail.includes("team_leader") || lowerEmail.includes("teamleader") || lowerEmail.includes("leader")) {
-            targetRole = "team_leader";
-          } else if (lowerEmail.includes("admissions") || lowerEmail.includes("admission")) {
-            targetRole = "admissions_officer";
-          } else if (lowerEmail.includes("finance") || lowerEmail.includes("accounts")) {
-            targetRole = "finance_officer";
-          } else if (lowerEmail.includes("support")) {
-            targetRole = "support_user";
-          } else if (lowerEmail.includes("auditor") || lowerEmail.includes("compliance")) {
-            targetRole = "auditor";
-          } else if (lowerEmail.includes("visa")) {
-            targetRole = "visa_officer";
-          } else if (lowerEmail.includes("student") || lowerEmail.includes("applicant")) {
-            targetRole = "student";
-          } else if (lowerEmail.includes("agent") || lowerEmail.includes("referral")) {
-            targetRole = "external_agent";
-          } else if (lowerEmail.includes("university") || lowerEmail.includes("partner")) {
-            targetRole = "university_partner";
-          }
+          const targetRole: UserRole = EXACT_DEMO_ROLE_MAP[lowerEmail] || "student";
 
           if (targetRole === "student") {
             const isRegistered =
