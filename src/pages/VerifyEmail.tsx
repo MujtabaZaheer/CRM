@@ -207,7 +207,7 @@ export const VerifyEmail: React.FC = () => {
     navigate("/login", { replace: true });
   };
 
-  const displayEmail = storedEmail || firebaseUser?.email || "your registered email";
+  const displayEmail = pendingEmail || stateEmail || firebaseUser?.email || "your registered email";
 
   return (
     <main className="min-h-screen grid place-items-center bg-main p-4 relative overflow-hidden font-sans">

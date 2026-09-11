@@ -2,7 +2,6 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { STAFF_ROLES } from "../../types/registrationConfig";
 
 /**
  * Generic onboarding guard for all non-admin roles.
