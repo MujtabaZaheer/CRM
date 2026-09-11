@@ -62,6 +62,7 @@ export const StudentApplicationWizard: React.FC = () => {
   const universityIdParam = searchParams.get("universityId") || "";
   const programmeIdParam = searchParams.get("programmeId") || params.programmeId || params.id || "";
   const intakeParam = searchParams.get("intake") || "";
+  const applicationIdParam = searchParams.get("applicationId") || (params as any)?.applicationId || "";
 
   const [wizardState, setWizardState] = useState<WizardState>("LOADING");
   const [retryCount, setRetryCount] = useState(0);
@@ -233,11 +234,30 @@ export const StudentApplicationWizard: React.FC = () => {
 
         if (isCancelled) return;
 
+        // 0. If direct applicationIdParam is provided, fetch it first
+        let directApp: (Application & Record<string, any>) | null = null;
+        if (applicationIdParam) {
+          try {
+            const dSnap = await withTimeout(getDoc(doc(db, "applications", applicationIdParam)), 3500);
+            if (dSnap.exists()) {
+              directApp = { id: dSnap.id, ...dSnap.data() } as Application & Record<string, any>;
+            }
+          } catch (_) {}
+        }
+
         let foundUniv: University | null = null;
         let foundProg: Programme | null = null;
 
+        // If directApp was found, prioritize its linked university and programme
+        if (directApp) {
+          foundUniv = allUnivs.find(u => u.id === directApp?.universityId || u.name.toLowerCase() === (directApp?.universityName || "").toLowerCase()) || null;
+          if (foundUniv) {
+            foundProg = foundUniv.programmes?.find(p => p.id === directApp?.programmeId || p.title.toLowerCase() === (directApp?.programmeName || "").toLowerCase()) || foundUniv.programmes?.[0] || null;
+          }
+        }
+
         // Prioritize finding by programmeIdParam across all universities
-        if (programmeIdParam) {
+        if (!foundProg && programmeIdParam) {
           for (const u of allUnivs) {
             const p = u.programmes?.find((item) => item.id === programmeIdParam);
             if (p) {
@@ -268,6 +288,8 @@ export const StudentApplicationWizard: React.FC = () => {
 
         if (intakeParam) {
           setSelectedIntake(intakeParam);
+        } else if (directApp?.intake) {
+          setSelectedIntake(directApp.intake);
         } else if (foundProg?.intakes?.[0]) {
           setSelectedIntake(foundProg.intakes[0]);
         }
@@ -280,7 +302,19 @@ export const StudentApplicationWizard: React.FC = () => {
         }
 
         // 3. Check for existing application for this student + prog
-        if (uid && foundUniv && foundProg) {
+        if (directApp) {
+          if (directApp.applicationStatus !== "Draft" && directApp.stage !== "Draft") {
+            setError("You have already applied to this program. Please check your Dashboard for status.");
+            setWizardState("SUCCESS");
+            setLoading(false);
+            return;
+          }
+          setApplicationId(directApp.id);
+          if (directApp.currentStep) setCurrentStep(directApp.currentStep);
+          if (directApp.personalStatement) setPersonalStatement(directApp.personalStatement);
+          if (directApp.formResponses) setQuestionResponses(directApp.formResponses);
+          if (directApp.intake) setSelectedIntake(directApp.intake);
+        } else if (uid && foundUniv && foundProg) {
           try {
             const appQ = query(
               collection(db, "applications"),
@@ -387,7 +421,7 @@ export const StudentApplicationWizard: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [appUser, firebaseUser, universityIdParam, programmeIdParam, retryCount]);
+  }, [appUser, firebaseUser, universityIdParam, programmeIdParam, applicationIdParam, intakeParam, retryCount]);
 
   // Compute eligibility
   const eligibility = useMemo(() => {
@@ -409,6 +443,7 @@ export const StudentApplicationWizard: React.FC = () => {
     programme,
     university,
     uploadedDocuments,
+    eligibility,
     questionResponses,
     allDeclarationsAccepted,
     visaReviewed,

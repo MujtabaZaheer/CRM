@@ -102,6 +102,9 @@ export const useTeamLeaderData = () => {
   const assignApplication = useCallback(async (appId: string, counsellorEmail: string) => {
     const appData = applications.find(a => a.id === appId);
     const appNum = appData?.applicationNumber || "APP";
+    const targetCounsellor = users.find(
+      (u) => (u.email || "").toLowerCase().trim() === counsellorEmail.toLowerCase().trim()
+    );
 
     // Optimistic update
     updateGlobalApplication(appId, { assignedCounsellor: counsellorEmail, updatedAt: Date.now() });
@@ -112,6 +115,17 @@ export const useTeamLeaderData = () => {
         assignedCounsellor: counsellorEmail,
         updatedAt: Date.now()
       });
+
+      // Synchronize assigned counsellor on the associated student record
+      if (appData?.studentId) {
+        try {
+          await updateDoc(doc(db, "students", appData.studentId), {
+            assignedCounsellor: targetCounsellor?.displayName || counsellorEmail,
+            assignedCounsellorId: targetCounsellor?.uid || counsellorEmail,
+            updatedAt: Date.now(),
+          });
+        } catch (_) {}
+      }
 
       await logAuditEvent(
         "APPLICATION_ASSIGNED",
@@ -124,11 +138,12 @@ export const useTeamLeaderData = () => {
     } catch (err) {
       console.warn("Firestore update notice (persisted in local state):", err);
     }
-  }, [applications, appUser, updateGlobalApplication]);
+  }, [applications, users, appUser, updateGlobalApplication]);
 
   const bulkAssignApplications = useCallback(async (appIds: string[], counsellorEmail: string) => {
-    const targetCounsellor = users.find((u) => u.email === counsellorEmail);
-    if (!targetCounsellor) return;
+    const targetCounsellor = users.find(
+      (u) => (u.email || "").toLowerCase().trim() === counsellorEmail.toLowerCase().trim()
+    );
 
     for (const appId of appIds) {
       const appData = applications.find(a => a.id === appId);
@@ -142,6 +157,17 @@ export const useTeamLeaderData = () => {
           assignedCounsellor: counsellorEmail,
           updatedAt: Date.now()
         });
+
+        // Synchronize assigned counsellor on the associated student record
+        if (appData?.studentId) {
+          try {
+            await updateDoc(doc(db, "students", appData.studentId), {
+              assignedCounsellor: targetCounsellor?.displayName || counsellorEmail,
+              assignedCounsellorId: targetCounsellor?.uid || counsellorEmail,
+              updatedAt: Date.now(),
+            });
+          } catch (_) {}
+        }
 
         await logAuditEvent(
           "APPLICATION_ASSIGNED",

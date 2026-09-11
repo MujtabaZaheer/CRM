@@ -23,16 +23,23 @@ const STAGES: ApplicationStage[] = [
   "Draft",
   "Initial Review",
   "Documents Pending",
+  "Ready for Submission",
   "Submitted",
   "University Reviewing",
+  "Additional Info Requested",
   "Conditional Offer",
   "Unconditional Offer",
+  "Deposit Pending",
   "Deposit Paid",
+  "CAS / COE Pending",
   "CAS Issued",
+  "Visa Preparation",
+  "Visa Submitted",
   "Visa Approved",
   "Enrolled",
+  "Deferred",
+  "Withdrawn",
   "Rejected",
-  "Withdrawn"
 ];
 
 export const TeamLeaderApplications: React.FC = () => {

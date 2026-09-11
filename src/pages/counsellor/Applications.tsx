@@ -88,11 +88,23 @@ export const CounsellorApplications: React.FC = () => {
             "Draft",
             "Initial Review",
             "Documents Pending",
+            "Ready for Submission",
             "Submitted",
+            "University Reviewing",
+            "Additional Info Requested",
             "Conditional Offer",
             "Unconditional Offer",
+            "Deposit Pending",
+            "Deposit Paid",
+            "CAS / COE Pending",
+            "CAS Issued",
+            "Visa Preparation",
+            "Visa Submitted",
             "Visa Approved",
-            "Enrolled"
+            "Enrolled",
+            "Deferred",
+            "Withdrawn",
+            "Rejected",
           ].map((stage) => (
             <button
               key={stage}
@@ -206,16 +218,23 @@ export const CounsellorApplications: React.FC = () => {
                   <option value="Draft">Draft</option>
                   <option value="Initial Review">Initial Review</option>
                   <option value="Documents Pending">Documents Pending</option>
+                  <option value="Ready for Submission">Ready for Submission</option>
                   <option value="Submitted">Submitted</option>
                   <option value="University Reviewing">University Reviewing</option>
+                  <option value="Additional Info Requested">Additional Info Requested</option>
                   <option value="Conditional Offer">Conditional Offer</option>
                   <option value="Unconditional Offer">Unconditional Offer</option>
+                  <option value="Deposit Pending">Deposit Pending</option>
                   <option value="Deposit Paid">Deposit Paid</option>
+                  <option value="CAS / COE Pending">CAS / COE Pending</option>
                   <option value="CAS Issued">CAS Issued</option>
+                  <option value="Visa Preparation">Visa Preparation</option>
+                  <option value="Visa Submitted">Visa Submitted</option>
                   <option value="Visa Approved">Visa Approved</option>
                   <option value="Enrolled">Enrolled</option>
-                  <option value="Rejected">Rejected</option>
+                  <option value="Deferred">Deferred</option>
                   <option value="Withdrawn">Withdrawn</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
               </div>
 

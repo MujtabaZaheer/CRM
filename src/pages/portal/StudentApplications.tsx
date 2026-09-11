@@ -395,7 +395,7 @@ export const StudentApplicationDetail: React.FC = () => {
                   <span>Delete Draft</span>
                 </button>
                 <Link
-                  to={`/student/new-application?universityId=${app.universityId}&programmeId=${app.programmeId}`}
+                  to={`/student/new-application?universityId=${app.universityId}&programmeId=${app.programmeId}&applicationId=${app.id}`}
                   className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 transition-colors flex items-center gap-1"
                 >
                   <span>Continue</span>

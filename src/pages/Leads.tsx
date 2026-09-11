@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { Lead, LeadInteraction, LeadSource, LeadStage } from "../types/lead";
 import { Student } from "../types/student";
@@ -162,7 +162,7 @@ export const LeadsContent: React.FC = () => {
 
       addStudent(newStudent);
       try {
-        await addDoc(collection(db, "students"), newStudent);
+        await setDoc(doc(db, "students", newStudentId), newStudent);
       } catch (err) {
         console.warn("Firestore student creation notice:", err);
       }

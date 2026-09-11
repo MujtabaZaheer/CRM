@@ -14,6 +14,7 @@ export const StudentNewApplication: React.FC = () => {
 
   const urlProgId = searchParams.get("programmeId") || params.programmeId || params.id;
   const urlUnivId = searchParams.get("universityId");
+  const urlAppId = searchParams.get("applicationId") || (params as any)?.applicationId;
 
   const [loading, setLoading] = useState(true);
   const [universities, setUniversities] = useState<University[]>([]);
@@ -118,8 +119,8 @@ export const StudentNewApplication: React.FC = () => {
     }
   };
 
-  // If programmeId is in URL, render the Wizard
-  if (urlProgId || (urlUnivId && urlProgId)) {
+  // If programmeId or applicationId is in URL, render the Wizard
+  if (urlProgId || (urlUnivId && urlProgId) || urlAppId) {
     return <StudentApplicationWizard />;
   }
 

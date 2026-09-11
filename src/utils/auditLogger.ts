@@ -1,5 +1,5 @@
 import { addDoc, collection } from "firebase/firestore";
-import { db, isDemoMode } from "../firebase/config";
+import { db } from "../firebase/config";
 
 export const logAuditEvent = async (
   action: string,
@@ -9,7 +9,6 @@ export const logAuditEvent = async (
   targetId?: string,
   performedByRole?: string
 ) => {
-  if (isDemoMode) return;
   try {
     await addDoc(collection(db, "audit_logs"), {
       action,

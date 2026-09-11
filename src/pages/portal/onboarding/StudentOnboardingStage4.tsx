@@ -382,7 +382,7 @@ export const StudentOnboardingStage4: React.FC = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate("/student/onboarding/program-matcher")}
+                onClick={() => navigate("/student/onboarding/step-3")}
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 inline-flex items-center gap-2 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" /> Explore Universities & Programs
