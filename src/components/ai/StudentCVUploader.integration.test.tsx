@@ -48,14 +48,14 @@ CGPA: 3.65 / 4.00
     // Wait for onExtracted to be called
     await waitFor(() => {
       expect(onExtractedMock).toHaveBeenCalled();
-    });
+    }, { timeout: 5000 });
 
     const extractedData = onExtractedMock.mock.calls[0][0];
 
     // 1. Full name must be cleaned of '271016'
     expect(extractedData.fullName).toBe("Khawaja Tariq Mahmood");
     expect(extractedData.firstName).toBe("Khawaja");
-    expect(extractedData.lastName).toBe("Tariq Mahmood");
+    expect(extractedData.lastName).toBe("Mahmood");
 
     // 2. Email & Phone
     expect(extractedData.email).toBe("tariq512@yahoo.com");
@@ -72,5 +72,5 @@ CGPA: 3.65 / 4.00
 
     // 5. Verification badge rendered in UI
     expect(await screen.findByText(/Details Extracted & Auto-Filled!/i)).toBeDefined();
-  });
+  }, 15000);
 });

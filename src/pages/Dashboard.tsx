@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Navigate } from "react-router-dom";
 import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw } from "lucide-react";
+import { getRoleDashboardPath } from "../types/registrationConfig";
 
 export const Dashboard: React.FC = () => {
   const { appUser } = useAuth();
@@ -13,41 +14,14 @@ export const Dashboard: React.FC = () => {
   const [stageFilter, setStageFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
 
-  if (appUser?.role === "student") {
-    return <Navigate to="/student/dashboard" replace />;
-  }
-
-  const roleHome: Partial<Record<NonNullable<typeof appUser>["role"], string>> = {
-    counsellor: "/counsellor/dashboard",
-    team_leader: "/team-leader/dashboard",
-    finance_officer: "/finance/dashboard",
-    visa_officer: "/visa-officer/dashboard",
-    support_user: "/support/dashboard",
-    external_agent: "/agent/dashboard",
-    university_partner: "/university/dashboard",
-  };
-
-  const destination = appUser?.role ? roleHome[appUser.role] : undefined;
-  if (destination) return <Navigate to={destination} replace />;
-
-  if (appUser?.role === "admissions_officer") {
-    return <Navigate to="/admissions/dashboard" replace />;
-  }
-
-  if (appUser?.role === "finance_officer") {
-    return <Navigate to="/finance/dashboard" replace />;
-  }
-
-  if (appUser?.role === "support_user") {
-    return <Navigate to="/support/dashboard" replace />;
-  }
-
-  if (appUser?.role === "auditor" || appUser?.role === "compliance_officer") {
-    return <Navigate to="/auditor/dashboard" replace />;
-  }
-
-  if (appUser?.role === "platform_super_admin") {
-    return <Navigate to="/super-admin/dashboard" replace />;
+  if (appUser?.role) {
+    if (appUser.role === "student") {
+      return <Navigate to="/student/dashboard" replace />;
+    }
+    const destination = getRoleDashboardPath(appUser.role);
+    if (destination && destination !== "/") {
+      return <Navigate to={destination} replace />;
+    }
   }
 
   const filteredLeads = leads.filter((l) => {

@@ -156,52 +156,132 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unsubscribeSnapshot = onSnapshot(
           userDocRef,
           async (docSnap) => {
+            const normalizedEmail = (user.email || "").toLowerCase().trim();
+
             if (docSnap.exists()) {
-              setAppUser(docSnap.data() as AppUser);
-            } else {
-              // Auto-provision basic profile if missing.
-              // IMPORTANT: Check if the user was invited with a specific role
-              // before defaulting to student (fixes counsellor/staff seeing student onboarding).
-              let assignedRole: UserRole = "student";
-              let assignedOffice = "Main Office";
-              let onboardingStatus: "not_started" | "in_progress" | "completed" = "not_started";
-              let profileCompleted = false;
+              const uData = docSnap.data() as AppUser;
 
-              try {
-                const invQuery = query(
-                  collection(db, "invitations"),
-                  where("email", "==", (user.email || "").toLowerCase()),
-                  where("status", "==", "pending")
-                );
-                const invSnap = await getDocs(invQuery);
-                if (!invSnap.empty) {
-                  const invData = invSnap.docs[0].data();
-                  assignedRole = invData.role || "student";
-                  assignedOffice = invData.office || "Main Office";
+              // Auto-heal: If document was mistakenly created with role "student" but an invitation or
+              // staff provision record exists for this email with a staff/non-student role, restore it.
+              if (uData.role === "student" && normalizedEmail) {
+                try {
+                  const invQuery = query(
+                    collection(db, "invitations"),
+                    where("email", "==", normalizedEmail)
+                  );
+                  const invSnap = await getDocs(invQuery);
+                  if (!invSnap.empty) {
+                    const invData = invSnap.docs[0].data();
+                    const properRole = invData.role as UserRole;
+                    if (properRole && properRole !== "student") {
+                      const healedUser: AppUser = {
+                        ...uData,
+                        role: properRole,
+                        office: invData.office || uData.office || "Main Office",
+                        onboardingStatus: "completed",
+                        profileCompleted: true,
+                        currentStep: 4,
+                      };
+                      await setDoc(userDocRef, healedUser, { merge: true });
+                      setAppUser(healedUser);
+                      setLoading(false);
+                      return;
+                    }
+                  }
+                } catch (healErr) {
+                  console.warn("Could not check staff role auto-healing:", healErr);
                 }
-              } catch (invErr) {
-                console.warn("Could not check invitations:", invErr);
               }
 
-              const isAdminRole = assignedRole === "platform_super_admin" || assignedRole === "org_admin";
-              if (isAdminRole) {
-                onboardingStatus = "completed";
-                profileCompleted = true;
+              // Guarantee: Any non-student role (counsellor, etc.) always skips onboarding entirely
+              if (uData.role && uData.role !== "student" && (uData.onboardingStatus !== "completed" || !uData.profileCompleted)) {
+                const completedStaff: AppUser = {
+                  ...uData,
+                  onboardingStatus: "completed",
+                  profileCompleted: true,
+                  currentStep: 4,
+                };
+                try {
+                  await setDoc(userDocRef, {
+                    onboardingStatus: "completed",
+                    profileCompleted: true,
+                    currentStep: 4,
+                  }, { merge: true });
+                } catch (updErr) {
+                  console.warn("Could not sync completed onboarding status to Firestore:", updErr);
+                }
+                setAppUser(completedStaff);
+              } else {
+                setAppUser(uData);
               }
+            } else {
+              // Auto-provision or link profile if doc(db, "users", user.uid) does not exist yet.
+              let assignedRole: UserRole | null = null;
+              let assignedOffice = "Main Office";
+              let existingProfileData: Partial<AppUser> = {};
+
+              // 1. Check if a pre-provisioned user record exists in 'users' with matching email
+              try {
+                const uQuery = query(
+                  collection(db, "users"),
+                  where("email", "==", normalizedEmail)
+                );
+                const uSnap = await getDocs(uQuery);
+                if (!uSnap.empty) {
+                  const matchDoc = uSnap.docs[0];
+                  existingProfileData = matchDoc.data() as AppUser;
+                  if (existingProfileData.role) {
+                    assignedRole = existingProfileData.role;
+                  }
+                  if (existingProfileData.office) {
+                    assignedOffice = existingProfileData.office;
+                  }
+                }
+              } catch (uErr) {
+                console.warn("Could not check existing users by email:", uErr);
+              }
+
+              // 2. Check 'invitations' collection if role not yet determined
+              if (!assignedRole) {
+                try {
+                  const invQuery = query(
+                    collection(db, "invitations"),
+                    where("email", "==", normalizedEmail)
+                  );
+                  const invSnap = await getDocs(invQuery);
+                  if (!invSnap.empty) {
+                    const invData = invSnap.docs[0].data();
+                    assignedRole = invData.role || null;
+                    assignedOffice = invData.office || assignedOffice;
+                  }
+                } catch (invErr) {
+                  console.warn("Could not check invitations:", invErr);
+                }
+              }
+
+              // Default to student only if absolutely no staff record or invitation was found
+              const finalRole: UserRole = assignedRole || "student";
+              const isNonStudent = finalRole !== "student";
+
+              const onboardingStatus: "not_started" | "in_progress" | "completed" = isNonStudent ? "completed" : "not_started";
+              const profileCompleted = isNonStudent;
+              const currentStep = isNonStudent ? 4 : 1;
 
               const defaultProfile: AppUser = {
+                ...existingProfileData,
                 uid: user.uid,
                 email: user.email || "user@educrm.app",
-                displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
-                role: assignedRole,
-                createdAt: Date.now(),
+                displayName: user.displayName || existingProfileData.displayName || user.email?.split("@")[0] || "EduCRM User",
+                role: finalRole,
+                createdAt: existingProfileData.createdAt || Date.now(),
                 office: assignedOffice,
-                branchId: "branch-main",
-                tenantId: "tenant-default",
+                branchId: existingProfileData.branchId || `branch-${assignedOffice.toLowerCase().replace(/\s+/g, "-")}`,
+                tenantId: existingProfileData.tenantId || "tenant-default",
                 onboardingStatus,
                 profileCompleted,
-                currentStep: 1,
+                currentStep,
               };
+
               try {
                 await setDoc(userDocRef, defaultProfile, { merge: true });
                 setAppUser(defaultProfile);

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import { auth, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { auth, db, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
 import { getRoleDashboardPath } from "../types/registrationConfig";
@@ -60,18 +61,53 @@ export const Login: React.FC = () => {
       // 1. Attempt real Firebase Auth
       try {
         const credential = await signInWithEmailAndPassword(auth, email, password);
-        if (requiresVerifiedEmail && !credential.user.emailVerified) {
+        const normalizedEmail = (credential.user.email || email).toLowerCase().trim();
+
+        // Pre-fetch role from Firestore to route non-students directly and skip student-only checks
+        let userRole: UserRole | null = null;
+        try {
+          const userDocSnap = await getDoc(doc(db, "users", credential.user.uid));
+          if (userDocSnap.exists()) {
+            userRole = userDocSnap.data()?.role;
+          } else {
+            // Check by email in users
+            const usersQ = query(collection(db, "users"), where("email", "==", normalizedEmail));
+            const usersSnap = await getDocs(usersQ);
+            if (!usersSnap.empty) {
+              userRole = usersSnap.docs[0].data()?.role;
+            } else {
+              // Check invitations
+              const invQ = query(collection(db, "invitations"), where("email", "==", normalizedEmail));
+              const invSnap = await getDocs(invQ);
+              if (!invSnap.empty) {
+                userRole = invSnap.docs[0].data()?.role;
+              }
+            }
+          }
+        } catch (roleErr) {
+          console.warn("Could not pre-fetch role on login:", roleErr);
+        }
+
+        // Only enforce email verification for student role
+        const isStudent = userRole === "student";
+        if (isStudent && requiresVerifiedEmail && !credential.user.emailVerified) {
           try {
-            sessionStorage.setItem("pending_verification_email", credential.user.email || email);
+            sessionStorage.setItem("pending_verification_email", normalizedEmail);
           } catch (_) {}
           navigate("/verify-email", {
             replace: true,
-            state: { email: credential.user.email || email, fromLogin: true },
+            state: { email: normalizedEmail, fromLogin: true },
           });
           return;
         }
-        // Redirect to role-specific dashboard after real Firebase Auth login
-        // The role will be loaded by AuthContext; default to "/" and let ProtectedLayout handle it
+
+        // Non-student roles (e.g. counsellor) skip onboarding and navigate straight to their views
+        if (userRole && userRole !== "student") {
+          navigate(getRoleDashboardPath(userRole), { replace: true });
+          return;
+        }
+
+        // Default to "/" and let ProtectedLayout / Dashboard handle role routing
         navigate("/");
         return;
       } catch (firebaseErr: any) {

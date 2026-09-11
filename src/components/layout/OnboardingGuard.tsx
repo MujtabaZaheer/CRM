@@ -24,9 +24,8 @@ export const OnboardingGuard: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Admin roles skip onboarding entirely
-  const skipOnboarding = appUser.role === "platform_super_admin" || appUser.role === "org_admin";
-  if (skipOnboarding) {
+  // Only students undergo profile onboarding. All non-student roles skip onboarding entirely.
+  if (appUser.role !== "student") {
     return <Outlet />;
   }
 
@@ -35,24 +34,6 @@ export const OnboardingGuard: React.FC = () => {
     return <Outlet />;
   }
 
-  // Redirect to role-specific onboarding
-  if (appUser.role === "student") {
-    return <Navigate to="/student/onboarding/step-1" replace />;
-  }
-
-  if (appUser.role === "external_agent") {
-    return <Navigate to="/onboarding/agent" replace />;
-  }
-
-  if (appUser.role === "university_partner") {
-    return <Navigate to="/onboarding/university-partner" replace />;
-  }
-
-  // All staff/operations roles
-  if (STAFF_ROLES.includes(appUser.role as any)) {
-    return <Navigate to="/onboarding/staff" replace />;
-  }
-
-  // Fallback — treat as staff onboarding
-  return <Navigate to="/onboarding/staff" replace />;
+  // Redirect student to onboarding
+  return <Navigate to="/student/onboarding/step-1" replace />;
 };

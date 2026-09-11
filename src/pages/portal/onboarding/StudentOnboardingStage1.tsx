@@ -22,6 +22,7 @@ import { calculateProfileCompleteness } from "../../../utils/profileCompleteness
 import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
 import { toCountryName } from "../../../utils/cvExtractor";
 import { getRoleBackground } from "../../../utils/roleBackgrounds";
+import { getRoleDashboardPath } from "../../../types/registrationConfig";
 
 const STUDY_LEVELS = [
   "Foundation",
@@ -122,6 +123,13 @@ export const StudentOnboardingStage1: React.FC = () => {
   const [hasReferences, setHasReferences] = useState(false);
   const [refName, setRefName] = useState("");
   const [refEmail, setRefEmail] = useState("");
+
+  // Redirect non-students away from student onboarding immediately
+  useEffect(() => {
+    if (appUser && appUser.role !== "student") {
+      navigate(getRoleDashboardPath(appUser.role), { replace: true });
+    }
+  }, [appUser, navigate]);
 
   // Load existing profile from Firestore
   useEffect(() => {

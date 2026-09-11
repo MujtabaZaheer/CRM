@@ -1,6 +1,6 @@
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db, firebaseConfig, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 import { logAuditEvent } from "./auditLogger";
@@ -87,6 +87,18 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
     }
   }
 
+  // If user already existed or cred.user wasn't returned, see if an existing profile exists in Firestore
+  if (createdUid.startsWith("staff_")) {
+    try {
+      const existingSnap = await getDocs(
+        query(collection(db, "users"), where("email", "==", normalizedEmail))
+      );
+      if (!existingSnap.empty) {
+        createdUid = existingSnap.docs[0].id;
+      }
+    } catch (_) {}
+  }
+
   // 2. Prepare AppUser record — strictly metadata, NEVER store passwords
   const newStaffRecord: AppUser = cleanStaffData({
     uid: createdUid,
@@ -107,6 +119,17 @@ export const provisionStaffUser = async (data: StaffProvisionData): Promise<AppU
   // 3. Persist profile to Firestore
   try {
     await setDoc(doc(db, "users", createdUid), newStaffRecord, { merge: true });
+    // Also record in invitations to guarantee role discovery regardless of lookup pathway
+    const invToken = `staff_${createdUid}`;
+    await setDoc(doc(db, "invitations", invToken), {
+      token: invToken,
+      email: normalizedEmail,
+      role: data.role,
+      office: data.office || "London HQ",
+      status: "provisioned",
+      provisionedUid: createdUid,
+      createdAt: Date.now(),
+    }, { merge: true });
   } catch (firestoreErr: any) {
     if (isDemoMode) {
       console.warn("Firestore profile sync warning in preview session:", firestoreErr?.message);

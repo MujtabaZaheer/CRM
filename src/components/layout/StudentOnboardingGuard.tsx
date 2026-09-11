@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { Student } from "../../types/student";
 import { DEMO_STUDENTS } from "../../data/demoData";
+import { getRoleDashboardPath } from "../../types/registrationConfig";
 
 export const StudentOnboardingGuard: React.FC = () => {
   const { appUser, firebaseUser, loading: authLoading } = useAuth();
@@ -80,6 +81,11 @@ export const StudentOnboardingGuard: React.FC = () => {
         <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     );
+  }
+
+  // Non-student roles (e.g. counsellor, admin, agent) MUST NEVER see student onboarding
+  if (appUser && appUser.role !== "student") {
+    return <Navigate to={getRoleDashboardPath(appUser.role)} replace />;
   }
 
   // Fallback to step 1 if no student doc

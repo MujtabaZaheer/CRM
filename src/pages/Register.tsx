@@ -213,6 +213,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const uid = userCredential.user.uid;
 
+      const isStudentRole = selectedRole === "student";
       // 2. Create base user profile in Firestore
       await setDoc(doc(db, "users", uid), {
         uid,
@@ -223,6 +224,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         team: "Global Team",
         status: "active",
         createdAt: Date.now(),
+        onboardingStatus: isStudentRole ? "not_started" : "completed",
+        profileCompleted: !isStudentRole,
+        currentStep: isStudentRole ? 1 : 4,
         ...(formData.phone ? { phone: formData.phone } : {}),
         ...(selectedRole === "external_agent" ? { agencyName: formData.agencyName } : {}),
         ...(selectedRole === "university_partner" ? { universityName: formData.universityName } : {}),

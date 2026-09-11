@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { signOut, sendEmailVerification } from "firebase/auth";
 import { useLocation, useNavigate } from "react-router-dom";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import {
   CheckCircle2,
   Mail,
@@ -11,14 +12,15 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { auth, isDemoMode } from "../firebase/config";
-import { getEmailActionSettings } from "../firebase/config";
+import { auth, db, isDemoMode, getEmailActionSettings } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import { UserRole, ROLE_LABELS } from "../types/role";
+import { getRoleDashboardPath } from "../types/registrationConfig";
 
 const COOLDOWN_SECONDS = 60;
 
 export const VerifyEmail: React.FC = () => {
-  const { firebaseUser, logout, refreshFirebaseUser } = useAuth();
+  const { firebaseUser, appUser, logout, refreshFirebaseUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -26,28 +28,31 @@ export const VerifyEmail: React.FC = () => {
   const initialSent = (location.state as any)?.emailSent;
   const emailError = (location.state as any)?.emailError;
 
-  const [storedEmail, setStoredEmail] = useState<string>(() => {
-    return firebaseUser?.email || stateEmail || sessionStorage.getItem("pending_verification_email") || "";
-  });
-
-  const [cooldown, setCooldown] = useState(COOLDOWN_SECONDS);
+  const [pendingEmail, setPendingEmail] = useState<string>("");
+  const [cooldown, setCooldown] = useState<number>(initialSent ? COOLDOWN_SECONDS : 0);
+  const [verifying, setVerifying] = useState<boolean>(false);
+  const [resending, setResending] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(
     initialSent ? "A verification code was sent to your address. Please check your inbox." : null
   );
   const [error, setError] = useState<string | null>(emailError || null);
-  
-  const [verifying, setVerifying] = useState(false);
-  const [resending, setResending] = useState(false);
 
-  // Sync email when user loads
+  // Sync state or session storage email
   useEffect(() => {
-    if (firebaseUser?.email) {
-      setStoredEmail(firebaseUser.email);
+    if (stateEmail) {
+      setPendingEmail(stateEmail);
       try {
-        sessionStorage.setItem("pending_verification_email", firebaseUser.email);
+        sessionStorage.setItem("pending_verification_email", stateEmail);
       } catch (_) {}
+      return;
     }
-  }, [firebaseUser]);
+    const sessionEmail = sessionStorage.getItem("pending_verification_email");
+    if (sessionEmail) {
+      setPendingEmail(sessionEmail);
+    } else if (firebaseUser?.email) {
+      setPendingEmail(firebaseUser.email);
+    }
+  }, [stateEmail, firebaseUser]);
 
   // Handle countdown timer
   useEffect(() => {
@@ -58,7 +63,55 @@ export const VerifyEmail: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [cooldown]);
 
+  const resolveDestination = async (): Promise<{ path: string; label: string; isStudent: boolean }> => {
+    let role: UserRole = "student";
+    let isCompleted = false;
+    const targetEmail = (auth.currentUser?.email || stateEmail || pendingEmail || "").toLowerCase().trim();
 
+    if (appUser?.role) {
+      role = appUser.role;
+      isCompleted = appUser.onboardingStatus === "completed" || appUser.profileCompleted === true;
+    } else if (auth.currentUser) {
+      try {
+        const uSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (uSnap.exists()) {
+          const uData = uSnap.data();
+          role = uData.role || "student";
+          isCompleted = uData.onboardingStatus === "completed" || uData.profileCompleted === true;
+        } else if (targetEmail) {
+          const uq = query(collection(db, "users"), where("email", "==", targetEmail));
+          const uqSnap = await getDocs(uq);
+          if (!uqSnap.empty) {
+            const uData = uqSnap.docs[0].data();
+            role = uData.role || "student";
+            isCompleted = uData.onboardingStatus === "completed" || uData.profileCompleted === true;
+          } else {
+            const invSnap = await getDocs(query(collection(db, "invitations"), where("email", "==", targetEmail)));
+            if (!invSnap.empty) {
+              role = invSnap.docs[0].data().role || "student";
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not determine role for redirect:", err);
+      }
+    }
+
+    const isStudent = role === "student";
+    if (!isStudent) {
+      return {
+        path: getRoleDashboardPath(role),
+        label: ROLE_LABELS[role] || "Dashboard",
+        isStudent: false,
+      };
+    }
+
+    return {
+      path: isCompleted ? "/student/dashboard" : "/student/onboarding/step-1",
+      label: isCompleted ? "Dashboard" : "Student Onboarding",
+      isStudent: true,
+    };
+  };
 
   const handleVerify = async (forceDemo = false) => {
     setError(null);
@@ -68,11 +121,12 @@ export const VerifyEmail: React.FC = () => {
     try {
       if (forceDemo || isDemoMode) {
         sessionStorage.setItem("demo_email_verified", "true");
-        setMessage("Demo Verification Confirmed! Redirecting to student onboarding...");
         await refreshFirebaseUser();
+        const dest = await resolveDestination();
+        setMessage(`Demo Verification Confirmed! Redirecting to ${dest.label}...`);
 
         setTimeout(() => {
-          navigate("/student/onboarding/step-1", { replace: true });
+          navigate(dest.path, { replace: true });
         }, 800);
         return;
       }
@@ -83,11 +137,12 @@ export const VerifyEmail: React.FC = () => {
       
       if (auth.currentUser.emailVerified) {
         sessionStorage.setItem("demo_email_verified", "true");
-        setMessage("Verification confirmed! Redirecting to student onboarding...");
         await refreshFirebaseUser();
+        const dest = await resolveDestination();
+        setMessage(`Verification confirmed! Redirecting to ${dest.label}...`);
 
         setTimeout(() => {
-          navigate("/student/onboarding/step-1", { replace: true });
+          navigate(dest.path, { replace: true });
         }, 800);
       } else {
         setError("Your email is not verified yet. Please click the link in the email we sent you, or use Demo Instant Verify.");
@@ -97,9 +152,10 @@ export const VerifyEmail: React.FC = () => {
       // Fallback for demo environments
       if (isDemoMode) {
         sessionStorage.setItem("demo_email_verified", "true");
-        setMessage("Demo verification active! Redirecting to student onboarding...");
+        const dest = await resolveDestination();
+        setMessage(`Demo verification active! Redirecting to ${dest.label}...`);
         setTimeout(() => {
-          navigate("/student/onboarding/step-1", { replace: true });
+          navigate(dest.path, { replace: true });
         }, 800);
       } else {
         setError("Failed to verify status. Please try again.");

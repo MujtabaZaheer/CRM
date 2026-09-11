@@ -30,9 +30,9 @@ import { db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
-// import { Application } from "../../../types/application";
 import { assessEligibility, EligibilityResult } from "../../../utils/eligibility";
 import { DEMO_UNIVERSITIES } from "../../../data/demoData";
+import { getRoleDashboardPath } from "../../../types/registrationConfig";
 // import { getDocumentChecklist } from "../../../utils/immigrationData";
 
 /* ------------------------------------------------------------------ */
@@ -150,6 +150,13 @@ export const StudentOnboardingStage3: React.FC = () => {
 
   // Detail drawer
   const [drawerItem, setDrawerItem] = useState<ProgramMatchItem | null>(null);
+
+  // Redirect non-students away from student onboarding immediately
+  useEffect(() => {
+    if (appUser && appUser.role !== "student") {
+      navigate(getRoleDashboardPath(appUser.role), { replace: true });
+    }
+  }, [appUser, navigate]);
 
   /* ---- Load data ---- */
   useEffect(() => {

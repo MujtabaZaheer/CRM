@@ -29,6 +29,7 @@ import { Student } from "../../../types/student";
 import type { DestinationCountry, WorldRegion } from "../../../types/country";
 import { DEFAULT_DESTINATIONS } from "../../../types/country";
 import { getImmigrationData } from "../../../utils/immigrationData";
+import { getRoleDashboardPath } from "../../../types/registrationConfig";
 
 /* ------------------------------------------------------------------ */
 /*  Region and quick filter definitions                               */
@@ -90,6 +91,13 @@ export const StudentOnboardingStage2: React.FC = () => {
   const [preferredCity, setPreferredCity] = useState("");
   const [scholarshipPriority, setScholarshipPriority] = useState<"High" | "Medium" | "Not Essential">("Medium");
   const [institutionType, setInstitutionType] = useState<"Any" | "Public" | "Private">("Any");
+
+  // Redirect non-students away from student onboarding immediately
+  useEffect(() => {
+    if (appUser && appUser.role !== "student") {
+      navigate(getRoleDashboardPath(appUser.role), { replace: true });
+    }
+  }, [appUser, navigate]);
 
   /* ---- Load student data + university countries ---- */
   useEffect(() => {

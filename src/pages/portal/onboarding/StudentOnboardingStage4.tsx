@@ -40,8 +40,8 @@ import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
 import type { Application } from "../../../types/application";
 import { assessEligibility } from "../../../utils/eligibility";
-// import { getDocumentChecklist } from "../../../utils/immigrationData";
 import { DEMO_UNIVERSITIES } from "../../../data/demoData";
+import { getRoleDashboardPath } from "../../../types/registrationConfig";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -109,6 +109,13 @@ export const StudentOnboardingStage4: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [completingOnboarding, setCompletingOnboarding] = useState(false);
+
+  // Redirect non-students away from student onboarding immediately
+  useEffect(() => {
+    if (appUser && appUser.role !== "student") {
+      navigate(getRoleDashboardPath(appUser.role), { replace: true });
+    }
+  }, [appUser, navigate]);
 
   /* ---- Load All Applications & Shortlists ---- */
   const loadData = async () => {

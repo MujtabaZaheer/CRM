@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { AlertCircle, CheckCircle2, Mail, ShieldCheck } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { auth, db } from "../firebase/config";
+import { getRoleDashboardPath } from "../types/registrationConfig";
 
 export const AcceptInvitation: React.FC = () => {
   const navigate = useNavigate();
@@ -80,14 +81,21 @@ export const AcceptInvitation: React.FC = () => {
       const invData = invitationSnap.data();
       if (invData.status !== "pending") throw new Error("This invitation has already been accepted or expired.");
 
+      const targetRole = invData.role || "student";
+      const isStudent = targetRole === "student";
+
       await setDoc(doc(db, "users", firebaseUser.uid), {
         uid: firebaseUser.uid,
         email: (firebaseUser.email || "").toLowerCase(),
         displayName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
-        role: invData.role || "student",
+        role: targetRole,
         organizationId: invData.organizationId || "default_org",
+        office: invData.office || "Main Office",
         createdAt: Date.now(),
         invitedBy: invData.invitedBy || "Admin",
+        onboardingStatus: isStudent ? "not_started" : "completed",
+        profileCompleted: !isStudent,
+        currentStep: isStudent ? 1 : 4,
       });
 
       await updateDoc(invitationRef, {
@@ -97,7 +105,7 @@ export const AcceptInvitation: React.FC = () => {
       });
 
       await firebaseUser.getIdToken(true);
-      navigate("/", { replace: true });
+      navigate(getRoleDashboardPath(targetRole), { replace: true });
     } catch (err: any) {
       setError(err.message || "Unable to accept the invitation.");
     } finally {
