@@ -96,7 +96,7 @@ export const Tasks: React.FC = () => {
       // If completing a recurring task, automatically generate the next occurrence
       if (newStatus === "Completed" && task.recurrence && task.recurrence !== "none") {
         const currentDue = new Date(task.dueDate);
-        let nextDueDate = new Date(currentDue);
+        const nextDueDate = new Date(currentDue);
         if (task.recurrence === "daily") {
           nextDueDate.setDate(nextDueDate.getDate() + 1);
         } else if (task.recurrence === "weekly") {

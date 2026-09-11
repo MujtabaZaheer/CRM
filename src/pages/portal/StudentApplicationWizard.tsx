@@ -94,8 +94,7 @@ export const StudentApplicationWizard: React.FC = () => {
   const [uploadedDocuments, setUploadedDocuments] = useState<
     { id: string; name: string; type: string; url: string }[]
   >([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [, setUploadingDoc] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [visaReviewed, setVisaReviewed] = useState(false);
 
   // Step 10: Declarations
@@ -1229,11 +1228,12 @@ export const StudentApplicationWizard: React.FC = () => {
                           Preview
                         </button>
                       )}
-                      <label className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold cursor-pointer transition-colors flex items-center gap-1">
+                      <label className={`px-3 py-1.5 rounded-lg ${uploadingDoc ? "opacity-60 pointer-events-none" : "hover:bg-emerald-400 cursor-pointer"} bg-emerald-500 text-white font-bold transition-colors flex items-center gap-1`}>
                         <Upload className="w-3.5 h-3.5" />
-                        <span>{existing ? "Replace" : "Upload"}</span>
+                        <span>{uploadingDoc ? "Uploading..." : existing ? "Replace" : "Upload"}</span>
                         <input
                           type="file"
+                          disabled={uploadingDoc}
                           className="hidden"
                           onChange={(e) => handleDocumentUpload(e, docName)}
                         />

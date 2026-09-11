@@ -107,7 +107,7 @@ export const StudentOnboardingStage2: React.FC = () => {
 
       try {
         // Load university countries to supplement destinations
-        let combined = [...DEFAULT_DESTINATIONS];
+        const combined = [...DEFAULT_DESTINATIONS];
         try {
           const univSnap = await getDocs(collection(db, "universities"));
           if (!univSnap.empty) {
