@@ -207,7 +207,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       profileCompleted: true,
                       currentStep: 4,
                     };
-                    await setDoc(userDocRef, healedUser, { merge: true });
+                    // We cannot save this back to Firestore because security rules prevent
+                    // a user with a 'student' role from escalating their own privileges.
+                    // We apply it in memory so the UI works, but the Super Admin must
+                    // manually delete the duplicate student document to permanently fix it.
                     setAppUser(healedUser);
                     setLoading(false);
                     return;
