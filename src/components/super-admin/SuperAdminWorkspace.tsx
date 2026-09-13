@@ -59,14 +59,13 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Create Staff Account Modal
-  const [showStaffModal, setShowStaffModal] = useState(false);
-  const [_newStaffName, _setNewStaffName] = useState("");
+  const [newStaffName, setNewStaffName] = useState("");
   const [newStaffEmail, setNewStaffEmail] = useState("");
-  const [_newStaffPassword, _setNewStaffPassword] = useState("Edu-Pass2026!");
+  const [newStaffPassword, setNewStaffPassword] = useState("Edu-Pass2026!");
   const [newStaffRole, setNewStaffRole] = useState<UserRole>("counsellor");
   const [newStaffOffice, setNewStaffOffice] = useState("London HQ");
   const [_newStaffTeam, _setNewStaffTeam] = useState("Global Team");
-  const [_showStaffPassword, _setShowStaffPassword] = useState(false);
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
   const [creatingStaff, setCreatingStaff] = useState(false);
 
   // GDPR State
@@ -160,20 +159,24 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
 
   const handleCreateStaffSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStaffEmail) return;
+    if (!newStaffEmail || !newStaffPassword || !newStaffName) return;
     setCreatingStaff(true);
     try {
-      await superAdmin.createStaffInvitation({
+      await superAdmin.createStaffUser({
         email: newStaffEmail,
+        password: newStaffPassword,
+        displayName: newStaffName,
         role: newStaffRole,
         office: newStaffOffice,
       });
-      setNotice(`Invitation created for ${newStaffEmail} as ${ROLE_LABELS[newStaffRole]}. They can now register at /accept-invitation.`);
+      setNotice(`Staff account created for ${newStaffName} (${newStaffEmail}) as ${ROLE_LABELS[newStaffRole]}. They can now log in.`);
       setShowStaffModal(false);
       setNewStaffEmail("");
+      setNewStaffName("");
+      setNewStaffPassword("Edu-Pass2026!");
       setNewStaffRole("counsellor");
     } catch (err: any) {
-      setNotice(`Failed to create invitation: ${err.message}`);
+      setNotice(`Failed to create staff account: ${err.message}`);
     } finally {
       setCreatingStaff(false);
     }
@@ -662,25 +665,75 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
           >
             <div>
               <h2 className="font-bold text-base text-[var(--text-primary)]">
-                Invite Staff Member
+                Create Staff Account
               </h2>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                Enter the staff member's email address. They will receive an invitation to create their account and complete onboarding.
+                Provision a new staff account instantly. The user will be able to log in immediately with the credentials provided below.
               </p>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                  Display Name *
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  placeholder="e.g. Sarah Jenkins"
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                  Staff Email Address *
+                </label>
+                <input
+                  required
+                  type="email"
+                  value={newStaffEmail}
+                  onChange={(e) => setNewStaffEmail(e.target.value)}
+                  placeholder="e.g. sarah.jenkins@company.com"
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                Staff Email Address *
-              </label>
-              <input
-                required
-                type="email"
-                value={newStaffEmail}
-                onChange={(e) => setNewStaffEmail(e.target.value)}
-                placeholder="e.g. sarah.jenkins@company.com"
-                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">
+                  Initial Password *
+                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { generateStrongPassword } = await import("../../utils/staffProvisioner");
+                    setNewStaffPassword(generateStrongPassword());
+                  }}
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
+                >
+                  Generate Strong Password
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  required
+                  type={showStaffPassword ? "text" : "password"}
+                  value={newStaffPassword}
+                  onChange={(e) => setNewStaffPassword(e.target.value)}
+                  placeholder="Enter minimum 6 characters"
+                  className="w-full p-2.5 pr-20 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] font-mono focus:border-emerald-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowStaffPassword(!showStaffPassword)}
+                  className="absolute right-2.5 top-2.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium cursor-pointer"
+                >
+                  {showStaffPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -729,7 +782,7 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
             </div>
 
             <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-xs text-emerald-400">
-              <strong>How it works:</strong> An invitation will be created for this email. The staff member visits the <strong>/accept-invitation</strong> page, creates their account using this email, verifies it, and then activates their assigned role. They will complete a brief onboarding to set up their profile.
+              <strong>How it works:</strong> The account is provisioned immediately in Firebase Auth and Firestore. The staff member can log in directly at the login screen using the credentials you specify here.
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
@@ -745,7 +798,7 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                 disabled={creatingStaff || !newStaffEmail}
                 className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
               >
-                {creatingStaff ? "Creating Invitation..." : "Send Staff Invitation"}
+                {creatingStaff ? "Creating Account..." : "Create Staff Account"}
               </button>
             </div>
           </form>
