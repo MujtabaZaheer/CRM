@@ -71,15 +71,14 @@ export const useCounsellorData = () => {
   const cleanStudents = Array.from(uniqueStudentsMap.values());
 
   const filteredLeads = leads.filter((l) => l.assignedTo === userUid || l.assignedTo === userEmail);
-  const myLeads = isAdminOrManager || filteredLeads.length === 0 ? leads : filteredLeads;
+  const myLeads = isAdminOrManager ? leads : filteredLeads;
 
   const filteredStudents = cleanStudents.filter(
     (s) =>
       s.assignedCounsellorId === userUid ||
-      s.assignedCounsellorId === userEmail ||
-      !s.assignedCounsellorId
+      s.assignedCounsellorId === userEmail
   );
-  const myStudents = isAdminOrManager || filteredStudents.length === 0 ? cleanStudents : filteredStudents;
+  const myStudents = isAdminOrManager ? cleanStudents : filteredStudents;
 
   const myStudentIds = myStudents.map((s) => s.id);
   const myStudentEmails = new Set(myStudents.map((s) => (s.email || "").toLowerCase().trim()));
@@ -91,7 +90,7 @@ export const useCounsellorData = () => {
       myStudentIds.includes(a.studentId) ||
       (a.studentEmail && myStudentEmails.has(a.studentEmail.toLowerCase().trim()))
   );
-  const myApplications = isAdminOrManager || filteredApplications.length === 0 ? applications : filteredApplications;
+  const myApplications = isAdminOrManager ? applications : filteredApplications;
 
   const filteredDocuments = documents.filter(
     (d) =>
@@ -99,10 +98,10 @@ export const useCounsellorData = () => {
       d.uploadedBy === userEmail ||
       (d.studentName && myStudents.some((s) => s.fullName.toLowerCase() === d.studentName.toLowerCase()))
   );
-  const myDocuments = isAdminOrManager || filteredDocuments.length === 0 ? documents : filteredDocuments;
+  const myDocuments = isAdminOrManager ? documents : filteredDocuments;
 
   const filteredTasks = tasks.filter((t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail);
-  const myTasks = isAdminOrManager || filteredTasks.length === 0 ? tasks : filteredTasks;
+  const myTasks = isAdminOrManager ? tasks : filteredTasks;
 
   // Actions
   const updateLeadStage = useCallback(

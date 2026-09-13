@@ -35,7 +35,7 @@ export const useTeamLeaderData = () => {
   const scopedCounsellors = users.filter(
     (u) => u.role === "counsellor" && (!appUser?.office || u.office === office) && (!appUser?.team || u.team === team)
   );
-  const counsellors = scopedCounsellors.length > 0 ? scopedCounsellors : users.filter((u) => u.role === "counsellor");
+  const counsellors = scopedCounsellors;
 
   const teamCounsellorEmails = counsellors.map((c) => c.email);
   const teamCounsellorUids = counsellors.map((c) => c.uid);
@@ -63,7 +63,7 @@ export const useTeamLeaderData = () => {
       lead.assignedTo === appUser?.email
     );
   });
-  const teamLeads = filteredTeamLeads.length > 0 ? filteredTeamLeads : leads;
+  const teamLeads = filteredTeamLeads;
 
   // Filter Students
   const teamStudents = students.filter((student) => {
