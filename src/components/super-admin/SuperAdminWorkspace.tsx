@@ -59,6 +59,7 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Create Staff Account Modal
+  const [showStaffModal, setShowStaffModal] = useState(false);
   const [newStaffName, setNewStaffName] = useState("");
   const [newStaffEmail, setNewStaffEmail] = useState("");
   const [newStaffPassword, setNewStaffPassword] = useState("Edu-Pass2026!");
