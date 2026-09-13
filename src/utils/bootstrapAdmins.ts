@@ -14,14 +14,14 @@ interface AdminBootstrapConfig {
 
 const ADMIN_ACCOUNTS: AdminBootstrapConfig[] = [
   {
-    email: "superadmin@crm.com",
+    email: "superadmin@educrm.com",
     password: "superadmin123",
     displayName: "Platform Super Admin",
     role: "platform_super_admin",
     office: "Main Office",
   },
   {
-    email: "orgadmin@crm.com",
+    email: "orgadmin@educrm.com",
     password: "orgadmin123",
     displayName: "Organization Admin",
     role: "org_admin",
@@ -98,5 +98,44 @@ export const bootstrapAdminAccounts = async (): Promise<void> => {
     } catch (err: any) {
       console.warn(`Failed to bootstrap ${admin.email}:`, err?.message);
     }
+  }
+
+  // Cleanup old admins except demo ones
+  try {
+    const { collection, query, where, getDocs, deleteDoc, doc: fsDoc } = await import("firebase/firestore");
+    
+    // Find super admins
+    const saQuery = query(collection(db, "users"), where("role", "==", "platform_super_admin"));
+    const saDocs = await getDocs(saQuery);
+    
+    // Find org admins
+    const oaQuery = query(collection(db, "users"), where("role", "==", "org_admin"));
+    const oaDocs = await getDocs(oaQuery);
+
+    const allowedEmails = [
+      "superadmin@educrm.com", 
+      "orgadmin@educrm.com",
+      "admin@educrm.com",
+      "superadmin@educrm.demo",
+      "orgadmin@educrm.demo",
+      "admin@educrm.demo",
+      "org_admin@educrm.demo",
+      "platform_super_admin@educrm.demo"
+    ];
+
+    const cleanup = async (docs: any) => {
+      for (const d of docs.docs) {
+        const data = d.data();
+        if (!allowedEmails.includes(data.email)) {
+          await deleteDoc(fsDoc(db, "users", d.id));
+          console.info(`Cleaned up old admin account from Firestore: ${data.email}`);
+        }
+      }
+    };
+
+    await cleanup(saDocs);
+    await cleanup(oaDocs);
+  } catch (err: any) {
+    console.warn("Failed to cleanup old admins:", err?.message);
   }
 };
