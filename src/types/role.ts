@@ -60,6 +60,7 @@ export interface AppUser {
   universityName?: string;
   partnerUniversityId?: string;
   tenantId?: string;
+  accountStatus?: "active" | "suspended";
   onboardingStatus?: "not_started" | "in_progress" | "completed";
   profileCompleted?: boolean;
   currentStep?: number;

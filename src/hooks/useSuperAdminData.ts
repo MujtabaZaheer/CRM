@@ -65,7 +65,27 @@ export const useSuperAdminData = () => {
       collection(db, "users"),
       (snap) => {
         const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() }) as AppUser);
-        setUsers(list.length > 0 ? list : (showDemoData ? DEMO_USERS : []));
+        
+        // Deduplicate by email: prioritize non-student roles, then most recent
+        const emailMap = new Map<string, AppUser>();
+        list.forEach(user => {
+            const email = (user.email || "").toLowerCase().trim();
+            if (!email) return;
+            
+            if (emailMap.has(email)) {
+                const existing = emailMap.get(email)!;
+                if (existing.role === "student" && user.role !== "student") {
+                    emailMap.set(email, user); // Prefer staff role
+                } else if (existing.role === user.role && (user.createdAt || 0) > (existing.createdAt || 0)) {
+                    emailMap.set(email, user); // Prefer newer record if roles have same priority
+                }
+            } else {
+                emailMap.set(email, user);
+            }
+        });
+        
+        const deduplicatedList = Array.from(emailMap.values());
+        setUsers(deduplicatedList.length > 0 ? deduplicatedList : (showDemoData ? DEMO_USERS : []));
         finish();
       },
       (err) => {
@@ -328,6 +348,39 @@ export const useSuperAdminData = () => {
     [appUser]
   );
 
+  const deleteUser = useCallback(async (userUid: string) => {
+    try {
+      const { deleteDoc } = await import("firebase/firestore");
+      await deleteDoc(doc(db, "users", userUid));
+      await logAuditEvent(
+        "SUPER_ADMIN_USER_DELETED",
+        appUser?.email || "Platform Super Admin",
+        "SuperAdmin",
+        `Deleted user profile ${userUid}`,
+        userUid,
+        appUser?.role
+      );
+    } catch (err: any) {
+      throw new Error(err.message || "Failed to delete user profile.");
+    }
+  }, [appUser]);
+
+  const suspendUser = useCallback(async (userUid: string, status: "active" | "suspended") => {
+    try {
+      await updateDoc(doc(db, "users", userUid), { accountStatus: status, updatedAt: Date.now() });
+      await logAuditEvent(
+        "SUPER_ADMIN_USER_SUSPENDED",
+        appUser?.email || "Platform Super Admin",
+        "SuperAdmin",
+        `Changed user ${userUid} status to ${status}`,
+        userUid,
+        appUser?.role
+      );
+    } catch (err: any) {
+      throw new Error(err.message || "Failed to change user status.");
+    }
+  }, [appUser]);
+
   return {
     tenants,
     users,
@@ -340,6 +393,8 @@ export const useSuperAdminData = () => {
     createStaffUser,
     createStaffInvitation,
     updateUserPassword,
+    deleteUser,
+    suspendUser,
     updateGlobalSettings,
     totalLeads: globalData.leads.length,
     totalStudents: globalData.students.length,

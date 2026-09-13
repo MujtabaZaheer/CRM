@@ -401,7 +401,12 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
               <tbody className="divide-y divide-[var(--border-default)] text-xs">
                 {filteredUsers.map((u) => (
                   <tr key={u.uid} className="hover:bg-[var(--bg-hover)]">
-                    <td className="p-3 font-bold text-[var(--text-primary)]">{u.email}</td>
+                    <td className="p-3 font-bold text-[var(--text-primary)]">
+                      {u.email}
+                      {u.accountStatus === "suspended" && (
+                        <span className="ml-2 px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] rounded uppercase font-bold">Suspended</span>
+                      )}
+                    </td>
                     <td className="p-3 text-[var(--text-secondary)]">{u.displayName || "N/A"}</td>
                     <td className="p-3 font-semibold text-emerald-400">{ROLE_LABELS[u.role] || u.role}</td>
                     <td className="p-3 text-[var(--text-secondary)]">{u.office || "Main Office"}</td>
@@ -425,6 +430,23 @@ export const SuperAdminWorkspace: React.FC<{ page: SuperAdminSubPage }> = ({ pag
                         className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded hover:bg-emerald-500/20 cursor-pointer"
                       >
                         Change Role
+                      </button>
+                      <button
+                        onClick={() => superAdmin.suspendUser(u.uid, u.accountStatus === "suspended" ? "active" : "suspended")}
+                        className="px-2.5 py-1 bg-sky-500/10 border border-sky-500/20 text-sky-400 font-bold rounded hover:bg-sky-500/20 cursor-pointer"
+                      >
+                        {u.accountStatus === "suspended" ? "Activate" : "Suspend"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to delete ${u.email}?`)) {
+                            superAdmin.deleteUser(u.uid);
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold rounded hover:bg-rose-500/20 cursor-pointer flex items-center gap-1"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </td>
                   </tr>
