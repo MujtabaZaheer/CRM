@@ -37,6 +37,86 @@ export interface StudentContextData {
   activeAttachments?: ChatAttachment[];
 }
 
+export const AI_RATE_LIMIT_MS = 5 * 60 * 1000; // 5 minutes cooldown per user
+const RATE_LIMIT_STORAGE_KEY_PREFIX = "EDUC_CRM_AI_LAST_CALL_";
+const aiLastCallMemoryMap = new Map<string, number>();
+
+export interface AIRateLimitStatus {
+  allowed: boolean;
+  remainingMs: number;
+  remainingSeconds: number;
+  formattedWaitTime: string;
+}
+
+/**
+ * Checks whether the user is permitted to make an AI counsellor request.
+ * Enforces a strict 5-minute interval between AI interactions.
+ */
+export function checkAIRateLimit(userId: string = "anonymous"): AIRateLimitStatus {
+  const now = Date.now();
+  let lastCall = aiLastCallMemoryMap.get(userId) || 0;
+
+  try {
+    const stored = localStorage.getItem(`${RATE_LIMIT_STORAGE_KEY_PREFIX}${userId}`);
+    if (stored) {
+      const storedTime = parseInt(stored, 10);
+      if (!isNaN(storedTime) && storedTime > lastCall) {
+        lastCall = storedTime;
+      }
+    }
+  } catch {
+    // localStorage might be unavailable or private browsing
+  }
+
+  const elapsed = now - lastCall;
+  if (elapsed < AI_RATE_LIMIT_MS && lastCall > 0) {
+    const remainingMs = AI_RATE_LIMIT_MS - elapsed;
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+    const formattedWaitTime = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+    return {
+      allowed: false,
+      remainingMs,
+      remainingSeconds,
+      formattedWaitTime,
+    };
+  }
+
+  return {
+    allowed: true,
+    remainingMs: 0,
+    remainingSeconds: 0,
+    formattedWaitTime: "0s",
+  };
+}
+
+/**
+ * Records an AI usage timestamp for the user.
+ */
+export function recordAIUsage(userId: string = "anonymous"): void {
+  const now = Date.now();
+  aiLastCallMemoryMap.set(userId, now);
+  try {
+    localStorage.setItem(`${RATE_LIMIT_STORAGE_KEY_PREFIX}${userId}`, now.toString());
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Resets rate limit for testing or administrative override.
+ */
+export function resetAIRateLimit(userId: string = "anonymous"): void {
+  aiLastCallMemoryMap.delete(userId);
+  try {
+    localStorage.removeItem(`${RATE_LIMIT_STORAGE_KEY_PREFIX}${userId}`);
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Intelligent AI Education Counsellor & CRM System Guide
  * Provides context-aware advisement using Gemini LLM with robust fallback heuristics.

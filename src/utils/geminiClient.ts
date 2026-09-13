@@ -1,6 +1,6 @@
 /**
  * EduCRM Client-Side Gemini AI Engine
- * Uses Google Gemini API (gemini-3.5-flash-lite with multi-model fallback) for client-side AI recommendation,
+ * Uses Google Gemini API (gemini-3.8-flash with multi-model fallback) for client-side AI recommendation,
  * visa risk evaluation, document OCR data extraction, and personal statement generation.
  */
 
@@ -49,7 +49,7 @@ export interface ApplicationReadinessReport {
   recommendations: string[];
 }
 
-export const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
+export const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
 
 function getApiKey(): string {
   const envKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -111,6 +111,7 @@ export async function callGeminiApi(prompt: string, inlineImageData?: { mimeType
 
   const candidateModels = [
     GEMINI_MODEL,
+    "gemini-3.8-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash"

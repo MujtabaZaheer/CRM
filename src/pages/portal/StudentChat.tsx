@@ -44,6 +44,9 @@ import {
   getAICounselReply,
   AICounselMessage,
   ChatAttachment,
+  checkAIRateLimit,
+  recordAIUsage,
+  AI_RATE_LIMIT_MS,
 } from "../../utils/aiCounselEngine";
 import {
   cacheDocumentFile,
@@ -170,6 +173,21 @@ export const StudentChat: React.FC = () => {
   ]);
   const [aiInputText, setAiInputText] = useState("");
   const [aiThinking, setAiThinking] = useState(false);
+  const [aiCooldownSeconds, setAiCooldownSeconds] = useState(0);
+
+  // Monitor 5-minute per-user rate limit countdown
+  useEffect(() => {
+    const userId = appUser?.uid || ownStudent?.id || "anonymous";
+    const status = checkAIRateLimit(userId);
+    setAiCooldownSeconds(status.remainingSeconds);
+
+    const interval = setInterval(() => {
+      const currentStatus = checkAIRateLimit(userId);
+      setAiCooldownSeconds(currentStatus.remainingSeconds);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [appUser?.uid, ownStudent?.id]);
 
   // Human Counsellor State
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -542,6 +560,24 @@ export const StudentChat: React.FC = () => {
     const hasAttachments = stagedAttachments.length > 0;
     if ((!rawText && !hasAttachments) || aiThinking) return;
 
+    const userId = appUser?.uid || ownStudent?.id || "anonymous";
+    const rateLimit = checkAIRateLimit(userId);
+    if (!rateLimit.allowed) {
+      const cooldownMsg: AICounselMessage = {
+        id: `rate-limit-${Date.now()}`,
+        sender: "ai",
+        content: `⏳ **AI Counsellor Rate Limit (5-Minute Cooldown)**\n\nTo ensure fair access and optimal service, each user can consult the AI Counsellor once every 5 minutes.\n\nPlease wait **${rateLimit.formattedWaitTime}** before asking another question.\n\n💡 *Tip: While you wait, you can switch to the **Dedicated Counsellor** tab to chat with our human advisory desk!*`,
+        timestamp: Date.now(),
+        suggestions: [
+          "Review My Documents",
+          "Browse Universities",
+          "View My Applications",
+        ],
+      };
+      setAiMessages((prev) => [...prev, cooldownMsg]);
+      return;
+    }
+
     const text = rawText || (hasAttachments ? `Please review the attached document(s): ${stagedAttachments.map((a) => a.name).join(", ")}` : "");
 
     // Process attachments for AI
@@ -605,6 +641,10 @@ export const StudentChat: React.FC = () => {
       };
 
       const result = await getAICounselReply(text, history, context);
+
+      // Record successful AI usage for 5-minute per-user limit
+      recordAIUsage(userId);
+      setAiCooldownSeconds(Math.ceil(AI_RATE_LIMIT_MS / 1000));
 
       const aiMsg: AICounselMessage = {
         id: `ai-${Date.now()}`,
@@ -1099,7 +1139,7 @@ export const StudentChat: React.FC = () => {
                                 key={sIdx}
                                 type="button"
                                 onClick={() => handleSendAiMessage(sug)}
-                                disabled={aiThinking}
+                                disabled={aiThinking || aiCooldownSeconds > 0}
                                 className="px-2.5 py-1 text-xs rounded-lg bg-[var(--bg-card)] border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/10 text-emerald-300 text-left transition-all disabled:opacity-50 cursor-pointer"
                               >
                                 💡 {sug}
@@ -1131,6 +1171,28 @@ export const StudentChat: React.FC = () => {
 
             {/* AI Message Input Form */}
             <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)] space-y-2.5">
+              {/* Rate limit cooldown alert */}
+              {aiCooldownSeconds > 0 && (
+                <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      AI Rate Limit: next consultation available in{" "}
+                      <strong>
+                        {Math.floor(aiCooldownSeconds / 60)}m {aiCooldownSeconds % 60}s
+                      </strong>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setChatMode("counsellor")}
+                    className="text-[11px] underline text-amber-200 hover:text-white cursor-pointer"
+                  >
+                    Chat with human counsellor &rarr;
+                  </button>
+                </div>
+              )}
+
               {/* Staged Attachments Preview Strip */}
               {stagedAttachments.length > 0 && (
                 <div className="flex flex-wrap gap-2 pb-2.5 border-b border-[var(--border-subtle)]">
@@ -1191,7 +1253,11 @@ export const StudentChat: React.FC = () => {
                     value={aiInputText}
                     onChange={(e) => setAiInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask AI: 'how to choose best university & program', 'check my documents', 'verify requirements'..."
+                    placeholder={
+                      aiCooldownSeconds > 0
+                        ? `AI cooldown active (${Math.floor(aiCooldownSeconds / 60)}m ${aiCooldownSeconds % 60}s remaining)...`
+                        : "Ask AI: 'how to choose best university & program', 'check my documents', 'verify requirements'..."
+                    }
                     rows={2}
                     className="w-full p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-default)] focus:border-emerald-500 focus:outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] resize-none transition-colors"
                   />
@@ -1199,11 +1265,20 @@ export const StudentChat: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={(!aiInputText.trim() && stagedAttachments.length === 0) || aiThinking}
+                  disabled={
+                    (!aiInputText.trim() && stagedAttachments.length === 0) ||
+                    aiThinking ||
+                    aiCooldownSeconds > 0
+                  }
                   className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-emerald-500/20 active:scale-95 shrink-0 cursor-pointer"
                 >
                   {aiThinking ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : aiCooldownSeconds > 0 ? (
+                    <>
+                      <Clock className="w-4 h-4 text-zinc-950" />
+                      <span>{Math.floor(aiCooldownSeconds / 60)}m {aiCooldownSeconds % 60}s</span>
+                    </>
                   ) : (
                     <>
                       <span>Ask AI</span>
@@ -1236,6 +1311,23 @@ export const StudentChat: React.FC = () => {
                   Thread #{conversation.id.slice(-6)}
                 </span>
               )}
+            </div>
+
+            {/* AI Advisor Guidance Info Banner */}
+            <div className="px-6 py-2.5 bg-emerald-500/10 border-b border-emerald-500/20 text-xs text-[var(--text-secondary)] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="truncate">
+                  Need immediate university &amp; document answers 24/7? Try the <strong>AI Counsellor &amp; Guide</strong> tab.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChatMode("ai")}
+                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+              >
+                Switch to AI
+              </button>
             </div>
 
             {/* Error Banner if any */}

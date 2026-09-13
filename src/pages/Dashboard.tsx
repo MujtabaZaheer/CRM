@@ -3,16 +3,24 @@ import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Navigate } from "react-router-dom";
-import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw } from "lucide-react";
+import { Users2, GraduationCap, FileText, TrendingUp, Filter, RotateCcw, Loader2 } from "lucide-react";
 import { getRoleDashboardPath } from "../types/registrationConfig";
 
 export const Dashboard: React.FC = () => {
-  const { appUser } = useAuth();
+  const { appUser, loading: authLoading } = useAuth();
   const { leads, students, applications } = useGlobalData();
 
   // Filters
   const [stageFilter, setStageFilter] = useState("All");
   const [sourceFilter, setSourceFilter] = useState("All");
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   if (appUser?.role) {
     if (appUser.role === "student") {
