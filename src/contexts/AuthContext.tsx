@@ -165,28 +165,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // staff provision record exists for this email with a staff/non-student role, restore it.
               if (uData.role === "student" && normalizedEmail) {
                 try {
-                  const invQuery = query(
-                    collection(db, "invitations"),
+                  let properRole: UserRole | null = null;
+                  let properOffice = uData.office || "Main Office";
+                  
+                  // 1. Check if they were provisioned directly as a staff user (e.g. ID staff_123)
+                  const uQuery = query(
+                    collection(db, "users"),
                     where("email", "==", normalizedEmail)
                   );
-                  const invSnap = await getDocs(invQuery);
-                  if (!invSnap.empty) {
-                    const invData = invSnap.docs[0].data();
-                    const properRole = invData.role as UserRole;
-                    if (properRole && properRole !== "student") {
-                      const healedUser: AppUser = {
-                        ...uData,
-                        role: properRole,
-                        office: invData.office || uData.office || "Main Office",
-                        onboardingStatus: "completed",
-                        profileCompleted: true,
-                        currentStep: 4,
-                      };
-                      await setDoc(userDocRef, healedUser, { merge: true });
-                      setAppUser(healedUser);
-                      setLoading(false);
-                      return;
+                  const uSnap = await getDocs(uQuery);
+                  const staffDoc = uSnap.docs.find(d => d.id !== user.uid && d.data().role !== "student");
+                  
+                  if (staffDoc) {
+                    const sData = staffDoc.data();
+                    properRole = sData.role as UserRole;
+                    properOffice = sData.office || properOffice;
+                    
+                    // Optionally, we could delete the duplicate staff doc here, but for safety we'll just heal this one
+                  } else {
+                    // 2. Check invitations
+                    const invQuery = query(
+                      collection(db, "invitations"),
+                      where("email", "==", normalizedEmail)
+                    );
+                    const invSnap = await getDocs(invQuery);
+                    if (!invSnap.empty) {
+                      const invData = invSnap.docs[0].data();
+                      if (invData.role !== "student") {
+                        properRole = invData.role as UserRole;
+                        properOffice = invData.office || properOffice;
+                      }
                     }
+                  }
+
+                  if (properRole && properRole !== "student") {
+                    const healedUser: AppUser = {
+                      ...uData,
+                      role: properRole,
+                      office: properOffice,
+                      onboardingStatus: "completed",
+                      profileCompleted: true,
+                      currentStep: 4,
+                    };
+                    await setDoc(userDocRef, healedUser, { merge: true });
+                    setAppUser(healedUser);
+                    setLoading(false);
+                    return;
                   }
                 } catch (healErr) {
                   console.warn("Could not check staff role auto-healing:", healErr);
