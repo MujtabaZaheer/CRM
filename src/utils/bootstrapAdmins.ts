@@ -14,14 +14,14 @@ interface AdminBootstrapConfig {
 
 const ADMIN_ACCOUNTS: AdminBootstrapConfig[] = [
   {
-    email: "superadmin@educrm.com",
+    email: "live_superadmin@educrm.com",
     password: "superadmin123",
     displayName: "Platform Super Admin",
     role: "platform_super_admin",
     office: "Main Office",
   },
   {
-    email: "orgadmin@educrm.com",
+    email: "live_orgadmin@educrm.com",
     password: "orgadmin123",
     displayName: "Organization Admin",
     role: "org_admin",
@@ -44,14 +44,8 @@ export const bootstrapAdminAccounts = async (): Promise<void> => {
     try {
       // Check if Firestore profile already exists (by email lookup)
       // We'll check by a known doc convention — search by email in users collection
-      const existingUsers = await import("firebase/firestore").then(({ collection, query, where, getDocs }) =>
-        getDocs(query(collection(db, "users"), where("email", "==", admin.email)))
-      );
-
-      if (!existingUsers.empty) {
-        // Account already exists in Firestore, skip
-        continue;
-      }
+      // We still want to attempt creating the Auth account just in case it doesn't exist
+      // even if the Firestore doc does.
 
       // Create Firebase Auth account via secondary app
       const secondaryAppName = `Bootstrap_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -113,6 +107,8 @@ export const bootstrapAdminAccounts = async (): Promise<void> => {
     const oaDocs = await getDocs(oaQuery);
 
     const allowedEmails = [
+      "live_superadmin@educrm.com", 
+      "live_orgadmin@educrm.com",
       "superadmin@educrm.com", 
       "orgadmin@educrm.com",
       "admin@educrm.com",

@@ -3,7 +3,10 @@ import { BarChart3, CircleDollarSign, Download, FileText, Plus, ReceiptText, Ref
 import { useFinanceData } from "../../hooks/useFinanceData";
 import { CommissionStatus, InvoiceStatus, InvoiceType, PaymentMethod, RefundStatus, Invoice, Payment } from "../../types/finance";
 import { generateInvoiceHtml, generateReceiptHtml, printDocumentHtml } from "../../utils/invoiceGenerator";
-
+import { useGlobalData } from "../../contexts/GlobalDataContext";
+import { Application, ApplicationStage } from "../../types/application";
+import { db } from "../../firebase/config";
+import { updateDoc, doc } from "firebase/firestore";
 type FinancePage = "dashboard" | "invoices" | "payments" | "refunds" | "commissions" | "reports" | "notifications";
 const currency = (amount: number, code = "USD") => new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount || 0);
 const today = new Date().toISOString().slice(0, 10);
@@ -13,9 +16,12 @@ const Empty: React.FC<{ text: string }> = ({ text }) => <div className="p-10 tex
 
 export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
   const finance = useFinanceData();
+  const { applications, updateApplication } = useGlobalData();
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showChallanForm, setShowChallanForm] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const filteredInvoices = useMemo(() => finance.invoices.filter((invoice) => `${invoice.invoiceNumber} ${invoice.studentName} ${invoice.type}`.toLowerCase().includes(query.toLowerCase())), [finance.invoices, query]);
   const revenueTrend = useMemo(() => {
     const buckets = new Map<string, number>();
@@ -37,12 +43,49 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     try {
       if (page === "invoices") await finance.createInvoice({ invoiceNumber: String(form.get("invoiceNumber")), studentName: String(form.get("studentName")), type: form.get("type") as InvoiceType, amount: Number(form.get("amount")), currency: String(form.get("currency")), dueDate: String(form.get("dueDate")), status: "Pending", notes: String(form.get("notes") || "") });
-      if (page === "payments") await finance.recordPayment({ invoiceId: String(form.get("invoiceId")), invoiceNumber: String(form.get("invoiceNumber")), studentName: String(form.get("studentName")), amount: Number(form.get("amount")), currency: String(form.get("currency")), method: form.get("method") as PaymentMethod, reference: String(form.get("reference")), paidAt: String(form.get("paidAt")) });
+      if (page === "payments") {
+        await finance.recordPayment({ invoiceId: String(form.get("invoiceId")), invoiceNumber: String(form.get("invoiceNumber")), studentName: String(form.get("studentName")), amount: Number(form.get("amount")), currency: String(form.get("currency")), method: form.get("method") as PaymentMethod, reference: String(form.get("reference")), paidAt: String(form.get("paidAt")) });
+        const inv = finance.invoices.find(i => i.id === String(form.get("invoiceId")));
+        if (inv && inv.applicationId && inv.type === "Deposit") {
+          const newStage: ApplicationStage = "Deposit Paid";
+          updateApplication(inv.applicationId, { stage: newStage, updatedAt: Date.now() });
+          await updateDoc(doc(db, "applications", inv.applicationId), { stage: newStage, updatedAt: Date.now() });
+        }
+      }
       if (page === "refunds") await finance.createRefund({ invoiceId: String(form.get("invoiceId")), studentName: String(form.get("studentName")), amount: Number(form.get("amount")), currency: String(form.get("currency")), reason: String(form.get("reason")) });
       if (page === "commissions") await finance.createCommission({ agentName: String(form.get("agentName")), universityName: String(form.get("universityName")), amount: Number(form.get("amount")), currency: String(form.get("currency")) });
       setShowForm(false); setNotice(`${page.slice(0, -1)} saved successfully.`);
     } catch { setNotice(`Unable to save this ${page.slice(0, -1)}. Please try again.`); }
   };
+  const handleGenerateChallan = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); const form = new FormData(event.currentTarget);
+    try {
+      if (selectedApp) {
+        const invNumber = `INV-DEP-${Date.now().toString().slice(-4)}`;
+        await finance.createInvoice({
+          invoiceNumber: invNumber,
+          studentName: selectedApp.studentName,
+          applicationId: selectedApp.id,
+          type: "Deposit",
+          amount: Number(form.get("amount")),
+          currency: String(form.get("currency")),
+          dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+          status: "Pending",
+          notes: `Tuition deposit challan for ${selectedApp.universityName} - ${selectedApp.applicationNumber}`
+        });
+        
+        // Update application stage to Deposit Pending
+        const newStage: ApplicationStage = "Deposit Pending";
+        updateApplication(selectedApp.id, { stage: newStage, updatedAt: Date.now() });
+        await updateDoc(doc(db, "applications", selectedApp.id), { stage: newStage, updatedAt: Date.now() });
+        
+        setShowChallanForm(false);
+        setSelectedApp(null);
+        setNotice(`Challan generated and application stage updated to Deposit Pending.`);
+      }
+    } catch { setNotice(`Unable to generate challan.`); }
+  };
+
   const exportCsv = (name: string, rows: object[]) => { const keys = rows[0] ? Object.keys(rows[0]) : []; const data = [keys.join(","), ...rows.map((row) => keys.map((key) => `"${String((row as Record<string, unknown>)[key] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n"); const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([data], { type: "text/csv" })); link.download = `${name}-${today}.csv`; link.click(); URL.revokeObjectURL(link.href); };
   const cards = [["Revenue", currency(finance.summary.paidRevenue), ReceiptText], ["Outstanding", currency(finance.summary.outstanding), WalletCards], ["Pending invoices", String(finance.summary.pendingInvoices), FileText], ["Refund exposure", currency(finance.summary.refunds), RefreshCw], ["Agent commissions", currency(finance.summary.commissions), CircleDollarSign]];
   if (finance.loading) return <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{Array.from({ length: 5 }, (_, index) => <div key={index} className="h-28 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card animate-pulse" />)}</div>;
@@ -66,13 +109,31 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
     </div>
     {finance.error && <div className="p-3 bg-rose-500/10 text-rose-400 border border-rose-500/20 sq-card">{finance.error}</div>}{notice && <div className="p-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 sq-card">{notice}</div>}
     {page === "dashboard" && <><div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{cards.map(([label, value, Icon]) => { const CardIcon = Icon as React.ElementType; return <div key={label as string} className="p-4 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card"><div className="flex justify-between text-[var(--text-muted)] uppercase font-bold"><span>{label as string}</span><CardIcon className="w-4 h-4 text-emerald-400" /></div><p className="text-xl font-bold text-[var(--text-primary)] mt-3">{value as string}</p></div>; })}</div><div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card"><h2 className="font-bold text-sm text-[var(--text-primary)]">Revenue analytics</h2><div className="h-40 mt-4 flex items-end gap-3">{revenueTrend.length === 0 ? <p className="text-[var(--text-muted)]">Record payments to populate the revenue trend.</p> : revenueTrend.map(([month, amount]) => <div key={month} className="flex-1 h-full flex flex-col justify-end min-w-10"><div className="bg-emerald-500/70 rounded-t" style={{ height: `${Math.max(8, (amount / Math.max(...revenueTrend.map(([, value]) => value))) * 100)}%` }} title={currency(amount)} /><span className="mt-2 text-center text-[10px] text-[var(--text-muted)]">{month.slice(5)}</span></div>)}</div></div><div className="grid lg:grid-cols-2 gap-6"><DataTable title="Recent transactions" headers={["Receipt", "Student", "Amount", "Method"]} rows={finance.payments.slice(0, 6).map((payment) => [payment.reference, payment.studentName, currency(payment.amount, payment.currency), payment.method])} /><DataTable title="Payment reminders" headers={["Invoice", "Student", "Due", "Balance"]} rows={finance.invoices.filter((invoice) => invoice.status !== "Paid" && invoice.status !== "Cancelled").slice(0, 6).map((invoice) => [invoice.invoiceNumber, invoice.studentName, invoice.dueDate, currency(invoice.amount, invoice.currency)])} /></div></>}
-    {page === "invoices" && <><SearchBar value={query} setValue={setQuery} /><DataTable title="Invoices" headers={["Invoice", "Student", "Service", "Amount", "Due", "Status", "PDF", "Edit"]} rows={filteredInvoices.map((invoice) => [invoice.invoiceNumber, invoice.studentName, invoice.type, currency(invoice.amount, invoice.currency), invoice.dueDate, <StatusBadge value={invoice.status} />, <button onClick={() => handlePrintInvoice(invoice)} className="p-1 text-emerald-400 hover:text-emerald-300 flex items-center gap-1"><Printer className="w-3.5 h-3.5" />Print</button>, <select aria-label="Invoice status" value={invoice.status} onChange={(event) => finance.updateInvoice(invoice, event.target.value as InvoiceStatus)} className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1">{["Draft", "Pending", "Partially Paid", "Paid", "Overdue", "Cancelled"].map((status) => <option key={status}>{status}</option>)}</select>])} /></>}
+    {page === "invoices" && <>
+      <DataTable title="Applications Awaiting Challan" headers={["App #", "Student", "University", "Action"]} rows={applications.filter(a => a.stage === "Unconditional Offer").map(app => [app.applicationNumber, app.studentName, app.universityName, <button onClick={() => { setSelectedApp(app); setShowChallanForm(true); }} className="px-3 py-1 text-xs bg-emerald-500 text-zinc-950 font-bold rounded">Generate Challan</button>])} />
+      <div className="my-4"></div>
+      <SearchBar value={query} setValue={setQuery} /><DataTable title="Invoices" headers={["Invoice", "Student", "Service", "Amount", "Due", "Status", "PDF", "Edit"]} rows={filteredInvoices.map((invoice) => [invoice.invoiceNumber, invoice.studentName, invoice.type, currency(invoice.amount, invoice.currency), invoice.dueDate, <StatusBadge value={invoice.status} />, <button onClick={() => handlePrintInvoice(invoice)} className="p-1 text-emerald-400 hover:text-emerald-300 flex items-center gap-1"><Printer className="w-3.5 h-3.5" />Print</button>, <select aria-label="Invoice status" value={invoice.status} onChange={(event) => finance.updateInvoice(invoice, event.target.value as InvoiceStatus)} className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1">{["Draft", "Pending", "Partially Paid", "Paid", "Overdue", "Cancelled"].map((status) => <option key={status}>{status}</option>)}</select>])} /></>}
     {page === "payments" && <DataTable title="Payment history and receipts" headers={["Reference", "Invoice", "Student", "Amount", "Method", "Date", "Receipt"]} rows={finance.payments.map((payment) => [payment.reference, payment.invoiceNumber, payment.studentName, currency(payment.amount, payment.currency), payment.method, payment.paidAt, <button onClick={() => handlePrintReceipt(payment)} className="p-1 text-emerald-400 hover:text-emerald-300 flex items-center gap-1"><Printer className="w-3.5 h-3.5" />Receipt</button>])} />}
     {page === "refunds" && <DataTable title="Refund requests" headers={["Student", "Invoice", "Amount", "Reason", "Status", "Action"]} rows={finance.refunds.map((refund) => [refund.studentName, refund.invoiceId, currency(refund.amount, refund.currency), refund.reason, <StatusBadge value={refund.status} />, <select aria-label="Refund status" value={refund.status} onChange={(event) => finance.updateRefund(refund, event.target.value as RefundStatus)} className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1">{["Requested", "Under Review", "Approved", "Paid", "Rejected"].map((status) => <option key={status}>{status}</option>)}</select>])} />}
     {page === "commissions" && <DataTable title="Agent commissions and statements" headers={["Agent", "University", "Amount", "Status", "Statement action"]} rows={finance.commissions.map((commission) => [commission.agentName, commission.universityName || "-", currency(commission.amount, commission.currency), <StatusBadge value={commission.status} />, <select aria-label="Commission status" value={commission.status} onChange={(event) => finance.updateCommission(commission, event.target.value as CommissionStatus)} className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1">{["Pending", "Eligible", "Approved", "Paid", "Reversed", "Disputed"].map((status) => <option key={status}>{status}</option>)}</select>])} />}
     {page === "reports" && <div className="grid md:grid-cols-2 gap-6"><DataTable title="Financial reports" headers={["Metric", "Value"]} rows={cards.map(([label, value]) => [label as string, value as string])} /><div className="p-6 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card space-y-4"><BarChart3 className="w-8 h-8 text-emerald-400" /><h2 className="font-bold text-base text-[var(--text-primary)]">Exports and receivables</h2><p className="text-[var(--text-secondary)]">Download revenue, outstanding-payment, refund, receivable, and commission records for accounting review.</p><div className="flex flex-wrap gap-2"><button onClick={() => exportCsv("invoices", finance.invoices)} className="px-3 py-2 bg-emerald-500 text-zinc-950 font-bold sq-btn"><Download className="inline w-3.5 h-3.5 mr-1" />CSV</button><button onClick={() => window.print()} className="px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-btn">Print / PDF</button></div></div></div>}
     {page === "notifications" && <DataTable title="Financial notifications" headers={["Event", "Detail", "Priority"]} rows={[...finance.invoices.filter((invoice) => invoice.status === "Overdue").map((invoice) => ["Payment due", `${invoice.invoiceNumber} is overdue for ${invoice.studentName}`, "High"]), ...finance.refunds.filter((refund) => refund.status === "Approved").map((refund) => ["Refund approved", `${refund.studentName}: ${currency(refund.amount, refund.currency)}`, "Medium"]), ...finance.commissions.filter((commission) => commission.status === "Approved").map((commission) => ["Commission approved", `${commission.agentName}: ${currency(commission.amount, commission.currency)}`, "Medium"])]} />}
       {showForm && <FinanceForm page={page} invoices={finance.invoices.map((invoice) => ({ id: invoice.id, invoiceNumber: invoice.invoiceNumber, studentName: invoice.studentName }))} onSubmit={submit} onClose={() => setShowForm(false)} />}
+      {showChallanForm && selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
+          <form onSubmit={handleGenerateChallan} className="w-full max-w-lg p-6 space-y-3 bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal">
+            <h2 className="font-bold text-base capitalize">Generate Challan for {selectedApp.studentName}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Input name="amount" label="Fee Amount" type="number" required />
+              <Input name="currency" label="Currency" defaultValue="USD" required />
+            </div>
+            <div className="flex justify-end gap-2 pt-3">
+              <button type="button" onClick={() => { setShowChallanForm(false); setSelectedApp(null); }} className="px-3 py-2 sq-btn bg-[var(--bg-hover)]">Cancel</button>
+              <button className="px-3 py-2 sq-btn bg-emerald-500 text-zinc-950 font-bold">Generate</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

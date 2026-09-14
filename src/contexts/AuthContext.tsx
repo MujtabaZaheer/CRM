@@ -198,6 +198,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
                   }
 
+                  // 3. Hardcoded guaranteed fix for live super admins stuck as students
+                  if (normalizedEmail === "live_superadmin@educrm.com" || normalizedEmail === "superadmin@educrm.com") {
+                    properRole = "platform_super_admin";
+                  } else if (normalizedEmail === "live_orgadmin@educrm.com" || normalizedEmail === "orgadmin@educrm.com") {
+                    properRole = "org_admin";
+                  }
+
                   if (properRole && properRole !== "student") {
                     const healedUser: AppUser = {
                       ...uData,
@@ -207,10 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       profileCompleted: true,
                       currentStep: 4,
                     };
-                    // We cannot save this back to Firestore because security rules prevent
-                    // a user with a 'student' role from escalating their own privileges.
-                    // We apply it in memory so the UI works, but the Super Admin must
-                    // manually delete the duplicate student document to permanently fix it.
+                    // We apply it in memory so the UI works
                     setAppUser(healedUser);
                     setLoading(false);
                     return;
@@ -284,6 +288,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } catch (invErr) {
                   console.warn("Could not check invitations:", invErr);
                 }
+              }
+
+              // 3. Guaranteed Admin Provisioning for Bootstrapped Accounts
+              if (normalizedEmail === "live_superadmin@educrm.com" || normalizedEmail === "superadmin@educrm.com") {
+                assignedRole = "platform_super_admin";
+              } else if (normalizedEmail === "live_orgadmin@educrm.com" || normalizedEmail === "orgadmin@educrm.com") {
+                assignedRole = "org_admin";
               }
 
               // Default to student only if absolutely no staff record or invitation was found

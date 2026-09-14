@@ -18,8 +18,13 @@ import {
   ShieldCheck,
   Trash2,
   Search,
+  CreditCard,
 } from "lucide-react";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebase/config";
+import { Invoice } from "../../types/finance";
+import { generateInvoiceHtml, printDocumentHtml } from "../../utils/invoiceGenerator";
 
 const STAGE_PROGRESS: Record<string, number> = {
   Draft: 15,
@@ -296,6 +301,20 @@ export const StudentApplicationDetail: React.FC = () => {
   const navigate = useNavigate();
   const { ownApplications, ownDocuments, deleteDraftApplication } = usePortalData();
   const { universities } = useGlobalData();
+  const [challan, setChallan] = useState<Invoice | null>(null);
+
+  React.useEffect(() => {
+    if (applicationId) {
+      const fetchChallan = async () => {
+        const q = query(collection(db, "invoices"), where("applicationId", "==", applicationId));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setChallan({ id: snap.docs[0].id, ...snap.docs[0].data() } as Invoice);
+        }
+      };
+      fetchChallan();
+    }
+  }, [applicationId]);
 
   const app = ownApplications.find((item) => item.id === applicationId);
 
@@ -526,6 +545,27 @@ export const StudentApplicationDetail: React.FC = () => {
               : "Your application is currently being reviewed by our admissions panel and the institution's registry.")}
         </p>
       </section>
+
+      {/* Challan / Payment Box */}
+      {challan && app.stage === "Deposit Pending" && (
+        <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <CreditCard className="w-6 h-6 text-amber-400 shrink-0" />
+            <div className="flex-1">
+              <h2 className="font-bold text-base text-amber-300">
+                Deposit Payment Required
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                A challan has been generated for your tuition deposit ({challan.currency} {challan.amount}). Please download and pay to proceed.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { const html = generateInvoiceHtml(challan); printDocumentHtml(html); }} className="px-3 py-1.5 bg-amber-500 text-zinc-950 font-bold text-xs rounded-lg">View Challan</button>
+              <button onClick={() => alert("Payment gateway integration pending.")} className="px-3 py-1.5 bg-emerald-500 text-zinc-950 font-bold text-xs rounded-lg">Pay Now</button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Timeline Section */}
       <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4">

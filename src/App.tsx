@@ -53,7 +53,7 @@ import { AuditorRoute } from "./components/layout/AuditorRoute";
 import { SuperAdminRoute } from "./components/layout/SuperAdminRoute";
 import { RoleRoute } from "./components/layout/RoleRoute";
 import { RolePortal } from "./components/portal/RolePortal";
-
+import { VisaWorkspace } from "./components/visa/VisaWorkspace";
 // Support Module Imports
 import { SupportDashboard } from "./pages/support/Dashboard";
 import { SupportTicketsPage } from "./pages/support/Tickets";
@@ -273,8 +273,8 @@ export const App: React.FC = () => {
 
                 {/* Visa Officer Module Routes (Added by Saad) */}
                 <Route path="/visa-officer" element={<RoleRoute role="visa_officer" />}>
-                  <Route path="dashboard" element={<RolePortal role="visa" page="dashboard" />} />
-                  <Route path="cases" element={<RolePortal role="visa" page="cases" />} />
+                  <Route path="dashboard" element={<VisaWorkspace page="dashboard" />} />
+                  <Route path="cases" element={<VisaWorkspace page="cases" />} />
                   <Route path="documents" element={<RolePortal role="visa" page="documents" />} />
                   <Route path="tasks" element={<RolePortal role="visa" page="tasks" />} />
                   <Route path="notifications" element={<RolePortal role="visa" page="notifications" />} />
