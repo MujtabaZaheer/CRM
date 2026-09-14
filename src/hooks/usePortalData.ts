@@ -7,6 +7,7 @@ import { Application } from "../types/application";
 import { Student } from "../types/student";
 import { Task } from "../types/task";
 import { SupportRequest, SupportRequestStatus, VisaCase, VisaCaseStatus } from "../types/portal";
+import { Invoice } from "../types/finance";
 
 import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_STUDENTS, DEMO_VISA_CASES } from "../data/demoData";
 import { uploadStudentDocument } from "../utils/documentStorage";
@@ -17,14 +18,14 @@ const subscribe = <T extends { id: string }>(name: string, setData: (items: T[])
 export const usePortalData = () => {
   const { appUser } = useAuth();
   const { showDemoData } = useGlobalData();
-  const [students, setStudents] = useState<Student[]>([]); const [applications, setApplications] = useState<Application[]>([]); const [tasks, setTasks] = useState<Task[]>([]); const [documents, setDocuments] = useState<PortalDocument[]>([]); const [visaCases, setVisaCases] = useState<VisaCase[]>([]); const [requests, setRequests] = useState<SupportRequest[]>([]);
+  const [students, setStudents] = useState<Student[]>([]); const [applications, setApplications] = useState<Application[]>([]); const [tasks, setTasks] = useState<Task[]>([]); const [documents, setDocuments] = useState<PortalDocument[]>([]); const [visaCases, setVisaCases] = useState<VisaCase[]>([]); const [requests, setRequests] = useState<SupportRequest[]>([]); const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   const ownStudent = useMemo(() => students.find((student) => student.email === appUser?.email || student.id === appUser?.uid) || (showDemoData ? DEMO_STUDENTS[0] : undefined), [appUser, showDemoData, students]);
   const ownStudentId = ownStudent?.id || (appUser?.role === "student" ? appUser?.uid : undefined);
 
   useEffect(() => {
     let count = 0;
-    const done = () => { count += 1; if (count >= 6) setLoading(false); };
+    const done = () => { count += 1; if (count >= 7) setLoading(false); };
     const fail = () => { 
       if (!showDemoData) {
         setError("Some portal records could not be loaded. Check your access and connection."); 
@@ -48,7 +49,8 @@ export const usePortalData = () => {
       studentRole && !ownStudentId ? noSubscription() : subscribe<Task>("tasks", (x) => { setTasks(x); done(); }, fail, studentRole ? "assignedTo" : undefined, studentRole ? appUser?.email : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<PortalDocument>("student_documents", (x) => { setDocuments(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<VisaCase>("visa_cases", (x) => { setVisaCases(x.length > 0 ? x : (showDemoData ? (DEMO_VISA_CASES as unknown as VisaCase[]) : [])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
-      studentRole && !ownStudentId ? noSubscription() : subscribe<SupportRequest>("support_requests", (x) => { setRequests(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined)
+      studentRole && !ownStudentId ? noSubscription() : subscribe<SupportRequest>("support_requests", (x) => { setRequests(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
+      studentRole && !ownStudentId ? noSubscription() : subscribe<Invoice>("invoices", (x) => { setInvoices(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
     ];
     return () => {
       clearTimeout(timeoutId);
@@ -58,6 +60,7 @@ export const usePortalData = () => {
   const ownApplications = useMemo(() => applications.filter((application) => application.studentId === ownStudent?.id), [applications, ownStudent]);
   const ownDocuments = useMemo(() => documents.filter((item) => item.studentId === ownStudent?.id), [documents, ownStudent]);
   const ownTasks = useMemo(() => tasks.filter((task) => task.assignedTo === appUser?.email || task.assignedTo === appUser?.uid || task.linkedEntityId === ownStudent?.id), [appUser, ownStudent, tasks]);
+  const ownInvoices = useMemo(() => invoices.filter((inv) => !ownStudent?.id || inv.studentId === ownStudent.id || inv.studentEmail === ownStudent.email), [invoices, ownStudent]);
   const updateVisa = useCallback(async (item: VisaCase, status: VisaCaseStatus, note = "") => { await updateDoc(doc(db, "visa_cases", item.id), { status, notes: note || item.notes || "", updatedAt: Date.now(), history: [...(item.history || []), { status, note, timestamp: Date.now(), updatedBy: appUser?.email || "Visa Officer" }] }); }, [appUser]);
   const updateDocument = useCallback(async (item: PortalDocument, status: PortalDocument["status"], remarks = "") => { await updateDoc(doc(db, "student_documents", item.id), { status, remarks, updatedAt: Date.now() }); }, []);
   const updateTask = useCallback(async (task: Task) => { await updateDoc(doc(db, "tasks", task.id), { status: task.status === "Completed" ? "Open" : "Completed", updatedAt: Date.now() }); }, []);
@@ -67,6 +70,59 @@ export const usePortalData = () => {
   const uploadDocument = useCallback(async (data: Omit<PortalDocument, "id" | "status" | "createdAt" | "fileName" | "fileUrl">, file: File) => {
     await uploadStudentDocument(data.studentId, file, data.documentType);
   }, []);
+  const submitPaymentProof = useCallback(
+    async (invoiceId: string, file: File, reference?: string) => {
+      if (!ownStudent) throw new Error("Student profile not found.");
+      const inv = invoices.find((i) => i.id === invoiceId);
+      if (!inv) throw new Error("Invoice record not found.");
+
+      // Upload payment proof receipt to student_documents
+      const uploadRes = await uploadStudentDocument(
+        ownStudent.id,
+        file,
+        "Payment Receipt",
+        inv.applicationId
+      );
+
+      // Record payment entry in 'payments'
+      await addDoc(collection(db, "payments"), {
+        invoiceId: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        studentId: ownStudent.id,
+        studentName: ownStudent.fullName,
+        amount: inv.amount,
+        currency: inv.currency,
+        method: "Bank Transfer",
+        reference: reference || `PROOF-${Date.now().toString(36).toUpperCase()}`,
+        paidAt: new Date().toISOString(),
+        receiptNumber: uploadRes?.documentId || "",
+        status: "Pending Verification",
+        createdAt: Date.now(),
+      });
+
+      // Update invoice with payment proof reference & note
+      await updateDoc(doc(db, "invoices", inv.id), {
+        status: "Partially Paid",
+        notes: `${inv.notes ? inv.notes + " | " : ""}Payment proof uploaded on ${new Date().toLocaleDateString()}`,
+        updatedAt: Date.now(),
+      });
+
+      // Also notify Finance team
+      try {
+        await addDoc(collection(db, "notifications"), {
+          targetUser: "finance",
+          title: "Payment Proof Uploaded",
+          message: `${ownStudent.fullName} uploaded payment proof for Invoice #${inv.invoiceNumber} (${inv.currency} ${inv.amount}).`,
+          type: "finance",
+          read: false,
+          createdAt: Date.now(),
+        });
+      } catch (_) {
+        // notification dispatch best-effort
+      }
+    },
+    [invoices, ownStudent]
+  );
   const createApplication = useCallback(async (data: { universityId: string; universityName: string; programmeId: string; programmeName: string; intake: string; targetCountry: string; personalStatement?: string; eligibilityStatus?: Application["eligibilityStatus"]; eligibilityScore?: number; formResponses?: Record<string, string | number | boolean>; declarationAccepted?: boolean; submit?: boolean }) => {
     if (!ownStudent) throw new Error("Student profile not found. Please complete your profile first.");
     const duplicate = await getDocs(query(collection(db, "applications"), where("studentId", "==", ownStudent.id), where("universityId", "==", data.universityId), where("programmeId", "==", data.programmeId), where("intake", "==", data.intake)));
@@ -83,8 +139,6 @@ export const usePortalData = () => {
       programmeName: data.programmeName,
       intake: data.intake,
       targetCountry: data.targetCountry,
-      // A student can request submission, but only staff may advance the
-      // application to an internal/university processing stage.
       stage: "Draft",
       applicationStatus: "Draft",
       eligibilityStatus: data.eligibilityStatus || "not_checked",
@@ -116,17 +170,14 @@ export const usePortalData = () => {
   }, [ownStudent, appUser]);
 
   const deleteDraftApplication = useCallback(async (appId: string) => {
-    // Only allow deleting drafts
     const target = applications.find((a) => a.id === appId);
     if (!target) {
-      // Optimistic local filter if in local state
       setApplications((prev) => prev.filter((a) => a.id !== appId));
       return;
     }
     if (target.stage !== "Draft" && target.applicationStatus !== "Draft") {
       throw new Error("Only draft applications can be removed. Submitted applications must be handled by admissions staff.");
     }
-    // Optimistic removal
     setApplications((prev) => prev.filter((a) => a.id !== appId));
     try {
       await deleteDoc(doc(db, "applications", appId));
@@ -135,5 +186,5 @@ export const usePortalData = () => {
     }
   }, [applications]);
 
-  return { students, applications, tasks, documents, visaCases, requests, ownStudent, ownApplications, ownDocuments, ownTasks, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument, createApplication, deleteDraftApplication };
+  return { students, applications, tasks, documents, visaCases, requests, invoices, ownStudent, ownApplications, ownDocuments, ownTasks, ownInvoices, loading, error, updateVisa, updateDocument, updateTask, createRequest, updateRequest, saveProfile, uploadDocument, submitPaymentProof, createApplication, deleteDraftApplication };
 };

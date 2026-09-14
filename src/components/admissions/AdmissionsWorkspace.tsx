@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useAdmissionsData } from "../../hooks/useAdmissionsData";
-import { ApplicationStage } from "../../types/application";
+import { Application, ApplicationStage } from "../../types/application";
+import { ApplicationDetailModal } from "../common/ApplicationDetailModal";
 import {
   BarChart3,
   CheckCircle2,
@@ -17,6 +18,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Send,
+  Building2,
 } from "lucide-react";
 
 export type AdmissionsSubPage =
@@ -71,8 +73,10 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
   const admissions = useAdmissionsData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStageFilter, setSelectedStageFilter] = useState<string>("All");
+  const [selectedUniversity, setSelectedUniversity] = useState<string>("All");
   const [notice, setNotice] = useState("");
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [detailApp, setDetailApp] = useState<Application | null>(null);
   const [newStage, setNewStage] = useState<ApplicationStage>("Initial Review");
   const [stageNote, setStageNote] = useState("");
 
@@ -93,13 +97,22 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
   const [decisionNotes, setDecisionNotes] = useState("");
   const [depositAmount, setDepositAmount] = useState<number>(1000);
 
+  const universityOptions = useMemo(() => {
+    const names = new Set<string>();
+    admissions.applications.forEach((a) => {
+      if (a.universityName) names.add(a.universityName);
+    });
+    return Array.from(names).sort();
+  }, [admissions.applications]);
+
   const filteredApps = admissions.applications.filter((app) => {
     const matchesSearch =
       `${app.applicationNumber} ${app.studentName} ${app.universityName} ${app.programmeName}`
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
     const matchesStage = selectedStageFilter === "All" || app.stage === selectedStageFilter;
-    return matchesSearch && matchesStage;
+    const matchesUniversity = selectedUniversity === "All" || app.universityName === selectedUniversity;
+    return matchesSearch && matchesStage && matchesUniversity;
   });
 
   const filteredDocs = admissions.documents.filter((doc) =>
@@ -325,12 +338,11 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
                       <StatusBadge value={app.stage} />
                       <button
                         onClick={() => {
-                          setSelectedAppId(app.id);
-                          setNewStage(app.stage);
+                          setDetailApp(app);
                         }}
-                        className="px-2 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-xs rounded"
+                        className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded cursor-pointer transition-colors"
                       >
-                        Action
+                        Review
                       </button>
                     </div>
                   </div>
@@ -378,23 +390,42 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by student, app #, university..."
-                className="w-full pl-9 p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg"
+                className="w-full pl-9 p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-[var(--text-muted)]" />
-              <select
-                value={selectedStageFilter}
-                onChange={(e) => setSelectedStageFilter(e.target.value)}
-                className="p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
-              >
-                <option value="All">All Stages</option>
-                {ALL_STAGES.map((stg) => (
-                  <option key={stg} value={stg}>
-                    {stg}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-[var(--text-muted)]" />
+                <select
+                  aria-label="Filter by University"
+                  value={selectedUniversity}
+                  onChange={(e) => setSelectedUniversity(e.target.value)}
+                  className="p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs font-medium"
+                >
+                  <option value="All">All Universities</option>
+                  {universityOptions.map((uni) => (
+                    <option key={uni} value={uni}>
+                      {uni}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-4 h-4 text-[var(--text-muted)]" />
+                <select
+                  aria-label="Filter by Stage"
+                  value={selectedStageFilter}
+                  onChange={(e) => setSelectedStageFilter(e.target.value)}
+                  className="p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs font-medium"
+                >
+                  <option value="All">All Stages</option>
+                  {ALL_STAGES.map((stg) => (
+                    <option key={stg} value={stg}>
+                      {stg}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -430,12 +461,11 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
                     <td className="p-3 text-right">
                       <button
                         onClick={() => {
-                          setSelectedAppId(app.id);
-                          setNewStage(app.stage);
+                          setDetailApp(app);
                         }}
-                        className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-bold rounded-md"
+                        className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-bold rounded-md cursor-pointer transition-colors"
                       >
-                        Update Stage
+                        Review Application
                       </button>
                     </td>
                   </tr>
@@ -614,6 +644,24 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
               ))}
           </div>
         </div>
+      )}
+
+      {/* MODAL: APPLICATION DETAIL & DOCUMENT VIEWER */}
+      {detailApp && (
+        <ApplicationDetailModal
+          application={detailApp}
+          documents={admissions.documents}
+          onClose={() => setDetailApp(null)}
+          onStageChange={async (app, updatedStg, note) => {
+            await admissions.updateStage(app, updatedStg, note);
+            setNotice(`Updated ${app.applicationNumber} to ${updatedStg}`);
+            setDetailApp(null);
+          }}
+          role="admissions"
+          onVerifyDocument={async (docId, status, feedback) => {
+            await admissions.verifyDocument(docId, status, feedback);
+          }}
+        />
       )}
 
       {/* MODAL: STAGE CHANGE */}

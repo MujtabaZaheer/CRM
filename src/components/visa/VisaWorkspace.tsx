@@ -4,13 +4,15 @@ import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { Application, ApplicationStage } from "../../types/application";
 import { db } from "../../firebase/config";
 import { updateDoc, doc } from "firebase/firestore";
+import { ApplicationDetailModal } from "../common/ApplicationDetailModal";
 
 type VisaPage = "dashboard" | "cases";
 
 export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
-  const { applications, updateApplication, initialLoading } = useGlobalData();
+  const { applications, documents, updateApplication, initialLoading } = useGlobalData();
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
   const visaApps = applications.filter((app) => 
     ["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved"].includes(app.stage)
@@ -20,10 +22,21 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
     `${app.studentName} ${app.applicationNumber} ${app.universityName}`.toLowerCase().includes(query.toLowerCase())
   );
 
-  const handleStageChange = async (app: Application, newStage: ApplicationStage) => {
+  const handleStageChange = async (app: Application, newStage: ApplicationStage, note?: string) => {
     try {
-      updateApplication(app.id, { stage: newStage, updatedAt: Date.now() });
-      await updateDoc(doc(db, "applications", app.id), { stage: newStage, updatedAt: Date.now() });
+      const historyItem = {
+        stage: newStage,
+        updatedBy: "Visa Officer",
+        timestamp: Date.now(),
+        note: note || `Stage updated to ${newStage}`,
+      };
+      const updatedHistory = [...(app.history || []), historyItem];
+      updateApplication(app.id, { stage: newStage, updatedAt: Date.now(), history: updatedHistory });
+      await updateDoc(doc(db, "applications", app.id), {
+        stage: newStage,
+        updatedAt: Date.now(),
+        history: updatedHistory,
+      });
       setNotice(`Application ${app.applicationNumber} moved to ${newStage}`);
     } catch {
       setNotice("Failed to update application stage.");
@@ -89,15 +102,29 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
             <div className="p-4 font-bold text-sm text-[var(--text-primary)]">Recent Visa Activity</div>
             <table className="w-full text-left">
               <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] uppercase">
-                <tr><th className="p-3">App #</th><th className="p-3">Student</th><th className="p-3">University</th><th className="p-3">Stage</th></tr>
+                <tr>
+                  <th className="p-3">App #</th>
+                  <th className="p-3">Student</th>
+                  <th className="p-3">University</th>
+                  <th className="p-3">Stage</th>
+                  <th className="p-3 text-right">Action</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)]">
                 {visaApps.slice(0, 5).map((app) => (
                   <tr key={app.id}>
-                    <td className="p-3 text-[var(--text-secondary)]">{app.applicationNumber}</td>
-                    <td className="p-3 text-[var(--text-secondary)]">{app.studentName}</td>
+                    <td className="p-3 font-mono font-bold text-emerald-400">{app.applicationNumber}</td>
+                    <td className="p-3 text-[var(--text-secondary)] font-bold">{app.studentName}</td>
                     <td className="p-3 text-[var(--text-secondary)]">{app.universityName}</td>
                     <td className="p-3 text-[var(--text-secondary)]"><span className="px-2 py-0.5 sq-badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">{app.stage}</span></td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => setSelectedApp(app)}
+                        className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-bold text-xs rounded cursor-pointer transition-colors"
+                      >
+                        Review
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -124,12 +151,13 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                     <th className="p-3">Intake</th>
                     <th className="p-3">Current Stage</th>
                     <th className="p-3">Update Stage</th>
+                    <th className="p-3 text-right">Review</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-default)]">
                   {filteredApps.map((app) => (
-                    <tr key={app.id}>
-                      <td className="p-3 text-[var(--text-secondary)]">{app.applicationNumber}</td>
+                    <tr key={app.id} className="hover:bg-[var(--bg-hover)]">
+                      <td className="p-3 font-mono font-bold text-emerald-400">{app.applicationNumber}</td>
                       <td className="p-3 text-[var(--text-secondary)] font-bold">{app.studentName}</td>
                       <td className="p-3 text-[var(--text-secondary)]">{app.universityName}</td>
                       <td className="p-3 text-[var(--text-secondary)]">{app.intake}</td>
@@ -151,6 +179,14 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                           <option value="Visa Approved">Visa Approved</option>
                         </select>
                       </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => setSelectedApp(app)}
+                          className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-bold rounded-md cursor-pointer transition-colors"
+                        >
+                          Review & Dossier
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -158,6 +194,20 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
             </div>
           </div>
         </>
+      )}
+
+      {/* DETAIL & DOCUMENT VIEWER MODAL */}
+      {selectedApp && (
+        <ApplicationDetailModal
+          application={selectedApp}
+          documents={documents}
+          onClose={() => setSelectedApp(null)}
+          onStageChange={async (app, newStage, note) => {
+            await handleStageChange(app, newStage, note);
+            setSelectedApp(null);
+          }}
+          role="visa"
+        />
       )}
     </div>
   );

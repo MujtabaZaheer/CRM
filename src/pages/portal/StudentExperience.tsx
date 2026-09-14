@@ -11,6 +11,7 @@ import {
   Clock,
   ChevronRight,
   Trash2,
+  CreditCard,
 } from "lucide-react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { usePortalData } from "../../hooks/usePortalData";
@@ -78,12 +79,16 @@ const EligibilityBadge: React.FC<{
 };
 
 export const StudentDashboard: React.FC = () => {
-  const { ownStudent, ownApplications, ownDocuments, ownTasks, deleteDraftApplication } = usePortalData();
+  const { ownStudent, ownApplications, ownDocuments, ownTasks, ownInvoices, deleteDraftApplication } = usePortalData();
   const { universities } = useGlobalData();
   const navigate = useNavigate();
 
   const name = ownStudent?.fullName?.split(" ")[0] || "there";
   const completeness = ownStudent?.profileCompleteness || 0;
+
+  const pendingInvoices = useMemo(() => {
+    return (ownInvoices || []).filter((inv) => inv.status !== "Paid");
+  }, [ownInvoices]);
 
   // Time-Aware Dynamic Greeting Engine
   const timeGreeting = useMemo(() => {
@@ -119,6 +124,26 @@ export const StudentDashboard: React.FC = () => {
 
   // Commercial-Grade Intelligent Next Action Engine
   const nextAction = useMemo(() => {
+    // 0. Active Pending Fee / Challan (Top priority for confirmed seat)
+    const unpaidChallan = (ownInvoices || []).find((inv) => inv.status !== "Paid");
+    if (unpaidChallan) {
+      const targetApp = ownApplications.find((app) => app.id === unpaidChallan.applicationId) || ownApplications[0];
+      if (targetApp) {
+        return {
+          badge: "PAYMENT REQUIRED · CHALLAN ACTIVE",
+          badgeColor: "amber" as const,
+          title: `Tuition Deposit Due: ${targetApp.universityName}`,
+          text: `Official challan #${unpaidChallan.invoiceNumber} for ${unpaidChallan.currency} ${unpaidChallan.amount.toLocaleString()} is awaiting payment. Submit bank proof to secure your enrollment.`,
+          actionText: "View Challan & Pay",
+          href: `/student/applications/${targetApp.id}`,
+          universityName: targetApp.universityName,
+          universityId: targetApp.universityId,
+          programmeName: targetApp.programmeName,
+          type: "offer" as const,
+        };
+      }
+    }
+
     // 1. Any offers issued (Highest priority milestone)
     const offerApp = ownApplications.find((app) =>
       ["Conditional Offer", "Unconditional Offer", "CAS Issued", "Deposit Pending", "Deposit Paid"].includes(
@@ -259,17 +284,29 @@ export const StudentDashboard: React.FC = () => {
               {timeGreeting.subtitle}
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-elevated/80 px-4 py-2 rounded-full border border-subtle self-start md:self-auto shadow-sm">
-            <span className="text-xs font-bold text-primary">Profile Readiness</span>
-            <div className="w-24 h-2 bg-input rounded-full overflow-hidden border border-subtle/50">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                style={{ width: `${completeness}%` }}
-              />
+          <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
+            <div className="flex items-center gap-3 bg-elevated/80 px-4 py-2 rounded-full border border-subtle shadow-sm">
+              <span className="text-xs font-bold text-primary">Profile Readiness</span>
+              <div className="w-24 h-2 bg-input rounded-full overflow-hidden border border-subtle/50">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                  style={{ width: `${completeness}%` }}
+                />
+              </div>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                {completeness}%
+              </span>
             </div>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-              {completeness}%
-            </span>
+
+            {pendingInvoices.length > 0 && (
+              <Link
+                to="/student/applications"
+                className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3.5 py-2 rounded-full text-xs font-bold text-amber-500 dark:text-amber-400 transition-colors shadow-sm"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                <span>{pendingInvoices.length} Pending Fee Challan{pendingInvoices.length > 1 ? "s" : ""}</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -524,6 +561,83 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Right Column: Widgets */}
         <div className="space-y-6">
+          {/* Fee Challans & Financial Records Widget */}
+          <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-primary font-heading text-base flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-emerald-500" />
+                  <span>Fee Challans</span>
+                </h2>
+                <p className="text-xs text-secondary">Tuition deposits and invoices</p>
+              </div>
+              <span
+                className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                  pendingInvoices.length > 0
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                }`}
+              >
+                {pendingInvoices.length > 0 ? `${pendingInvoices.length} Pending` : "All Settled"}
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {(ownInvoices || []).length === 0 ? (
+                <div className="text-xs text-muted py-3 text-center bg-elevated/50 rounded-xl border border-subtle">
+                  No fee invoices issued yet.
+                </div>
+              ) : (
+                (ownInvoices || []).slice(0, 3).map((inv) => {
+                  const isPaid = inv.status === "Paid";
+                  const targetApp = ownApplications.find((a) => a.id === inv.applicationId);
+
+                  return (
+                    <div
+                      key={inv.id}
+                      className="p-3 rounded-xl bg-elevated/40 border border-subtle/70 text-xs flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono font-bold text-primary">{inv.invoiceNumber}</span>
+                          <span className="text-[10px] text-muted">({inv.type})</span>
+                        </div>
+                        <p className="font-bold text-emerald-500 mt-0.5">
+                          {inv.currency} {inv.amount.toLocaleString()}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            isPaid
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
+                        <Link
+                          to={targetApp ? `/student/applications/${targetApp.id}` : "/student/applications"}
+                          className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                        >
+                          View
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+
+              <Link
+                to="/student/applications"
+                className="pt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline block text-center"
+              >
+                Manage Invoices in Applications →
+              </Link>
+            </div>
+          </div>
+
           {/* Documents Vault Widget */}
           <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">

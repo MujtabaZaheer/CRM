@@ -1,0 +1,703 @@
+import React, { useState } from "react";
+import {
+  X,
+  FileText,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  User,
+  GraduationCap,
+  ShieldCheck,
+  Send,
+  Award,
+  AlertTriangle,
+  History,
+  FileCheck,
+} from "lucide-react";
+import { Application, ApplicationStage } from "../../types/application";
+import { StudentDocument } from "../../pages/Documents";
+import { getDocumentBlobOrUrl } from "../../utils/documentStorage";
+
+export interface ApplicationDetailModalProps {
+  application: Application;
+  documents: StudentDocument[];
+  onClose: () => void;
+  onStageChange: (app: Application, newStage: ApplicationStage, note: string) => Promise<void>;
+  role: "admissions" | "visa";
+  onVerifyDocument?: (docId: string, status: "Verified" | "Rejected", feedback?: string) => Promise<void>;
+}
+
+const ADMISSIONS_SHORTCUTS: ApplicationStage[] = [
+  "Conditional Offer",
+  "Unconditional Offer",
+  "Documents Pending",
+  "Additional Info Requested",
+  "Ready for Submission",
+  "Submitted",
+  "Rejected",
+];
+
+const VISA_SHORTCUTS: ApplicationStage[] = [
+  "Deposit Paid",
+  "CAS / COE Pending",
+  "CAS Issued",
+  "Visa Preparation",
+  "Visa Submitted",
+  "Visa Approved",
+  "Rejected",
+];
+
+const ALL_STAGES: ApplicationStage[] = [
+  "Draft",
+  "Initial Review",
+  "Documents Pending",
+  "Ready for Submission",
+  "Submitted",
+  "University Reviewing",
+  "Additional Info Requested",
+  "Conditional Offer",
+  "Unconditional Offer",
+  "Deposit Pending",
+  "Deposit Paid",
+  "CAS / COE Pending",
+  "CAS Issued",
+  "Visa Preparation",
+  "Visa Submitted",
+  "Visa Approved",
+  "Enrolled",
+  "Deferred",
+  "Withdrawn",
+  "Rejected",
+];
+
+export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
+  application,
+  documents,
+  onClose,
+  onStageChange,
+  role,
+  onVerifyDocument,
+}) => {
+  const [activeTab, setActiveTab] = useState<"overview" | "documents" | "timeline" | "conditions">("overview");
+  const [selectedStage, setSelectedStage] = useState<ApplicationStage>(application.stage);
+  const [stageNote, setStageNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+
+  // Filter documents belonging to this student or this application
+  const studentDocs = documents.filter(
+    (d) => d.studentId === application.studentId || (d as any).applicationId === application.id
+  );
+
+  const verifiedCount = studentDocs.filter((d) => d.status === "Verified").length;
+
+  const handlePreviewDocument = async (docItem: StudentDocument) => {
+    setPreviewLoading(docItem.id);
+    try {
+      const url = await getDocumentBlobOrUrl(docItem.id, docItem.fileUrl);
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else if (docItem.fileUrl) {
+        window.open(docItem.fileUrl, "_blank", "noopener,noreferrer");
+      } else {
+        setActionNotice(`Document file "${docItem.fileName}" has no external link or local cache.`);
+        setTimeout(() => setActionNotice(null), 4000);
+      }
+    } catch (err: any) {
+      console.warn("Could not preview document:", err);
+      if (docItem.fileUrl) {
+        window.open(docItem.fileUrl, "_blank");
+      } else {
+        setActionNotice("Could not open document preview.");
+      }
+    } finally {
+      setPreviewLoading(null);
+    }
+  };
+
+  const handleStageUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedStage) return;
+    setIsSubmitting(true);
+    setActionNotice(null);
+    try {
+      await onStageChange(application, selectedStage, stageNote);
+      setActionNotice(`Application stage successfully updated to "${selectedStage}".`);
+      setStageNote("");
+      setTimeout(() => {
+        setActionNotice(null);
+      }, 3000);
+    } catch (err: any) {
+      setActionNotice(`Failed to update stage: ${err.message || "Unknown error"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuickVerify = async (docId: string, status: "Verified" | "Rejected") => {
+    if (!onVerifyDocument) return;
+    try {
+      await onVerifyDocument(docId, status, `Reviewed during ${role} check`);
+      setActionNotice(`Document marked as ${status}.`);
+      setTimeout(() => setActionNotice(null), 3000);
+    } catch (err: any) {
+      setActionNotice(`Document verification failed: ${err.message}`);
+    }
+  };
+
+  const getStageBadgeColor = (stage: string) => {
+    if (stage.includes("Offer") || stage.includes("CAS") || stage.includes("Approved") || stage === "Enrolled") {
+      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+    }
+    if (stage.includes("Pending") || stage.includes("Review") || stage.includes("Preparation") || stage === "Draft") {
+      return "bg-amber-500/15 text-amber-400 border-amber-500/30";
+    }
+    if (stage.includes("Rejected") || stage.includes("Withdrawn")) {
+      return "bg-rose-500/15 text-rose-400 border-rose-500/30";
+    }
+    return "bg-sky-500/15 text-sky-400 border-sky-500/30";
+  };
+
+  const shortcuts = role === "admissions" ? ADMISSIONS_SHORTCUTS : VISA_SHORTCUTS;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[var(--backdrop)] backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-5xl max-h-[92vh] flex flex-col bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden">
+        {/* HEADER */}
+        <header className="p-4 sm:p-6 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20">
+                {application.applicationNumber}
+              </span>
+              <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${getStageBadgeColor(application.stage)}`}>
+                {application.stage}
+              </span>
+              {application.intake && (
+                <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-0.5 rounded border border-[var(--border-default)]">
+                  {application.intake}
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold font-heading text-[var(--text-primary)]">
+              {application.studentName}
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)] flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-emerald-400">{application.universityName}</span>
+              <span>•</span>
+              <span>{application.programmeName}</span>
+              {application.targetCountry && (
+                <>
+                  <span>•</span>
+                  <span>{application.targetCountry}</span>
+                </>
+              )}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+              title="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
+
+        {/* FEEDBACK NOTICE */}
+        {actionNotice && (
+          <div className="px-6 py-2.5 bg-emerald-500/10 border-b border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between">
+            <span>{actionNotice}</span>
+            <button onClick={() => setActionNotice(null)} className="underline cursor-pointer">Dismiss</button>
+          </div>
+        )}
+
+        {/* METRICS QUICK BAR */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs">
+          <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+            <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] block">Applicant Email</span>
+            <span className="font-medium text-[var(--text-primary)] truncate block">{application.studentEmail || "—"}</span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+            <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] block">Assigned Counsellor</span>
+            <span className="font-medium text-[var(--text-primary)] truncate block">{application.assignedCounsellor || "Unassigned"}</span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+            <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] block">Documents Status</span>
+            <span className="font-bold text-emerald-400">
+              {verifiedCount} of {studentDocs.length} Verified
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+            <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] block">Eligibility Score</span>
+            <span className="font-bold text-[var(--text-primary)]">
+              {application.eligibilityScore ? `${application.eligibilityScore}%` : application.eligibilityStatus || "Assessed"}
+            </span>
+          </div>
+        </div>
+
+        {/* NAVIGATION TABS */}
+        <nav className="flex items-center gap-2 px-6 border-b border-[var(--border-default)] bg-[var(--bg-card)]">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`py-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "overview"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Dossier & Profile</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("documents")}
+            className={`py-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "documents"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Documents ({studentDocs.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("timeline")}
+            className={`py-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "timeline"
+                ? "border-emerald-500 text-emerald-400"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Audit Trail ({application.history?.length || 0})</span>
+          </button>
+          {((application.conditions && application.conditions.length > 0) || application.documentChecklist) && (
+            <button
+              onClick={() => setActiveTab("conditions")}
+              className={`py-3 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                activeTab === "conditions"
+                  ? "border-emerald-500 text-emerald-400"
+                  : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Conditions & Checklist</span>
+            </button>
+          )}
+        </nav>
+
+        {/* TAB CONTENT AREA (SCROLLABLE) */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+          {/* TAB 1: OVERVIEW & PROFILE */}
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Academic & University Details */}
+                <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-emerald-400" />
+                    Programme Information
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">University:</span>
+                      <span className="font-semibold text-[var(--text-primary)]">{application.universityName}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Programme:</span>
+                      <span className="font-semibold text-[var(--text-primary)]">{application.programmeName}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Target Country:</span>
+                      <span className="font-semibold text-[var(--text-primary)]">{application.targetCountry || "International"}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Intake Term:</span>
+                      <span className="font-semibold text-emerald-400">{application.intake || "—"}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-[var(--text-secondary)]">CAS Reference #:</span>
+                      <span className="font-mono font-bold text-[var(--text-primary)]">{application.casRefNumber || "Not Issued"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Student Personal Details */}
+                <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <User className="w-4 h-4 text-emerald-400" />
+                    Applicant Credentials
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Full Legal Name:</span>
+                      <span className="font-semibold text-[var(--text-primary)]">{application.studentName}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Student ID:</span>
+                      <span className="font-mono text-[var(--text-primary)]">{application.studentId}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Primary Email:</span>
+                      <span className="text-[var(--text-primary)]">{application.studentEmail || "—"}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
+                      <span className="text-[var(--text-secondary)]">Application Created:</span>
+                      <span className="text-[var(--text-primary)]">
+                        {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-[var(--text-secondary)]">Last Activity:</span>
+                      <span className="text-[var(--text-primary)]">
+                        {application.updatedAt ? new Date(application.updatedAt).toLocaleString() : "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Responses / Personal Statement */}
+              {application.formResponses && Object.keys(application.formResponses).length > 0 && (
+                <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-emerald-400" />
+                    Application Form Responses & Academic Questionnaire
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.entries(application.formResponses).map(([key, val]) => (
+                      <div key={key} className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)]">
+                        <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] block capitalize">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </span>
+                        <span className="font-medium text-[var(--text-primary)] block mt-0.5">
+                          {typeof val === "boolean" ? (val ? "Yes" : "No") : String(val)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Next Action Box */}
+              <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                  <Clock className="w-4 h-4" />
+                  <span>Scheduled Next Action</span>
+                </div>
+                <p className="text-[var(--text-secondary)] text-xs">
+                  {application.nextAction || "No pending automated actions. Application requires staff evaluation."}
+                </p>
+                {application.nextActionDueDate && (
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Target completion: {application.nextActionDueDate}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: SUPPORTING DOCUMENTS */}
+          {activeTab === "documents" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--text-primary)]">
+                    Student Document Dossier ({studentDocs.length})
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Click "View Document" to inspect applicant credentials, passport scans, transcripts, and financial proofs.
+                  </p>
+                </div>
+                <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                  {verifiedCount} Verified
+                </div>
+              </div>
+
+              {studentDocs.length === 0 ? (
+                <div className="p-8 text-center bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-2">
+                  <FileText className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
+                  <p className="font-bold text-sm text-[var(--text-primary)]">No Documents Uploaded Yet</p>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    This applicant has not uploaded any supporting files into their vault.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[var(--border-default)] border border-[var(--border-default)] rounded-xl bg-[var(--bg-card)] overflow-hidden">
+                  {studentDocs.map((docItem) => {
+                    const isVerified = docItem.status === "Verified";
+                    const isRejected = docItem.status === "Rejected";
+
+                    return (
+                      <div
+                        key={docItem.id}
+                        className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg-hover)] transition-colors"
+                      >
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-[var(--text-primary)]">
+                                {docItem.docType || (docItem as any).documentType || "Document"}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                                  isVerified
+                                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                    : isRejected
+                                    ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                                    : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                }`}
+                              >
+                                {docItem.status}
+                              </span>
+                            </div>
+                            <p className="text-xs font-mono text-[var(--text-secondary)] truncate mt-1">
+                              {docItem.fileName}
+                            </p>
+                            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                              Uploaded: {docItem.createdAt ? new Date(docItem.createdAt).toLocaleDateString() : "Recently"}
+                              {docItem.remarks && ` • Note: ${docItem.remarks}`}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons for Document */}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewDocument(docItem)}
+                            disabled={previewLoading === docItem.id}
+                            className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{previewLoading === docItem.id ? "Opening..." : "View Document"}</span>
+                          </button>
+
+                          {onVerifyDocument && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleQuickVerify(docItem.id, "Verified")}
+                                className={`p-1.5 rounded-lg border text-xs font-semibold cursor-pointer ${
+                                  isVerified
+                                    ? "bg-emerald-500 text-zinc-950 border-emerald-500"
+                                    : "bg-[var(--bg-elevated)] border-[var(--border-default)] hover:bg-emerald-500/20 text-emerald-400"
+                                }`}
+                                title="Approve & Verify Document"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickVerify(docItem.id, "Rejected")}
+                                className={`p-1.5 rounded-lg border text-xs font-semibold cursor-pointer ${
+                                  isRejected
+                                    ? "bg-rose-500 text-white border-rose-500"
+                                    : "bg-[var(--bg-elevated)] border-[var(--border-default)] hover:bg-rose-500/20 text-rose-400"
+                                }`}
+                                title="Reject Document"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: TIMELINE & AUDIT TRAIL */}
+          {activeTab === "timeline" && (
+            <div className="space-y-4">
+              <h3 className="font-bold text-sm text-[var(--text-primary)]">
+                Application History & Lifecycle Events
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Complete audit trail of all stage transitions, decision notes, and officer actions for this application.
+              </p>
+
+              <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)]">
+                <ol className="relative border-l border-[var(--border-default)] pl-6 space-y-6">
+                  {(application.history || [])
+                    .slice()
+                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .map((item, index) => (
+                      <li key={`${item.timestamp}-${index}`} className="relative">
+                        <span className="absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500 text-emerald-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-xs text-[var(--text-primary)]">{item.stage}</span>
+                          <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                            {new Date(item.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                          Updated by: <span className="font-semibold text-emerald-400">{item.updatedBy || "System"}</span>
+                        </p>
+                        {item.note && (
+                          <div className="mt-1.5 p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                            {item.note}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  {(!application.history || application.history.length === 0) && (
+                    <li className="text-[var(--text-muted)] text-xs">No stage history recorded yet.</li>
+                  )}
+                </ol>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: CONDITIONS & CHECKLIST */}
+          {activeTab === "conditions" && (
+            <div className="space-y-4">
+              {application.conditions && application.conditions.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <Award className="w-4 h-4 text-emerald-400" />
+                    Conditional Offer Requirements
+                  </h3>
+                  <div className="divide-y divide-[var(--border-default)] border border-[var(--border-default)] rounded-xl bg-[var(--bg-card)] overflow-hidden">
+                    {application.conditions.map((cond) => (
+                      <div key={cond.id} className="p-3.5 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2.5">
+                          {cond.fulfilled ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                          )}
+                          <span className="font-medium text-[var(--text-primary)]">{cond.condition}</span>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                            cond.fulfilled
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          }`}
+                        >
+                          {cond.fulfilled ? "Fulfilled" : "Pending Evidence"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {application.documentChecklist && application.documentChecklist.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    Institutional Document Checklist
+                  </h3>
+                  <div className="divide-y divide-[var(--border-default)] border border-[var(--border-default)] rounded-xl bg-[var(--bg-card)] overflow-hidden">
+                    {application.documentChecklist.map((item, idx) => (
+                      <div key={idx} className="p-3.5 flex items-center justify-between gap-3 text-xs">
+                        <div>
+                          <p className="font-bold text-[var(--text-primary)]">{item.label}</p>
+                          <p className="text-[11px] text-[var(--text-muted)]">{item.docType}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--bg-elevated)] border border-[var(--border-default)] capitalize">
+                          {item.status.replace("_", " ")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* BOTTOM ACTION PANEL: STAGE TRANSITIONS */}
+        <footer className="p-4 sm:p-5 bg-[var(--bg-elevated)] border-t border-[var(--border-default)] space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                {role === "admissions" ? "Admissions Decision / Stage Update" : "Visa Processing Stage"}
+              </span>
+            </div>
+            {/* Quick Stage Shortcuts */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {shortcuts.slice(0, 4).map((stg) => (
+                <button
+                  key={stg}
+                  type="button"
+                  onClick={() => setSelectedStage(stg)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                    selectedStage === stg
+                      ? "bg-emerald-500 text-zinc-950 font-bold border-emerald-400 shadow-sm"
+                      : "bg-[var(--bg-card)] border-[var(--border-default)] hover:border-emerald-500/40 text-[var(--text-secondary)]"
+                  }`}
+                >
+                  {stg}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleStageUpdate} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+            <div className="w-full sm:w-60 shrink-0">
+              <select
+                aria-label="Application Stage"
+                value={selectedStage}
+                onChange={(e) => setSelectedStage(e.target.value as ApplicationStage)}
+                className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)]"
+              >
+                {ALL_STAGES.map((stg) => (
+                  <option key={stg} value={stg}>
+                    {stg}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex-1">
+              <input
+                type="text"
+                value={stageNote}
+                onChange={(e) => setStageNote(e.target.value)}
+                placeholder="Audit note / reason for decision (e.g. Verified transcripts, approved conditional offer)..."
+                className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || selectedStage === application.stage}
+                className={`px-5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedStage !== application.stage
+                    ? "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-md active:scale-95"
+                    : "bg-[var(--bg-hover)] text-[var(--text-muted)] cursor-not-allowed"
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isSubmitting ? "Updating..." : "Update Stage"}</span>
+              </button>
+            </div>
+          </form>
+        </footer>
+      </div>
+    </div>
+  );
+};

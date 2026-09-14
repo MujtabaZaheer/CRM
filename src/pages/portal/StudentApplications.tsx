@@ -19,6 +19,9 @@ import {
   Trash2,
   Search,
   CreditCard,
+  Upload,
+  Receipt,
+  X,
 } from "lucide-react";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -299,9 +302,16 @@ export const StudentApplications: React.FC = () => {
 export const StudentApplicationDetail: React.FC = () => {
   const { applicationId } = useParams();
   const navigate = useNavigate();
-  const { ownApplications, ownDocuments, deleteDraftApplication } = usePortalData();
+  const { ownApplications, ownDocuments, ownInvoices, submitPaymentProof, deleteDraftApplication } = usePortalData();
   const { universities } = useGlobalData();
   const [challan, setChallan] = useState<Invoice | null>(null);
+
+  // Payment Proof Modal State
+  const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofRef, setProofRef] = useState("");
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [proofNotice, setProofNotice] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (applicationId) {
@@ -317,6 +327,38 @@ export const StudentApplicationDetail: React.FC = () => {
   }, [applicationId]);
 
   const app = ownApplications.find((item) => item.id === applicationId);
+
+  const relevantInvoices = React.useMemo(() => {
+    const list = [...ownInvoices.filter((inv) => inv.applicationId === applicationId)];
+    if (challan && !list.some((i) => i.id === challan.id)) {
+      list.push(challan);
+    }
+    if (list.length === 0 && app?.studentId) {
+      const fallback = ownInvoices.filter(
+        (inv) => inv.studentId === app.studentId && (inv.type === "Deposit" || inv.type === "Tuition Fee" || inv.type === "Application Fee")
+      );
+      return fallback;
+    }
+    return list;
+  }, [ownInvoices, applicationId, challan, app?.studentId]);
+
+  const handleUploadProofSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payingInvoice || !proofFile) return;
+    setIsSubmittingProof(true);
+    try {
+      await submitPaymentProof(payingInvoice.id, proofFile, proofRef);
+      setProofNotice(`Payment proof uploaded for Invoice #${payingInvoice.invoiceNumber}. Finance has been notified for verification.`);
+      setPayingInvoice(null);
+      setProofFile(null);
+      setProofRef("");
+      setTimeout(() => setProofNotice(null), 5000);
+    } catch (err: any) {
+      alert(`Proof submission failed: ${err.message}`);
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  };
 
   if (!app) {
     return (
@@ -546,25 +588,186 @@ export const StudentApplicationDetail: React.FC = () => {
         </p>
       </section>
 
+      {/* Proof Submission Notice */}
+      {proofNotice && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-between">
+          <span>{proofNotice}</span>
+          <button onClick={() => setProofNotice(null)} className="underline cursor-pointer">Dismiss</button>
+        </div>
+      )}
+
       {/* Challan / Payment Box */}
-      {challan && app.stage === "Deposit Pending" && (
-        <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 space-y-3">
-          <div className="flex items-center gap-3">
-            <CreditCard className="w-6 h-6 text-amber-400 shrink-0" />
-            <div className="flex-1">
-              <h2 className="font-bold text-base text-amber-300">
-                Deposit Payment Required
-              </h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                A challan has been generated for your tuition deposit ({challan.currency} {challan.amount}). Please download and pay to proceed.
+      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-emerald-400" />
+            Fee Challan & Financial Records
+          </h2>
+          {relevantInvoices.length > 0 && (
+            <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              {relevantInvoices.length} Record(s)
+            </span>
+          )}
+        </div>
+
+        {relevantInvoices.length > 0 ? (
+          <div className="space-y-3">
+            {relevantInvoices.map((inv) => {
+              const isPaid = inv.status === "Paid";
+              const isPartiallyPaid = inv.status === "Partially Paid";
+
+              return (
+                <div
+                  key={inv.id}
+                  className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-bold text-xs text-[var(--text-primary)]">
+                        {inv.invoiceNumber}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {inv.type}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          isPaid
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                            : isPartiallyPaid
+                            ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                            : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                        }`}
+                      >
+                        {isPaid ? "Paid" : isPartiallyPaid ? "Proof Submitted / Verifying" : inv.status}
+                      </span>
+                    </div>
+                    <p className="text-base font-bold text-emerald-400 font-heading">
+                      {inv.currency} {inv.amount.toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      Due Date: {inv.dueDate || "Upon Receipt"}
+                      {inv.notes && ` • ${inv.notes}`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const html = generateInvoiceHtml(inv);
+                        printDocumentHtml(html);
+                      }}
+                      className="px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>View Challan</span>
+                    </button>
+
+                    {!isPaid && (
+                      <button
+                        type="button"
+                        onClick={() => setPayingInvoice(inv)}
+                        className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Proof</span>
+                      </button>
+                    )}
+
+                    {isPaid && (
+                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Receipt Verified</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-[var(--text-secondary)]">
+            <p>
+              {app.stage === "Deposit Pending"
+                ? "Your admission deposit is pending. The finance department is issuing your official fee challan shortly."
+                : "No outstanding tuition or deposit challans recorded for this application."}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Payment Proof Modal */}
+      {payingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)] backdrop-blur-sm animate-fade-in">
+          <form
+            onSubmit={handleUploadProofSubmit}
+            className="w-full max-w-md p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-[var(--text-primary)] font-heading">
+                  Submit Payment Proof
+                </h3>
+                <p className="text-[var(--text-muted)] text-[11px] mt-0.5">
+                  Challan #{payingInvoice.invoiceNumber} • {payingInvoice.currency} {payingInvoice.amount}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPayingInvoice(null)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                Upload Bank Receipt / Deposit Slip <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="file"
+                required
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs cursor-pointer"
+              />
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                Accepted: PDF, PNG, JPG up to 15MB.
               </p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => { const html = generateInvoiceHtml(challan); printDocumentHtml(html); }} className="px-3 py-1.5 bg-amber-500 text-zinc-950 font-bold text-xs rounded-lg">View Challan</button>
-              <button onClick={() => alert("Payment gateway integration pending.")} className="px-3 py-1.5 bg-emerald-500 text-zinc-950 font-bold text-xs rounded-lg">Pay Now</button>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                Bank Transaction / Reference ID
+              </label>
+              <input
+                type="text"
+                value={proofRef}
+                onChange={(e) => setProofRef(e.target.value)}
+                placeholder="e.g. FT2609148819 or Wire Transfer Ref"
+                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs"
+              />
             </div>
-          </div>
-        </section>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setPayingInvoice(null)}
+                className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-default)] rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingProof || !proofFile}
+                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingProof ? "Submitting..." : "Upload & Notify Finance"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* Timeline Section */}
