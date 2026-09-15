@@ -14,7 +14,24 @@ export const RoleGate = ({ children, allowedRoles }: RoleGateProps): React.React
   const { appUser, firebaseUser, loading } = useAuth();
   const location = useLocation();
   if (loading) return <div className="min-h-[50vh] grid place-items-center text-sm text-[var(--text-muted)]">Checking access…</div>;
-  if (allowedRoles.includes("student") && requiresVerifiedEmail && firebaseUser && !firebaseUser.emailVerified) {
+  const isDemoVerified = typeof window !== "undefined" && sessionStorage.getItem("demo_email_verified") === "true";
+  const ADMIN_BYPASS_EMAILS = [
+    "live_superadmin@educrm.com",
+    "live_orgadmin@educrm.com",
+    "superadmin@educrm.com",
+    "orgadmin@educrm.com",
+    "admin@educrm.com",
+  ];
+  const isBypassAdmin = Boolean(firebaseUser?.email && ADMIN_BYPASS_EMAILS.includes(firebaseUser.email.toLowerCase().trim()));
+
+  if (
+    appUser?.role === "student" &&
+    requiresVerifiedEmail &&
+    !isDemoVerified &&
+    !isBypassAdmin &&
+    firebaseUser &&
+    !firebaseUser.emailVerified
+  ) {
     return <Navigate to="/verify-email" replace state={{ from: location.pathname }} />;
   }
   const currentRole = appUser?.role;

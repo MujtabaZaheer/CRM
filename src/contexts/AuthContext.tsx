@@ -214,6 +214,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       profileCompleted: true,
                       currentStep: 4,
                     };
+                    try {
+                      sessionStorage.setItem("demo_email_verified", "true");
+                      await setDoc(userDocRef, {
+                        role: properRole,
+                        office: properOffice,
+                        onboardingStatus: "completed",
+                        profileCompleted: true,
+                        currentStep: 4,
+                        emailVerified: true,
+                      }, { merge: true });
+                    } catch (persistErr) {
+                      console.warn("Could not persist healed admin role to Firestore:", persistErr);
+                    }
                     // We apply it in memory so the UI works
                     setAppUser(healedUser);
                     setLoading(false);

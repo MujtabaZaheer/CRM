@@ -63,12 +63,44 @@ export const VerifyEmail: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [cooldown]);
 
+  // Auto-redirect if admin or non-student lands here
+  useEffect(() => {
+    const checkBypass = async () => {
+      const email = (firebaseUser?.email || pendingEmail || "").toLowerCase().trim();
+      const ADMIN_BYPASS_EMAILS = [
+        "live_superadmin@educrm.com",
+        "live_orgadmin@educrm.com",
+        "superadmin@educrm.com",
+        "orgadmin@educrm.com",
+        "admin@educrm.com",
+      ];
+      if ((appUser?.role && appUser.role !== "student") || ADMIN_BYPASS_EMAILS.includes(email)) {
+        try {
+          sessionStorage.setItem("demo_email_verified", "true");
+        } catch (_) {}
+        const dest = await resolveDestination();
+        navigate(dest.path, { replace: true });
+      }
+    };
+    checkBypass();
+  }, [appUser, firebaseUser, pendingEmail]);
+
   const resolveDestination = async (): Promise<{ path: string; label: string; isStudent: boolean }> => {
     let role: UserRole = "student";
     let isCompleted = false;
     const targetEmail = (auth.currentUser?.email || stateEmail || pendingEmail || "").toLowerCase().trim();
 
-    if (appUser?.role) {
+    const ADMIN_BYPASS_EMAILS = [
+      "live_superadmin@educrm.com",
+      "live_orgadmin@educrm.com",
+      "superadmin@educrm.com",
+      "orgadmin@educrm.com",
+      "admin@educrm.com",
+    ];
+    if (targetEmail && ADMIN_BYPASS_EMAILS.includes(targetEmail)) {
+      role = targetEmail.includes("superadmin") ? "platform_super_admin" : "org_admin";
+      isCompleted = true;
+    } else if (appUser?.role) {
       role = appUser.role;
       isCompleted = appUser.onboardingStatus === "completed" || appUser.profileCompleted === true;
     } else if (auth.currentUser) {

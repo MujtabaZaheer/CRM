@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
@@ -88,6 +88,46 @@ export const Login: React.FC = () => {
           console.warn("Could not pre-fetch role on login:", roleErr);
         }
 
+        // Guaranteed role resolution & bypass for bootstrap admin accounts
+        const ADMIN_BYPASS_EMAILS = [
+          "live_superadmin@educrm.com",
+          "live_orgadmin@educrm.com",
+          "superadmin@educrm.com",
+          "orgadmin@educrm.com",
+          "admin@educrm.com",
+        ];
+        const isBypassAdmin = ADMIN_BYPASS_EMAILS.includes(normalizedEmail);
+
+        if (isBypassAdmin) {
+          const adminRole: UserRole =
+            normalizedEmail.includes("superadmin") ? "platform_super_admin" : "org_admin";
+          userRole = adminRole;
+
+          try {
+            sessionStorage.setItem("demo_email_verified", "true");
+            await setDoc(
+              doc(db, "users", credential.user.uid),
+              {
+                uid: credential.user.uid,
+                email: normalizedEmail,
+                displayName: adminRole === "platform_super_admin" ? "Platform Super Admin" : "Organization Admin",
+                role: adminRole,
+                office: "Main Office",
+                onboardingStatus: "completed",
+                profileCompleted: true,
+                emailVerified: true,
+                updatedAt: Date.now(),
+              },
+              { merge: true }
+            );
+          } catch (syncErr) {
+            console.warn("Could not sync admin profile on login:", syncErr);
+          }
+
+          navigate(getRoleDashboardPath(adminRole), { replace: true });
+          return;
+        }
+
         // Only enforce email verification for student role
         const isStudent = userRole === "student";
         if (isStudent && requiresVerifiedEmail && !credential.user.emailVerified) {
@@ -101,8 +141,11 @@ export const Login: React.FC = () => {
           return;
         }
 
-        // Non-student roles (e.g. counsellor) skip onboarding and navigate straight to their views
+        // Non-student roles (e.g. counsellor, admin) skip onboarding and email verification
         if (userRole && userRole !== "student") {
+          try {
+            sessionStorage.setItem("demo_email_verified", "true");
+          } catch (_) {}
           navigate(getRoleDashboardPath(userRole), { replace: true });
           return;
         }

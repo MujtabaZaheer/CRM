@@ -145,14 +145,34 @@ service cloud.firestore {
 
     // Financial Operations (Invoices, Payments, Refunds, Commissions)
     match /invoices/{id} {
-      allow read: if isAdmin() || isFinanceOfficer() || isAuditor() || ownsStudent(resource.data.studentId);
-      allow create, update: if isAdmin() || isFinanceOfficer() || isOperationalStaff();
+      allow read: if isAdmin() || isFinanceOfficer() || isAuditor()
+        || (signedIn() && (
+          resource.data.studentId == request.auth.uid ||
+          (resource.data.studentEmail != null && resource.data.studentEmail == request.auth.token.email) ||
+          ownsStudent(resource.data.studentId)
+        ));
+      allow create: if isAdmin() || isFinanceOfficer() || isOperationalStaff();
+      allow update: if isAdmin() || isFinanceOfficer() || isOperationalStaff()
+        || (isStudent() && (
+          resource.data.studentId == request.auth.uid ||
+          (resource.data.studentEmail != null && resource.data.studentEmail == request.auth.token.email) ||
+          ownsStudent(resource.data.studentId)
+        ));
       allow delete: if isAdmin();
     }
 
     match /payments/{id} {
-      allow read: if isAdmin() || isFinanceOfficer() || isAuditor() || ownsStudent(resource.data.studentId);
-      allow create, update: if isAdmin() || isFinanceOfficer();
+      allow read: if isAdmin() || isFinanceOfficer() || isAuditor()
+        || (signedIn() && (
+          resource.data.studentId == request.auth.uid ||
+          ownsStudent(resource.data.studentId)
+        ));
+      allow create: if isAdmin() || isFinanceOfficer()
+        || (isStudent() && (
+          request.resource.data.studentId == request.auth.uid ||
+          ownsStudent(request.resource.data.studentId)
+        ));
+      allow update: if isAdmin() || isFinanceOfficer();
       allow delete: if isAdmin();
     }
 

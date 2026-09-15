@@ -135,7 +135,7 @@ export const StudentDashboard: React.FC = () => {
           title: `Tuition Deposit Due: ${targetApp.universityName}`,
           text: `Official challan #${unpaidChallan.invoiceNumber} for ${unpaidChallan.currency} ${unpaidChallan.amount.toLocaleString()} is awaiting payment. Submit bank proof to secure your enrollment.`,
           actionText: "View Challan & Pay",
-          href: `/student/applications/${targetApp.id}`,
+          href: "/student/invoices",
           universityName: targetApp.universityName,
           universityId: targetApp.universityId,
           programmeName: targetApp.programmeName,
@@ -602,6 +602,11 @@ export const StudentDashboard: React.FC = () => {
                           <span className="font-mono font-bold text-primary">{inv.invoiceNumber}</span>
                           <span className="text-[10px] text-muted">({inv.type})</span>
                         </div>
+                        {targetApp && (
+                          <p className="text-[11px] font-semibold text-secondary truncate max-w-[140px]">
+                            {targetApp.universityName}
+                          </p>
+                        )}
                         <p className="font-bold text-emerald-500 mt-0.5">
                           {inv.currency} {inv.amount.toLocaleString()}
                         </p>
@@ -618,10 +623,10 @@ export const StudentDashboard: React.FC = () => {
                           {inv.status}
                         </span>
                         <Link
-                          to={targetApp ? `/student/applications/${targetApp.id}` : "/student/applications"}
+                          to="/student/invoices"
                           className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
                         >
-                          View
+                          View Challan
                         </Link>
                       </div>
                     </div>
@@ -630,10 +635,10 @@ export const StudentDashboard: React.FC = () => {
               )}
 
               <Link
-                to="/student/applications"
+                to="/student/invoices"
                 className="pt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline block text-center"
               >
-                Manage Invoices in Applications →
+                View All Invoices & Paid Challans →
               </Link>
             </div>
           </div>

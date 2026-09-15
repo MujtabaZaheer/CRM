@@ -6,7 +6,7 @@ import { generateInvoiceHtml, generateReceiptHtml, printDocumentHtml } from "../
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { Application, ApplicationStage } from "../../types/application";
 import { db } from "../../firebase/config";
-import { updateDoc, doc } from "firebase/firestore";
+import { updateDoc, doc, addDoc, collection } from "firebase/firestore";
 type FinancePage = "dashboard" | "invoices" | "payments" | "refunds" | "commissions" | "reports" | "notifications";
 const currency = (amount: number, code = "USD") => new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount || 0);
 const today = new Date().toISOString().slice(0, 10);
@@ -16,7 +16,7 @@ const Empty: React.FC<{ text: string }> = ({ text }) => <div className="p-10 tex
 
 export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
   const finance = useFinanceData();
-  const { applications, updateApplication } = useGlobalData();
+  const { applications, updateApplication, students } = useGlobalData();
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -61,10 +61,16 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     try {
       if (selectedApp) {
+        const studentObj = students.find((s) => s.id === selectedApp.studentId || s.email === selectedApp.studentEmail);
+        const studentId = selectedApp.studentId || studentObj?.id || "";
+        const studentEmail = selectedApp.studentEmail || studentObj?.email || "";
+
         const invNumber = `INV-DEP-${Date.now().toString().slice(-4)}`;
         await finance.createInvoice({
           invoiceNumber: invNumber,
+          studentId,
           studentName: selectedApp.studentName,
+          studentEmail,
           applicationId: selectedApp.id,
           type: "Deposit",
           amount: Number(form.get("amount")),
@@ -78,6 +84,23 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
         const newStage: ApplicationStage = "Deposit Pending";
         updateApplication(selectedApp.id, { stage: newStage, updatedAt: Date.now() });
         await updateDoc(doc(db, "applications", selectedApp.id), { stage: newStage, updatedAt: Date.now() });
+
+        // Dispatch in-app notification to student
+        if (studentId) {
+          try {
+            await addDoc(collection(db, "notifications"), {
+              targetUser: studentId,
+              type: "challan_issued",
+              title: "Fee Challan Generated",
+              message: `Official tuition deposit challan of ${form.get("currency")} ${form.get("amount")} has been issued for ${selectedApp.universityName}. View and submit payment proof now.`,
+              read: false,
+              relatedApplicationId: selectedApp.id,
+              createdAt: Date.now(),
+            });
+          } catch (notifErr) {
+            console.warn("Could not dispatch notification to student:", notifErr);
+          }
+        }
         
         setShowChallanForm(false);
         setSelectedApp(null);

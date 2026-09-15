@@ -55,19 +55,27 @@ export const bootstrapAdminAccounts = async (): Promise<void> => {
       try {
         secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
         const secondaryAuth = getAuth(secondaryApp);
-        const cred = await createUserWithEmailAndPassword(secondaryAuth, admin.email, admin.password);
-        if (cred.user) {
-          createdUid = cred.user.uid;
-          await signOut(secondaryAuth);
-        }
-      } catch (authErr: any) {
-        if (authErr?.code === "auth/email-already-in-use") {
-          // Auth account exists but Firestore doc is missing — we'll create it
-          // Try to find the uid from auth (we can't easily without admin SDK)
-          // Use a deterministic fallback uid
-          console.info(`Admin auth account ${admin.email} already exists, syncing Firestore profile.`);
-        } else {
-          console.warn(`Bootstrap auth error for ${admin.email}:`, authErr?.message);
+        try {
+          const cred = await createUserWithEmailAndPassword(secondaryAuth, admin.email, admin.password);
+          if (cred.user) {
+            createdUid = cred.user.uid;
+            await signOut(secondaryAuth);
+          }
+        } catch (authErr: any) {
+          if (authErr?.code === "auth/email-already-in-use") {
+            try {
+              const { signInWithEmailAndPassword } = await import("firebase/auth");
+              const cred = await signInWithEmailAndPassword(secondaryAuth, admin.email, admin.password);
+              if (cred.user) {
+                createdUid = cred.user.uid;
+                await signOut(secondaryAuth);
+              }
+            } catch (signInErr: any) {
+              console.warn(`Could not sign into existing admin ${admin.email}:`, signInErr?.message);
+            }
+          } else {
+            console.warn(`Bootstrap auth error for ${admin.email}:`, authErr?.message);
+          }
         }
       } finally {
         if (secondaryApp) {

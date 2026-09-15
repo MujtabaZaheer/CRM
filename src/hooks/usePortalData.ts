@@ -43,6 +43,15 @@ export const usePortalData = () => {
       setVisaCases((prev) => (prev.length === 0 && showDemoData ? (DEMO_VISA_CASES as unknown as VisaCase[]) : prev));
     }, 1000);
 
+    const mergeInvoices = (incoming: Invoice[]) => {
+      setInvoices((prev) => {
+        const map = new Map<string, Invoice>();
+        prev.forEach((item) => map.set(item.id, item));
+        incoming.forEach((item) => map.set(item.id, item));
+        return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      });
+    };
+
     const stops = [
       subscribe<Student>("students", (x) => { setStudents(x.length > 0 ? x : (showDemoData ? DEMO_STUDENTS : [])); done(); }, fail, studentRole ? "email" : undefined, studentRole ? appUser?.email : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<Application>("applications", (x) => { setApplications(x.length > 0 ? x : (showDemoData ? DEMO_APPLICATIONS : [])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
@@ -50,17 +59,101 @@ export const usePortalData = () => {
       studentRole && !ownStudentId ? noSubscription() : subscribe<PortalDocument>("student_documents", (x) => { setDocuments(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<VisaCase>("visa_cases", (x) => { setVisaCases(x.length > 0 ? x : (showDemoData ? (DEMO_VISA_CASES as unknown as VisaCase[]) : [])); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
       studentRole && !ownStudentId ? noSubscription() : subscribe<SupportRequest>("support_requests", (x) => { setRequests(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
-      studentRole && !ownStudentId ? noSubscription() : subscribe<Invoice>("invoices", (x) => { setInvoices(x); done(); }, fail, studentRole ? "studentId" : undefined, studentRole ? ownStudentId : undefined),
+      studentRole
+        ? ownStudentId
+          ? subscribe<Invoice>("invoices", (x) => { mergeInvoices(x); done(); }, fail, "studentId", ownStudentId)
+          : noSubscription()
+        : subscribe<Invoice>("invoices", (x) => { setInvoices(x); done(); }, fail),
     ];
+
+    // Additional listeners for student by UID or Email to guarantee delivery
+    if (studentRole) {
+      if (appUser?.uid && appUser.uid !== ownStudentId) {
+        stops.push(
+          subscribe<Invoice>("invoices", (x) => mergeInvoices(x), () => {}, "studentId", appUser.uid)
+        );
+      }
+      if (appUser?.email) {
+        stops.push(
+          subscribe<Invoice>("invoices", (x) => mergeInvoices(x), () => {}, "studentEmail", appUser.email.toLowerCase().trim())
+        );
+      }
+    }
+
     return () => {
       clearTimeout(timeoutId);
       stops.forEach((stop) => stop());
     };
-  }, [appUser?.email, appUser?.role, ownStudentId, showDemoData]);
-  const ownApplications = useMemo(() => applications.filter((application) => application.studentId === ownStudent?.id), [applications, ownStudent]);
-  const ownDocuments = useMemo(() => documents.filter((item) => item.studentId === ownStudent?.id), [documents, ownStudent]);
+  }, [appUser?.email, appUser?.uid, appUser?.role, ownStudentId, showDemoData]);
+
+  const ownApplications = useMemo(() => {
+    return applications.filter((application) =>
+      (ownStudent?.id && application.studentId === ownStudent.id) ||
+      (appUser?.uid && application.studentId === appUser.uid) ||
+      (appUser?.email && application.studentEmail && application.studentEmail.toLowerCase() === appUser.email.toLowerCase()) ||
+      (ownStudent?.email && application.studentEmail && application.studentEmail.toLowerCase() === ownStudent.email.toLowerCase())
+    );
+  }, [applications, ownStudent, appUser]);
+
+  // Auto-reconcile & fetch invoices linked to the student's applications
+  useEffect(() => {
+    if (appUser?.role !== "student" || ownApplications.length === 0) return;
+
+    let isMounted = true;
+    const loadApplicationInvoices = async () => {
+      for (const app of ownApplications) {
+        try {
+          const invQ = query(collection(db, "invoices"), where("applicationId", "==", app.id));
+          const invSnap = await getDocs(invQ);
+          if (!invSnap.empty && isMounted) {
+            const fetched = invSnap.docs.map((d) => {
+              const data = d.data();
+              // Auto-heal missing student linkage if omitted by finance
+              if (!data.studentId || !data.studentEmail) {
+                updateDoc(doc(db, "invoices", d.id), {
+                  studentId: app.studentId || ownStudent?.id || appUser?.uid || "",
+                  studentEmail: app.studentEmail || ownStudent?.email || appUser?.email || "",
+                  updatedAt: Date.now(),
+                }).catch(() => {});
+              }
+              return { id: d.id, ...data } as Invoice;
+            });
+
+            setInvoices((prev) => {
+              const map = new Map<string, Invoice>();
+              prev.forEach((i) => map.set(i.id, i));
+              fetched.forEach((i) => map.set(i.id, i));
+              return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            });
+          }
+        } catch (err) {
+          // Rule or index fallback
+        }
+      }
+    };
+
+    loadApplicationInvoices();
+    return () => {
+      isMounted = false;
+    };
+  }, [ownApplications, appUser, ownStudent]);
+
+  const ownDocuments = useMemo(() => documents.filter((item) => item.studentId === ownStudent?.id || item.studentId === appUser?.uid), [documents, ownStudent, appUser]);
   const ownTasks = useMemo(() => tasks.filter((task) => task.assignedTo === appUser?.email || task.assignedTo === appUser?.uid || task.linkedEntityId === ownStudent?.id), [appUser, ownStudent, tasks]);
-  const ownInvoices = useMemo(() => invoices.filter((inv) => !ownStudent?.id || inv.studentId === ownStudent.id || inv.studentEmail === ownStudent.email), [invoices, ownStudent]);
+
+  const ownInvoices = useMemo(() => {
+    const appIds = new Set(ownApplications.map((a) => a.id));
+    return invoices.filter((inv) => {
+      if (!ownStudent?.id && !appUser?.email && !appUser?.uid) return true;
+      if (ownStudent?.id && inv.studentId === ownStudent.id) return true;
+      if (appUser?.uid && inv.studentId === appUser.uid) return true;
+      if (appUser?.email && inv.studentEmail && inv.studentEmail.toLowerCase() === appUser.email.toLowerCase()) return true;
+      if (ownStudent?.email && inv.studentEmail && inv.studentEmail.toLowerCase() === ownStudent.email.toLowerCase()) return true;
+      if (inv.applicationId && appIds.has(inv.applicationId)) return true;
+      if (ownStudent?.fullName && inv.studentName && inv.studentName.toLowerCase() === ownStudent.fullName.toLowerCase()) return true;
+      return false;
+    });
+  }, [invoices, ownStudent, appUser, ownApplications]);
   const updateVisa = useCallback(async (item: VisaCase, status: VisaCaseStatus, note = "") => { await updateDoc(doc(db, "visa_cases", item.id), { status, notes: note || item.notes || "", updatedAt: Date.now(), history: [...(item.history || []), { status, note, timestamp: Date.now(), updatedBy: appUser?.email || "Visa Officer" }] }); }, [appUser]);
   const updateDocument = useCallback(async (item: PortalDocument, status: PortalDocument["status"], remarks = "") => { await updateDoc(doc(db, "student_documents", item.id), { status, remarks, updatedAt: Date.now() }); }, []);
   const updateTask = useCallback(async (task: Task) => { await updateDoc(doc(db, "tasks", task.id), { status: task.status === "Completed" ? "Open" : "Completed", updatedAt: Date.now() }); }, []);
