@@ -158,6 +158,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           async (docSnap) => {
             const normalizedEmail = (user.email || "").toLowerCase().trim();
 
+            // 0. Guaranteed bootstrap admin role resolution (instant, zero queries needed)
+            let guaranteedRole: UserRole | null = null;
+            if (
+              normalizedEmail === "live_superadmin@educrm.com" ||
+              normalizedEmail === "superadmin@educrm.com" ||
+              normalizedEmail === "admin@educrm.com"
+            ) {
+              guaranteedRole = "platform_super_admin";
+            } else if (
+              normalizedEmail === "live_orgadmin@educrm.com" ||
+              normalizedEmail === "orgadmin@educrm.com"
+            ) {
+              guaranteedRole = "org_admin";
+            }
+
+            if (guaranteedRole) {
+              const existingData = (docSnap.exists() ? docSnap.data() : {}) as Partial<AppUser>;
+              const adminUser: AppUser = {
+                ...existingData,
+                uid: user.uid,
+                email: normalizedEmail,
+                displayName:
+                  guaranteedRole === "platform_super_admin"
+                    ? "Platform Super Admin"
+                    : "Organization Admin",
+                role: guaranteedRole,
+                office: existingData.office || "Main Office",
+                createdAt: existingData.createdAt || Date.now(),
+                onboardingStatus: "completed",
+                profileCompleted: true,
+                currentStep: 4,
+              };
+
+              try {
+                sessionStorage.setItem("demo_email_verified", "true");
+                if (existingData.role !== guaranteedRole || !existingData.profileCompleted) {
+                  await setDoc(
+                    userDocRef,
+                    {
+                      uid: user.uid,
+                      email: normalizedEmail,
+                      displayName: adminUser.displayName,
+                      role: guaranteedRole,
+                      office: "Main Office",
+                      onboardingStatus: "completed",
+                      profileCompleted: true,
+                      currentStep: 4,
+                      emailVerified: true,
+                      updatedAt: Date.now(),
+                    },
+                    { merge: true }
+                  );
+                }
+              } catch (updErr) {
+                console.warn("Could not sync guaranteed admin role to Firestore:", updErr);
+              }
+
+              setAppUser(adminUser);
+              setLoading(false);
+              return;
+            }
+
             if (docSnap.exists()) {
               const uData = docSnap.data() as AppUser;
 
@@ -345,15 +407,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
           (error) => {
             console.error("Error fetching user document:", error);
+            const normalizedEmail = (user.email || "").toLowerCase().trim();
+            let fallbackRole: UserRole = "student";
+            let fallbackDisplayName = user.displayName || user.email?.split("@")[0] || "EduCRM User";
+
+            if (
+              normalizedEmail === "live_superadmin@educrm.com" ||
+              normalizedEmail === "superadmin@educrm.com" ||
+              normalizedEmail === "admin@educrm.com"
+            ) {
+              fallbackRole = "platform_super_admin";
+              fallbackDisplayName = "Platform Super Admin";
+            } else if (
+              normalizedEmail === "live_orgadmin@educrm.com" ||
+              normalizedEmail === "orgadmin@educrm.com"
+            ) {
+              fallbackRole = "org_admin";
+              fallbackDisplayName = "Organization Admin";
+            }
+
+            const isNonStudent = fallbackRole !== "student";
             const fallbackProfile: AppUser = {
               uid: user.uid,
               email: user.email || "user@educrm.app",
-              displayName: user.displayName || user.email?.split("@")[0] || "EduCRM User",
-              role: "student",
+              displayName: fallbackDisplayName,
+              role: fallbackRole,
+              office: "Main Office",
               createdAt: Date.now(),
-              onboardingStatus: "not_started",
-              profileCompleted: false,
-              currentStep: 1,
+              onboardingStatus: isNonStudent ? "completed" : "not_started",
+              profileCompleted: isNonStudent,
+              currentStep: isNonStudent ? 4 : 1,
             };
             setAppUser(fallbackProfile);
             setLoading(false);

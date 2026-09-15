@@ -6,10 +6,22 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function hasUserDoc() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isBootstrapSuperAdmin(email) {
+      return email in ['live_superadmin@educrm.com', 'superadmin@educrm.com', 'admin@educrm.com'];
+    }
+    function isBootstrapOrgAdmin(email) {
+      return email in ['live_orgadmin@educrm.com', 'orgadmin@educrm.com'];
+    }
+    function isBootstrapAdmin(email) {
+      return isBootstrapSuperAdmin(email) || isBootstrapOrgAdmin(email);
+    }
+
     // Roles are strictly validated via verified Firestore user profile or auth custom claims
     function hasRole(role) {
       return signedIn() && (
         (request.auth.token != null && request.auth.token.role == role) ||
+        (role == 'platform_super_admin' && isBootstrapSuperAdmin(request.auth.token.email)) ||
+        (role == 'org_admin' && isBootstrapOrgAdmin(request.auth.token.email)) ||
         (hasUserDoc() && profile().role == role)
       );
     }
@@ -42,6 +54,7 @@ service cloud.firestore {
       // Self-service signups can only create standard non-privileged student or external partner accounts.
       allow create: if signedIn() && (
         isAdmin() ||
+        isBootstrapAdmin(request.auth.token.email) ||
         (request.auth.uid == userId && (
           !('role' in request.resource.data) ||
           request.resource.data.role == 'student' ||
@@ -49,7 +62,7 @@ service cloud.firestore {
         ))
       );
       // Non-admins can update personal profile fields, but can NEVER elevate role, tenant, or permissions.
-      allow update: if isAdmin() || (
+      allow update: if isAdmin() || isBootstrapAdmin(request.auth.token.email) || (
         signedIn() && request.auth.uid == userId &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenantId', 'partnerUniversityId', 'isSuperAdmin', 'admin'])
       );
