@@ -15,7 +15,7 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
   const visaApps = applications.filter((app) => 
-    ["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved"].includes(app.stage)
+    ["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage)
   );
 
   const filteredApps = visaApps.filter(app => 
@@ -177,6 +177,7 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                           <option value="Visa Preparation">Visa Preparation</option>
                           <option value="Visa Submitted">Visa Submitted</option>
                           <option value="Visa Approved">Visa Approved</option>
+                          <option value="Enrolled">Enrolled (Completed)</option>
                         </select>
                       </td>
                       <td className="p-3 text-right">

@@ -22,12 +22,48 @@ import {
   Upload,
   Receipt,
   X,
+  Plane,
+  MessageSquare,
+  CheckCircle,
 } from "lucide-react";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { Invoice } from "../../types/finance";
 import { generateInvoiceHtml, printDocumentHtml } from "../../utils/invoiceGenerator";
+
+export const getStageGuidance = (stage: string): string => {
+  switch (stage) {
+    case "Visa Preparation":
+      return "Visa preparation active: compile your financial proof (28-day funds rule), schedule medical/TB test, and review your visa dossier.";
+    case "Visa Submitted":
+      return "Visa application submitted to embassy/consulate. Biometrics completed and awaiting visa decision.";
+    case "Visa Approved":
+      return "🎉 Visa Approved! Entry clearance granted. Prepare arrival logistics, travel itinerary, and university enrollment.";
+    case "Enrolled":
+      return "🎉 Fully Enrolled! All admissions, visa compliance, and university registration milestones completed.";
+    case "CAS Issued":
+      return "CAS / COE released by university registry! Review your official document and start your visa application filing.";
+    case "CAS / COE Pending":
+      return "Deposit verified. University registry is compiling and generating your official CAS / COE statement.";
+    case "Deposit Paid":
+      return "Tuition deposit confirmed by finance. Awaiting university registry to open CAS / COE processing.";
+    case "Deposit Pending":
+      return "Official offer accepted! Pay tuition deposit challan to unlock your university CAS statement.";
+    case "Conditional Offer":
+      return "Conditional Offer received! Review and upload remaining academic or language conditions.";
+    case "Unconditional Offer":
+      return "Unconditional Offer issued! Accept your offer and proceed to the deposit stage.";
+    case "University Reviewing":
+      return "Application lodged with institution. Registry admissions committee is evaluating your academic dossier.";
+    case "Documents Pending":
+      return "Required documents missing. Check your document vault and upload pending certificates.";
+    case "Draft":
+      return "Draft in progress — click below to continue or delete if no longer needed.";
+    default:
+      return "Your application is undergoing active processing by the admissions and visa department.";
+  }
+};
 
 const STAGE_PROGRESS: Record<string, number> = {
   Draft: 15,
@@ -216,13 +252,8 @@ export const StudentApplications: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-xs text-[var(--text-muted)]">
-                  {app.nextAction ||
-                    (isApproved
-                      ? "Next Step: Accept offer and verify fee deposit."
-                      : isDraft
-                      ? "Draft in progress — click below to continue or delete if no longer needed."
-                      : "Your application is undergoing active internal review.")}
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  {app.nextAction || getStageGuidance(app.stage)}
                 </p>
               </div>
 
@@ -313,6 +344,13 @@ export const StudentApplicationDetail: React.FC = () => {
   const [isSubmittingProof, setIsSubmittingProof] = useState(false);
   const [proofNotice, setProofNotice] = useState<string | null>(null);
 
+  // Visa Tracking Modal State & Handlers
+  const [showVisaSubmitModal, setShowVisaSubmitModal] = useState(false);
+  const [visaRef, setVisaRef] = useState("");
+  const [visaCentre, setVisaCentre] = useState("");
+  const [isUpdatingVisa, setIsUpdatingVisa] = useState(false);
+  const [visaNotice, setVisaNotice] = useState<string | null>(null);
+
   React.useEffect(() => {
     if (applicationId) {
       const fetchChallan = async () => {
@@ -357,6 +395,59 @@ export const StudentApplicationDetail: React.FC = () => {
       alert(`Proof submission failed: ${err.message}`);
     } finally {
       setIsSubmittingProof(false);
+    }
+  };
+
+  const handleStudentVisaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!app) return;
+    setIsUpdatingVisa(true);
+    try {
+      const historyItem = {
+        stage: "Visa Submitted" as const,
+        updatedBy: app.studentName || "Student",
+        timestamp: Date.now(),
+        note: `Student submitted visa application. Reference: ${visaRef || "N/A"}${visaCentre ? `, Centre: ${visaCentre}` : ""}`,
+      };
+      const updatedHistory = [...(app.history || []), historyItem];
+      await updateDoc(doc(db, "applications", app.id), {
+        stage: "Visa Submitted",
+        updatedAt: Date.now(),
+        history: updatedHistory,
+      });
+      setVisaNotice("Visa application marked as Submitted! Your Visa Officer has been notified.");
+      setShowVisaSubmitModal(false);
+      setTimeout(() => setVisaNotice(null), 6000);
+    } catch (err: any) {
+      alert(`Could not update visa status: ${err.message}`);
+    } finally {
+      setIsUpdatingVisa(false);
+    }
+  };
+
+  const handleStudentVisaApproved = async () => {
+    if (!app) return;
+    if (!window.confirm("Confirm that your visa has been approved and granted by the embassy?")) return;
+    setIsUpdatingVisa(true);
+    try {
+      const historyItem = {
+        stage: "Visa Approved" as const,
+        updatedBy: app.studentName || "Student",
+        timestamp: Date.now(),
+        note: "Student reported official visa grant / entry clearance approval.",
+      };
+      const updatedHistory = [...(app.history || []), historyItem];
+      await updateDoc(doc(db, "applications", app.id), {
+        stage: "Visa Approved",
+        updatedAt: Date.now(),
+        history: updatedHistory,
+      });
+      setVisaNotice("🎉 Congratulations on your Visa Approval! The admissions and visa department has been updated.");
+      setTimeout(() => setVisaNotice(null), 6000);
+    } catch (err: any) {
+      alert(`Could not update visa status: ${err.message}`);
+    } finally {
+      setIsUpdatingVisa(false);
     }
   };
 
@@ -581,12 +672,240 @@ export const StudentApplicationDetail: React.FC = () => {
           Next Action
         </h2>
         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-          {app.nextAction ||
-            (isApproved
-              ? "Your offer is active. Please review your conditional requirements (if any) and proceed with CAS issuance."
-              : "Your application is currently being reviewed by our admissions panel and the institution's registry.")}
+          {app.nextAction || getStageGuidance(app.stage)}
         </p>
       </section>
+
+      {/* Visa & Embassy Processing Section */}
+      {["CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage) && (
+        <section className="rounded-2xl bg-[var(--bg-card)] border border-emerald-500/30 p-6 space-y-5 shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-default)] pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Plane className="w-5 h-5 text-emerald-400" />
+                <h2 className="font-bold text-base text-[var(--text-primary)]">
+                  Visa & Embassy Processing Tracker
+                </h2>
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Complete your visa filing, embassy compliance checklist, and arrival milestones.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Current Stage: {app.stage}
+              </span>
+            </div>
+          </div>
+
+          {visaNotice && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-between">
+              <span>{visaNotice}</span>
+              <button onClick={() => setVisaNotice(null)} className="underline cursor-pointer">Dismiss</button>
+            </div>
+          )}
+
+          {/* Visa Stepper */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { title: "1. CAS / COE Released", desc: "Official code ready", done: ["CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage) },
+              { title: "2. Visa Preparation", desc: "Funds & medical proof", done: ["Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage), active: app.stage === "Visa Preparation" },
+              { title: "3. Visa Lodged", desc: "Biometrics & embassy", done: ["Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage), active: app.stage === "Visa Submitted" },
+              { title: "4. Visa Approved", desc: "Vignette & enrolment", done: ["Visa Approved", "Enrolled"].includes(app.stage), active: app.stage === "Visa Approved" || app.stage === "Enrolled" },
+            ].map((step, idx) => (
+              <div
+                key={idx}
+                className={`p-3.5 rounded-xl border transition-all ${
+                  step.active
+                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm ring-1 ring-emerald-500/30"
+                    : step.done
+                    ? "bg-[var(--bg-elevated)] border-emerald-500/30 text-emerald-400"
+                    : "bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-muted)] opacity-60"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-xs font-bold">
+                  {step.done ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}
+                  <span>{step.title}</span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] mt-1">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Detailed Guidance Box */}
+          <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
+            <h3 className="font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              Visa Checklist & Requirements
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-[var(--text-primary)] block">University CAS / Confirmation Document</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Official code issued by {app.universityName} registry.</span>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-[var(--text-primary)] block">28-Day Bank Statement / Maintenance</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Must cover tuition + living expenses held for 28 consecutive days.</span>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-[var(--text-primary)] block">Medical / TB Screening Certificate</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">From an approved embassy clinic if applicable to your country.</span>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-[var(--text-primary)] block">Biometrics & Passport Validity</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Ensure passport has at least 6 months validity from travel date.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stage-Specific Call-To-Action */}
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-default)]">
+              <div className="text-xs text-[var(--text-secondary)]">
+                {app.stage === "Visa Preparation" && (
+                  <span>Once you have lodged your visa at the visa center (VFS/Embassy), mark it as submitted below.</span>
+                )}
+                {app.stage === "Visa Submitted" && (
+                  <span>Your visa is under evaluation at the embassy. When you receive your decision letter or passport, report it here.</span>
+                )}
+                {app.stage === "Visa Approved" && (
+                  <span className="text-emerald-400 font-semibold">Visa successfully approved! You are cleared for international travel and enrolment.</span>
+                )}
+                {app.stage === "Enrolled" && (
+                  <span className="text-emerald-400 font-semibold">🎉 All admissions and visa milestones completed!</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link
+                  to="/student/messages"
+                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Ask Visa Officer</span>
+                </Link>
+
+                <Link
+                  to="/student/documents"
+                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Upload Visa Docs</span>
+                </Link>
+
+                {app.stage === "Visa Preparation" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowVisaSubmitModal(true)}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <Plane className="w-3.5 h-3.5" />
+                    <span>I Have Submitted My Visa</span>
+                  </button>
+                )}
+
+                {app.stage === "Visa Submitted" && (
+                  <button
+                    type="button"
+                    onClick={handleStudentVisaApproved}
+                    disabled={isUpdatingVisa}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>Report Visa Approved</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Modal: Confirm Visa Lodged / Submitted */}
+      {showVisaSubmitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Plane className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-bold text-sm text-[var(--text-primary)]">
+                  Confirm Visa Submission
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowVisaSubmitModal(false)}
+                className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Enter your visa application tracking reference or GWF number to update your application status to <strong>Visa Submitted</strong> and notify your Visa Officer.
+            </p>
+
+            <form onSubmit={handleStudentVisaSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                  Visa Reference / GWF Number
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={visaRef}
+                  onChange={(e) => setVisaRef(e.target.value)}
+                  placeholder="e.g. GWF012345678 or VFS-LON-9921"
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                  Visa Center / Embassy Location
+                </label>
+                <input
+                  type="text"
+                  value={visaCentre}
+                  onChange={(e) => setVisaCentre(e.target.value)}
+                  placeholder="e.g. VFS Lahore / Gerry's Islamabad / TLSContact"
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowVisaSubmitModal(false)}
+                  className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-default)] rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingVisa || !visaRef.trim()}
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isUpdatingVisa ? "Updating..." : "Confirm & Update Stage"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Proof Submission Notice */}
       {proofNotice && (

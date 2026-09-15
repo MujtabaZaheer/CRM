@@ -45,6 +45,7 @@ const VISA_SHORTCUTS: ApplicationStage[] = [
   "Visa Preparation",
   "Visa Submitted",
   "Visa Approved",
+  "Enrolled",
   "Rejected",
 ];
 
@@ -631,7 +632,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </div>
             {/* Quick Stage Shortcuts */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {shortcuts.slice(0, 4).map((stg) => (
+              {shortcuts.map((stg) => (
                 <button
                   key={stg}
                   type="button"
