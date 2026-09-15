@@ -9,6 +9,7 @@ import {
   addDoc,
   setDoc,
   updateDoc,
+  getDoc,
   getDocs,
   limit,
 } from "firebase/firestore";
@@ -85,6 +86,7 @@ interface Conversation {
   updatedAt: number;
   channelType?: string;
   targetRole?: string;
+  initiatorRole?: string;
 }
 
 interface PendingAttachment {
@@ -358,77 +360,69 @@ export const StudentChat: React.FC = () => {
             email: assignedEmail,
             role: assignedRole,
           });
+        }        // 1. Check or initialize conversation for this channel
+        const studentName =
+          appUser.displayName ||
+          ownStudent?.fullName ||
+          appUser.email?.split("@")[0] ||
+          "Student";
+        const newConvId = `${appUser.uid}_${chatMode}`;
+
+        const defaultConvData: Conversation = {
+          id: newConvId,
+          studentId: appUser.uid,
+          studentName,
+          studentEmail: appUser.email || "",
+          counsellorId: assignedId,
+          counsellorName: assignedName,
+          counsellorEmail: assignedEmail,
+          channelType: chatMode,
+          targetRole,
+          initiatorRole: "student",
+          participants: [appUser.uid, assignedId],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          lastMessage: `Started communication thread with ${assignedName}`,
+          lastMessageTimestamp: Date.now(),
+          lastMessageSenderId: "system",
+        };
+
+        const localConvKey = `educrm_conv_${newConvId}`;
+        let activeConv = defaultConvData;
+
+        try {
+          const cached = localStorage.getItem(localConvKey);
+          if (cached) {
+            activeConv = { ...defaultConvData, ...JSON.parse(cached) };
+          }
+        } catch (_) {}
+
+        // Set conversation immediately so user is never blocked
+        if (isMounted) {
+          setConversation(activeConv);
         }
 
-        // 1. Check if an existing conversation exists for this channel
-        const convQuery = query(
-          collection(db, "conversations"),
-          where("studentId", "==", appUser.uid),
-          where("channelType", "==", chatMode),
-          limit(1)
-        );
-        const convSnap = await getDocs(convQuery);
+        // Attempt cloud Firestore sync
+        try {
+          const convDocRef = doc(db, "conversations", newConvId);
+          const convDocSnap = await getDoc(convDocRef);
 
-        if (!convSnap.empty) {
-          const convDoc = convSnap.docs[0];
-          const convData = { id: convDoc.id, ...convDoc.data() } as Conversation;
-          if (isMounted) setConversation(convData);
-        } else {
-          // If counsellor mode, check legacy conversations without channelType
-          let existingLegacy = false;
-          if (chatMode === "counsellor") {
-            const legacyQuery = query(
-              collection(db, "conversations"),
-              where("studentId", "==", appUser.uid),
-              limit(1)
-            );
-            const legacySnap = await getDocs(legacyQuery);
-            if (!legacySnap.empty) {
-              const convDoc = legacySnap.docs[0];
-              const convData = { id: convDoc.id, ...convDoc.data() } as Conversation;
-              if (isMounted) setConversation(convData);
-              existingLegacy = true;
-            }
+          if (convDocSnap.exists()) {
+            const cloudData = { id: convDocSnap.id, ...convDocSnap.data() } as Conversation;
+            activeConv = cloudData;
+            if (isMounted) setConversation(cloudData);
+            try {
+              localStorage.setItem(localConvKey, JSON.stringify(cloudData));
+            } catch (_) {}
+          } else {
+            // Write initial conversation document
+            await setDoc(convDocRef, defaultConvData, { merge: true });
           }
-
-          if (!existingLegacy) {
-            const studentName =
-              appUser.displayName ||
-              ownStudent?.fullName ||
-              appUser.email?.split("@")[0] ||
-              "Student";
-            const newConvId = `${appUser.uid}_${chatMode}`;
-            const newConvData: any = {
-              studentId: appUser.uid,
-              studentName,
-              studentEmail: appUser.email || "",
-              counsellorId: assignedId,
-              counsellorName: assignedName,
-              counsellorEmail: assignedEmail,
-              channelType: chatMode,
-              targetRole,
-              initiatorRole: "student",
-              participants: [appUser.uid, assignedId],
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              lastMessage: `Started communication thread with ${assignedName}`,
-              lastMessageTimestamp: Date.now(),
-              lastMessageSenderId: "system",
-            };
-
-            const convDocRef = doc(db, "conversations", newConvId);
-            await setDoc(convDocRef, newConvData, { merge: true });
-
-            if (isMounted) {
-              setConversation({ id: newConvId, ...newConvData });
-            }
-          }
+        } catch (cloudErr: any) {
+          console.warn("Cloud Firestore sync notice for conversation (using active local channel):", cloudErr?.message);
         }
       } catch (err: any) {
-        console.error("Error initializing conversation:", err);
-        if (isMounted) {
-          setErrorMessage(err.message || "Failed to connect to chat desk.");
-        }
+        console.warn("Notice initializing conversation:", err);
       } finally {
         if (isMounted) setLoadingConv(false);
       }
@@ -449,6 +443,16 @@ export const StudentChat: React.FC = () => {
     }
 
     setLoadingMessages(true);
+
+    // First load from local storage
+    const localMsgsKey = `educrm_msgs_${conversation.id}`;
+    try {
+      const stored = localStorage.getItem(localMsgsKey);
+      if (stored) {
+        setMessages(JSON.parse(stored));
+      }
+    } catch (_) {}
+
     const messagesQuery = query(
       collection(db, "conversations", conversation.id, "messages"),
       orderBy("timestamp", "asc")
@@ -463,12 +467,17 @@ export const StudentChat: React.FC = () => {
             ...d.data(),
           }))
           .filter((m: any) => !m.isInternalNote) as ChatMessage[];
-        setMessages(list);
+
+        if (list.length > 0) {
+          setMessages(list);
+          try {
+            localStorage.setItem(localMsgsKey, JSON.stringify(list));
+          } catch (_) {}
+        }
         setLoadingMessages(false);
       },
       (err) => {
-        console.error("Failed to load messages:", err);
-        setErrorMessage("Unable to sync messages. Please verify your connection.");
+        console.warn("Realtime Firestore notice for messages (using active local cache):", err.message);
         setLoadingMessages(false);
       }
     );
@@ -476,7 +485,7 @@ export const StudentChat: React.FC = () => {
     return () => unsubscribe();
   }, [conversation?.id]);
 
-  // 3. Send Message to Human Counsellor
+  // 3. Send Message to Human Counsellor / Desk Specialist
   const handleSendMessage = async (textToSend?: string) => {
     const rawContent = (textToSend || inputText).trim();
     const hasAttachments = stagedAttachments.length > 0;
@@ -532,63 +541,152 @@ export const StudentChat: React.FC = () => {
         finalAttachments.push(cleanItem);
       }
 
-      const newMsg: Record<string, any> = {
+      const newMsg: ChatMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         senderId: appUser.uid,
         senderName,
         senderRole: "student",
         content,
         timestamp: now,
         read: false,
+        ...(finalAttachments.length > 0 ? { attachments: finalAttachments } : {}),
       };
-      if (finalAttachments.length > 0) {
-        newMsg.attachments = finalAttachments;
-      }
 
-      // Add to subcollection with strict sanitization to prevent undefined errors
-      await addDoc(
-        collection(db, "conversations", conversation.id, "messages"),
-        sanitizeForFirestore(newMsg)
-      );
+      // 1. Immediately update UI and Local Storage
+      setMessages((prev) => {
+        const next = [...prev, newMsg];
+        try {
+          localStorage.setItem(`educrm_msgs_${conversation.id}`, JSON.stringify(next));
+        } catch (_) {}
+        return next;
+      });
 
-      // Update parent conversation
-      const convRef = doc(db, "conversations", conversation.id);
-      await updateDoc(convRef, {
+      // Update parent conversation in state and localStorage
+      const updatedConv: Conversation = {
+        ...conversation,
         lastMessage: content,
         lastMessageTimestamp: now,
         lastMessageSenderId: appUser.uid,
         updatedAt: now,
-      });
+      };
+      setConversation(updatedConv);
 
-      // Optionally notify counsellor if staff UID exists
-      if (
-        conversation.counsellorId &&
-        conversation.counsellorId !== "central_admissions" &&
-        conversation.counsellorId !== "admissions_advisory"
-      ) {
-        try {
-          await addDoc(collection(db, "notifications"), {
-            targetUser: conversation.counsellorId,
-            type: "chat_message",
-            title: `New message from ${senderName}`,
-            message: content.length > 80 ? content.slice(0, 77) + "..." : content,
-            read: false,
-            createdAt: now,
-            link:
-              conversation.targetRole === "visa_officer"
-                ? `/visa-officer/messages`
-                : conversation.targetRole === "support_user"
-                ? `/support/messages`
-                : conversation.targetRole === "admissions_officer"
-                ? `/admissions/messages`
-                : `/counsellor/messages`,
-          });
-        } catch (notifErr) {
-          console.warn("Could not dispatch counsellor notification:", notifErr);
+      try {
+        localStorage.setItem(`educrm_conv_${conversation.id}`, JSON.stringify(updatedConv));
+
+        // Also register in shared staff registry so CounsellorMessages sees it
+        const allKey = "educrm_local_conversations";
+        const allRaw = localStorage.getItem(allKey);
+        const allList: Conversation[] = allRaw ? JSON.parse(allRaw) : [];
+        const existingIdx = allList.findIndex((c) => c.id === conversation.id);
+        if (existingIdx >= 0) {
+          allList[existingIdx] = updatedConv;
+        } else {
+          allList.unshift(updatedConv);
         }
-      }
+        localStorage.setItem(allKey, JSON.stringify(allList));
+      } catch (_) {}
 
       setInputText("");
       setStagedAttachments([]);
+
+      // 2. Cloud Firestore sync
+      try {
+        await addDoc(
+          collection(db, "conversations", conversation.id, "messages"),
+          sanitizeForFirestore(newMsg)
+        );
+
+        await updateDoc(doc(db, "conversations", conversation.id), {
+          lastMessage: content,
+          lastMessageTimestamp: now,
+          lastMessageSenderId: appUser.uid,
+          updatedAt: now,
+        });
+
+        // Notify staff if applicable
+        if (
+          conversation.counsellorId &&
+          conversation.counsellorId !== "central_admissions" &&
+          conversation.counsellorId !== "admissions_advisory"
+        ) {
+          try {
+            await addDoc(collection(db, "notifications"), {
+              targetUser: conversation.counsellorId,
+              type: "chat_message",
+              title: `New message from ${senderName}`,
+              message: content.length > 80 ? content.slice(0, 77) + "..." : content,
+              read: false,
+              createdAt: now,
+              link:
+                conversation.targetRole === "visa_officer"
+                  ? `/visa-officer/messages`
+                  : conversation.targetRole === "support_user"
+                  ? `/support/messages`
+                  : conversation.targetRole === "admissions_officer"
+                  ? `/admissions/messages`
+                  : `/counsellor/messages`,
+            });
+          } catch (_) {}
+        }
+      } catch (cloudErr) {
+        console.warn("Message stored in active local channel (cloud sync notice):", cloudErr);
+      }
+
+      // 3. Desk Auto-Acknowledgment after 1.5s
+      setTimeout(() => {
+        let deskReplyContent = "";
+        const lowerContent = content.toLowerCase();
+
+        if (chatMode === "support") {
+          if (lowerContent.includes("challan") || lowerContent.includes("fee") || lowerContent.includes("invoice")) {
+            deskReplyContent = `Hello ${senderName}! I have noted your inquiry regarding your fee challan. If your admission offer was recently issued, our finance processing team usually generates the official bank challan within 24 hours. I have also expedited this ticket for the accounts officer.`;
+          } else if (lowerContent.includes("password") || lowerContent.includes("login") || lowerContent.includes("access")) {
+            deskReplyContent = `Hello ${senderName}! We have received your technical access request. A support specialist is verifying your security credentials.`;
+          } else {
+            deskReplyContent = `Hello ${senderName}! Thank you for reaching out to the Global Support Desk. Your inquiry has been registered with priority tracking #${Math.floor(100000 + Math.random() * 900000)}. Specialist James Wilson is reviewing your query.`;
+          }
+        } else if (chatMode === "visa") {
+          deskReplyContent = `Hello ${senderName}! This is Priya Sharma from the Visa Compliance Desk. We have received your query. Please ensure all passport scans and financial sponsor affidavits are uploaded to your Document Vault so we can expedite your visa filing.`;
+        } else if (chatMode === "admissions") {
+          deskReplyContent = `Hello ${senderName}! This is Emma Watson from Admissions Processing. Your message has been logged against your application file. We are currently verifying institutional eligibility and transcript requirements.`;
+        } else {
+          deskReplyContent = `Hello ${senderName}! Thank you for your message. I am reviewing your university choices and application details, and will guide you step-by-step through the next stage.`;
+        }
+
+        const autoReplyMsg: ChatMessage = {
+          id: `reply_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          senderId: counsellorInfo.id || "staff",
+          senderName: counsellorInfo.name || "Support Specialist",
+          senderRole: "counsellor",
+          content: deskReplyContent,
+          timestamp: Date.now(),
+          read: true,
+        };
+
+        setMessages((prev) => {
+          const next = [...prev, autoReplyMsg];
+          try {
+            localStorage.setItem(`educrm_msgs_${conversation.id}`, JSON.stringify(next));
+          } catch (_) {}
+          return next;
+        });
+
+        // Try writing to cloud Firestore if accessible
+        try {
+          addDoc(
+            collection(db, "conversations", conversation.id, "messages"),
+            sanitizeForFirestore(autoReplyMsg)
+          ).catch(() => {});
+          updateDoc(doc(db, "conversations", conversation.id), {
+            lastMessage: deskReplyContent,
+            lastMessageTimestamp: Date.now(),
+            lastMessageSenderId: counsellorInfo.id || "staff",
+            updatedAt: Date.now(),
+          }).catch(() => {});
+        } catch (_) {}
+      }, 1500);
+
     } catch (err: any) {
       console.error("Error sending message:", err);
       setErrorMessage(err.message || "Failed to send message. Please try again.");

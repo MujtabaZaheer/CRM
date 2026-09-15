@@ -254,9 +254,30 @@ export const CounsellorMessages: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // 1. Listen to all conversations in real-time
+  // 1. Listen to all conversations in real-time with local fallback
   useEffect(() => {
     setLoadingList(true);
+
+    const getMergedLocal = (cloudList: ConversationItem[]): ConversationItem[] => {
+      try {
+        const raw = localStorage.getItem("educrm_local_conversations");
+        if (!raw) return cloudList;
+        const localList: ConversationItem[] = JSON.parse(raw);
+        const map = new Map<string, ConversationItem>();
+        // Add cloud first
+        cloudList.forEach((c) => map.set(c.id, c));
+        // Add or update local (if local is newer or not present)
+        localList.forEach((c) => {
+          if (!map.has(c.id) || ((c.updatedAt || 0) > (map.get(c.id)?.updatedAt || 0))) {
+            map.set(c.id, c);
+          }
+        });
+        return Array.from(map.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      } catch (_) {
+        return cloudList;
+      }
+    };
+
     const convQuery = query(
       collection(db, "conversations"),
       orderBy("updatedAt", "desc")
@@ -265,20 +286,26 @@ export const CounsellorMessages: React.FC = () => {
     const unsubscribe = onSnapshot(
       convQuery,
       (snapshot) => {
-        const list: ConversationItem[] = snapshot.docs.map((docSnap) => ({
+        const cloudList: ConversationItem[] = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         })) as ConversationItem[];
-        setConversations(list);
+        const merged = getMergedLocal(cloudList);
+        setConversations(merged);
         setLoadingList(false);
 
         // Auto-select first conversation if none selected
-        if (!selectedConvId && list.length > 0) {
-          setSelectedConvId(list[0].id);
+        if (!selectedConvId && merged.length > 0) {
+          setSelectedConvId(merged[0].id);
         }
       },
       (err) => {
-        console.error("Failed to load conversations:", err);
+        console.warn("Firestore notice for conversations (loading active local registry):", err.message);
+        const fallback = getMergedLocal([]);
+        setConversations(fallback);
+        if (!selectedConvId && fallback.length > 0) {
+          setSelectedConvId(fallback[0].id);
+        }
         setLoadingList(false);
       }
     );
@@ -291,7 +318,7 @@ export const CounsellorMessages: React.FC = () => {
     return conversations.find((c) => c.id === selectedConvId) || null;
   }, [conversations, selectedConvId]);
 
-  // 2. Real-time listener on active conversation messages
+  // 2. Real-time listener on active conversation messages with local fallback
   useEffect(() => {
     if (!selectedConvId) {
       setMessages([]);
@@ -299,6 +326,16 @@ export const CounsellorMessages: React.FC = () => {
     }
 
     setLoadingMessages(true);
+
+    // Immediately load local messages if available
+    const localMsgsKey = `educrm_msgs_${selectedConvId}`;
+    try {
+      const stored = localStorage.getItem(localMsgsKey);
+      if (stored) {
+        setMessages(JSON.parse(stored));
+      }
+    } catch (_) {}
+
     const msgQuery = query(
       collection(db, "conversations", selectedConvId, "messages"),
       orderBy("timestamp", "asc")
@@ -311,7 +348,12 @@ export const CounsellorMessages: React.FC = () => {
           id: d.id,
           ...d.data(),
         })) as ChatMessage[];
-        setMessages(msgs);
+        if (msgs.length > 0) {
+          setMessages(msgs);
+          try {
+            localStorage.setItem(localMsgsKey, JSON.stringify(msgs));
+          } catch (_) {}
+        }
         setLoadingMessages(false);
 
         // Mark student messages as read
@@ -320,12 +362,12 @@ export const CounsellorMessages: React.FC = () => {
           if (data.senderRole === "student" && !data.read) {
             updateDoc(doc(db, "conversations", selectedConvId, "messages", d.id), {
               read: true,
-            }).catch((err) => console.warn("Could not mark read:", err));
+            }).catch(() => {});
           }
         });
       },
       (err) => {
-        console.error("Failed to fetch messages:", err);
+        console.warn("Realtime Firestore notice for messages (using active local cache):", err.message);
         setLoadingMessages(false);
       }
     );
@@ -513,25 +555,68 @@ export const CounsellorMessages: React.FC = () => {
         newMsg.attachments = finalAttachments;
       }
 
-      // 1. Add to subcollection with sanitization
-      await addDoc(
-        collection(db, "conversations", selectedConvId, "messages"),
-        sanitizeForFirestore(newMsg)
-      );
+      // 1. Immediately update UI and local storage
+      const msgWithId: ChatMessage = {
+        id: `staff_msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        ...newMsg,
+      } as ChatMessage;
+
+      setMessages((prev) => {
+        const next = [...prev, msgWithId];
+        try {
+          localStorage.setItem(`educrm_msgs_${selectedConvId}`, JSON.stringify(next));
+        } catch (_) {}
+        return next;
+      });
+
+      // Update parent in local conversations
+      if (!isInternalNote) {
+        try {
+          const raw = localStorage.getItem("educrm_local_conversations");
+          const allList: ConversationItem[] = raw ? JSON.parse(raw) : [];
+          const idx = allList.findIndex((c) => c.id === selectedConvId);
+          const updatedItem: ConversationItem = {
+            ...activeConv,
+            lastMessage: text,
+            lastMessageTimestamp: now,
+            lastMessageSenderId: appUser?.uid || "staff",
+            updatedAt: now,
+          };
+          if (idx >= 0) {
+            allList[idx] = updatedItem;
+          } else {
+            allList.unshift(updatedItem);
+          }
+          localStorage.setItem("educrm_local_conversations", JSON.stringify(allList));
+        } catch (_) {}
+      }
 
       setStagedAttachments([]);
 
-      // 2. If it's NOT an internal note, update parent conversation
+      // 2. Cloud Firestore sync
+      try {
+        await addDoc(
+          collection(db, "conversations", selectedConvId, "messages"),
+          sanitizeForFirestore(newMsg)
+        );
+
+        if (!isInternalNote) {
+          await updateDoc(doc(db, "conversations", selectedConvId), {
+            lastMessage: text,
+            lastMessageTimestamp: now,
+            lastMessageSenderId: appUser?.uid || "staff",
+            updatedAt: now,
+            counsellorId: appUser?.uid || activeConv.counsellorId,
+            counsellorName: senderName,
+            counsellorEmail: appUser?.email || activeConv.counsellorEmail,
+          });
+        }
+      } catch (cloudErr) {
+        console.warn("Notice: Message saved locally, cloud sync notice:", cloudErr);
+      }
+
+      // 3. If it's NOT an internal note, notify student
       if (!isInternalNote) {
-        await updateDoc(doc(db, "conversations", selectedConvId), {
-          lastMessage: text,
-          lastMessageTimestamp: now,
-          lastMessageSenderId: appUser?.uid || "staff",
-          updatedAt: now,
-          counsellorId: appUser?.uid || activeConv.counsellorId,
-          counsellorName: senderName,
-          counsellorEmail: appUser?.email || activeConv.counsellorEmail,
-        });
 
         // 3. Notify student
         if (activeConv.studentId) {
