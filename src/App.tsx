@@ -200,6 +200,7 @@ export const App: React.FC = () => {
                   <Route path="team-members" element={<TeamLeaderTeamMembers />} />
                   <Route path="applications" element={<TeamLeaderApplications />} />
                   <Route path="assign-applications" element={<TeamLeaderAssignApplications />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="tasks" element={<TeamLeaderTasks />} />
                   <Route path="performance" element={<TeamLeaderPerformance />} />
                   <Route path="reports" element={<TeamLeaderReports />} />
@@ -245,6 +246,7 @@ export const App: React.FC = () => {
                 <Route path="/support" element={<SupportRoute />}>
                   <Route path="dashboard" element={<SupportDashboard />} />
                   <Route path="tickets" element={<SupportTicketsPage />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="create-ticket" element={<SupportCreateTicketPage />} />
                   <Route path="knowledge-base" element={<SupportKnowledgeBasePage />} />
                   <Route path="reports" element={<SupportReportsPage />} />
@@ -256,6 +258,7 @@ export const App: React.FC = () => {
                   <Route path="dashboard" element={<AuditorDashboard />} />
                   <Route path="audit-trail" element={<AuditorAuditTrailPage />} />
                   <Route path="compliance-inspect" element={<AuditorComplianceInspectPage />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="system-logs" element={<AuditorSystemLogsPage />} />
                   <Route path="reports" element={<AuditorReportsPage />} />
                   <Route path="notifications" element={<AuditorNotificationsPage />} />
@@ -266,6 +269,7 @@ export const App: React.FC = () => {
                   <Route path="dashboard" element={<SuperAdminDashboardPage />} />
                   <Route path="tenants" element={<SuperAdminTenantsPage />} />
                   <Route path="users" element={<SuperAdminUsersPage />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="system-health" element={<SuperAdminSystemHealthPage />} />
                   <Route path="global-settings" element={<SuperAdminGlobalSettingsPage />} />
                   <Route path="audit-logs" element={<SuperAdminAuditLogsPage />} />
@@ -276,6 +280,7 @@ export const App: React.FC = () => {
                 <Route path="/visa-officer" element={<RoleRoute role="visa_officer" />}>
                   <Route path="dashboard" element={<VisaWorkspace page="dashboard" />} />
                   <Route path="cases" element={<VisaWorkspace page="cases" />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="documents" element={<RolePortal role="visa" page="documents" />} />
                   <Route path="tasks" element={<RolePortal role="visa" page="tasks" />} />
                   <Route path="notifications" element={<RolePortal role="visa" page="notifications" />} />
@@ -309,6 +314,7 @@ export const App: React.FC = () => {
                   <Route path="dashboard" element={<AgentDashboardPage />} />
                   <Route path="referrals" element={<AgentReferralsPage />} />
                   <Route path="refer-lead" element={<AgentReferLeadPage />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="commissions" element={<AgentCommissionsPage />} />
                   <Route path="notifications" element={<AgentNotificationsPage />} />
                 </Route>
@@ -317,9 +323,12 @@ export const App: React.FC = () => {
                 <Route path="/university" element={<RoleRoute role="university_partner" />}>
                   <Route path="dashboard" element={<UniversityDashboardPage />} />
                   <Route path="applications" element={<UniversityApplicationsPage />} />
+                  <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="cas-issuance" element={<UniversityCASIssuancePage />} />
                   <Route path="notifications" element={<UniversityNotificationsPage />} />
                 </Route>
+
+                <Route path="/messages" element={<CounsellorMessages />} />
 
                 {/* Modules — Under Construction Stubs (Phase 2 & 3 in PDF) */}
                 <Route

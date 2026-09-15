@@ -7,6 +7,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import {
   MessageSquare,
@@ -23,6 +24,9 @@ import {
   FileText,
   Eye,
   Download,
+  LifeBuoy,
+  GraduationCap,
+  Plane,
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
@@ -36,6 +40,8 @@ import {
   getCachedDocumentFile,
   getDocumentBlobOrUrl,
 } from "../../utils/documentStorage";
+import { UserRole } from "../../types/role";
+import { ALLOWED_CHAT_TARGET_ROLES, COUNTERPART_ROLE_LABELS } from "../../utils/chatPermissions";
 
 interface ChatMessage {
   id: string;
@@ -67,19 +73,71 @@ const sanitizeForFirestore = <T,>(data: T): T => {
 
 interface ConversationItem {
   id: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
+  studentId?: string;
+  studentName?: string;
+  studentEmail?: string;
   counsellorId?: string;
   counsellorName?: string;
   counsellorEmail?: string;
   participants: string[];
+  channelType?: "counsellor" | "admissions" | "visa" | "support" | "internal" | string;
+  targetRole?: UserRole | string;
+  initiatorRole?: UserRole | string;
+  initiatorName?: string;
+  initiatorEmail?: string;
+  targetStaffName?: string;
   lastMessage?: string;
   lastMessageTimestamp?: number;
   lastMessageSenderId?: string;
   createdAt: number;
   updatedAt: number;
   unreadCount?: number;
+}
+
+function getConversationMeta(
+  conv: ConversationItem,
+  currentUserRole?: UserRole | string,
+  _currentUserId?: string
+) {
+  const isSupportChat = conv.channelType === "support" || conv.targetRole === "support_user";
+
+  if (isSupportChat) {
+    if (currentUserRole === "support_user") {
+      const name = conv.initiatorName || conv.studentName || "Platform User";
+      const email = conv.initiatorEmail || conv.studentEmail || "";
+      const role = (conv.initiatorRole || "student") as UserRole;
+      const roleLabel = COUNTERPART_ROLE_LABELS[role] || role.replace(/_/g, " ");
+      return {
+        title: name,
+        subtitle: email,
+        badge: roleLabel,
+        badgeColor: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+        avatar: name.split(" ").map((n) => n[0]).slice(0, 2).join("") || "U",
+        isStudent: role === "student",
+        isSupport: false,
+      };
+    } else {
+      return {
+        title: "Global Support Desk",
+        subtitle: "James Wilson • Global Support Officer",
+        badge: "Support Officer",
+        badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        avatar: "GS",
+        isStudent: false,
+        isSupport: true,
+      };
+    }
+  }
+
+  return {
+    title: conv.studentName || "Student",
+    subtitle: conv.studentEmail || "student@educrm.demo",
+    badge: "Student",
+    badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    avatar: (conv.studentName || "S").split(" ").map((n) => n[0]).slice(0, 2).join("") || "S",
+    isStudent: true,
+    isSupport: false,
+  };
 }
 
 export const CounsellorMessages: React.FC = () => {
@@ -275,12 +333,103 @@ export const CounsellorMessages: React.FC = () => {
     return () => unsubscribe();
   }, [selectedConvId]);
 
-  // Filter conversations
+  const allowedRoles = useMemo(() => {
+    if (!appUser?.role) return [];
+    return ALLOWED_CHAT_TARGET_ROLES[appUser.role] || [];
+  }, [appUser?.role]);
+
+  // Connect or open support thread
+  const handleConnectSupport = async () => {
+    if (!appUser?.uid) return;
+    const supportConvId = `${appUser.uid}_support`;
+    const existing = conversations.find(
+      (c) =>
+        c.id === supportConvId ||
+        ((c.channelType === "support" || c.targetRole === "support_user") &&
+          c.participants?.includes(appUser.uid))
+    );
+    if (existing) {
+      setSelectedConvId(existing.id);
+      return;
+    }
+
+    const userName = appUser.displayName || appUser.email?.split("@")[0] || "User";
+    const newSupportData: any = {
+      id: supportConvId,
+      studentId: appUser.uid,
+      studentName: userName,
+      studentEmail: appUser.email || "",
+      initiatorName: userName,
+      initiatorEmail: appUser.email || "",
+      initiatorRole: appUser.role,
+      counsellorId: "usr_7",
+      counsellorName: "James Wilson (Global Support)",
+      counsellorEmail: "support@educrm.demo",
+      channelType: "support",
+      targetRole: "support_user",
+      participants: [appUser.uid, "usr_7"],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      lastMessage: `Support consultation opened with James Wilson (Global Support)`,
+      lastMessageTimestamp: Date.now(),
+      lastMessageSenderId: appUser.uid,
+    };
+
+    try {
+      await setDoc(doc(db, "conversations", supportConvId), newSupportData, { merge: true });
+      setSelectedConvId(supportConvId);
+    } catch (err) {
+      console.error("Error creating support conversation:", err);
+    }
+  };
+
+  // Filter conversations strictly adhering to role permissions
   const filteredConversations = useMemo(() => {
     return conversations.filter((c) => {
+      const isSupportChat = c.channelType === "support" || c.targetRole === "support_user";
+
+      // 1. Strict Role-Based Visibility Check
+      if (appUser?.role === "support_user") {
+        // Support officer sees all support inquiries from all users,
+        // and any conversation they are a participant in.
+        if (!isSupportChat && !c.participants?.includes(appUser.uid)) {
+          return false;
+        }
+      } else {
+        // All other roles:
+        if (isSupportChat) {
+          // Must involve appUser
+          const involvesMe =
+            c.participants?.includes(appUser?.uid || "") ||
+            c.studentId === appUser?.uid ||
+            c.studentEmail === appUser?.email;
+          if (!involvesMe) return false;
+          // Must be allowed to chat with support
+          if (!allowedRoles.includes("support_user")) return false;
+        } else {
+          // Counterpart is a student
+          if (!allowedRoles.includes("student")) return false;
+
+          // Department-specific checks
+          if (appUser?.role === "counsellor") {
+            if (c.channelType && c.channelType !== "counsellor") return false;
+          } else if (appUser?.role === "admissions_officer") {
+            if (c.channelType && c.channelType !== "admissions") return false;
+          } else if (appUser?.role === "visa_officer") {
+            if (c.channelType && c.channelType !== "visa") return false;
+          } else {
+            // Other roles (team_leader, auditor, super_admin, org_admin, agent, university)
+            // CANNOT see student chats! (per user prompt: other user chat not show)
+            return false;
+          }
+        }
+      }
+
+      // Search filtering
+      const meta = getConversationMeta(c, appUser?.role, appUser?.uid);
       const matchSearch =
-        (c.studentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (c.studentEmail || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meta.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meta.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.lastMessage || "").toLowerCase().includes(searchQuery.toLowerCase());
 
       if (!matchSearch) return false;
@@ -289,6 +438,7 @@ export const CounsellorMessages: React.FC = () => {
         return (
           c.counsellorId === appUser?.uid ||
           c.counsellorEmail === appUser?.email ||
+          c.studentId === appUser?.uid ||
           (c.participants && appUser?.uid && c.participants.includes(appUser.uid))
         );
       }
@@ -296,14 +446,25 @@ export const CounsellorMessages: React.FC = () => {
       if (filterTab === "unread") {
         return (
           c.lastMessageSenderId &&
-          c.lastMessageSenderId !== appUser?.uid &&
-          c.lastMessageSenderId !== "counsellor"
+          c.lastMessageSenderId !== appUser?.uid
         );
       }
 
       return true;
     });
-  }, [conversations, searchQuery, filterTab, appUser?.uid, appUser?.email]);
+  }, [conversations, searchQuery, filterTab, appUser, allowedRoles]);
+
+  // Auto-select first conversation if selectedConvId is not valid or empty
+  useEffect(() => {
+    if (filteredConversations.length > 0) {
+      const exists = filteredConversations.some((c) => c.id === selectedConvId);
+      if (!exists) {
+        setSelectedConvId(filteredConversations[0].id);
+      }
+    } else {
+      setSelectedConvId(null);
+    }
+  }, [filteredConversations, selectedConvId]);
 
   // Send message or internal note handler
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -485,18 +646,73 @@ export const CounsellorMessages: React.FC = () => {
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)] flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-emerald-400" />
-            Student Communications Hub
+            {appUser?.role === "support_user" ? (
+              <>
+                <LifeBuoy className="w-6 h-6 text-amber-400" />
+                Global Support Communications Desk
+              </>
+            ) : appUser?.role === "visa_officer" ? (
+              <>
+                <Plane className="w-6 h-6 text-purple-400" />
+                Visa Communications &amp; Support
+              </>
+            ) : appUser?.role === "admissions_officer" ? (
+              <>
+                <GraduationCap className="w-6 h-6 text-sky-400" />
+                Admissions Messages &amp; Support
+              </>
+            ) : appUser?.role === "team_leader" ? (
+              <>
+                <LifeBuoy className="w-6 h-6 text-emerald-400" />
+                Team Leader Support Communications
+              </>
+            ) : appUser?.role === "auditor" || appUser?.role === "compliance_officer" ? (
+              <>
+                <LifeBuoy className="w-6 h-6 text-emerald-400" />
+                Auditor Support Desk
+              </>
+            ) : appUser?.role === "platform_super_admin" ? (
+              <>
+                <LifeBuoy className="w-6 h-6 text-emerald-400" />
+                Super Admin Support Desk
+              </>
+            ) : (
+              <>
+                <MessageSquare className="w-6 h-6 text-emerald-400" />
+                Communications &amp; Support Hub
+              </>
+            )}
           </h1>
           <p className="text-xs text-[var(--text-secondary)] mt-1">
-            Two-way real-time messaging, internal staff notes, and follow-up task automation (CRM Specification Section 3.12).
+            {appUser?.role === "support_user"
+              ? "Live incoming inquiries and two-way conversations from students, counsellors, admissions, visa officers, and all platform staff."
+              : appUser?.role === "team_leader" ||
+                appUser?.role === "auditor" ||
+                appUser?.role === "platform_super_admin" ||
+                appUser?.role === "org_admin" ||
+                appUser?.role === "external_agent" ||
+                appUser?.role === "university_partner"
+              ? "Direct two-way channel with the Global Support Desk for account questions, system tickets, and operational support."
+              : "Role-governed communications with students and direct connection to the Global Support Desk."}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
+          {appUser?.role !== "support_user" && (
+            <button
+              type="button"
+              onClick={handleConnectSupport}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-amber-500/10 cursor-pointer"
+              title="Open direct live chat with Global Support Desk"
+            >
+              <LifeBuoy className="w-3.5 h-3.5" />
+              <span>Contact Support Desk</span>
+            </button>
+          )}
+
           <div className="px-3 py-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-[var(--text-secondary)] flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Real-time Sync Active</span>
+            <span>Encrypted &amp; Logged</span>
           </div>
         </div>
       </header>
@@ -561,68 +777,87 @@ export const CounsellorMessages: React.FC = () => {
                 <p className="text-xs">Loading conversations...</p>
               </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="p-8 text-center text-[var(--text-muted)]">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs font-semibold">No conversations found</p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1">
-                  When students send a message from their portal, it will appear here instantly.
+              <div className="p-8 text-center text-[var(--text-muted)] space-y-3">
+                <LifeBuoy className="w-10 h-10 mx-auto text-amber-400 opacity-60" />
+                <p className="text-xs font-semibold text-[var(--text-primary)]">
+                  {appUser?.role === "support_user" ? "No Support Conversations" : "No Conversations Found"}
                 </p>
+                <p className="text-[11px] text-[var(--text-secondary)]">
+                  {appUser?.role === "support_user"
+                    ? "Incoming support inquiries from users across the platform will appear here."
+                    : "You can start a direct consultation with the Global Support Desk."}
+                </p>
+                {appUser?.role !== "support_user" && (
+                  <button
+                    type="button"
+                    onClick={handleConnectSupport}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 mx-auto cursor-pointer"
+                  >
+                    <LifeBuoy className="w-3.5 h-3.5" />
+                    <span>Connect with Support Desk</span>
+                  </button>
+                )}
               </div>
             ) : (
               filteredConversations.map((conv) => {
                 const isSelected = conv.id === selectedConvId;
-                const isFromStudent =
+                const meta = getConversationMeta(conv, appUser?.role, appUser?.uid);
+                const isUnread =
                   conv.lastMessageSenderId &&
-                  conv.lastMessageSenderId !== appUser?.uid &&
-                  conv.lastMessageSenderId !== "staff" &&
-                  conv.lastMessageSenderId !== "counsellor";
+                  conv.lastMessageSenderId !== appUser?.uid;
 
                 return (
                   <button
                     key={conv.id}
                     onClick={() => setSelectedConvId(conv.id)}
-                    className={`w-full p-4 text-left transition-colors flex items-start gap-3.5 group ${
+                    className={`w-full p-4 text-left transition-colors flex items-start gap-3.5 group cursor-pointer ${
                       isSelected
                         ? "bg-emerald-500/10 border-l-4 border-emerald-500"
                         : "hover:bg-[var(--bg-hover)] border-l-4 border-transparent"
                     }`}
                   >
-                    {/* Student Initials Avatar */}
+                    {/* Initials Avatar */}
                     <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-bold text-xs flex items-center justify-center shadow">
-                        {(conv.studentName || "S")
-                          .split(" ")
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join("")}
+                      <div
+                        className={`w-10 h-10 rounded-xl font-bold text-xs flex items-center justify-center shadow ${
+                          meta.isSupport
+                            ? "bg-gradient-to-br from-amber-500 to-orange-600 text-zinc-950"
+                            : "bg-gradient-to-br from-emerald-600 to-teal-700 text-white"
+                        }`}
+                      >
+                        {meta.avatar}
                       </div>
-                      {isFromStudent && (
+                      {isUnread && (
                         <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[var(--bg-card)]" />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-xs font-bold text-[var(--text-primary)] truncate">
-                          {conv.studentName || "Student"}
-                        </h4>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <h4 className="text-xs font-bold text-[var(--text-primary)] truncate">
+                            {meta.title}
+                          </h4>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-semibold shrink-0 ${meta.badgeColor}`}>
+                            {meta.badge}
+                          </span>
+                        </div>
                         <span className="text-[10px] text-[var(--text-muted)] shrink-0">
                           {formatDate(conv.lastMessageTimestamp || conv.updatedAt)}
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-[var(--text-secondary)] truncate">
-                        {conv.studentEmail}
+                      <p className="text-[11px] text-[var(--text-secondary)] truncate mt-0.5">
+                        {meta.subtitle}
                       </p>
 
                       <p
                         className={`text-xs mt-1 truncate ${
-                          isFromStudent
+                          isUnread
                             ? "text-emerald-400 font-semibold"
                             : "text-[var(--text-muted)]"
                         }`}
                       >
-                        {isFromStudent ? "Student: " : "Staff: "}
                         {conv.lastMessage || "No messages yet"}
                       </p>
                     </div>
@@ -639,28 +874,35 @@ export const CounsellorMessages: React.FC = () => {
             <>
               {/* Chat Room Top Bar */}
               <div className="p-4 px-6 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-bold text-sm flex items-center justify-center shadow">
-                    {(activeConv.studentName || "S")
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                        {activeConv.studentName}
-                      </h3>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                        Student
-                      </span>
+                {(() => {
+                  const activeMeta = getConversationMeta(activeConv, appUser?.role, appUser?.uid);
+                  return (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl font-bold text-sm flex items-center justify-center shadow ${
+                          activeMeta.isSupport
+                            ? "bg-gradient-to-br from-amber-500 to-orange-600 text-zinc-950"
+                            : "bg-gradient-to-br from-emerald-600 to-teal-700 text-white"
+                        }`}
+                      >
+                        {activeMeta.avatar}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                            {activeMeta.title}
+                          </h3>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${activeMeta.badgeColor}`}>
+                            {activeMeta.badge}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--text-muted)]">
+                          {activeMeta.subtitle}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {activeConv.studentEmail}
-                    </p>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Quick Actions (Task & Link) */}
                 <div className="flex items-center gap-2">
@@ -967,14 +1209,26 @@ export const CounsellorMessages: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-[var(--text-muted)]">
-              <MessageSquare className="w-12 h-12 mb-3 opacity-30" />
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-[var(--text-muted)] space-y-3">
+              <LifeBuoy className="w-12 h-12 mb-1 text-emerald-400 opacity-30" />
               <h3 className="text-base font-bold text-[var(--text-primary)]">
-                Select a student conversation
+                {appUser?.role === "support_user" ? "Support Inquiry Workspace" : "No Conversation Selected"}
               </h3>
-              <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-sm">
-                Choose a thread from the left to view messages, answer inquiries, or record internal notes.
+              <p className="text-xs text-[var(--text-secondary)] max-w-sm">
+                {appUser?.role === "support_user"
+                  ? "Choose an incoming inquiry from the left panel to respond to users."
+                  : "Choose a conversation thread from the left or connect directly with our 24/7 Global Support Desk."}
               </p>
+              {appUser?.role !== "support_user" && (
+                <button
+                  type="button"
+                  onClick={handleConnectSupport}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <LifeBuoy className="w-3.5 h-3.5" />
+                  <span>Start Live Support Chat</span>
+                </button>
+              )}
             </div>
           )}
         </div>

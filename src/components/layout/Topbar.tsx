@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, LogOut, Sun, Moon, Shield, Sparkles, ShieldCheck, FileText, Database } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Shield, Sparkles, ShieldCheck, FileText, Database, LifeBuoy } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
@@ -41,6 +41,32 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
     }
   };
 
+  const handleOpenSupportChat = () => {
+    if (appUser?.role === "student") {
+      navigate("/student/messages");
+    } else if (appUser?.role === "visa_officer") {
+      navigate("/visa-officer/messages");
+    } else if (appUser?.role === "admissions_officer") {
+      navigate("/admissions/messages");
+    } else if (appUser?.role === "counsellor") {
+      navigate("/counsellor/messages");
+    } else if (appUser?.role === "support_user") {
+      navigate("/support/messages");
+    } else if (appUser?.role === "team_leader") {
+      navigate("/team-leader/messages");
+    } else if (appUser?.role === "auditor" || appUser?.role === "compliance_officer") {
+      navigate("/auditor/messages");
+    } else if (appUser?.role === "platform_super_admin") {
+      navigate("/super-admin/messages");
+    } else if (appUser?.role === "external_agent") {
+      navigate("/agent/messages");
+    } else if (appUser?.role === "university_partner") {
+      navigate("/university/messages");
+    } else {
+      navigate("/messages");
+    }
+  };
+
   const isSuperAdmin = appUser?.role === "platform_super_admin";
 
   return (
@@ -64,6 +90,16 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
       </div>
 
       <div className="flex items-center space-x-3">
+        {/* Support Chat Quick Button */}
+        <button
+          onClick={handleOpenSupportChat}
+          className="flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 sq-btn text-xs font-bold transition-all shadow-sm shadow-amber-500/10 cursor-pointer"
+          title="24/7 Global Support Desk Chat"
+        >
+          <LifeBuoy className="w-3.5 h-3.5 text-amber-400" />
+          <span className="hidden md:inline">Support Chat</span>
+        </button>
+
         {/* AI Tools Launch Button */}
         <div className="relative">
           <button

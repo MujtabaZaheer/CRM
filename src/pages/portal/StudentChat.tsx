@@ -34,6 +34,8 @@ import {
   Eye,
   X,
   FileCheck,
+  LifeBuoy,
+  Plane,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { db } from "../../firebase/config";
@@ -81,6 +83,8 @@ interface Conversation {
   lastMessageSenderId?: string;
   createdAt: number;
   updatedAt: number;
+  channelType?: string;
+  targetRole?: string;
 }
 
 interface PendingAttachment {
@@ -148,8 +152,8 @@ export const StudentChat: React.FC = () => {
   const { ownStudent, ownApplications, ownDocuments } = usePortalData();
   const { universities } = useGlobalData();
 
-  // Mode Switcher: Human Counsellor vs AI Advisor
-  const [chatMode, setChatMode] = useState<"counsellor" | "ai">("counsellor");
+  // Mode Switcher: Counsellor, Admissions, Visa, Support vs AI Advisor
+  const [chatMode, setChatMode] = useState<"counsellor" | "admissions" | "visa" | "support" | "ai">("counsellor");
 
   // Attachment Staging State (shared across modes or for currently active input)
   const [stagedAttachments, setStagedAttachments] = useState<PendingAttachment[]>([]);
@@ -291,7 +295,7 @@ export const StudentChat: React.FC = () => {
 
   // 1. Resolve Counsellor & Find/Create Conversation
   useEffect(() => {
-    if (!appUser?.uid) return;
+    if (!appUser?.uid || chatMode === "ai") return;
 
     let isMounted = true;
 
@@ -300,57 +304,67 @@ export const StudentChat: React.FC = () => {
       setErrorMessage(null);
 
       try {
-        let assignedId = ownStudent?.assignedCounsellorId;
-        let assignedName = "Admissions Advisory Team";
-        let assignedEmail = "admissions@crm.internal";
-        let assignedRole = "Senior Academic Advisor";
+        let assignedId = "";
+        let assignedName = "";
+        let assignedEmail = "";
+        let assignedRole = "";
+        let targetRole = "counsellor";
 
-        if (assignedId) {
-          try {
-            const userSnap = await getDocs(
-              query(collection(db, "users"), where("uid", "==", assignedId), limit(1))
-            );
-            if (!userSnap.empty) {
-              const uData = userSnap.docs[0].data();
-              assignedName = uData.displayName || uData.fullName || assignedName;
-              assignedEmail = uData.email || assignedEmail;
-              assignedRole = uData.role === "counsellor" ? "Dedicated Education Counsellor" : "Admissions Advisor";
+        if (chatMode === "counsellor") {
+          targetRole = "counsellor";
+          assignedId = ownStudent?.assignedCounsellorId || "usr_3";
+          assignedName = "David Kim";
+          assignedEmail = "counsellor@educrm.demo";
+          assignedRole = "Dedicated Education Counsellor";
+
+          if (ownStudent?.assignedCounsellorId) {
+            try {
+              const userSnap = await getDocs(
+                query(collection(db, "users"), where("uid", "==", ownStudent.assignedCounsellorId), limit(1))
+              );
+              if (!userSnap.empty) {
+                const uData = userSnap.docs[0].data();
+                assignedName = uData.displayName || uData.fullName || assignedName;
+                assignedEmail = uData.email || assignedEmail;
+              }
+            } catch (err) {
+              console.warn("Could not fetch assigned counsellor document:", err);
             }
-          } catch (err) {
-            console.warn("Could not fetch assigned counsellor document:", err);
           }
-        } else {
-          try {
-            const staffSnap = await getDocs(
-              query(collection(db, "users"), where("role", "in", ["counsellor", "team_leader", "org_admin"]), limit(1))
-            );
-            if (!staffSnap.empty) {
-              const sData = staffSnap.docs[0].data();
-              assignedId = sData.uid;
-              assignedName = sData.displayName || sData.fullName || "Admissions Advisory";
-              assignedEmail = sData.email || "counsellor@crm.internal";
-              assignedRole = "Dedicated Education Counsellor";
-            } else {
-              assignedId = "central_admissions";
-            }
-          } catch (err) {
-            console.warn("Could not fetch available staff:", err);
-            assignedId = "central_admissions";
-          }
+        } else if (chatMode === "admissions") {
+          targetRole = "admissions_officer";
+          assignedId = "usr_4";
+          assignedName = "Emma Watson";
+          assignedEmail = "admissions@educrm.demo";
+          assignedRole = "Admissions Processing Officer";
+        } else if (chatMode === "visa") {
+          targetRole = "visa_officer";
+          assignedId = "usr_6";
+          assignedName = "Priya Sharma";
+          assignedEmail = "visa@educrm.demo";
+          assignedRole = "Visa Compliance Officer";
+        } else if (chatMode === "support") {
+          targetRole = "support_user";
+          assignedId = "usr_7";
+          assignedName = "James Wilson";
+          assignedEmail = "support@educrm.demo";
+          assignedRole = "Global Support Desk Specialist";
         }
 
         if (isMounted) {
           setCounsellorInfo({
-            id: assignedId || "central_admissions",
+            id: assignedId,
             name: assignedName,
             email: assignedEmail,
             role: assignedRole,
           });
         }
 
+        // 1. Check if an existing conversation exists for this channel
         const convQuery = query(
           collection(db, "conversations"),
           where("studentId", "==", appUser.uid),
+          where("channelType", "==", chatMode),
           limit(1)
         );
         const convSnap = await getDocs(convQuery);
@@ -360,38 +374,60 @@ export const StudentChat: React.FC = () => {
           const convData = { id: convDoc.id, ...convDoc.data() } as Conversation;
           if (isMounted) setConversation(convData);
         } else {
-          const studentName =
-            appUser.displayName ||
-            ownStudent?.fullName ||
-            appUser.email?.split("@")[0] ||
-            "Student";
-          const newConvId = `${appUser.uid}_${assignedId || "admissions"}`;
-          const newConvData: Omit<Conversation, "id"> = {
-            studentId: appUser.uid,
-            studentName,
-            studentEmail: appUser.email || "",
-            counsellorId: assignedId || "central_admissions",
-            counsellorName: assignedName,
-            counsellorEmail: assignedEmail,
-            participants: [appUser.uid, assignedId || "central_admissions"],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            lastMessage: "Conversation initialized",
-            lastMessageTimestamp: Date.now(),
-            lastMessageSenderId: "system",
-          };
+          // If counsellor mode, check legacy conversations without channelType
+          let existingLegacy = false;
+          if (chatMode === "counsellor") {
+            const legacyQuery = query(
+              collection(db, "conversations"),
+              where("studentId", "==", appUser.uid),
+              limit(1)
+            );
+            const legacySnap = await getDocs(legacyQuery);
+            if (!legacySnap.empty) {
+              const convDoc = legacySnap.docs[0];
+              const convData = { id: convDoc.id, ...convDoc.data() } as Conversation;
+              if (isMounted) setConversation(convData);
+              existingLegacy = true;
+            }
+          }
 
-          const convDocRef = doc(db, "conversations", newConvId);
-          await setDoc(convDocRef, newConvData, { merge: true });
+          if (!existingLegacy) {
+            const studentName =
+              appUser.displayName ||
+              ownStudent?.fullName ||
+              appUser.email?.split("@")[0] ||
+              "Student";
+            const newConvId = `${appUser.uid}_${chatMode}`;
+            const newConvData: any = {
+              studentId: appUser.uid,
+              studentName,
+              studentEmail: appUser.email || "",
+              counsellorId: assignedId,
+              counsellorName: assignedName,
+              counsellorEmail: assignedEmail,
+              channelType: chatMode,
+              targetRole,
+              initiatorRole: "student",
+              participants: [appUser.uid, assignedId],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              lastMessage: `Started communication thread with ${assignedName}`,
+              lastMessageTimestamp: Date.now(),
+              lastMessageSenderId: "system",
+            };
 
-          if (isMounted) {
-            setConversation({ id: newConvId, ...newConvData });
+            const convDocRef = doc(db, "conversations", newConvId);
+            await setDoc(convDocRef, newConvData, { merge: true });
+
+            if (isMounted) {
+              setConversation({ id: newConvId, ...newConvData });
+            }
           }
         }
       } catch (err: any) {
         console.error("Error initializing conversation:", err);
         if (isMounted) {
-          setErrorMessage(err.message || "Failed to connect to counsellor chat.");
+          setErrorMessage(err.message || "Failed to connect to chat desk.");
         }
       } finally {
         if (isMounted) setLoadingConv(false);
@@ -403,7 +439,7 @@ export const StudentChat: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [appUser?.uid, ownStudent?.assignedCounsellorId]);
+  }, [appUser?.uid, ownStudent?.assignedCounsellorId, chatMode]);
 
   // 2. Real-time Listener on Messages
   useEffect(() => {
@@ -537,7 +573,14 @@ export const StudentChat: React.FC = () => {
             message: content.length > 80 ? content.slice(0, 77) + "..." : content,
             read: false,
             createdAt: now,
-            link: `/counsellor/messages`,
+            link:
+              conversation.targetRole === "visa_officer"
+                ? `/visa-officer/messages`
+                : conversation.targetRole === "support_user"
+                ? `/support/messages`
+                : conversation.targetRole === "admissions_officer"
+                ? `/admissions/messages`
+                : `/counsellor/messages`,
           });
         } catch (notifErr) {
           console.warn("Could not dispatch counsellor notification:", notifErr);
@@ -731,6 +774,21 @@ export const StudentChat: React.FC = () => {
                 <Bot className="w-6 h-6 text-emerald-400" />
                 AI Education Counsellor &amp; Guide
               </>
+            ) : chatMode === "support" ? (
+              <>
+                <LifeBuoy className="w-6 h-6 text-amber-400" />
+                Global Support Desk
+              </>
+            ) : chatMode === "visa" ? (
+              <>
+                <Plane className="w-6 h-6 text-purple-400" />
+                Visa &amp; Compliance Advisory
+              </>
+            ) : chatMode === "admissions" ? (
+              <>
+                <GraduationCap className="w-6 h-6 text-sky-400" />
+                Admissions Processing Desk
+              </>
             ) : (
               <>
                 <MessageSquare className="w-6 h-6 text-emerald-400" />
@@ -741,35 +799,77 @@ export const StudentChat: React.FC = () => {
           <p className="text-sm text-[var(--text-secondary)] mt-1">
             {chatMode === "ai"
               ? "Instant AI advising: Check your documents, explore program matching, evaluate targeted universities, and get comprehensive guidance."
-              : "Connect directly with your dedicated education counsellor for application guidance, document reviews, and interview prep."}
+              : chatMode === "support"
+              ? "Connect directly with our 24/7 Global Support Specialists for technical questions, login issues, and platform assistance."
+              : chatMode === "visa"
+              ? "Communicate directly with your assigned Visa Officer for CAS/COE compliance, financial evidence, and visa lodgement guidance."
+              : chatMode === "admissions"
+              ? "Direct line with the Admissions team regarding application evaluation, offer letters, and conditional requirements."
+              : "Connect directly with your dedicated education counsellor for personalized advisory, course shortlisting, and interview prep."}
           </p>
         </div>
 
-        {/* Mode Selector Switcher */}
-        <div className="flex items-center p-1 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-xs">
+        {/* Mode & Counterpart Selector Switcher */}
+        <div className="flex items-center flex-wrap gap-1 p-1 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-xs">
           <button
             type="button"
             onClick={() => setChatMode("counsellor")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               chatMode === "counsellor"
                 ? "bg-emerald-500 text-zinc-950 shadow-sm"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Dedicated Counsellor</span>
+            <span>Counsellor</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatMode("admissions")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              chatMode === "admissions"
+                ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Admissions</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatMode("visa")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              chatMode === "visa"
+                ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <Plane className="w-3.5 h-3.5" />
+            <span>Visa Officer</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatMode("support")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              chatMode === "support"
+                ? "bg-amber-500 text-zinc-950 shadow-sm"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <LifeBuoy className="w-3.5 h-3.5" />
+            <span>Support Desk</span>
           </button>
           <button
             type="button"
             onClick={() => setChatMode("ai")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               chatMode === "ai"
                 ? "bg-emerald-500 text-zinc-950 shadow-sm"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>AI Counsellor &amp; Guide</span>
+            <span>AI Guide</span>
           </button>
         </div>
       </header>
@@ -933,25 +1033,76 @@ export const StudentChat: React.FC = () => {
               <div>
                 <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--text-muted)] flex items-center gap-1.5 mb-3">
                   <HelpCircle className="w-4 h-4 text-amber-400" />
-                  How your counsellor helps
+                  {chatMode === "support"
+                    ? "How Support Desk Helps"
+                    : chatMode === "visa"
+                    ? "How Visa Desk Helps"
+                    : chatMode === "admissions"
+                    ? "How Admissions Desk Helps"
+                    : "How Your Counsellor Helps"}
                 </h4>
                 <ul className="space-y-2.5 text-xs text-[var(--text-secondary)]">
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Program matching &amp; eligibility pre-screening</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Statement of Purpose (SOP) critique &amp; editing</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Document &amp; picture verification before university submission</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span>Visa interview preparation &amp; guidance</span>
-                  </li>
+                  {chatMode === "support" ? (
+                    <>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                        <span>Technical platform navigation &amp; account issues</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                        <span>Password resets, verification &amp; access tickets</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                        <span>Portal feature inquiries &amp; feedback</span>
+                      </li>
+                    </>
+                  ) : chatMode === "visa" ? (
+                    <>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0" />
+                        <span>CAS / COE release and embassy compliance check</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0" />
+                        <span>Financial sponsorship &amp; bank statement clearance</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0" />
+                        <span>Visa application form review &amp; interview prep</span>
+                      </li>
+                    </>
+                  ) : chatMode === "admissions" ? (
+                    <>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1.5 shrink-0" />
+                        <span>University conditional &amp; unconditional offer status</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1.5 shrink-0" />
+                        <span>Academic transcript evaluation &amp; condition fulfillment</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-1.5 shrink-0" />
+                        <span>Deposit confirmation and university acceptance deadlines</span>
+                      </li>
+                    </>
+                  ) : (
+                    <>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                        <span>Program matching &amp; eligibility pre-screening</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                        <span>Statement of Purpose (SOP) critique &amp; editing</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                        <span>Document &amp; picture verification before university submission</span>
+                      </li>
+                    </>
+                  )}
                 </ul>
               </div>
 

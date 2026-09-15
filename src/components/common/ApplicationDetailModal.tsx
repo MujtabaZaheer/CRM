@@ -35,6 +35,7 @@ const ADMISSIONS_SHORTCUTS: ApplicationStage[] = [
   "Additional Info Requested",
   "Ready for Submission",
   "Submitted",
+  "Enrolled",
   "Rejected",
 ];
 
@@ -45,7 +46,6 @@ const VISA_SHORTCUTS: ApplicationStage[] = [
   "Visa Preparation",
   "Visa Submitted",
   "Visa Approved",
-  "Enrolled",
   "Rejected",
 ];
 
@@ -657,7 +657,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 onChange={(e) => setSelectedStage(e.target.value as ApplicationStage)}
                 className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)]"
               >
-                {ALL_STAGES.map((stg) => (
+                {ALL_STAGES.filter((stg) => role !== "visa" || stg !== "Enrolled").map((stg) => (
                   <option key={stg} value={stg}>
                     {stg}
                   </option>

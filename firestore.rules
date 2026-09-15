@@ -7,7 +7,7 @@ service cloud.firestore {
     function hasUserDoc() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     function isBootstrapSuperAdmin(email) {
-      return email in ['live_superadmin@educrm.com', 'superadmin@educrm.com', 'admin@educrm.com'];
+      return email in ['live_superadmin@educrm.com', 'superadmin@educrm.com'];
     }
     function isBootstrapOrgAdmin(email) {
       return email in ['live_orgadmin@educrm.com', 'orgadmin@educrm.com'];

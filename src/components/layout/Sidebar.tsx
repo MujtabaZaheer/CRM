@@ -34,6 +34,7 @@ import {
   Zap,
   BookOpen,
   Plus,
+  LifeBuoy,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -86,6 +87,7 @@ const navItems: NavItem[] = [
     rolesAllowed: ["platform_super_admin"] 
   },
   { label: "Programme Search", path: "/programme-search", icon: <Search className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/messages", icon: <LifeBuoy className="w-4 h-4 text-amber-400" /> },
   { label: "Communications", path: "/communications", icon: <MessageSquare className="w-4 h-4" /> },
   { label: "Email Templates", path: "/email-templates", icon: <Mail className="w-4 h-4" /> },
   { label: "Form Builder", path: "/form-builder", icon: <FormInput className="w-4 h-4" /> },
@@ -107,7 +109,7 @@ const teamLeaderNavItems: NavItem[] = [
   { label: "Team Members", path: "/team-leader/team-members", icon: <Users2 className="w-4 h-4" /> },
   { label: "Applications Pool", path: "/team-leader/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "Assign Workloads", path: "/team-leader/assign-applications", icon: <UserCheck className="w-4 h-4" /> },
-  { label: "Student Messages", path: "/counsellor/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
+  { label: "Support Chat", path: "/team-leader/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Team Tasks", path: "/team-leader/tasks", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Performance KPI", path: "/team-leader/performance", icon: <BarChart3 className="w-4 h-4" /> },
   { label: "Reports", path: "/team-leader/reports", icon: <ReceiptText className="w-4 h-4" /> },
@@ -118,7 +120,7 @@ const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
   { label: "My Students", path: "/counsellor/students", icon: <GraduationCap className="w-4 h-4" /> },
-  { label: "Student Messages", path: "/counsellor/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
+  { label: "Messages & Support", path: "/counsellor/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "My Applications", path: "/counsellor/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "Document Vault", path: "/counsellor/documents", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Tasks & Follow-ups", path: "/counsellor/tasks", icon: <CheckSquare className="w-4 h-4" /> },
@@ -127,6 +129,7 @@ const counsellorNavItems: NavItem[] = [
 
 const financeNavItems: NavItem[] = [
   { label: "Finance Dashboard", path: "/finance/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Invoices", path: "/finance/invoices", icon: <FileText className="w-4 h-4" /> },
   { label: "Payments & Receipts", path: "/finance/payments", icon: <WalletCards className="w-4 h-4" /> },
   { label: "Refunds", path: "/finance/refunds", icon: <RefreshCw className="w-4 h-4" /> },
@@ -138,7 +141,7 @@ const financeNavItems: NavItem[] = [
 const admissionsNavItems: NavItem[] = [
   { label: "Admissions Dashboard", path: "/admissions/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "Application Queue", path: "/admissions/applications", icon: <FileText className="w-4 h-4" /> },
-  { label: "Student Messages", path: "/admissions/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
+  { label: "Messages & Support", path: "/admissions/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "Document Verification", path: "/admissions/verification", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Offer & CAS Tracking", path: "/admissions/offers", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "Admissions Tasks", path: "/admissions/tasks", icon: <CheckSquare className="w-4 h-4" /> },
@@ -148,6 +151,7 @@ const admissionsNavItems: NavItem[] = [
 
 const supportNavItems: NavItem[] = [
   { label: "Support Dashboard", path: "/support/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Live Support Chat", path: "/support/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "Support Tickets", path: "/support/tickets", icon: <FileText className="w-4 h-4" /> },
   { label: "New Ticket", path: "/support/create-ticket", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Knowledge Base", path: "/support/knowledge-base", icon: <FolderOpen className="w-4 h-4" /> },
@@ -157,6 +161,7 @@ const supportNavItems: NavItem[] = [
 
 const auditorNavItems: NavItem[] = [
   { label: "Auditor Portal", path: "/auditor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/auditor/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Audit Trail", path: "/auditor/audit-trail", icon: <History className="w-4 h-4" /> },
   { label: "Compliance Inspect", path: "/auditor/compliance-inspect", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "System Security Logs", path: "/auditor/system-logs", icon: <FileText className="w-4 h-4" /> },
@@ -166,6 +171,7 @@ const auditorNavItems: NavItem[] = [
 
 const superAdminNavItems: NavItem[] = [
   { label: "Super Admin Portal", path: "/super-admin/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/super-admin/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Tenants & Orgs", path: "/super-admin/tenants", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "User Accounts", path: "/super-admin/users", icon: <Users2 className="w-4 h-4" /> },
   { label: "System Health", path: "/super-admin/system-health", icon: <BarChart3 className="w-4 h-4" /> },
@@ -177,6 +183,7 @@ const superAdminNavItems: NavItem[] = [
 const visaNavItems: NavItem[] = [
   { label: "Visa Dashboard", path: "/visa-officer/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: "Visa Applications", path: "/visa-officer/cases", icon: <Plane className="w-4 h-4" /> },
+  { label: "Messages & Support", path: "/visa-officer/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "Documents", path: "/visa-officer/documents", icon: <FolderOpen className="w-4 h-4" /> },
   { label: "Tasks", path: "/visa-officer/tasks", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Notifications", path: "/visa-officer/notifications", icon: <Bell className="w-4 h-4" /> },
@@ -191,12 +198,13 @@ const studentNavItems: NavItem[] = [
   { label: "New Application", path: "/student/new-application", icon: <Plus className="w-4 h-4 text-emerald-400" /> },
   { label: "Fee Challans & Invoices", path: "/student/invoices", icon: <ReceiptText className="w-4 h-4 text-emerald-400" /> },
   { label: "Document Vault", path: "/student/documents", icon: <FolderOpen className="w-4 h-4" /> },
-  { label: "Counsellor Chat", path: "/student/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
+  { label: "Chat & Support Desk", path: "/student/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "Tasks & Deadlines", path: "/student/tasks", icon: <CheckSquare className="w-4 h-4" /> },
 ];
 
 const agentNavItems: NavItem[] = [
   { label: "Agent Dashboard", path: "/agent/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/agent/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Referred Students", path: "/agent/referrals", icon: <Users2 className="w-4 h-4" /> },
   { label: "Refer New Student", path: "/agent/refer-lead", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Commission Ledger", path: "/agent/commissions", icon: <CircleDollarSign className="w-4 h-4" /> },
@@ -205,6 +213,7 @@ const agentNavItems: NavItem[] = [
 
 const universityNavItems: NavItem[] = [
   { label: "University Portal", path: "/university/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/university/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Received Applications", path: "/university/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "CAS / COE Release", path: "/university/cas-issuance", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "Notifications", path: "/university/notifications", icon: <Bell className="w-4 h-4" /> },

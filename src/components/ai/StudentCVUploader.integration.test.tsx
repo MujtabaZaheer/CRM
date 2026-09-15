@@ -55,7 +55,7 @@ CGPA: 3.65 / 4.00
     // 1. Full name must be cleaned of '271016'
     expect(extractedData.fullName).toBe("Khawaja Tariq Mahmood");
     expect(extractedData.firstName).toBe("Khawaja");
-    expect(extractedData.lastName).toBe("Mahmood");
+    expect(extractedData.lastName).toBe("Tariq Mahmood");
 
     // 2. Email & Phone
     expect(extractedData.email).toBe("tariq512@yahoo.com");

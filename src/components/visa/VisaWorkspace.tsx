@@ -177,7 +177,6 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                           <option value="Visa Preparation">Visa Preparation</option>
                           <option value="Visa Submitted">Visa Submitted</option>
                           <option value="Visa Approved">Visa Approved</option>
-                          <option value="Enrolled">Enrolled (Completed)</option>
                         </select>
                       </td>
                       <td className="p-3 text-right">
