@@ -50,6 +50,7 @@ import {
   checkAIRateLimit,
   recordAIUsage,
   AI_RATE_LIMIT_MS,
+  clearStaleRateLimits,
 } from "../../utils/aiCounselEngine";
 import {
   cacheDocumentFile,
@@ -181,7 +182,12 @@ export const StudentChat: React.FC = () => {
   const [aiThinking, setAiThinking] = useState(false);
   const [aiCooldownSeconds, setAiCooldownSeconds] = useState(0);
 
-  // Monitor 5-minute per-user rate limit countdown
+  // Clear any stale localStorage rate limit timestamps from old 5-minute sessions
+  useEffect(() => {
+    clearStaleRateLimits();
+  }, []);
+
+  // Monitor per-user rate limit countdown
   useEffect(() => {
     const userId = appUser?.uid || ownStudent?.id || "anonymous";
     const status = checkAIRateLimit(userId);

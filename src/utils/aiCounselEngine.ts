@@ -37,7 +37,7 @@ export interface StudentContextData {
   activeAttachments?: ChatAttachment[];
 }
 
-export const AI_RATE_LIMIT_MS = 5 * 60 * 1000; // 5 minutes cooldown per user
+export const AI_RATE_LIMIT_MS = 8 * 1000; // 8 seconds cooldown per message (anti-spam)
 const RATE_LIMIT_STORAGE_KEY_PREFIX = "EDUC_CRM_AI_LAST_CALL_";
 const aiLastCallMemoryMap = new Map<string, number>();
 
@@ -56,17 +56,7 @@ export function checkAIRateLimit(userId: string = "anonymous"): AIRateLimitStatu
   const now = Date.now();
   let lastCall = aiLastCallMemoryMap.get(userId) || 0;
 
-  try {
-    const stored = localStorage.getItem(`${RATE_LIMIT_STORAGE_KEY_PREFIX}${userId}`);
-    if (stored) {
-      const storedTime = parseInt(stored, 10);
-      if (!isNaN(storedTime) && storedTime > lastCall) {
-        lastCall = storedTime;
-      }
-    }
-  } catch {
-    // localStorage might be unavailable or private browsing
-  }
+  // Note: intentionally not reading from localStorage so cooldown resets on page reload
 
   const elapsed = now - lastCall;
   if (elapsed < AI_RATE_LIMIT_MS && lastCall > 0) {
@@ -98,11 +88,7 @@ export function checkAIRateLimit(userId: string = "anonymous"): AIRateLimitStatu
 export function recordAIUsage(userId: string = "anonymous"): void {
   const now = Date.now();
   aiLastCallMemoryMap.set(userId, now);
-  try {
-    localStorage.setItem(`${RATE_LIMIT_STORAGE_KEY_PREFIX}${userId}`, now.toString());
-  } catch {
-    // ignore
-  }
+  // Note: not persisting to localStorage so cooldown resets on page reload
 }
 
 /**
@@ -112,6 +98,19 @@ export function resetAIRateLimit(userId: string = "anonymous"): void {
   aiLastCallMemoryMap.delete(userId);
   try {
     localStorage.removeItem(`${RATE_LIMIT_STORAGE_KEY_PREFIX}${userId}`);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Clears any stale localStorage rate limit timestamps (call on app init to prevent
+ * users from being locked out after a page refresh).
+ */
+export function clearStaleRateLimits(): void {
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(RATE_LIMIT_STORAGE_KEY_PREFIX));
+    keys.forEach((k) => localStorage.removeItem(k));
   } catch {
     // ignore
   }
