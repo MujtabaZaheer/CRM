@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EduCRM Architecture, Flow & Sequence Diagrams</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.5;
+      font-size: 11pt;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    /* Cover Page */
+    .cover-header {
+      padding: 40px 0 20px 0;
+      border-bottom: 3px solid #059669;
+      margin-bottom: 30px;
+    }
+
+    .badge-doc {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 8pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+
+    h1.title {
+      font-size: 24pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      font-size: 11pt;
+      color: #475569;
+      max-width: 90%;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      padding: 15px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      font-size: 9pt;
+    }
+
+    .meta-item strong {
+      display: block;
+      color: #64748b;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Section Styling */
+    .section-title {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-left: 4px solid #059669;
+      padding-left: 10px;
+      margin: 25px 0 10px 0;
+    }
+
+    .section-desc {
+      font-size: 9.5pt;
+      color: #475569;
+      margin-bottom: 15px;
+    }
+
+    /* Diagram Container */
+    .diagram-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0 25px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      page-break-inside: avoid;
+    }
+
+    .diagram-container svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+
+    /* Table Styling */
+    table.spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin: 15px 0;
+      page-break-inside: avoid;
+    }
+
+    table.spec-table th {
+      background: #0f172a;
+      color: #f8fafc;
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+      border: 1px solid #334155;
+    }
+
+    table.spec-table td {
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    table.spec-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 7.5pt;
+    }
+
+    .role-counselling { background: #e0f2fe; color: #0369a1; }
+    .role-admissions { background: #e0e7ff; color: #4338ca; }
+    .role-finance { background: #f3e8ff; color: #7e22ce; }
+    .role-visa { background: #fef3c7; color: #b45309; }
+
+    /* Footer */
+    .doc-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: COVER & WORKFLOW STATE DIAGRAM -->
+  <div class="page">
+    <div class="cover-header">
+      <span class="badge-doc">Official Technical Specification</span>
+      <h1 class="title">EduCRM System Architecture & Workflow Diagrams</h1>
+      <p class="subtitle">End-to-End Application Lifecycle, Role-Based Access Control (RBAC), System Sequence Diagram (SSD), and Component Interaction Sequence Diagram (SD).</p>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <strong>Platform</strong>
+        <span>EduCRM Enterprise Platform</span>
+      </div>
+      <div class="meta-item">
+        <strong>Live Production URL</strong>
+        <span>https://education-crm-9fee2.web.app</span>
+      </div>
+      <div class="meta-item">
+        <strong>Security Matrix</strong>
+        <span>Role-Based Stage Authorization (RBAC)</span>
+      </div>
+    </div>
+
+    <h2 class="section-title">1. End-to-End Role-Based State Workflow</h2>
+    <p class="section-desc">Visualizes the progression of student applications through dedicated organizational desks. Stage changes are enforced strictly via <code>stageAuthorization.ts</code>.</p>
+
+    <div class="diagram-container">
+      <div class="mermaid">
+flowchart LR
+    subgraph G1 ["🔐 Gate"]
+        AI["AI CV Auto-Fill<br/><i>(Auth Required)</i>"]
+    end
+    subgraph G2 ["📋 Counselling Desk"]
+        Draft["Draft"]
+        Rev["Initial Review"]
+        Docs["Docs Pending"]
+        Ready["Ready to Submit"]
+        Sub["Submitted"]
+    end
+    subgraph G3 ["🎓 Admissions Desk"]
+        Uni["University Review"]
+        CO["Conditional Offer ⚡"]
+        UO["Unconditional Offer ⚡"]
+    end
+    subgraph G4 ["💰 Finance Desk"]
+        DP["Deposit Pending"]
+        Paid["Deposit Paid ⚡"]
+    end
+    subgraph G5 ["✈️ Visa Desk"]
+        CAS["CAS Issued ⚡"]
+        VSub["Visa Submitted ⚡"]
+        VAppr["Visa Approved ⚡"]
+    end
+    subgraph G6 ["🏁 Outcome"]
+        Enrolled["Enrolled ✅"]
+    end
+
+    AI --> Draft --> Rev --> Docs --> Ready --> Sub
+    Sub --> Uni
+    Uni --> CO
+    Uni --> UO
+    CO --> DP
+    UO --> DP
+    DP --> Paid
+    Paid --> CAS --> VSub --> VAppr --> Enrolled
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <span>EduCRM Architecture Document</span>
+      <span>Page 1 of 3</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2: SYSTEM SEQUENCE DIAGRAM (SSD) -->
+  <div class="page">
+    <h2 class="section-title">2. System Sequence Diagram (SSD) — Black-Box Behavioral View</h2>
+    <p class="section-desc">Illustrates the external system events and responses between human role actors and the EduCRM system boundary, enforcing prerequisite conditions at each gate.</p>
+
+    <div class="diagram-container">
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Student as 👤 Student / Visitor
+    actor Counsellor as 🧑‍💼 Counsellor
+    actor Admissions as 🎓 Admissions Officer
+    actor Finance as 💳 Finance Officer
+    actor Visa as ✈️ Visa Officer
+    participant System as 🖥️ :EduCRM System
+
+    Note over Student, System: Phase 1: Authentication & AI CV Extraction Gate
+    Student->>System: requestCVExtraction(file)
+    alt Unauthenticated Visitor
+        System-->>Student: 401 Unauthorized (Lock Dropzone, Prompt Sign In)
+    else Authenticated Student
+        System-->>Student: returnExtractedFields(name, email, academics)
+    end
+
+    Note over Counsellor, System: Phase 2: Application File Lodgement
+    Counsellor->>System: submitApplicationDossier(appDetails)
+    System-->>Counsellor: confirmSubmission(status: "Submitted")
+
+    Note over Admissions, System: Phase 3: Offer Decision
+    Admissions->>System: issueOffer(appId, "Conditional Offer" / "Unconditional Offer")
+    System-->>Admissions: offerRecorded()
+    System--)Student: notify("Offer Issued! Forwarded to Finance Desk")
+
+    Note over Finance, System: Phase 4: Fee Challan & Deposit Clearance
+    Finance->>System: generateChallan(appId, depositAmount)
+    System-->>Finance: challanCreated(status: "Deposit Pending")
+    Finance->>System: approvePaymentAndAdvance(appId)
+    System-->>Finance: paymentVerified(status: "Deposit Paid")
+    System--)Visa: notifyQueue("Applicant Cleared for Visa/CAS")
+
+    Note over Visa, System: Phase 5: CAS Issuance & Visa Clearance
+    Visa->>System: issueCAS(appId, casReferenceNumber)
+    System-->>Visa: casRecorded(status: "CAS Issued")
+    Visa->>System: lodgeVisa(appId)
+    System-->>Visa: visaSubmitted(status: "Visa Submitted")
+    Visa->>System: grantVisaClearance(appId)
+    System-->>Visa: visaApproved(status: "Visa Approved")
+    System--)Student: notify("Visa Clearance Approved! Ready for Travel")
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <span>EduCRM Architecture Document</span>
+      <span>Page 2 of 3</span>
+    </div>
+  </div>
+
+  <!-- PAGE 3: DETAILED SEQUENCE DIAGRAM (SD) & RBAC MATRIX -->
+  <div class="page">
+    <h2 class="section-title">3. Detailed Sequence Diagram (SD) — Component & DB Flow</h2>
+    <p class="section-desc">Details internal class/module collaboration across View components, the central RBAC utility, business state hooks, and Google Cloud Firestore.</p>
+
+    <div class="diagram-container">
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Officer as 👤 Role Actor (e.g. Admissions / Visa)
+    participant UI as 🖼️ Modal / View UI<br/>(ApplicationDetailModal)
+    participant RBAC as 🛡️ stageAuthorization.ts<br/>(canUserSetStage)
+    participant Hook as ⚙️ Business Hook<br/>(useAdmissionsData)
+    participant DB as 🗄️ Cloud Firestore<br/>("applications" col)
+    participant Notif as 🔔 Notification Engine<br/>("notifications" col)
+
+    Officer->>UI: Click Action (e.g. "Issue Conditional Offer")
+    activate UI
+    UI->>RBAC: canUserSetStage(userRole, targetStage)
+    activate RBAC
+    alt Unauthorized Role
+        RBAC-->>UI: false
+        UI-->>Officer: Show Error Alert: "Permission Denied: [Owner] Only 🔒"
+    else Authorized Role
+        RBAC-->>UI: true
+        deactivate RBAC
+        UI->>Hook: updateStage(app, targetStage, note)
+        activate Hook
+        Hook->>Hook: appendHistoryItem({ stage, updatedBy, timestamp })
+        Hook->>DB: updateDoc(appRef, { stage, updatedAt, history })
+        activate DB
+        DB-->>Hook: 200 OK
+        deactivate DB
+        Hook->>Notif: addDoc(notifRef, { targetUser, title, message })
+        activate Notif
+        Notif-->>Hook: 200 OK
+        deactivate Notif
+        Hook-->>UI: resolvePromise(success)
+        deactivate Hook
+        UI-->>Officer: Show Success Toast & Update Active Queue
+    end
+    deactivate UI
+      </div>
+    </div>
+
+    <h2 class="section-title">4. Role-Based Stage Authorization Matrix</h2>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Application Stage</th>
+          <th>Responsible Department</th>
+          <th>Authorized User Roles</th>
+          <th>Description & Permissions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Draft / Review / Submitted</strong></td>
+          <td><span class="role-badge role-counselling">Counselling</span></td>
+          <td>counsellor, team_leader, office_manager</td>
+          <td>Student onboarding, document verification, application submission to university.</td>
+        </tr>
+        <tr>
+          <td><strong>Conditional / Unconditional Offer</strong></td>
+          <td><span class="role-badge role-admissions">Admissions</span></td>
+          <td>admissions_officer, university_partner</td>
+          <td>Academic assessment, prerequisite evaluation, and issuing offer letters.</td>
+        </tr>
+        <tr>
+          <td><strong>Deposit Pending / Deposit Paid</strong></td>
+          <td><span class="role-badge role-finance">Finance</span></td>
+          <td>finance_officer</td>
+          <td>Generating tuition fee challan, verifying payment receipts, fee clearance.</td>
+        </tr>
+        <tr>
+          <td><strong>CAS Issued / Visa Submitted / Approved</strong></td>
+          <td><span class="role-badge role-visa">Visa</span></td>
+          <td>visa_officer</td>
+          <td>CAS/COE logging, embassy visa lodgement, and immigration grant clearance.</td>
+        </tr>
+        <tr>
+          <td><strong>Universal Override (All Stages)</strong></td>
+          <td><span class="role-badge role-counselling">Admin</span></td>
+          <td>platform_super_admin, org_admin</td>
+          <td>Full operational oversight and administrative exception management across all stages.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="doc-footer">
+      <span>EduCRM Architecture Document</span>
+      <span>Page 3 of 3</span>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      sequence: { useMaxWidth: true, showSequenceNumbers: true }
+    });
+  </script>
+</body>
+</html>
