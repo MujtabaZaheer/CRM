@@ -3,15 +3,18 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
   ArrowRight,
-  GraduationCap,
   CheckCircle2,
   Send,
   MapPin,
-  Calendar,
   Clock,
   ChevronRight,
   Trash2,
   CreditCard,
+  Award,
+  FileText,
+  FolderOpen,
+  MessageSquare,
+  CheckSquare,
 } from "lucide-react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { usePortalData } from "../../hooks/usePortalData";
@@ -19,6 +22,11 @@ import { Programme, University } from "../../types/university";
 import { assessEligibility } from "../../utils/eligibility";
 import { UniversityExplorerMatcher } from "../../components/portal/UniversityExplorerMatcher";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
+import {
+  StudentStatusBadge,
+  StudentMetricCard,
+  StudentEmptyState,
+} from "../../components/portal/common";
 
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat(undefined, {
@@ -97,14 +105,14 @@ export const StudentDashboard: React.FC = () => {
       return {
         greeting: `Good morning, ${name}`,
         emoji: "🌅",
-        subtitle: "Kick off your day and continue your admissions journey.",
+        subtitle: "Here's what's happening with your university applications today.",
       };
     }
     if (hour >= 12 && hour < 17) {
       return {
         greeting: `Good afternoon, ${name}`,
         emoji: "☀️",
-        subtitle: "Track live admissions progress and complete your university tasks.",
+        subtitle: "Track live admissions progress and complete your pending actions.",
       };
     }
     if (hour >= 17 && hour < 22) {
@@ -114,7 +122,6 @@ export const StudentDashboard: React.FC = () => {
         subtitle: "Review your admissions milestones, document status, and university offers.",
       };
     }
-    // Night (22:00 to 05:00)
     return {
       greeting: `Good night, ${name}`,
       emoji: "🌙",
@@ -122,59 +129,78 @@ export const StudentDashboard: React.FC = () => {
     };
   }, [name]);
 
-  // Commercial-Grade Intelligent Next Action Engine
+  // Comprehensive KPI stats
+  const kpiStats = useMemo(() => {
+    const totalApps = ownApplications.length;
+    const underReview = ownApplications.filter((a) =>
+      ["Submitted", "University Reviewing", "Initial Review", "Ready for Submission"].includes(a.stage)
+    ).length;
+    const offers = ownApplications.filter((a) =>
+      ["Conditional Offer", "Unconditional Offer", "Approved", "CAS Issued"].includes(a.stage)
+    ).length;
+    const accepted = ownApplications.filter((a) =>
+      ["Enrolled", "Deposit Paid"].includes(a.stage)
+    ).length;
+    const actionRequired =
+      pendingInvoices.length +
+      ownDocuments.filter((d) => d.status === "Rejected" || d.status === "Pending").length +
+      ownTasks.filter((t) => t.status !== "Completed").length;
+
+    return { totalApps, underReview, offers, accepted, actionRequired };
+  }, [ownApplications, pendingInvoices, ownDocuments, ownTasks]);
+
+  // Highest priority offer application
+  const topOfferApp = useMemo(() => {
+    return ownApplications.find((app) =>
+      ["Conditional Offer", "Unconditional Offer", "Approved", "CAS Issued"].includes(app.stage)
+    );
+  }, [ownApplications]);
+
+  // Intelligent Next Action Engine
   const nextAction = useMemo(() => {
-    // 0. Active Pending Fee / Challan (Top priority for confirmed seat)
     const unpaidChallan = (ownInvoices || []).find((inv) => inv.status !== "Paid");
     if (unpaidChallan) {
       const targetApp = ownApplications.find((app) => app.id === unpaidChallan.applicationId) || ownApplications[0];
       if (targetApp) {
         return {
-          badge: "PAYMENT REQUIRED · CHALLAN ACTIVE",
+          badge: "ACTION REQUIRED · PAYMENT PENDING",
           badgeColor: "amber" as const,
           title: `Tuition Deposit Due: ${targetApp.universityName}`,
-          text: `Official challan #${unpaidChallan.invoiceNumber} for ${unpaidChallan.currency} ${unpaidChallan.amount.toLocaleString()} is awaiting payment. Submit bank proof to secure your enrollment.`,
-          actionText: "View Challan & Pay",
+          text: `Official challan #${unpaidChallan.invoiceNumber} for ${unpaidChallan.currency} ${unpaidChallan.amount.toLocaleString()} is awaiting payment. Submit bank deposit proof to reserve your place.`,
+          actionText: "Pay & Upload Proof",
           href: "/student/invoices",
           universityName: targetApp.universityName,
           universityId: targetApp.universityId,
           programmeName: targetApp.programmeName,
-          type: "offer" as const,
+          type: "payment" as const,
         };
       }
     }
 
-    // 1. Any offers issued (Highest priority milestone)
-    const offerApp = ownApplications.find((app) =>
-      ["Conditional Offer", "Unconditional Offer", "CAS Issued", "Deposit Pending", "Deposit Paid"].includes(
-        app.stage
-      )
-    );
-    if (offerApp) {
+    if (topOfferApp) {
       return {
-        badge: "OFFER RECEIVED",
+        badge: "OFFER RECEIVED · NEXT STEPS",
         badgeColor: "emerald" as const,
-        title: `Offer Received: ${offerApp.universityName}`,
-        text: `Congratulations! Official admission offer has been issued for ${offerApp.programmeName}. Review conditions and confirm your placement.`,
+        title: `Official Offer: ${topOfferApp.universityName}`,
+        text: `Congratulations! An admission offer has been released for ${topOfferApp.programmeName}. Review conditions and confirm your placement.`,
         actionText: "Review Offer",
-        href: `/student/applications/${offerApp.id}`,
-        universityName: offerApp.universityName,
-        universityId: offerApp.universityId,
-        programmeName: offerApp.programmeName,
+        href: `/student/applications/${topOfferApp.id}`,
+        universityName: topOfferApp.universityName,
+        universityId: topOfferApp.universityId,
+        programmeName: topOfferApp.programmeName,
         type: "offer" as const,
       };
     }
 
-    // 2. Any active draft application
     const draftApp = ownApplications.find((app) => app.stage === "Draft");
     if (draftApp) {
       return {
         badge: "ACTION REQUIRED · DRAFT SAVED",
         badgeColor: "amber" as const,
         title: `Resume Application: ${draftApp.universityName}`,
-        text: `You have an unsubmitted draft application for ${draftApp.programmeName}. Complete remaining statements and submit your official application.`,
+        text: `You have an unsubmitted draft for ${draftApp.programmeName}. Complete remaining statements and submit your application.`,
         actionText: "Continue Application",
-        href: `/student/new-application?universityId=${draftApp.universityId}&programmeId=${draftApp.programmeId}`,
+        href: `/student/new-application?universityId=${draftApp.universityId}&programmeId=${draftApp.programmeId}&applicationId=${draftApp.id}`,
         universityName: draftApp.universityName,
         universityId: draftApp.universityId,
         programmeName: draftApp.programmeName,
@@ -182,7 +208,6 @@ export const StudentDashboard: React.FC = () => {
       };
     }
 
-    // 3. Applications requiring documents or additional info
     const docApp = ownApplications.find((app) =>
       ["Additional Info Requested", "Documents Pending"].includes(app.stage)
     );
@@ -191,7 +216,7 @@ export const StudentDashboard: React.FC = () => {
         badge: "DOCUMENTS REQUESTED",
         badgeColor: "rose" as const,
         title: `Document Request: ${docApp.universityName}`,
-        text: `The admissions team for ${docApp.programmeName} requires additional academic materials to finalize your assessment.`,
+        text: `The admissions team for ${docApp.programmeName} requires additional academic materials to finalize evaluation.`,
         actionText: "Upload Documents",
         href: "/student/documents",
         universityName: docApp.universityName,
@@ -201,17 +226,16 @@ export const StudentDashboard: React.FC = () => {
       };
     }
 
-    // 4. Applications under official review
     const reviewApp = ownApplications.find((app) =>
       ["Submitted", "University Reviewing", "Initial Review", "Ready for Submission"].includes(app.stage)
     );
     if (reviewApp) {
       return {
-        badge: "IN REVIEW · ADMISSIONS COMMITTEE",
+        badge: "UNDER REVIEW · ADMISSIONS COMMITTEE",
         badgeColor: "sky" as const,
-        title: `Admissions Review: ${reviewApp.universityName}`,
-        text: `Your application dossier for ${reviewApp.programmeName} has been submitted and is under official evaluation. Track timeline and counselor updates.`,
-        actionText: "Track Status",
+        title: `Evaluation In Progress: ${reviewApp.universityName}`,
+        text: `Your dossier for ${reviewApp.programmeName} has been received and is under official evaluation. Track timeline and counselor updates.`,
+        actionText: "Track Application",
         href: `/student/applications/${reviewApp.id}`,
         universityName: reviewApp.universityName,
         universityId: reviewApp.universityId,
@@ -220,37 +244,33 @@ export const StudentDashboard: React.FC = () => {
       };
     }
 
-    // 5. Incomplete profile (< 80%)
     if (completeness < 80) {
       return {
         badge: "PROFILE SETUP",
         badgeColor: "indigo" as const,
         title: "Complete Your Academic Profile",
         text: `Your profile is ${completeness}% complete. Add your educational history and scores to unlock verified eligibility matching.`,
-        actionText: "Update Profile",
+        actionText: "Complete Profile",
         href: "/student/profile",
         type: "profile" as const,
       };
     }
 
-    // 6. Default: explore programs if no applications
     return {
-      badge: "DISCOVER",
+      badge: "DISCOVER PROGRAMS",
       badgeColor: "emerald" as const,
-      title: "Find & Match Programs",
+      title: "Explore Partnered Universities",
       text: "Explore global universities matching your academic grades, preferred intake, and budget.",
       actionText: "Explore Programs",
       href: "/student/programs",
       type: "explore" as const,
     };
-  }, [ownApplications, completeness]);
+  }, [ownApplications, ownInvoices, completeness, topOfferApp]);
 
   const active = ownApplications.filter((app) => !["Rejected", "Withdrawn", "Enrolled"].includes(app.stage));
-
   const verifiedDocCount = ownDocuments.filter((d) => d.status === "Verified").length;
   const totalUploadedDocs = ownDocuments.length;
 
-  // Deduplicate deadlines
   const upcomingDeadlines = useMemo(() => {
     const seen = new Set<string>();
     return ownApplications
@@ -266,10 +286,10 @@ export const StudentDashboard: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-7 pb-12 font-sans animate-fade-in">
-      {/* Modern Futuristic Header */}
-      <header className="rounded-3xl bg-surface/90 backdrop-blur-xl border border-subtle px-6 py-7 shadow-sm sm:px-8 relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-gradient-to-br from-emerald-500/15 to-sky-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* Modern Greeting & Profile Status Header */}
+      <header className="rounded-3xl bg-surface border border-subtle px-6 py-6 shadow-sm sm:px-8 relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-sky-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -284,37 +304,130 @@ export const StudentDashboard: React.FC = () => {
               {timeGreeting.subtitle}
             </p>
           </div>
-          <div className="flex items-center gap-2.5 flex-wrap self-start md:self-auto">
-            <div className="flex items-center gap-3 bg-elevated/80 px-4 py-2 rounded-full border border-subtle shadow-sm">
-              <span className="text-xs font-bold text-primary">Profile Readiness</span>
-              <div className="w-24 h-2 bg-input rounded-full overflow-hidden border border-subtle/50">
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Link
+              to="/student/profile"
+              className="flex items-center gap-3 bg-elevated/90 hover:bg-elevated px-4 py-2 rounded-2xl border border-subtle shadow-xs transition-colors group"
+            >
+              <div className="leading-tight text-left">
+                <span className="text-[10px] text-muted font-bold uppercase tracking-wider block">Profile Health</span>
+                <span className="text-xs font-bold text-primary group-hover:text-emerald-400 transition-colors">
+                  {completeness === 100 ? "Complete" : `${completeness}% Done`}
+                </span>
+              </div>
+              <div className="w-20 h-2 bg-input rounded-full overflow-hidden border border-subtle/50">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
                   style={{ width: `${completeness}%` }}
                 />
               </div>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                {completeness}%
-              </span>
-            </div>
+            </Link>
 
             {pendingInvoices.length > 0 && (
               <Link
-                to="/student/applications"
-                className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3.5 py-2 rounded-full text-xs font-bold text-amber-500 dark:text-amber-400 transition-colors shadow-sm"
+                to="/student/invoices"
+                className="flex items-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-3.5 py-2 rounded-2xl text-xs font-bold text-amber-500 dark:text-amber-300 transition-colors shadow-xs"
               >
                 <CreditCard className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                <span>{pendingInvoices.length} Pending Fee Challan{pendingInvoices.length > 1 ? "s" : ""}</span>
+                <span>{pendingInvoices.length} Pending Challan{pendingInvoices.length > 1 ? "s" : ""}</span>
               </Link>
             )}
           </div>
         </div>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[1.55fr_1fr]">
-        {/* Left Column: Next Action + My Applications */}
+      {/* 5-KPI Application Overview Bar */}
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <StudentMetricCard
+          label="Applications"
+          value={kpiStats.totalApps}
+          icon={<FileText className="w-4 h-4" />}
+          hint="Total dossiers"
+          variant="default"
+          onClick={() => navigate("/student/applications")}
+        />
+        <StudentMetricCard
+          label="Under Review"
+          value={kpiStats.underReview}
+          icon={<Clock className="w-4 h-4" />}
+          hint="Registry evaluation"
+          variant="sky"
+          onClick={() => navigate("/student/applications")}
+        />
+        <StudentMetricCard
+          label="Offers"
+          value={kpiStats.offers}
+          icon={<Award className="w-4 h-4" />}
+          hint={kpiStats.offers > 0 ? "Decision ready" : "Awaiting response"}
+          variant="emerald"
+          onClick={() => navigate("/student/applications")}
+        />
+        <StudentMetricCard
+          label="Accepted"
+          value={kpiStats.accepted}
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          hint="Confirmed places"
+          variant="default"
+          onClick={() => navigate("/student/applications")}
+        />
+        <StudentMetricCard
+          label="Action Required"
+          value={kpiStats.actionRequired}
+          icon={<AlertCircle className="w-4 h-4" />}
+          hint={kpiStats.actionRequired > 0 ? "Pending steps" : "All up to date"}
+          variant={kpiStats.actionRequired > 0 ? "amber" : "default"}
+          onClick={() => navigate(nextAction.href)}
+        />
+      </section>
+
+      {/* Prominent Offer Received Showcase (Rendered when offer exists) */}
+      {topOfferApp && (
+        <section className="rounded-3xl p-6 sm:p-7 bg-gradient-to-br from-emerald-500/15 via-surface to-surface border border-emerald-500/40 shadow-lg relative overflow-hidden">
+          <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-[0.08] dark:opacity-[0.15] pointer-events-none overflow-hidden">
+            <img
+              src={getUniversityCampusImage(topOfferApp.universityId || topOfferApp.universityName)}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-xs">
+                  <Award className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Offer Received</span>
+                </span>
+                <span className="text-xs text-secondary font-medium">
+                  Application #{topOfferApp.applicationNumber || "APP-2026"}
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold font-heading text-primary leading-tight">
+                {topOfferApp.universityName}
+              </h2>
+              <p className="text-xs sm:text-sm text-secondary max-w-xl">
+                Official offer issued for <strong className="text-primary">{topOfferApp.programmeName}</strong> ({topOfferApp.intake || "Upcoming Intake"}). Review terms, complete conditions, and submit deposit to confirm your admission.
+              </p>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-3">
+              <button
+                onClick={() => navigate(`/student/applications/${topOfferApp.id}`)}
+                className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                <span>Review Offer Details</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Main Grid: Left Column (Action Required + Applications) & Right Column (Widgets) */}
+      <section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
-          {/* Futuristic Intelligent Next Step Card */}
+          {/* Action Required / Next Steps Card */}
           <div
             className={`rounded-3xl p-6 sm:p-7 shadow-sm border transition-all duration-300 relative overflow-hidden ${
               nextAction.badgeColor === "amber"
@@ -326,9 +439,8 @@ export const StudentDashboard: React.FC = () => {
                 : "bg-gradient-to-br from-indigo-500/10 via-surface to-surface border-indigo-500/30"
             }`}
           >
-            {/* Background Landmark Accent */}
             {nextAction.universityName && (
-              <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-[0.08] dark:opacity-[0.12] pointer-events-none overflow-hidden">
+              <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-[0.06] dark:opacity-[0.10] pointer-events-none overflow-hidden">
                 <img
                   src={getUniversityCampusImage(nextAction.universityId || nextAction.universityName)}
                   alt=""
@@ -340,14 +452,14 @@ export const StudentDashboard: React.FC = () => {
             <div className="relative z-10 space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <span
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border flex items-center gap-1.5 shadow-sm ${
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border flex items-center gap-1.5 shadow-xs ${
                     nextAction.badgeColor === "amber"
-                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                      ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
                       : nextAction.badgeColor === "emerald"
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
                       : nextAction.badgeColor === "sky"
-                      ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30"
-                      : "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
+                      ? "bg-sky-500/15 text-sky-800 dark:text-sky-300 border-sky-500/30"
+                      : "bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/30"
                   }`}
                 >
                   <span
@@ -379,7 +491,6 @@ export const StudentDashboard: React.FC = () => {
                 </p>
               </div>
 
-              {/* Action Button & University Preview */}
               <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
                 <button
                   onClick={() => navigate(nextAction.href)}
@@ -418,7 +529,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* My Applications Section with Real Campus Photography */}
+          {/* Applications List Section */}
           <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -457,18 +568,29 @@ export const StudentDashboard: React.FC = () => {
                   "Deposit Pending",
                 ].includes(application.stage);
 
+                const progressPct =
+                  application.stage === "Enrolled"
+                    ? 100
+                    : isOffer
+                    ? 85
+                    : application.stage.includes("Review") || application.stage === "Submitted"
+                    ? 65
+                    : isDraft
+                    ? 25
+                    : 50;
+
                 const href = isDraft
-                  ? `/student/new-application?universityId=${application.universityId}&programmeId=${application.programmeId}`
+                  ? `/student/new-application?universityId=${application.universityId}&programmeId=${application.programmeId}&applicationId=${application.id}`
                   : `/student/applications/${application.id}`;
 
                 return (
                   <Link
                     key={application.id}
                     to={href}
-                    className="block rounded-2xl bg-elevated/60 hover:bg-elevated border border-subtle hover:border-emerald-500/40 p-4 transition-all duration-300 group shadow-xs hover:shadow-md"
+                    className="block rounded-2xl bg-elevated/50 hover:bg-elevated border border-subtle hover:border-emerald-500/40 p-4 sm:p-5 transition-all duration-300 group shadow-xs hover:shadow-md"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      {/* Left: Authentic Campus Photo + University Details */}
+                      {/* Left: Campus Photo + University Details */}
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border border-subtle shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
                           <img
@@ -488,11 +610,9 @@ export const StudentDashboard: React.FC = () => {
                             <h3 className="font-bold text-sm sm:text-base text-primary group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
                               {application.universityName}
                             </h3>
-                            {application.applicationNumber && (
-                              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-surface border border-subtle text-muted">
-                                {application.applicationNumber}
-                              </span>
-                            )}
+                            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-surface border border-subtle text-muted">
+                              #{application.applicationNumber || "APP-2026"}
+                            </span>
                           </div>
                           <p className="text-xs text-secondary font-medium mt-0.5 truncate">
                             {application.programmeName}
@@ -504,20 +624,10 @@ export const StudentDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Right: Stage Status Badge & Action */}
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-subtle/50 gap-1.5">
+                      {/* Right: Status Pill & Progress */}
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-subtle/50 gap-2">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`rounded-full px-3 py-1 text-[11px] font-bold border ${
-                              isDraft
-                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                                : isOffer
-                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                                : "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"
-                            }`}
-                          >
-                            {application.stage}
-                          </span>
+                          <StudentStatusBadge status={application.stage} size="md" />
                           {isDraft && (
                             <button
                               type="button"
@@ -535,13 +645,19 @@ export const StudentDashboard: React.FC = () => {
                             </button>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted font-medium">
-                          {isDraft
-                            ? "Click to continue draft →"
-                            : isOffer
-                            ? "Official offer issued"
-                            : "Under admissions evaluation"}
-                        </p>
+                        <div className="text-right flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1">
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted font-medium">
+                            <span>Progress</span>
+                            <span className="font-bold text-emerald-500 font-mono">{progressPct}%</span>
+                          </div>
+                          <p className="text-[11px] text-secondary font-medium">
+                            {isDraft
+                              ? "Continue draft →"
+                              : isOffer
+                              ? "Offer review required"
+                              : "Under evaluation"}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -549,10 +665,11 @@ export const StudentDashboard: React.FC = () => {
               })}
 
               {active.length === 0 && (
-                <Empty
+                <StudentEmptyState
                   title="No active applications yet"
-                  action="Find & Match Programs"
-                  href="/student/programs"
+                  description="Explore top global universities matching your academic profile and start your direct application."
+                  actionText="Explore Programs"
+                  actionHref="/student/programs"
                 />
               )}
             </div>
@@ -561,7 +678,70 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Right Column: Widgets */}
         <div className="space-y-6">
-          {/* Fee Challans & Financial Records Widget */}
+          {/* Upcoming Tasks & Deadlines Widget */}
+          <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-primary font-heading text-base flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-emerald-500" />
+                  <span>Tasks & Deadlines</span>
+                </h2>
+                <p className="text-xs text-secondary">Approaching milestones</p>
+              </div>
+              <Link
+                to="/student/tasks"
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+              >
+                View all
+              </Link>
+            </div>
+
+            <div className="space-y-2.5">
+              {ownTasks.slice(0, 3).map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-elevated/40 border border-subtle/70 text-xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <span className="font-semibold text-primary block truncate">{task.title}</span>
+                    {task.dueDate && (
+                      <span className="text-[10px] text-muted mt-0.5 block">Due: {task.dueDate}</span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                      task.status === "Completed"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    }`}
+                  >
+                    {task.status}
+                  </span>
+                </div>
+              ))}
+
+              {upcomingDeadlines.map((app) => (
+                <div
+                  key={`dl-${app.id}`}
+                  className="flex items-center justify-between p-3 rounded-xl bg-elevated/40 border border-subtle/70 text-xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <span className="font-semibold text-primary block truncate">{app.universityName}</span>
+                    <span className="text-[10px] text-muted truncate block">{app.programmeName}</span>
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
+                    {app.intake}
+                  </span>
+                </div>
+              ))}
+
+              {ownTasks.length === 0 && upcomingDeadlines.length === 0 && (
+                <p className="text-xs text-muted py-3 text-center">You're all caught up on tasks!</p>
+              )}
+            </div>
+          </div>
+
+          {/* Fee Challans & Invoices Widget */}
           <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -599,7 +779,7 @@ export const StudentDashboard: React.FC = () => {
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono font-bold text-primary">{inv.invoiceNumber}</span>
+                          <span className="font-mono font-bold text-primary">#{inv.invoiceNumber}</span>
                           <span className="text-[10px] text-muted">({inv.type})</span>
                         </div>
                         {targetApp && (
@@ -626,7 +806,7 @@ export const StudentDashboard: React.FC = () => {
                           to="/student/invoices"
                           className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
                         >
-                          View Challan
+                          View
                         </Link>
                       </div>
                     </div>
@@ -638,7 +818,7 @@ export const StudentDashboard: React.FC = () => {
                 to="/student/invoices"
                 className="pt-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline block text-center"
               >
-                View All Invoices & Paid Challans →
+                View Invoices & Paid Challans →
               </Link>
             </div>
           </div>
@@ -647,11 +827,14 @@ export const StudentDashboard: React.FC = () => {
           <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-primary font-heading text-base">Documents Vault</h2>
-                <p className="text-xs text-secondary">Required admissions dossier</p>
+                <h2 className="font-bold text-primary font-heading text-base flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4 text-emerald-500" />
+                  <span>Document Vault</span>
+                </h2>
+                <p className="text-xs text-secondary">Verified credentials</p>
               </div>
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                {verifiedDocCount} Verified · {totalUploadedDocs} Uploaded
+                {verifiedDocCount} / {totalUploadedDocs} Verified
               </span>
             </div>
 
@@ -677,7 +860,7 @@ export const StudentDashboard: React.FC = () => {
                       <span className="truncate">{doc.documentType}</span>
                     </span>
                     <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                         doc.status === "Verified"
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           : doc.status === "Rejected"
@@ -700,72 +883,11 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* My Tasks Widget */}
-          <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-primary font-heading text-base">My Tasks</h2>
-              <span className="text-[11px] font-bold text-secondary bg-elevated px-2 py-0.5 rounded-md border border-subtle">
-                {ownTasks.filter((t) => t.status !== "Completed").length} pending
-              </span>
-            </div>
-            <div className="space-y-2.5">
-              {ownTasks.slice(0, 3).map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-elevated/40 border border-subtle/70 text-xs"
-                >
-                  <span className="font-medium text-primary truncate pr-2">{task.title}</span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
-                      task.status === "Completed"
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    }`}
-                  >
-                    {task.status}
-                  </span>
-                </div>
-              ))}
-              {ownTasks.length === 0 && (
-                <p className="text-xs text-muted py-2 text-center">You're all caught up!</p>
-              )}
-            </div>
-          </div>
-
-          {/* Upcoming Deadlines Widget */}
-
-          <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-primary font-heading text-base">Upcoming Intakes</h2>
-              <Calendar className="w-4 h-4 text-emerald-500" />
-            </div>
-
-            <div className="space-y-2.5">
-              {upcomingDeadlines.map((app) => (
-                <div
-                  key={app.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-elevated/40 border border-subtle/70 text-xs"
-                >
-                  <div className="min-w-0 pr-2">
-                    <span className="font-bold text-primary block truncate">{app.universityName}</span>
-                    <span className="text-[11px] text-muted truncate block">{app.programmeName}</span>
-                  </div>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
-                    {app.intake}
-                  </span>
-                </div>
-              ))}
-              {upcomingDeadlines.length === 0 && (
-                <p className="text-xs text-muted py-2 text-center">No active deadlines scheduled.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Education Advisor Card */}
+          {/* Assigned Education Advisor Card */}
           <div className="rounded-3xl bg-surface border border-subtle p-6 shadow-sm flex items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0">
-                {ownStudent?.assignedCounsellorId ? "AC" : "AA"}
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-zinc-950 font-bold text-base flex items-center justify-center shadow-sm shrink-0">
+                {ownStudent?.assignedCounsellorId ? "AC" : "EA"}
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] text-muted uppercase tracking-wider font-bold">
@@ -774,16 +896,16 @@ export const StudentDashboard: React.FC = () => {
                 <p className="font-bold text-primary text-sm truncate">Admissions Advisory Desk</p>
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Available for guidance
+                  Online for guidance
                 </p>
               </div>
             </div>
             <Link
               to="/student/messages"
-              className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shrink-0 active:scale-95"
             >
+              <MessageSquare className="w-3.5 h-3.5" />
               <span>Chat</span>
-              <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
@@ -832,8 +954,6 @@ export const StudentDashboard: React.FC = () => {
     </div>
   );
 };
-
-const Empty: React.FC<{ title: string; action: string; href: string }> = ({ title, action, href }) => <div className="rounded-2xl border border-dashed border-subtle bg-elevated p-8 text-center"><GraduationCap className="mx-auto h-8 w-8 text-muted" /><p className="mt-3 font-semibold text-secondary">{title}</p><Link to={href} className="mt-3 inline-block text-sm font-bold text-emerald-500">{action} →</Link></div>;
 
 export const StudentUniversities: React.FC = () => { 
   return <UniversityExplorerMatcher initialViewMode="universities" isOnboarding={false} />;

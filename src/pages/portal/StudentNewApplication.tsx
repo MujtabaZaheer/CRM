@@ -133,118 +133,138 @@ export const StudentNewApplication: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-main text-primary p-8 relative overflow-hidden">
-      {/* Role-Specific Atmospheric Background Layer */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
-        style={{ backgroundImage: `url('/images/student_campus_hero.jpg')` }}
-      />
-      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/70 via-white/50 to-white/75 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
-      <div className="max-w-4xl mx-auto space-y-6 relative z-10">
+    <div className="mx-auto max-w-4xl space-y-7 pb-16 font-sans animate-fade-in">
+      {/* Header */}
+      <header className="rounded-3xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 sm:p-8 text-[var(--text-primary)] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Start a New Application</h1>
-          <p className="text-secondary mt-2">Select your desired university and program to begin the application process.</p>
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+            Admissions Application Portal
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--text-primary)] mt-1">
+            Start a New Application
+          </h1>
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1.5 max-w-xl">
+            Select your desired destination country, institution, and programme to initiate your direct admissions dossier.
+          </p>
+        </div>
+      </header>
+
+      {/* Cascading Selector Card */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+        {/* 1. Country */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            <span>1. Destination Country *</span>
+          </label>
+          <select
+            value={selectedCountry}
+            onChange={(e) => setSelectedCountry(e.target.value)}
+            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none cursor-pointer"
+          >
+            <option value="">-- Select Destination Country --</option>
+            {availableCountries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="bg-surface border border-default rounded-xl p-6 space-y-6">
-          {/* 1. Country */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-500" /> Country
-            </label>
-            <select
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
-              className="w-full bg-input border border-default rounded-lg p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-            >
-              <option value="">-- Select Country --</option>
-              {availableCountries.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+        {/* 2. University */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-emerald-400" />
+            <span>2. Partner University *</span>
+          </label>
+          <select
+            value={selectedUnivId}
+            onChange={(e) => setSelectedUnivId(e.target.value)}
+            disabled={!selectedCountry}
+            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+          >
+            <option value="">-- Select Partner University --</option>
+            {availableUniversities.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* 2. University */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-emerald-500" /> University
-            </label>
-            <select
-              value={selectedUnivId}
-              onChange={(e) => setSelectedUnivId(e.target.value)}
-              disabled={!selectedCountry}
-              className="w-full bg-input border border-default rounded-lg p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-            >
-              <option value="">-- Select University --</option>
-              {availableUniversities.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
-          </div>
+        {/* 3. Campus */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            <span>3. University Campus *</span>
+          </label>
+          <select
+            value={selectedCampus}
+            onChange={(e) => setSelectedCampus(e.target.value)}
+            disabled={!selectedUnivId}
+            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+          >
+            <option value="">-- Select Campus --</option>
+            {availableCampuses.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* 3. Campus */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-500" /> Campus
-            </label>
-            <select
-              value={selectedCampus}
-              onChange={(e) => setSelectedCampus(e.target.value)}
-              disabled={!selectedUnivId}
-              className="w-full bg-input border border-default rounded-lg p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-            >
-              <option value="">-- Select Campus --</option>
-              {availableCampuses.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+        {/* 4. Program */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+            <span>4. Academic Programme *</span>
+          </label>
+          <select
+            value={selectedProgId}
+            onChange={(e) => setSelectedProgId(e.target.value)}
+            disabled={!selectedCampus && availableCampuses.length > 0}
+            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+          >
+            <option value="">-- Select Academic Programme --</option>
+            {availableProgrammes.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title} ({p.level})
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* 4. Program */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-emerald-500" /> Program
-            </label>
-            <select
-              value={selectedProgId}
-              onChange={(e) => setSelectedProgId(e.target.value)}
-              disabled={!selectedCampus && availableCampuses.length > 0}
-              className="w-full bg-input border border-default rounded-lg p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-            >
-              <option value="">-- Select Program --</option>
-              {availableProgrammes.map(p => (
-                <option key={p.id} value={p.id}>{p.title} ({p.level})</option>
-              ))}
-            </select>
-          </div>
+        {/* 5. Intake */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald-400" />
+            <span>5. Target Intake *</span>
+          </label>
+          <select
+            value={selectedIntake}
+            onChange={(e) => setSelectedIntake(e.target.value)}
+            disabled={!selectedProgId || availableIntakes.length === 0}
+            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+          >
+            <option value="">-- Select Intake Term --</option>
+            {availableIntakes.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* 5. Intake */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-emerald-500" /> Intake
-            </label>
-            <select
-              value={selectedIntake}
-              onChange={(e) => setSelectedIntake(e.target.value)}
-              disabled={!selectedProgId || availableIntakes.length === 0}
-              className="w-full bg-input border border-default rounded-lg p-3 text-primary focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-            >
-              <option value="">-- Select Intake --</option>
-              {availableIntakes.map(i => (
-                <option key={i} value={i}>{i}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="pt-4 border-t border-subtle">
-            <button
-              onClick={proceedToApplication}
-              disabled={!selectedUnivId || !selectedProgId || !selectedIntake}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              Start Application <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="pt-4 border-t border-[var(--border-default)]">
+          <button
+            type="button"
+            onClick={proceedToApplication}
+            disabled={!selectedUnivId || !selectedProgId || !selectedIntake}
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer text-sm"
+          >
+            <span>Proceed to Application Dossier</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

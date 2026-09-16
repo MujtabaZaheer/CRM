@@ -20,6 +20,11 @@ import {
 } from "../../utils/documentStorage";
 import { isDocumentMatch } from "../../utils/applicationReadiness";
 import { DEMO_DOCUMENTS } from "../../data/demoData";
+import {
+  StudentStatusBadge,
+  StudentMetricCard,
+  StudentEmptyState,
+} from "../../components/portal/common";
 
 export interface VaultDocument {
   id: string;
@@ -317,30 +322,30 @@ export const StudentDocumentVault: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-7 pb-12 font-sans">
+    <div className="max-w-6xl mx-auto space-y-7 pb-12 font-sans animate-fade-in">
       {/* Header */}
-      <header className="rounded-3xl bg-zinc-900 border border-zinc-800 p-6 sm:p-8 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="rounded-3xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 sm:p-8 text-[var(--text-primary)] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-            Student Document Vault • Firebase Storage
+            Student Document Vault • Verified Compliance
           </span>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--text-primary)] mt-1">
             Official Documents Center
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-1.5 max-w-xl">
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1.5 max-w-xl">
             Upload, preview, and verify your credentials once. Uploaded files are matched automatically across your university applications.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search documents..."
-              className="pl-8 pr-3 py-2 rounded-xl bg-zinc-800/80 border border-zinc-700 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 w-44 sm:w-56 transition-colors"
+              className="pl-8 pr-3 py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:[var(--text-placeholder)] focus:outline-none focus:border-emerald-500 w-44 sm:w-56 transition-colors"
             />
           </div>
           <button
@@ -368,166 +373,198 @@ export const StudentDocumentVault: React.FC = () => {
         </div>
       )}
 
-      {/* Readiness Summary Card */}
-      <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-bold text-white">Document Compliance Status</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {completedMandatoryCount} of {mandatoryCount} mandatory admissions documents ready
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <span className="text-xs text-zinc-400">Vault Readiness</span>
-            <p className="text-lg font-bold text-emerald-400">
-              {Math.round((completedMandatoryCount / mandatoryCount) * 100)}%
-            </p>
-          </div>
-          <div className="w-32 bg-zinc-800 h-2.5 rounded-full overflow-hidden">
-            <div
-              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.round((completedMandatoryCount / mandatoryCount) * 100)}%` }}
-            />
-          </div>
-        </div>
+      {/* Readiness Summary Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StudentMetricCard
+          label="Mandatory Ready"
+          value={`${completedMandatoryCount} / ${mandatoryCount}`}
+          subtext={`${Math.round((completedMandatoryCount / mandatoryCount) * 100)}% Completed`}
+          trend={completedMandatoryCount === mandatoryCount ? "up" : "neutral"}
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          variant={completedMandatoryCount === mandatoryCount ? "emerald" : "sky"}
+        />
+        <StudentMetricCard
+          label="Total Uploaded"
+          value={documents.length}
+          subtext="Vault documents attached"
+          icon={<FileText className="w-5 h-5" />}
+          variant="neutral"
+        />
+        <StudentMetricCard
+          label="Verified Status"
+          value={documents.filter((d) => d.status === "Verified").length}
+          subtext="Registry compliance confirmed"
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          variant="emerald"
+        />
+        <StudentMetricCard
+          label="Missing Required"
+          value={Math.max(0, mandatoryCount - completedMandatoryCount)}
+          subtext={mandatoryCount - completedMandatoryCount === 0 ? "All requirements satisfied" : "Action needed before submission"}
+          trend={mandatoryCount - completedMandatoryCount === 0 ? "up" : "down"}
+          icon={<AlertCircle className="w-5 h-5" />}
+          variant={mandatoryCount - completedMandatoryCount > 0 ? "rose" : "emerald"}
+        />
       </div>
 
       {/* Standard Required Slots */}
       <section className="space-y-4">
-        <h2 className="text-base font-bold text-white">Standard Admissions Documents</h2>
-        {filteredStandardDocs.length === 0 && (
-          <div className="p-8 text-center rounded-2xl bg-zinc-900/50 border border-dashed border-zinc-800 text-zinc-400 text-xs">
-            No standard documents match "{searchQuery}".
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-[var(--text-primary)]">Standard Admissions Documents</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              Required standard checklist needed by universities for admissions clearance.
+            </p>
           </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredStandardDocs.map((req) => {
-            const uploaded = documents.find((d) => {
-              const t = d.documentType || (d as any).docType || (d as any).type || "";
-              const n = d.fileName || (d as any).name || "";
-              return isDocumentMatch(t, req.type) || isDocumentMatch(n, req.type);
-            });
+        </div>
 
-            const isUploading = uploadingType === req.type;
+        {filteredStandardDocs.length === 0 ? (
+          <StudentEmptyState
+            icon={<Search className="w-6 h-6 text-muted" />}
+            title={searchQuery ? `No documents match "${searchQuery}"` : "No documents available"}
+            description={searchQuery ? "Try searching with a different term." : "No standard documents found."}
+            action={
+              searchQuery
+                ? {
+                    label: "Clear Search",
+                    onClick: () => setSearchQuery(""),
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredStandardDocs.map((req) => {
+              const uploaded = documents.find((d) => {
+                const t = d.documentType || (d as any).docType || (d as any).type || "";
+                const n = d.fileName || (d as any).name || "";
+                return isDocumentMatch(t, req.type) || isDocumentMatch(n, req.type);
+              });
 
-            return (
-              <div
-                key={req.type}
-                className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex flex-col justify-between space-y-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-emerald-400" />
-                      <h3 className="text-sm font-bold text-white">{req.label}</h3>
-                    </div>
-                    <span className="text-[11px] text-zinc-500">
-                      {req.mandatory ? "Mandatory for Submission" : "Optional / Supplementary"}
-                    </span>
-                  </div>
+              const isUploading = uploadingType === req.type;
 
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
-                      uploaded
-                        ? uploaded.status === "Verified"
-                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                        : "bg-zinc-800 text-zinc-500 border-zinc-700"
-                    }`}
-                  >
-                    {uploaded ? uploaded.status : "Required"}
-                  </span>
-                </div>
-
-                {!uploaded && (
-                  <div className="p-4 rounded-xl bg-zinc-950/50 border border-zinc-800/80 space-y-3">
-                    <div>
-                      <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Why is this required?</h4>
-                      <p className="text-xs text-zinc-400">{req.whyRequired}</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Required By</h4>
-                        <p className="text-xs text-zinc-400">{req.whoRequiresIt}</p>
+              return (
+                <div
+                  key={req.type}
+                  className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] flex flex-col justify-between space-y-4 shadow-sm hover:border-emerald-500/30 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-emerald-400" />
+                        <h3 className="text-sm font-bold text-[var(--text-primary)]">{req.label}</h3>
                       </div>
-                      <div>
-                        <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Formats & Size</h4>
-                        <p className="text-xs text-zinc-400">{req.acceptedFormats} (Max: {req.maxSize})</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Make sure:</h4>
-                      <ul className="text-xs text-zinc-400 space-y-1 list-disc pl-4">
-                        {req.requirements.map((r, i) => (
-                          <li key={i}>{r}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-
-                {uploaded && (
-                  <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 flex items-center justify-between">
-                    <span className="truncate max-w-xs">{uploaded.fileName}</span>
-                    {uploaded.fileSize && (
-                      <span className="text-[11px] text-zinc-500">
-                        {Math.round(uploaded.fileSize / 1024)} KB
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {req.mandatory ? "Mandatory for Submission" : "Optional / Supplementary"}
                       </span>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80">
-                  {uploaded ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handlePreviewDocument(uploaded)}
-                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                        Preview
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(uploaded.id)}
-                        className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
-                  ) : (
-                    <span className="text-xs text-zinc-500">No document uploaded yet</span>
+
+                    <StudentStatusBadge
+                      status={uploaded ? uploaded.status : "Missing"}
+                      size="sm"
+                    />
+                  </div>
+
+                  {!uploaded && (
+                    <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
+                      <div>
+                        <h4 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider mb-1">
+                          Why is this required?
+                        </h4>
+                        <p className="text-xs text-[var(--text-secondary)]">{req.whyRequired}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <h4 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider mb-1">
+                            Required By
+                          </h4>
+                          <p className="text-xs text-[var(--text-secondary)]">{req.whoRequiresIt}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider mb-1">
+                            Formats & Size
+                          </h4>
+                          <p className="text-xs text-[var(--text-secondary)]">
+                            {req.acceptedFormats} (Max: {req.maxSize})
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider mb-1">
+                          Make sure:
+                        </h4>
+                        <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc pl-4">
+                          {req.requirements.map((r, i) => (
+                            <li key={i}>{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   )}
 
-                  <label className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs cursor-pointer transition-colors flex items-center gap-1.5 shadow-sm">
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Uploading...
-                      </>
+                  {uploaded && (
+                    <div className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] flex items-center justify-between">
+                      <span className="truncate max-w-xs font-mono text-[11px]">{uploaded.fileName}</span>
+                      {uploaded.fileSize && (
+                        <span className="text-[11px] text-[var(--text-muted)]">
+                          {Math.round(uploaded.fileSize / 1024)} KB
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--border-default)]">
+                    {uploaded ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewDocument(uploaded)}
+                          className="px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Preview</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(uploaded.id)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-elevated)] hover:bg-rose-500/20 border border-[var(--border-default)] text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     ) : (
-                      <>
-                        <Upload className="w-3.5 h-3.5" />
-                        {uploaded ? "Replace" : "Upload"}
-                      </>
+                      <span className="text-xs text-[var(--text-muted)]">No document uploaded yet</span>
                     )}
-                    <input
-                      type="file"
-                      disabled={isUploading}
-                      className="hidden"
-                      onChange={(e) => handleUpload(e, req.type)}
-                    />
-                  </label>
+
+                    <label className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs cursor-pointer transition-colors flex items-center gap-1.5 shadow-sm">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{uploaded ? "Replace" : "Upload"}</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        disabled={isUploading}
+                        className="hidden"
+                        onChange={(e) => handleUpload(e, req.type)}
+                      />
+                    </label>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Additional / Custom Uploaded Documents */}
@@ -536,7 +573,7 @@ export const StudentDocumentVault: React.FC = () => {
         return !REQUIRED_STANDARD_DOCS.some((r) => isDocumentMatch(dType, r.type));
       }) && (
         <section className="space-y-4">
-          <h2 className="text-base font-bold text-white">Additional Documents</h2>
+          <h2 className="text-base font-bold text-[var(--text-primary)]">Additional Documents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {documents
               .filter((d) => {
@@ -550,25 +587,33 @@ export const StudentDocumentVault: React.FC = () => {
                   (d.remarks || "").toLowerCase().includes(q)
                 );
               })
-              .map((doc) => (
-                <div key={doc.id} className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-white">{doc.documentType}</h4>
-                    <p className="text-xs text-zinc-400 truncate max-w-xs">{doc.fileName}</p>
+              .map((docItem) => (
+                <div
+                  key={docItem.id}
+                  className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] flex items-center justify-between gap-3 shadow-sm"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-400" />
+                      <h4 className="text-sm font-bold text-[var(--text-primary)]">{docItem.documentType}</h4>
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] truncate max-w-xs font-mono">{docItem.fileName}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <StudentStatusBadge status={docItem.status} size="sm" />
                     <button
                       type="button"
-                      onClick={() => handlePreviewDocument(doc)}
-                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
+                      onClick={() => handlePreviewDocument(docItem)}
+                      className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                      Preview
+                      <span>Preview</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(doc.id)}
-                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-xs text-rose-400"
+                      onClick={() => handleDelete(docItem.id)}
+                      className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-elevated)] hover:bg-rose-500/20 border border-[var(--border-default)] text-xs text-rose-400 cursor-pointer transition-colors"
+                      title="Delete document"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -581,54 +626,58 @@ export const StudentDocumentVault: React.FC = () => {
 
       {/* Custom Document Upload Modal */}
       {isCustomModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-800 p-6 space-y-4 text-white shadow-2xl">
-            <h3 className="text-base font-bold">Add Custom Document</h3>
+        <div className="fixed inset-0 z-50 bg-[var(--backdrop)] backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4 text-[var(--text-primary)] shadow-2xl">
+            <h3 className="text-base font-bold font-heading">Add Custom Document</h3>
             <form onSubmit={handleCustomUploadSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold mb-1">Document Name / Type *</label>
+                <label className="block font-semibold mb-1 text-[var(--text-primary)]">
+                  Document Name / Type <span className="text-rose-400">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={customDocType}
                   onChange={(e) => setCustomDocType(e.target.value)}
                   placeholder="e.g. Portfolio / Work Experience Letter"
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-[var(--text-primary)] placeholder:[var(--text-placeholder)] focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Expiry Date (Optional)</label>
+                <label className="block font-semibold mb-1 text-[var(--text-primary)]">Expiry Date (Optional)</label>
                 <input
                   type="date"
                   value={customExpiryDate}
                   onChange={(e) => setCustomExpiryDate(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Select File *</label>
+                <label className="block font-semibold mb-1 text-[var(--text-primary)]">
+                  Select File <span className="text-rose-400">*</span>
+                </label>
                 <input
                   type="file"
                   required
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none cursor-pointer"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-default)]">
                 <button
                   type="button"
                   onClick={() => setIsCustomModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploadingType !== null}
-                  className="px-5 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-bold cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {uploadingType ? "Uploading..." : "Upload Document"}
                 </button>

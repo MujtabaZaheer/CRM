@@ -36,6 +36,7 @@ import { StudentDashboard, StudentProgramDetail, StudentProgrammes, StudentUnive
 import { StudentDocumentVault } from "./pages/portal/StudentDocumentVault";
 import { StudentInvoices } from "./pages/portal/StudentInvoices";
 import { StudentChat } from "./pages/portal/StudentChat";
+import { StudentTasks } from "./pages/portal/StudentTasks";
 import { StudentOnboardingStage1 } from "./pages/portal/onboarding/StudentOnboardingStage1";
 import { StudentOnboardingStage2 } from "./pages/portal/onboarding/StudentOnboardingStage2";
 import { StudentOnboardingStage3 } from "./pages/portal/onboarding/StudentOnboardingStage3";
@@ -302,7 +303,7 @@ export const App: React.FC = () => {
                     <Route path="documents" element={<StudentDocumentVault />} />
                     <Route path="messages" element={<StudentChat />} />
                     <Route path="requests" element={<RolePortal role="student" page="requests" />} />
-                    <Route path="tasks" element={<RolePortal role="student" page="tasks" />} />
+                    <Route path="tasks" element={<StudentTasks />} />
                     <Route path="new-application" element={<StudentNewApplication />} />
                     <Route path="apply/:programmeId" element={<StudentNewApplication />} />
                     <Route path="apply" element={<StudentNewApplication />} />

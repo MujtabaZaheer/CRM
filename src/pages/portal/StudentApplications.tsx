@@ -31,6 +31,11 @@ import { collection, query, where, getDocs, updateDoc, doc } from "firebase/fire
 import { db } from "../../firebase/config";
 import { Invoice } from "../../types/finance";
 import { generateInvoiceHtml, printDocumentHtml } from "../../utils/invoiceGenerator";
+import {
+  StudentStatusBadge,
+  ApplicationLifecycleTimeline,
+  StudentEmptyState,
+} from "../../components/portal/common";
 
 export const getStageGuidance = (stage: string): string => {
   switch (stage) {
@@ -89,25 +94,11 @@ const STAGE_PROGRESS: Record<string, number> = {
   Rejected: 100,
 };
 
-const getStageBadgeStyle = (stage: string) => {
-  if (stage === "Unconditional Offer" || stage === "Approved" || stage === "Enrolled" || stage === "CAS Issued" || stage === "Visa Approved") {
-    return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
-  }
-  if (stage === "Conditional Offer") {
-    return "bg-indigo-500/10 text-indigo-400 border-indigo-500/30";
-  }
-  if (stage === "Rejected" || stage === "Withdrawn") {
-    return "bg-rose-500/10 text-rose-400 border-rose-500/30";
-  }
-  if (stage.includes("Pending") || stage.includes("Review") || stage === "Submitted") {
-    return "bg-amber-500/10 text-amber-400 border-amber-500/30";
-  }
-  return "bg-sky-500/10 text-sky-400 border-sky-500/30";
-};
-
 export const StudentApplications: React.FC = () => {
   const { ownApplications, deleteDraftApplication } = usePortalData();
+  const { universities } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "review" | "offers" | "confirmed" | "drafts">("all");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDeleteDraft = async (appId: string, universityName: string) => {
@@ -124,16 +115,45 @@ export const StudentApplications: React.FC = () => {
     }
   };
 
+  const counts = {
+    all: ownApplications.length,
+    review: ownApplications.filter((a) =>
+      ["Initial Review", "Documents Pending", "Ready for Submission", "Submitted", "University Reviewing", "Additional Info Requested"].includes(a.stage)
+    ).length,
+    offers: ownApplications.filter((a) =>
+      ["Conditional Offer", "Unconditional Offer", "Approved"].includes(a.stage)
+    ).length,
+    confirmed: ownApplications.filter((a) =>
+      ["Deposit Pending", "Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(a.stage)
+    ).length,
+    drafts: ownApplications.filter((a) => a.stage === "Draft" || a.applicationStatus === "Draft").length,
+  };
+
   const filteredApplications = ownApplications.filter((app) => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
+    const matchesSearch =
+      !q ||
       (app.universityName || "").toLowerCase().includes(q) ||
       (app.programmeName || "").toLowerCase().includes(q) ||
       (app.applicationNumber || "").toLowerCase().includes(q) ||
       (app.stage || "").toLowerCase().includes(q) ||
-      (app.intake || "").toLowerCase().includes(q)
-    );
+      (app.intake || "").toLowerCase().includes(q);
+
+    if (!matchesSearch) return false;
+
+    if (filterTab === "review") {
+      return ["Initial Review", "Documents Pending", "Ready for Submission", "Submitted", "University Reviewing", "Additional Info Requested"].includes(app.stage);
+    }
+    if (filterTab === "offers") {
+      return ["Conditional Offer", "Unconditional Offer", "Approved"].includes(app.stage);
+    }
+    if (filterTab === "confirmed") {
+      return ["Deposit Pending", "Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage);
+    }
+    if (filterTab === "drafts") {
+      return app.stage === "Draft" || app.applicationStatus === "Draft";
+    }
+    return true;
   });
 
   return (
@@ -153,178 +173,198 @@ export const StudentApplications: React.FC = () => {
 
         <Link
           to="/student/new-application"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <Sparkles className="w-4 h-4" />
           <span>New Application</span>
         </Link>
       </header>
 
-      {/* Search Bar */}
+      {/* Filter Tabs & Search Bar */}
       {ownApplications.length > 0 && (
-        <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search applications by university, program, stage, or ref..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] focus:border-emerald-500 focus:outline-none transition-colors"
-          />
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b md:border-b-0 border-[var(--border-default)]">
+            {[
+              { id: "all", label: "All", count: counts.all },
+              { id: "review", label: "Under Review", count: counts.review },
+              { id: "offers", label: "Offers", count: counts.offers },
+              { id: "confirmed", label: "Confirmed", count: counts.confirmed },
+              { id: "drafts", label: "Drafts", count: counts.drafts },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilterTab(tab.id as any)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                  filterTab === tab.id
+                    ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                    : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    filterTab === tab.id ? "bg-zinc-950/20 text-zinc-950" : "bg-[var(--bg-card)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="relative max-w-sm w-full">
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by university, program, stage..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] focus:border-emerald-500 focus:outline-none transition-colors"
+            />
+          </div>
         </div>
       )}
 
       {/* Applications Grid */}
-      <div className="grid gap-5 md:grid-cols-2">
-        {filteredApplications.map((app) => {
-          const isDraft = app.stage === "Draft" || app.applicationStatus === "Draft";
-          const isApproved =
-            app.stage === "Unconditional Offer" ||
-            app.stage === "CAS Issued" ||
-            app.stage === "Enrolled";
+      {filteredApplications.length > 0 ? (
+        <div className="grid gap-5 md:grid-cols-2">
+          {filteredApplications.map((app) => {
+            const isDraft = app.stage === "Draft" || app.applicationStatus === "Draft";
+            const isApproved =
+              app.stage === "Unconditional Offer" ||
+              app.stage === "CAS Issued" ||
+              app.stage === "Enrolled";
 
-          const pct = STAGE_PROGRESS[app.stage] || 25;
+            const pct = STAGE_PROGRESS[app.stage] || 25;
+            const univ = universities.find((u) => u.id === app.universityId || u.name.toLowerCase() === app.universityName.toLowerCase());
+            const campusImage = getUniversityCampusImage(univ || app.universityName);
 
-          return (
-            <article
-              key={app.id}
-              className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 shadow-sm hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-5"
-            >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-mono text-[var(--text-muted)] tracking-wider">
-                      {app.applicationNumber || "APP-2026"}
-                    </span>
-                    <h3 className="font-bold text-base text-[var(--text-primary)] flex items-center gap-2 mt-0.5">
-                      <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      {app.universityName}
-                    </h3>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">
-                      {app.programmeName} · {app.intake}
-                    </p>
+            return (
+              <article
+                key={app.id}
+                className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] overflow-hidden shadow-sm hover:border-emerald-500/40 hover:shadow-lg transition-all flex flex-col justify-between"
+              >
+                <div>
+                  {/* Card Campus Banner */}
+                  <div className="relative h-28 w-full overflow-hidden bg-slate-900">
+                    <img
+                      src={campusImage}
+                      alt={app.universityName}
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 opacity-60"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/campus_uk.jpg";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-card)] via-[var(--bg-card)]/40 to-transparent" />
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
+                        {app.applicationNumber || "APP-2026"}
+                      </span>
+                      <StudentStatusBadge status={app.stage} size="sm" />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold border ${getStageBadgeStyle(
-                        app.stage
-                      )}`}
-                    >
-                      {app.stage}
-                    </span>
+                  <div className="p-5 space-y-3.5">
+                    <div>
+                      <h3 className="font-bold text-base text-[var(--text-primary)] flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{app.universityName}</span>
+                      </h3>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
+                        <span className="font-medium text-[var(--text-primary)]">{app.programmeName}</span>
+                        <span>•</span>
+                        <span className="text-emerald-400 font-medium">{app.intake}</span>
+                      </p>
+                    </div>
 
-                    {/* Delete Draft Button */}
+                    {isApproved && (
+                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl flex items-center gap-2 text-xs text-emerald-300">
+                        <Award className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span className="font-medium">
+                          <strong>Offer Confirmed:</strong> Official admission released by university.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Progress Bar */}
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] font-medium text-[var(--text-muted)] mb-1">
+                        <span>Application Stage Progress</span>
+                        <span className="text-emerald-400 font-bold">{pct}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-2">
+                      {app.nextAction || getStageGuidance(app.stage)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 py-3.5 border-t border-[var(--border-default)] bg-[var(--bg-elevated)]/30 flex items-center justify-between">
+                  <span className="text-[11px] text-[var(--text-muted)]">
+                    Updated: {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : "Recently"}
+                  </span>
+
+                  <div className="flex items-center gap-3">
                     {isDraft && (
                       <button
                         type="button"
                         onClick={() => handleDeleteDraft(app.id, app.universityName)}
                         disabled={deletingId === app.id}
-                        className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer"
-                        title="Delete draft application"
+                        className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
                       </button>
                     )}
-                  </div>
-                </div>
 
-                {isApproved && (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2.5 text-xs text-emerald-300">
-                    <Award className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>
-                      <strong>Status Confirmed:</strong> An official offer has been released for this application.
-                    </span>
-                  </div>
-                )}
-
-                {/* Progress Bar */}
-                <div>
-                  <div className="flex items-center justify-between text-[11px] font-medium text-[var(--text-muted)] mb-1.5">
-                    <span>Admissions Progress</span>
-                    <span className="text-emerald-400 font-bold">{pct}%</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                  {app.nextAction || getStageGuidance(app.stage)}
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-[var(--border-default)] flex items-center justify-between">
-                <span className="text-[11px] text-[var(--text-muted)]">
-                  Last updated:{" "}
-                  {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : "Recently"}
-                </span>
-
-                <div className="flex items-center gap-3">
-                  {isDraft && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteDraft(app.id, app.universityName)}
-                      disabled={deletingId === app.id}
-                      className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+                    <Link
+                      to={`/student/applications/${app.id}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
                     >
-                      Delete Draft
-                    </button>
-                  )}
-
-                  <Link
-                    to={`/student/applications/${app.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
-                  >
-                    {isDraft ? "Continue Draft →" : "View Details & Timeline →"}
-                  </Link>
+                      {isDraft ? "Continue Draft →" : "View Details & Timeline →"}
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      {ownApplications.length > 0 && filteredApplications.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-muted)] space-y-3">
-          <Search className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-40" />
-          <h3 className="text-sm font-bold text-[var(--text-primary)]">
-            No applications match "{searchQuery}"
-          </h3>
-          <p className="text-xs text-[var(--text-secondary)]">
-            Try searching by university name, intake, program, or application reference.
-          </p>
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            className="px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-emerald-400 font-semibold hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
-          >
-            Clear Search
-          </button>
+              </article>
+            );
+          })}
         </div>
-      )}
-
-      {!ownApplications.length && (
-        <div className="rounded-2xl border border-dashed border-[var(--border-default)] p-12 text-center text-[var(--text-muted)] space-y-4">
-          <GraduationCap className="w-12 h-12 text-[var(--text-muted)] mx-auto opacity-40" />
-          <div>
-            <h3 className="text-base font-bold text-[var(--text-primary)]">
-              You have not started an application yet.
-            </h3>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
-              Explore partnered global universities and submit your direct admissions application.
-            </p>
-          </div>
-          <Link
-            to="/student/universities"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md transition-all"
-          >
-            Explore Universities & Programs
-          </Link>
-        </div>
+      ) : ownApplications.length > 0 ? (
+        <StudentEmptyState
+          icon={<Search className="w-6 h-6 text-muted" />}
+          title={searchQuery ? `No applications match "${searchQuery}"` : "No applications in this category"}
+          description={
+            searchQuery
+              ? "Try searching by a different university, programme, or stage."
+              : `You currently do not have any applications in the ${filterTab} filter.`
+          }
+          action={{
+            label: "Reset Filters",
+            onClick: () => {
+              setSearchQuery("");
+              setFilterTab("all");
+            },
+          }}
+        />
+      ) : (
+        <StudentEmptyState
+          icon={<GraduationCap className="w-6 h-6 text-muted" />}
+          title="You have not started an application yet."
+          description="Explore partnered global universities and submit your direct admissions application."
+          action={{
+            label: "Explore Universities & Programs",
+            onClick: () => {
+              window.location.href = "/student/universities";
+            },
+          }}
+        />
       )}
     </div>
   );
@@ -519,13 +559,7 @@ export const StudentApplicationDetail: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:items-end gap-2">
-            <span
-              className={`rounded-full px-4 py-1.5 text-sm font-bold border shrink-0 ${getStageBadgeStyle(
-                app.stage
-              )}`}
-            >
-              {app.stage}
-            </span>
+            <StudentStatusBadge status={app.stage} size="md" />
             {isApproved && (
               <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed / Approved Status
@@ -558,6 +592,27 @@ export const StudentApplicationDetail: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* 8-Step Full Application Lifecycle Stepper */}
+      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 shadow-md space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-emerald-400" />
+              Admissions & Visa Lifecycle Progress
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              Live tracking from submission to university enrollment and visa grant.
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+            Current Stage: {app.stage}
+          </span>
+        </div>
+        <div className="pt-2">
+          <ApplicationLifecycleTimeline currentStage={app.stage} />
+        </div>
+      </section>
 
       {/* University & Campus Showcase Card */}
       <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] overflow-hidden shadow-lg">

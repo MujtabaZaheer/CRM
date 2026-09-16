@@ -175,8 +175,8 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
           )}
         </div>
 
-        {/* Multi-Branch Switcher */}
-        <BranchSwitcher />
+        {/* Multi-Branch Switcher (Hidden for students) */}
+        {appUser?.role !== "student" && <BranchSwitcher />}
 
         {/* Demo Data Visibility Toggle */}
         <button
@@ -198,30 +198,45 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] sq-btn transition-colors"
+          className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] sq-btn transition-colors cursor-pointer"
           title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+          aria-label="Toggle color theme"
         >
           {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
         </button>
 
-        {/* User Info & Logout */}
-        <div className="flex items-center space-x-3 border-l border-[var(--border-default)] pl-3 sm:pl-4">
-          <div className="hidden sm:block text-right">
-            <div className="text-xs font-bold text-[var(--text-primary)] truncate max-w-[140px]">
-              {appUser?.displayName || appUser?.email || "User"}
+        {/* User Info & Profile Menu */}
+        <div className="flex items-center space-x-2.5 border-l border-[var(--border-default)] pl-3 sm:pl-4">
+          <button
+            onClick={() => {
+              if (appUser?.role === "student") {
+                navigate("/student/profile");
+              }
+            }}
+            className="flex items-center space-x-2 text-left group cursor-pointer"
+            title={appUser?.role === "student" ? "View Student Profile" : "User Profile"}
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-zinc-950 font-bold text-xs shadow-sm shadow-emerald-500/20 shrink-0">
+              {(appUser?.displayName || appUser?.email || "U").charAt(0).toUpperCase()}
             </div>
-            <div className="text-[10px] text-teal-400 font-medium capitalize">
-              {appUser?.role ? appUser.role.replace(/_/g, " ") : "Counsellor"}
+            <div className="hidden sm:block text-left leading-tight">
+              <div className="text-xs font-bold text-[var(--text-primary)] group-hover:text-emerald-400 transition-colors truncate max-w-[130px]">
+                {appUser?.displayName || appUser?.email || "User"}
+              </div>
+              <div className="text-[10px] text-emerald-400/90 font-semibold capitalize">
+                {appUser?.role ? appUser.role.replace(/_/g, " ") : "Student"}
+              </div>
             </div>
-          </div>
+          </button>
 
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-[var(--bg-elevated)] hover:bg-rose-500/10 text-[var(--text-secondary)] hover:text-rose-400 border border-[var(--border-default)] hover:border-rose-500/30 sq-btn text-xs font-medium transition-all"
+            className="flex items-center space-x-1 px-2.5 py-1.5 bg-[var(--bg-elevated)] hover:bg-rose-500/10 text-[var(--text-secondary)] hover:text-rose-400 border border-[var(--border-default)] hover:border-rose-500/30 sq-btn text-xs font-medium transition-all cursor-pointer ml-1"
             title="Sign Out"
+            aria-label="Sign out"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Logout</span>
+            <span className="hidden md:inline">Logout</span>
           </button>
         </div>
       </div>
