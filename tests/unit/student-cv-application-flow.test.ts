@@ -60,6 +60,26 @@ describe("Student Registration vs New Application CV Flow & Gemini 3.8 Flash", (
     expect(content).toContain("Gemini 3.8 Flash");
   });
 
+  it("verifies StudentOnboardingStage1 does NOT include StudentCVUploader", () => {
+    const onboardingPath = path.resolve(process.cwd(), "src/pages/portal/onboarding/StudentOnboardingStage1.tsx");
+    const content = fs.readFileSync(onboardingPath, "utf8");
+
+    expect(content).not.toContain("StudentCVUploader");
+  });
+
+  it("verifies Country of Residence is a static dropdown in Register and Application Wizard", () => {
+    const registerContent = fs.readFileSync(path.resolve(process.cwd(), "src/pages/Register.tsx"), "utf8");
+    const wizardContent = fs.readFileSync(path.resolve(process.cwd(), "src/pages/portal/StudentApplicationWizard.tsx"), "utf8");
+
+    // Both must use COMMON_COUNTRIES
+    expect(registerContent).toContain("COMMON_COUNTRIES");
+    expect(wizardContent).toContain("COMMON_COUNTRIES");
+
+    // In Application Wizard, Country of Residence must be a select dropdown, not free-form text input
+    expect(wizardContent).toContain('value={personalOverrides.countryOfResidence || "Pakistan"}');
+    expect(wizardContent).not.toMatch(/<input[^>]*value=\{personalOverrides\.countryOfResidence\}/);
+  });
+
   it("verifies extracted CV data correctly structures personal, academic, and english records", () => {
     // Test the data mapping logic used by handleCVExtracted
     const mockExtracted = {

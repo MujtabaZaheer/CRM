@@ -38,7 +38,7 @@ import { uploadStudentDocument, getDocumentBlobOrUrl } from "../../utils/documen
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 import { StudentCVUploader } from "../../components/ai/StudentCVUploader";
-import { ExtractedStudentCVData, toCountryName } from "../../utils/cvExtractor";
+import { ExtractedStudentCVData, toCountryName, COMMON_COUNTRIES } from "../../utils/cvExtractor";
 
 const STEPS = [
   { num: 1, title: "Overview" },
@@ -1161,13 +1161,18 @@ export const StudentApplicationWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-secondary mb-1">Country of Residence</label>
-                <input
-                  type="text"
-                  value={personalOverrides.countryOfResidence}
+                <label className="block text-xs font-semibold text-secondary mb-1">Country of Residence *</label>
+                <select
+                  value={personalOverrides.countryOfResidence || "Pakistan"}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, countryOfResidence: e.target.value })}
-                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  {COMMON_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

@@ -630,12 +630,16 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country *</label>
                 <div className="relative">
                   <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-                  <input
-                    type="text" required value={formData.countryOfResidence}
+                  <select
+                    required
+                    value={formData.countryOfResidence || "United Kingdom"}
                     onChange={(e) => updateField("countryOfResidence", e.target.value)}
-                    placeholder="e.g. United Kingdom"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-                  />
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                  >
+                    {COMMON_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -674,12 +678,16 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country *</label>
                 <div className="relative">
                   <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-                  <input
-                    type="text" required value={formData.countryOfResidence}
+                  <select
+                    required
+                    value={formData.countryOfResidence || "United Kingdom"}
                     onChange={(e) => updateField("countryOfResidence", e.target.value)}
-                    placeholder="e.g. United Kingdom"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-                  />
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                  >
+                    {COMMON_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </>

@@ -11,6 +11,7 @@ import { Plus, X, UserPlus, UserCheck, Search, Filter, Mail, Phone, Globe, BookO
 import { detectDuplicateLeads, mergeDuplicateLeads, DuplicateCluster, LeadRecord } from "../utils/dataQuality";
 import { autoAssignLead } from "../utils/leadRouter";
 import { calculateLeadScore } from "../utils/leadScoring";
+import { COMMON_COUNTRIES } from "../utils/cvExtractor";
 
 const LEAD_STAGES: LeadStage[] = [
   "New",
@@ -839,13 +840,16 @@ export const LeadsContent: React.FC = () => {
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
                     Country of Residence
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={countryOfResidence}
                     onChange={(e) => setCountryOfResidence(e.target.value)}
-                    placeholder="e.g. UAE"
-                    className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-emerald-500"
-                  />
+                    className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-sm text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="">Select country...</option>
+                    {COMMON_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Program Interest */}

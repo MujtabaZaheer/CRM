@@ -19,7 +19,6 @@ import { db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AcademicRecord, QualificationLevel, Student } from "../../../types/student";
 import { calculateProfileCompleteness } from "../../../utils/profileCompleteness";
-import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
 import { toCountryName } from "../../../utils/cvExtractor";
 import { getRoleBackground } from "../../../utils/roleBackgrounds";
 import { getRoleDashboardPath } from "../../../types/registrationConfig";
@@ -509,37 +508,7 @@ export const StudentOnboardingStage1: React.FC = () => {
           </div>
         )}
 
-        {/* AI CV Extraction Dropzone */}
-        <StudentCVUploader
-          title="Auto-Fill Profile with AI (CV / Resume Scanner)"
-          subtitle="Upload your CV or academic transcript (PDF, DOCX, TXT, Image) to automatically populate personal details, academic history, and test scores."
-          onExtracted={(data) => {
-            if (data.firstName) setFirstName(data.firstName);
-            if (data.lastName) setLastName(data.lastName);
-            if (data.dob) setDob(data.dob);
-            if (data.gender) setGender(data.gender);
-            if (data.nationality) {
-              const matchedCountry = toCountryName(data.nationality);
-              setNationality(COUNTRIES.includes(matchedCountry) ? matchedCountry : "Pakistan");
-            }
-            if (data.countryOfResidence) {
-              const matchedResidence = toCountryName(data.countryOfResidence);
-              setCountryOfResidence(COUNTRIES.includes(matchedResidence) ? matchedResidence : "Pakistan");
-            }
-            if (data.city) setCity(data.city);
-            if (data.phone) setPhone(data.phone);
-            if (data.desiredStudyLevel) setDesiredStudyLevel(data.desiredStudyLevel);
-            if (data.academicRecords && data.academicRecords.length > 0) {
-              setAcademicRecords(data.academicRecords);
-            }
-            if (data.englishProficiency?.overallScore) {
-              setEnglishOverallScore(data.englishProficiency.overallScore);
-              if (data.englishProficiency.testType) {
-                setEnglishTestType(data.englishProficiency.testType);
-              }
-            }
-          }}
-        />
+
 
         {/* Section 1: Personal Information */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
@@ -1189,7 +1158,7 @@ export const StudentOnboardingStage1: React.FC = () => {
               Optional fields (like Dependants or Employment) are not required. You only need to complete the following to proceed:
             </p>
             <ul className="list-disc list-inside text-xs space-y-1 ml-1 opacity-90 font-medium">
-              {completeness.missingFields.map((field, idx) => (
+              {completeness.missingFields.map((field: string, idx: number) => (
                 <li key={idx}>{field}</li>
               ))}
             </ul>
