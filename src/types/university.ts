@@ -58,6 +58,10 @@ export interface Programme {
   scholarships?: ProgrammeScholarship[];
   depositRequired?: number;
   estimatedLivingCostAnnual?: number;
+  status?: "Approved" | "Pending Approval" | "Draft";
+  approvalNotes?: string;
+  capacityTotal?: number;
+  capacityFilled?: number;
 }
 
 export interface University {

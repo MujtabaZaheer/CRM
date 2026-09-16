@@ -54,6 +54,31 @@ export interface ApplicationCondition {
   evidence?: string;
 }
 
+export interface ApplicationPartnerComment {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  isInternal: boolean;
+  text: string;
+  createdAt: number;
+}
+
+export interface ApplicationDocumentRequest {
+  id: string;
+  docType: string;
+  reason: string;
+  deadline?: string;
+  requestedAt: number;
+  status: "pending" | "fulfilled";
+}
+
+export interface ApplicationScholarship {
+  name: string;
+  amount: number | string;
+  description?: string;
+  awardedDate: number;
+}
+
 export interface Application {
   id: string;
   applicationNumber: string; // e.g. APP-2026-0042
@@ -90,6 +115,18 @@ export interface Application {
   casIssuedAt?: number;
   tenantId?: string;
   history?: ApplicationHistoryItem[];
+  offerLetterUrl?: string;
+  offerLetterFileName?: string;
+  offerType?: "Conditional Offer" | "Unconditional Offer";
+  offerConditions?: string;
+  depositAmount?: number;
+  offerDate?: number;
+  offerDeadline?: string;
+  decisionNotes?: string;
+  scholarshipAwarded?: ApplicationScholarship;
+  partnerComments?: ApplicationPartnerComment[];
+  requestedDocuments?: ApplicationDocumentRequest[];
+  sourceAgentName?: string;
   createdAt: number;
   updatedAt: number;
 }

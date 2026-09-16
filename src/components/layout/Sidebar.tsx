@@ -213,9 +213,11 @@ const agentNavItems: NavItem[] = [
 
 const universityNavItems: NavItem[] = [
   { label: "University Portal", path: "/university/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Support Chat", path: "/university/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Received Applications", path: "/university/applications", icon: <FileText className="w-4 h-4" /> },
+  { label: "Course Catalogue", path: "/university/programmes", icon: <BookOpen className="w-4 h-4" /> },
+  { label: "Agent Performance", path: "/university/agents", icon: <BarChart3 className="w-4 h-4" /> },
   { label: "CAS / COE Release", path: "/university/cas-issuance", icon: <ShieldCheck className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/university/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Notifications", path: "/university/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 

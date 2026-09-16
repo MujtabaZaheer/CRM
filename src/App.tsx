@@ -92,6 +92,8 @@ import { AgentNotificationsPage } from "./pages/agent/Notifications";
 // University Module Imports
 import { UniversityDashboardPage } from "./pages/university/Dashboard";
 import { UniversityApplicationsPage } from "./pages/university/Applications";
+import { UniversityProgrammesPage } from "./pages/university/Programmes";
+import { UniversityAgentPerformancePage } from "./pages/university/AgentPerformance";
 import { UniversityCASIssuancePage } from "./pages/university/CASIssuance";
 import { UniversityNotificationsPage } from "./pages/university/Notifications";
 
@@ -324,6 +326,8 @@ export const App: React.FC = () => {
                 <Route path="/university" element={<RoleRoute role="university_partner" />}>
                   <Route path="dashboard" element={<UniversityDashboardPage />} />
                   <Route path="applications" element={<UniversityApplicationsPage />} />
+                  <Route path="programmes" element={<UniversityProgrammesPage />} />
+                  <Route path="agents" element={<UniversityAgentPerformancePage />} />
                   <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="cas-issuance" element={<UniversityCASIssuancePage />} />
                   <Route path="notifications" element={<UniversityNotificationsPage />} />
