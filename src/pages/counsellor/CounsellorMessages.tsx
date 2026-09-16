@@ -395,8 +395,22 @@ export const CounsellorMessages: React.FC = () => {
       return;
     }
 
-    const userName = appUser.displayName || appUser.email?.split("@")[0] || "User";
-    const newSupportData: any = {
+    const userName =
+      appUser.displayName ||
+      appUser.email?.split("@")[0] ||
+      (appUser.role === "external_agent" ? "External Agent" : "User");
+
+    const welcomeMsg: ChatMessage = {
+      id: `msg_welcome_${Date.now()}`,
+      senderId: "usr_7",
+      senderName: "James Wilson (Global Support)",
+      senderRole: "staff",
+      content: `Hello ${userName}! Welcome to Global Support Desk. How can our operations team assist your agency today?`,
+      timestamp: Date.now(),
+      read: true,
+    };
+
+    const newSupportData: ConversationItem = {
       id: supportConvId,
       studentId: appUser.uid,
       studentName: userName,
@@ -412,18 +426,78 @@ export const CounsellorMessages: React.FC = () => {
       participants: [appUser.uid, "usr_7"],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      lastMessage: `Support consultation opened with James Wilson (Global Support)`,
+      lastMessage: welcomeMsg.content,
       lastMessageTimestamp: Date.now(),
-      lastMessageSenderId: appUser.uid,
+      lastMessageSenderId: "usr_7",
     };
 
+    // 1. Immediately update in-memory conversations state
+    setConversations((prev) => {
+      const idx = prev.findIndex((c) => c.id === supportConvId);
+      if (idx >= 0) return prev;
+      return [newSupportData, ...prev];
+    });
+
+    // 2. Immediately cache in localStorage for instant responsiveness
+    try {
+      const raw = localStorage.getItem("educrm_local_conversations");
+      const list: ConversationItem[] = raw ? JSON.parse(raw) : [];
+      if (!list.some((c) => c.id === supportConvId)) {
+        list.unshift(newSupportData);
+        localStorage.setItem("educrm_local_conversations", JSON.stringify(list));
+      }
+      const msgsKey = `educrm_msgs_${supportConvId}`;
+      const existingMsgs = localStorage.getItem(msgsKey);
+      if (!existingMsgs) {
+        localStorage.setItem(msgsKey, JSON.stringify([welcomeMsg]));
+        setMessages([welcomeMsg]);
+      }
+    } catch (_) {}
+
+    // 3. Immediately select conversation
+    setSelectedConvId(supportConvId);
+
+    // 4. Sync to Firestore in background
     try {
       await setDoc(doc(db, "conversations", supportConvId), newSupportData, { merge: true });
-      setSelectedConvId(supportConvId);
+      await addDoc(
+        collection(db, "conversations", supportConvId, "messages"),
+        sanitizeForFirestore(welcomeMsg)
+      );
     } catch (err) {
-      console.error("Error creating support conversation:", err);
+      console.warn("Notice: Support conversation stored locally, cloud notice:", err);
     }
   };
+
+  // Auto-connect support desk for roles whose only permitted chat channel is support
+  useEffect(() => {
+    if (!appUser?.uid || loadingList) return;
+    const isSupportOnlyRole =
+      appUser.role === "external_agent" ||
+      appUser.role === "university_partner" ||
+      appUser.role === "auditor";
+
+    if (isSupportOnlyRole) {
+      const supportConvId = `${appUser.uid}_support`;
+      const hasSupport = conversations.some(
+        (c) =>
+          c.id === supportConvId ||
+          ((c.channelType === "support" || c.targetRole === "support_user") &&
+            c.participants?.includes(appUser.uid))
+      );
+      if (!hasSupport) {
+        handleConnectSupport();
+      } else if (!selectedConvId) {
+        const found = conversations.find(
+          (c) =>
+            c.id === supportConvId ||
+            ((c.channelType === "support" || c.targetRole === "support_user") &&
+              c.participants?.includes(appUser.uid))
+        );
+        setSelectedConvId(found?.id || supportConvId);
+      }
+    }
+  }, [appUser?.uid, appUser?.role, loadingList, conversations.length, selectedConvId]);
 
   // Filter conversations strictly adhering to role permissions
   const filteredConversations = useMemo(() => {
@@ -503,10 +577,10 @@ export const CounsellorMessages: React.FC = () => {
       if (!exists) {
         setSelectedConvId(filteredConversations[0].id);
       }
-    } else {
+    } else if (selectedConvId && !conversations.some((c) => c.id === selectedConvId)) {
       setSelectedConvId(null);
     }
-  }, [filteredConversations, selectedConvId]);
+  }, [filteredConversations, selectedConvId, conversations]);
 
   // Send message or internal note handler
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -517,11 +591,16 @@ export const CounsellorMessages: React.FC = () => {
 
     setSending(true);
     const now = Date.now();
-    const senderRole = appUser?.role === "admissions_officer" ? "staff" : "counsellor";
+    const isSupportChat = activeConv.channelType === "support" || activeConv.targetRole === "support_user";
+    const senderRole = appUser?.role || "counsellor";
     const senderName =
       appUser?.displayName ||
       appUser?.email?.split("@")[0] ||
-      (appUser?.role === "counsellor" ? "Education Counsellor" : "Admissions Team");
+      (appUser?.role === "external_agent"
+        ? "External Agent"
+        : appUser?.role === "counsellor"
+        ? "Education Counsellor"
+        : "Staff");
 
     const text = rawText || (hasAttachments ? `📎 Attached ${stagedAttachments.length} file(s): ${stagedAttachments.map((a) => a.name).join(", ")}` : "");
 
@@ -601,15 +680,18 @@ export const CounsellorMessages: React.FC = () => {
         );
 
         if (!isInternalNote) {
-          await updateDoc(doc(db, "conversations", selectedConvId), {
+          const updateFields: any = {
             lastMessage: text,
             lastMessageTimestamp: now,
             lastMessageSenderId: appUser?.uid || "staff",
             updatedAt: now,
-            counsellorId: appUser?.uid || activeConv.counsellorId,
-            counsellorName: senderName,
-            counsellorEmail: appUser?.email || activeConv.counsellorEmail,
-          });
+          };
+          if (!isSupportChat) {
+            updateFields.counsellorId = appUser?.uid || activeConv.counsellorId;
+            updateFields.counsellorName = senderName;
+            updateFields.counsellorEmail = appUser?.email || activeConv.counsellorEmail;
+          }
+          await updateDoc(doc(db, "conversations", selectedConvId), updateFields);
         }
       } catch (cloudErr) {
         console.warn("Notice: Message saved locally, cloud sync notice:", cloudErr);
@@ -991,25 +1073,34 @@ export const CounsellorMessages: React.FC = () => {
 
                 {/* Quick Actions (Task & Link) */}
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setTaskTitle(`Follow up with ${activeConv.studentName}`);
-                      setIsTaskModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[var(--bg-main)] border border-[var(--border-default)] hover:border-emerald-500/30 text-[var(--text-secondary)] hover:text-emerald-400 transition-colors flex items-center gap-1.5"
-                    title="Create follow-up task (CRM.pdf 3.12.12)"
-                  >
-                    <CheckSquare className="w-3.5 h-3.5" />
-                    <span>Create Task</span>
-                  </button>
+                  {appUser?.role === "counsellor" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setTaskTitle(`Follow up with ${activeConv.studentName}`);
+                          setIsTaskModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[var(--bg-main)] border border-[var(--border-default)] hover:border-emerald-500/30 text-[var(--text-secondary)] hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+                        title="Create follow-up task (CRM.pdf 3.12.12)"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span>Create Task</span>
+                      </button>
 
-                  <Link
-                    to="/counsellor/students"
-                    className="p-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                    title="View Student Profile"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
+                      <Link
+                        to="/counsellor/students"
+                        className="p-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                        title="View Student Profile"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </>
+                  )}
+                  {(activeConv.channelType === "support" || activeConv.targetRole === "support_user") && (
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-bold flex items-center gap-1">
+                      <LifeBuoy className="w-3 h-3" /> Priority Support Active
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1050,22 +1141,27 @@ export const CounsellorMessages: React.FC = () => {
                       );
                     }
 
+                    const isMyMessage =
+                      msg.senderId === appUser?.uid ||
+                      (!msg.senderId && msg.senderRole === appUser?.role) ||
+                      (appUser?.role === "counsellor" && (msg.senderRole === "counsellor" || msg.senderRole === "staff"));
+
                     return (
                       <div
                         key={msg.id}
                         className={`flex gap-3 ${
-                          isStaff ? "justify-end" : "justify-start"
+                          isMyMessage ? "justify-end" : "justify-start"
                         }`}
                       >
-                        {!isStaff && (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-1 shadow">
+                        {!isMyMessage && (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-orange-600 text-zinc-950 font-bold text-xs flex items-center justify-center shrink-0 mt-1 shadow">
                             {msg.senderName[0] || "S"}
                           </div>
                         )}
 
                         <div
                           className={`max-w-[75%] rounded-2xl p-4 space-y-1 shadow-sm ${
-                            isStaff
+                            isMyMessage
                               ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none"
                               : "bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] rounded-tl-none"
                           }`}

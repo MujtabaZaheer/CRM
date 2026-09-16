@@ -25,6 +25,7 @@ import {
   Send,
   RefreshCw,
   Clock,
+  Sparkles,
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
@@ -36,6 +37,8 @@ import { getApplicationReadiness, isDocumentMatch, normalise } from "../../utils
 import { uploadStudentDocument, getDocumentBlobOrUrl } from "../../utils/documentStorage";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
+import { StudentCVUploader } from "../../components/ai/StudentCVUploader";
+import { ExtractedStudentCVData, toCountryName } from "../../utils/cvExtractor";
 
 const STEPS = [
   { num: 1, title: "Overview" },
@@ -104,6 +107,85 @@ export const StudentApplicationWizard: React.FC = () => {
   const [declaration3, setDeclaration3] = useState(false);
 
   const allDeclarationsAccepted = declaration1 && declaration2 && declaration3;
+
+  // Handle AI CV Extraction with Gemini 3.8 Flash
+  const handleCVExtracted = async (extracted: ExtractedStudentCVData) => {
+    const uid = firebaseUser?.uid || appUser?.uid;
+    if (!uid) return;
+
+    const matchedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || personalOverrides.countryOfResidence || "Pakistan";
+    const matchedNat = toCountryName(extracted.nationality) || matchedCountry;
+
+    // 1. Update personalOverrides state
+    const newOverrides = {
+      ...personalOverrides,
+      fullName: extracted.fullName || personalOverrides.fullName,
+      phone: extracted.phone || personalOverrides.phone,
+      countryOfResidence: matchedCountry,
+      passportNumber: (extracted as any).passportNumber || personalOverrides.passportNumber,
+    };
+    setPersonalOverrides(newOverrides);
+
+    // 2. Update student profile state
+    setStudent((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        fullName: extracted.fullName || prev.fullName,
+        phone: extracted.phone || prev.phone,
+        nationality: matchedNat,
+        countryOfResidence: matchedCountry,
+        dob: extracted.dob || prev.dob,
+        gender: extracted.gender || prev.gender,
+        city: extracted.city || (prev as any).city,
+        academicHistory: (extracted.academicRecords && extracted.academicRecords.length > 0)
+          ? extracted.academicRecords
+          : prev.academicHistory,
+        englishProficiency: extracted.englishProficiency
+          ? {
+              testType: extracted.englishProficiency.testType,
+              overallScore: extracted.englishProficiency.overallScore,
+              testDate: (prev.englishProficiency as any)?.testDate || "",
+            }
+          : prev.englishProficiency,
+      };
+    });
+
+    // 3. Persist to Firestore students doc & current application draft in background
+    try {
+      const studentUpdate: Record<string, any> = {
+        fullName: extracted.fullName || personalOverrides.fullName,
+        phone: extracted.phone || personalOverrides.phone,
+        nationality: matchedNat,
+        countryOfResidence: matchedCountry,
+        updatedAt: Date.now(),
+      };
+      if (extracted.dob) studentUpdate.dob = extracted.dob;
+      if (extracted.gender) studentUpdate.gender = extracted.gender;
+      if (extracted.city) studentUpdate.city = extracted.city;
+      if (extracted.academicRecords && extracted.academicRecords.length > 0) {
+        studentUpdate.academicHistory = extracted.academicRecords;
+      }
+      if (extracted.englishProficiency) {
+        studentUpdate.englishProficiency = extracted.englishProficiency;
+      }
+
+      await setDoc(doc(db, "students", uid), studentUpdate, { merge: true });
+
+      if (applicationId) {
+        await setDoc(doc(db, "applications", applicationId), {
+          studentName: extracted.fullName || personalOverrides.fullName,
+          targetCountry: university?.country,
+          updatedAt: Date.now(),
+        }, { merge: true });
+      }
+
+      setSaveNotice("CV parsed successfully with Gemini 3.8 Flash! Your details have been auto-filled into your application.");
+      setTimeout(() => setSaveNotice(null), 5000);
+    } catch (err) {
+      console.warn("Notice: Local state populated from CV, Firestore update notice:", err);
+    }
+  };
 
   const handleRetry = () => {
     setWizardState("LOADING");
@@ -906,6 +988,22 @@ export const StudentApplicationWizard: React.FC = () => {
           </div>
         )}
 
+        {saveNotice && (
+          <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{saveNotice}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSaveNotice(null)}
+              className="text-xs text-muted hover:text-primary cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* STEP 1: Application Overview */}
         {currentStep === 1 && (
           <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
@@ -983,21 +1081,53 @@ export const StudentApplicationWizard: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            {/* Fast-Track AI CV Option in Step 1 */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 animate-pulse" />
+                <div>
+                  <h4 className="text-xs font-bold text-primary flex items-center gap-1.5">
+                    <span>Fast-Track Application with AI CV Scanner</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold uppercase">Gemini 3.8 Flash</span>
+                  </h4>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    Upload your CV in Step 2 to automatically extract and populate your personal details, academic history, and English scores.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <span>Go to Step 2 &amp; Upload CV</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
 
         {/* STEP 2: Personal Information (Auto-Filled) */}
         {currentStep === 2 && (
-          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-subtle">
-              <div>
-                <span className="text-xs font-bold text-emerald-400 uppercase">Step 2</span>
-                <h2 className="text-lg font-bold text-primary font-heading font-bold">Personal Information</h2>
+          <div className="space-y-5 animate-fade-in">
+            {/* AI CV Scanner for Auto-Filling Application */}
+            <StudentCVUploader
+              title="Auto-Fill Application with AI (CV / Resume Scanner)"
+              subtitle="Upload your CV or academic transcript (PDF, DOCX, TXT, Image) to automatically populate and verify your personal details, academic history, and test scores using Gemini 3.8 Flash."
+              onExtracted={handleCVExtracted}
+            />
+
+            <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-subtle">
+                <div>
+                  <span className="text-xs font-bold text-emerald-400 uppercase">Step 2</span>
+                  <h2 className="text-lg font-bold text-primary font-heading font-bold">Personal Information</h2>
+                </div>
+                <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
+                  Auto-filled from Master Profile / CV
+                </span>
               </div>
-              <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
-                Auto-filled from Master Profile
-              </span>
-            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -1041,20 +1171,39 @@ export const StudentApplicationWizard: React.FC = () => {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* STEP 3: Academic History */}
         {currentStep === 3 && (
-          <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-subtle">
-              <div>
-                <span className="text-xs font-bold text-emerald-400 uppercase">Step 3</span>
-                <h2 className="text-lg font-bold text-primary font-heading font-bold">Academic History</h2>
+          <div className="space-y-5 animate-fade-in">
+            {(!student?.academicHistory || student.academicHistory.length === 0) && (
+              <StudentCVUploader
+                title="Extract Academic Qualifications with AI"
+                subtitle="Upload your CV or academic transcript to automatically extract and populate your school, college, and university degrees using Gemini 3.8 Flash."
+                onExtracted={handleCVExtracted}
+              />
+            )}
+
+            <div className="p-6 rounded-2xl bg-surface border border-subtle shadow-sm space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-subtle">
+                <div>
+                  <span className="text-xs font-bold text-emerald-400 uppercase">Step 3</span>
+                  <h2 className="text-lg font-bold text-primary font-heading font-bold">Academic History</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
+                    Auto-filled from Master Profile
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="text-xs text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer font-semibold"
+                  >
+                    <Sparkles className="w-3 h-3" /> Re-scan CV
+                  </button>
+                </div>
               </div>
-              <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
-                Auto-filled from Master Profile
-              </span>
-            </div>
 
             {student?.academicHistory && student.academicHistory.length > 0 ? (
               <div className="space-y-3">
@@ -1077,7 +1226,8 @@ export const StudentApplicationWizard: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
         {/* STEP 4: English Language */}
         {currentStep === 4 && (

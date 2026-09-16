@@ -760,20 +760,36 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     <span>Lodge Visa Application</span>
                   </button>
                 ) : application.stage === "Visa Submitted" ? (
-                  <button
-                    type="button"
-                    disabled={isSubmitting || !canUserSetStage(effectiveRole, "Visa Approved")}
-                    onClick={() =>
-                      handleQuickAdvance(
-                        "Visa Approved",
-                        "Visa Officer: Visa granted. Student immigration clearance complete."
-                      )
-                    }
-                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Grant Visa Clearance</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isSubmitting || !canUserSetStage(effectiveRole, "Visa Approved")}
+                      onClick={() =>
+                        handleQuickAdvance(
+                          "Visa Approved",
+                          "Visa Officer: Visa granted. Student immigration clearance complete."
+                        )
+                      }
+                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Grant Visa Clearance</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting || !canUserSetStage(effectiveRole, "Rejected")}
+                      onClick={() =>
+                        handleQuickAdvance(
+                          "Rejected",
+                          "Visa Officer: Visa refused / rejected by immigration authority."
+                        )
+                      }
+                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>Reject Visa</span>
+                    </button>
+                  </div>
                 ) : null}
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
-import { Loader2, ArrowRight, BookOpen, MapPin, Building2, Calendar } from "lucide-react";
+import { Loader2, ArrowRight, BookOpen, MapPin, Building2, Calendar, Sparkles } from "lucide-react";
 import { db } from "../../firebase/config";
 import { University } from "../../types/university";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
@@ -148,6 +148,26 @@ export const StudentNewApplication: React.FC = () => {
           </p>
         </div>
       </header>
+
+      {/* AI Fast-Track Notice */}
+      <div className="rounded-2xl bg-gradient-to-r from-emerald-500/10 via-zinc-900/60 to-teal-500/10 border border-emerald-500/30 p-4 sm:p-5 flex items-center gap-3.5 shadow-sm">
+        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+          <Sparkles className="w-5 h-5 animate-pulse" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-xs font-bold text-[var(--text-primary)]">
+              AI-Powered Application Auto-Fill (CV / Resume Scanner)
+            </h3>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold uppercase tracking-wider">
+              Gemini 3.8 Flash
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+            Select your destination and programme below to open the application wizard. You can upload your CV or academic transcript to automatically populate your personal info, academic records, and test scores with zero manual data entry.
+          </p>
+        </div>
+      </div>
 
       {/* Cascading Selector Card */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">

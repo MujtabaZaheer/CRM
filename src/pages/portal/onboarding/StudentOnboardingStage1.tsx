@@ -43,9 +43,9 @@ const QUALIFICATIONS: QualificationLevel[] = [
 ];
 
 const COUNTRIES = [
-  "United Kingdom", "Canada", "Australia", "United States", "Germany",
+  "Pakistan", "United Kingdom", "Canada", "Australia", "United States", "Germany",
   "Ireland", "New Zealand", "United Arab Emirates", "France", "Netherlands",
-  "Sweden", "Singapore", "Malaysia", "Pakistan", "India", "Nigeria",
+  "Sweden", "Singapore", "Malaysia", "India", "Nigeria",
   "Ghana", "Bangladesh", "Other",
 ];
 
@@ -146,8 +146,13 @@ export const StudentOnboardingStage1: React.FC = () => {
           setLastName(names.slice(1).join(" ") || "");
           setDob(data.dob || "");
           setGender(data.gender || "Prefer not to say");
-          setNationality(data.nationality || "Pakistan");
-          setCountryOfResidence(data.countryOfResidence || "Pakistan");
+          const normalizedNat = data.nationality ? (toCountryName(data.nationality) || data.nationality) : "Pakistan";
+          const finalNat = COUNTRIES.includes(normalizedNat) ? normalizedNat : (COUNTRIES.includes(data.nationality) ? data.nationality : "Pakistan");
+          setNationality(finalNat);
+
+          const normalizedCountry = data.countryOfResidence ? (toCountryName(data.countryOfResidence) || data.countryOfResidence) : "Pakistan";
+          const finalCountry = COUNTRIES.includes(normalizedCountry) ? normalizedCountry : (COUNTRIES.includes(data.countryOfResidence) ? data.countryOfResidence : "Pakistan");
+          setCountryOfResidence(finalCountry);
           setCity((data as any).city || "");
           setPhone(data.phone || "");
 
@@ -628,7 +633,13 @@ export const StudentOnboardingStage1: React.FC = () => {
               <label className="block text-xs font-semibold text-secondary mb-1.5">Country of Residence *</label>
               <select
                 value={countryOfResidence}
-                onChange={(e) => setCountryOfResidence(e.target.value)}
+                onChange={(e) => {
+                  const newCountry = e.target.value;
+                  if (!nationality || nationality === countryOfResidence) {
+                    setNationality(newCountry);
+                  }
+                  setCountryOfResidence(newCountry);
+                }}
                 className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
                 {COUNTRIES.map((c) => (

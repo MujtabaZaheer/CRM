@@ -5,15 +5,13 @@ import { doc, setDoc, addDoc, collection } from "firebase/firestore";
 import { auth, db, getEmailActionSettings } from "../firebase/config";
 import {
   UserPlus, AlertCircle, User, Mail, Lock, Phone, Globe, Flag, Eye, EyeOff,
-  CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase, Sparkles,
+  CheckCircle2, ShieldCheck, GraduationCap, Handshake, Building2, ArrowLeft, Briefcase,
   MessageSquare, DollarSign, LifeBuoy, FileCheck, Users, FileText,
 } from "lucide-react";
 import { UserRole } from "../types/role";
 import { REGISTRATION_CONFIGS, EXTERNAL_ROLES, STAFF_ROLES } from "../types/registrationConfig";
-import { StudentCVUploader } from "../components/ai/StudentCVUploader";
-import { toNationalityDemonym, toCountryName } from "../utils/cvExtractor";
+import { COMMON_COUNTRIES } from "../utils/cvExtractor";
 import { getRoleBackground } from "../utils/roleBackgrounds";
-import { useAuth } from "../contexts/AuthContext";
 
 /* ------------------------------------------------------------------ */
 /*  Password strength rules                                           */
@@ -24,21 +22,6 @@ const PASSWORD_RULES = [
   { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
   { label: "One digit", test: (p: string) => /\d/.test(p) },
   { label: "One special character", test: (p: string) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p) },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Nationality list                                                  */
-/* ------------------------------------------------------------------ */
-const NATIONALITIES = [
-  "Afghan", "Albanian", "Algerian", "American", "Argentine", "Australian", "Bangladeshi", "Belgian",
-  "Brazilian", "British", "Canadian", "Chinese", "Colombian", "Egyptian", "Emirati", "Ethiopian",
-  "Filipino", "French", "German", "Ghanaian", "Greek", "Indian", "Indonesian", "Iranian", "Iraqi",
-  "Irish", "Italian", "Japanese", "Jordanian", "Kenyan", "Korean", "Kuwaiti", "Lebanese", "Libyan",
-  "Malaysian", "Mexican", "Moroccan", "Nepali", "Nigerian", "Norwegian", "Omani", "Pakistani",
-  "Palestinian", "Polish", "Portuguese", "Qatari", "Romanian", "Russian", "Saudi", "Senegalese",
-  "Singaporean", "Somali", "South African", "Spanish", "Sri Lankan", "Sudanese", "Swedish", "Swiss",
-  "Syrian", "Thai", "Tunisian", "Turkish", "Ugandan", "Ukrainian", "Vietnamese", "Yemeni", "Zimbabwean",
-  "Other",
 ];
 
 /* ------------------------------------------------------------------ */
@@ -135,21 +118,18 @@ const ACCENT_CLASSES: Record<string, { card: string; cardHover: string; border: 
 /* ================================================================== */
 export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) => {
   const navigate = useNavigate();
-  const { appUser, firebaseUser } = useAuth();
-  const isAuthenticated = Boolean(appUser || firebaseUser);
   const [searchParams] = useSearchParams();
   const queryRole = (searchParams.get("role") as UserRole) || null;
   const initialRole = defaultRole || queryRole;
 
   /* ---- state ---- */
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(initialRole);
-  const [cvNotice, setCvNotice] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     phone: "",
-    nationality: "",
-    countryOfResidence: "",
+    nationality: initialRole === "student" ? "Pakistan" : "",
+    countryOfResidence: initialRole === "student" ? "Pakistan" : "",
     agencyName: "",
     universityName: "",
     position: "",
@@ -162,6 +142,17 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success] = useState(false);
+
+  // Synchronize default country and nationality when student role is chosen
+  React.useEffect(() => {
+    if (selectedRole === "student") {
+      setFormData((prev) => ({
+        ...prev,
+        countryOfResidence: prev.countryOfResidence || "Pakistan",
+        nationality: prev.nationality || prev.countryOfResidence || "Pakistan",
+      }));
+    }
+  }, [selectedRole]);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -503,7 +494,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         {/* Back button */}
         <button
           type="button"
-          onClick={() => { setSelectedRole(null); setError(null); setCvNotice(null); }}
+          onClick={() => { setSelectedRole(null); setError(null); }}
           className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -525,62 +516,6 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start space-x-2 text-rose-400 text-xs">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
-          </div>
-        )}
-
-        {/* AI Student CV Auto-Fill Dropzone */}
-        {selectedRole === "student" && (
-          <div className="space-y-3">
-            <StudentCVUploader
-              requireAuth={true}
-              isAuthenticated={isAuthenticated}
-              onAuthRequiredClick={() => navigate("/login")}
-              onExtracted={(extracted) => {
-                const dem = toNationalityDemonym(extracted.nationality);
-                const matchedNat = NATIONALITIES.includes(dem) ? dem : "Pakistani";
-                const matchedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || "Pakistan";
-
-                setFormData((prev) => ({
-                  ...prev,
-                  fullName: extracted.fullName || prev.fullName,
-                  email: extracted.email || prev.email,
-                  phone: extracted.phone || prev.phone,
-                  nationality: matchedNat,
-                  countryOfResidence: matchedCountry,
-                }));
-                const fieldsFilled = [
-                  extracted.fullName && "Full Name",
-                  extracted.email && "Email",
-                  extracted.phone && "Phone",
-                  matchedNat && "Nationality",
-                  matchedCountry && "Residence",
-                  extracted.dob && "DOB",
-                ].filter(Boolean);
-                setCvNotice(`Extracted: ${fieldsFilled.join(", ")}. Please review below.`);
-                try {
-                  sessionStorage.setItem("student_extracted_cv", JSON.stringify({
-                    ...extracted,
-                    nationality: matchedNat,
-                    countryOfResidence: matchedCountry,
-                  }));
-                } catch (_) {}
-              }}
-            />
-            {cvNotice && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-emerald-400 text-xs animate-in fade-in duration-300">
-                <span className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span>{cvNotice}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCvNotice(null)}
-                  className="text-zinc-400 hover:text-white ml-2 text-xs"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -631,33 +566,46 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             </div>
           )}
 
-          {/* ---- STUDENT: Nationality & Country ---- */}
+          {/* ---- STUDENT: Country & Nationality ---- */}
           {selectedRole === "student" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country of Residence *</label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                  <select
+                    required
+                    value={formData.countryOfResidence || "Pakistan"}
+                    onChange={(e) => {
+                      const newCountry = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        countryOfResidence: newCountry,
+                        nationality: (!prev.nationality || prev.nationality === prev.countryOfResidence) ? newCountry : prev.nationality,
+                      }));
+                    }}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                  >
+                    {COMMON_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Nationality *</label>
                 <div className="relative">
                   <Flag className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
                   <select
-                    required value={formData.nationality}
+                    required
+                    value={formData.nationality || formData.countryOfResidence || "Pakistan"}
                     onChange={(e) => updateField("nationality", e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
-                    <option value="">Select...</option>
-                    {NATIONALITIES.map((n) => <option key={n} value={n}>{n}</option>)}
+                    {COMMON_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country of Residence *</label>
-                <div className="relative">
-                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-                  <input
-                    type="text" required value={formData.countryOfResidence}
-                    onChange={(e) => updateField("countryOfResidence", e.target.value)}
-                    placeholder="e.g. Pakistan"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-                  />
                 </div>
               </div>
             </div>

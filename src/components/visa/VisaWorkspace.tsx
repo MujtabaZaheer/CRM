@@ -16,7 +16,8 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
   const visaApps = applications.filter((app) => 
-    ["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage)
+    ["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage) ||
+    (app.stage === "Rejected" && app.history?.some(h => h.updatedBy === "Visa Officer" || h.stage?.includes("Visa") || h.stage?.includes("CAS")))
   );
 
   const filteredApps = visaApps.filter(app => 
@@ -173,7 +174,7 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                             onChange={(e) => handleStageChange(app, e.target.value as ApplicationStage)} 
                             className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1 text-xs"
                           >
-                            {["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved"].map((stg) => {
+                            {["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Rejected"].map((stg) => {
                               const isAllowed = canUserSetStage("visa_officer", stg as ApplicationStage);
                               return (
                                 <option key={stg} value={stg} disabled={!isAllowed}>
@@ -203,14 +204,24 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                               Lodge Visa
                             </button>
                           ) : app.stage === "Visa Submitted" ? (
-                            <button
-                              type="button"
-                              onClick={() => handleStageChange(app, "Visa Approved", "Visa Officer: Visa granted.")}
-                              className="px-2 py-1 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded text-[11px] shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
-                              title="Advance to Visa Approved"
-                            >
-                              Grant Clearance
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleStageChange(app, "Visa Approved", "Visa Officer: Visa granted.")}
+                                className="px-2 py-1 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded text-[11px] shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
+                                title="Advance to Visa Approved"
+                              >
+                                Grant Clearance
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStageChange(app, "Rejected", "Visa Officer: Visa refused / rejected by immigration authority.")}
+                                className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[11px] shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
+                                title="Reject Visa Application"
+                              >
+                                Reject Visa
+                              </button>
+                            </div>
                           ) : null}
                         </div>
                       </td>

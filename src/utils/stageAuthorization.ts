@@ -128,10 +128,10 @@ export const STAGE_AUTHORIZATION_MAP: Record<ApplicationStage, StageRoleConfig> 
     actionDescription: "Withdraw application per student request",
   },
   Rejected: {
-    allowedRoles: ["admissions_officer", "university_partner", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions Officer",
+    allowedRoles: ["admissions_officer", "university_partner", "visa_officer", "platform_super_admin", "org_admin"],
+    ownerLabel: "Admissions / Visa Officer",
     department: "Admissions",
-    actionDescription: "Mark application unsuccessful by university",
+    actionDescription: "Mark application unsuccessful by university or immigration refusal",
   },
 };
 
