@@ -6,14 +6,14 @@ const reportHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>EduCRM Architecture, Flow & Sequence Diagrams</title>
+  <title>EduCRM Architecture, Flow, SSD & SD Diagrams</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
     @page {
-      size: A4 portrait;
-      margin: 15mm 15mm 15mm 15mm;
+      size: A4 landscape;
+      margin: 10mm 12mm 10mm 12mm;
     }
 
     * {
@@ -26,29 +26,47 @@ const reportHtml = `<!DOCTYPE html>
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       color: #0f172a;
       background: #ffffff;
-      line-height: 1.5;
+      line-height: 1.4;
       font-size: 11pt;
     }
 
     .page {
       page-break-after: always;
       position: relative;
+      min-height: 185mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .page:last-child {
       page-break-after: avoid;
     }
 
-    /* Cover Page */
-    .cover-header {
-      padding: 40px 0 20px 0;
-      border-bottom: 3px solid #059669;
-      margin-bottom: 30px;
+    .header-bar {
+      border-bottom: 2.5px solid #059669;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .badge-doc {
+    .header-bar h1 {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .header-bar .subtitle {
+      font-size: 9pt;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .tag-badge {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 3px 10px;
       font-size: 8pt;
       font-weight: 700;
       letter-spacing: 0.05em;
@@ -57,75 +75,41 @@ const reportHtml = `<!DOCTYPE html>
       color: #059669;
       border: 1px solid #a7f3d0;
       border-radius: 9999px;
-      margin-bottom: 12px;
     }
 
-    h1.title {
-      font-size: 24pt;
-      font-weight: 800;
-      color: #0f172a;
-      line-height: 1.2;
-      margin-bottom: 10px;
-    }
-
-    p.subtitle {
-      font-size: 11pt;
-      color: #475569;
-      max-width: 90%;
-    }
-
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      padding: 15px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      margin-bottom: 30px;
-      font-size: 9pt;
-    }
-
-    .meta-item strong {
-      display: block;
-      color: #64748b;
-      font-size: 7.5pt;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    /* Section Styling */
     .section-title {
-      font-size: 14pt;
+      font-size: 13pt;
       font-weight: 700;
       color: #0f172a;
       border-left: 4px solid #059669;
-      padding-left: 10px;
-      margin: 25px 0 10px 0;
+      padding-left: 8px;
+      margin-bottom: 4px;
     }
 
     .section-desc {
-      font-size: 9.5pt;
+      font-size: 9pt;
       color: #475569;
-      margin-bottom: 15px;
+      margin-bottom: 8px;
     }
 
-    /* Diagram Container */
+    /* Big Diagram Container */
     .diagram-container {
       background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 20px;
-      margin: 15px 0 25px 0;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 15px;
+      flex-grow: 1;
       display: flex;
       justify-content: center;
       align-items: center;
-      page-break-inside: avoid;
+      overflow: hidden;
+      margin-bottom: 8px;
     }
 
     .diagram-container svg {
-      max-width: 100% !important;
-      height: auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 140mm !important;
     }
 
     /* Table Styling */
@@ -133,21 +117,20 @@ const reportHtml = `<!DOCTYPE html>
       width: 100%;
       border-collapse: collapse;
       font-size: 8.5pt;
-      margin: 15px 0;
-      page-break-inside: avoid;
+      margin-top: 10px;
     }
 
     table.spec-table th {
       background: #0f172a;
       color: #f8fafc;
       text-align: left;
-      padding: 8px 10px;
-      font-weight: 600;
+      padding: 7px 10px;
+      font-weight: 700;
       border: 1px solid #334155;
     }
 
     table.spec-table td {
-      padding: 7px 10px;
+      padding: 6px 10px;
       border: 1px solid #e2e8f0;
       color: #334155;
     }
@@ -158,9 +141,9 @@ const reportHtml = `<!DOCTYPE html>
 
     .role-badge {
       display: inline-block;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 7.5pt;
     }
 
@@ -168,102 +151,111 @@ const reportHtml = `<!DOCTYPE html>
     .role-admissions { background: #e0e7ff; color: #4338ca; }
     .role-finance { background: #f3e8ff; color: #7e22ce; }
     .role-visa { background: #fef3c7; color: #b45309; }
+    .role-admin { background: #dcfce7; color: #15803d; }
 
-    /* Footer */
     .doc-footer {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding-top: 10px;
+      padding-top: 6px;
       border-top: 1px solid #e2e8f0;
       display: flex;
       justify-content: space-between;
-      font-size: 7.5pt;
+      font-size: 8pt;
       color: #94a3b8;
     }
   </style>
 </head>
 <body>
 
-  <!-- PAGE 1: COVER & WORKFLOW STATE DIAGRAM -->
+  <!-- PAGE 1: END-TO-END WORKFLOW DIAGRAM (BIG) -->
   <div class="page">
-    <div class="cover-header">
-      <span class="badge-doc">Official Technical Specification</span>
-      <h1 class="title">EduCRM System Architecture & Workflow Diagrams</h1>
-      <p class="subtitle">End-to-End Application Lifecycle, Role-Based Access Control (RBAC), System Sequence Diagram (SSD), and Component Interaction Sequence Diagram (SD).</p>
-    </div>
+    <div>
+      <div class="header-bar">
+        <div>
+          <h1>EduCRM System Architecture & Workflow</h1>
+          <div class="subtitle">End-to-End Pipeline & Role-Based Access Control (RBAC) • Live at https://education-crm-9fee2.web.app</div>
+        </div>
+        <span class="tag-badge">Diagram 1 of 3: State Flow</span>
+      </div>
 
-    <div class="meta-grid">
-      <div class="meta-item">
-        <strong>Platform</strong>
-        <span>EduCRM Enterprise Platform</span>
-      </div>
-      <div class="meta-item">
-        <strong>Live Production URL</strong>
-        <span>https://education-crm-9fee2.web.app</span>
-      </div>
-      <div class="meta-item">
-        <strong>Security Matrix</strong>
-        <span>Role-Based Stage Authorization (RBAC)</span>
-      </div>
+      <div class="section-title">1. End-to-End Role-Based State Progression & Desks</div>
+      <div class="section-desc">Models the complete applicant journey across dedicated organizational boundaries, highlighting 1-click actions and security auth gates.</div>
     </div>
-
-    <h2 class="section-title">1. End-to-End Role-Based State Workflow</h2>
-    <p class="section-desc">Visualizes the progression of student applications through dedicated organizational desks. Stage changes are enforced strictly via <code>stageAuthorization.ts</code>.</p>
 
     <div class="diagram-container">
       <div class="mermaid">
 flowchart LR
-    subgraph G1 ["🔐 Gate"]
-        AI["AI CV Auto-Fill<br/><i>(Auth Required)</i>"]
+    classDef auth fill:#1e293b,stroke:#475569,stroke-width:2px,color:#f8fafc
+    classDef counsel fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+    classDef admin fill:#4338ca,stroke:#818cf8,stroke-width:2px,color:#ffffff
+    classDef finance fill:#7e22ce,stroke:#c084fc,stroke-width:2px,color:#ffffff
+    classDef visa fill:#d97706,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+    classDef final fill:#059669,stroke:#34d399,stroke-width:2px,color:#ffffff
+
+    subgraph SEC ["🔐 1. Auth Gate"]
+        AI["AI CV Auto-Fill<br/><i>(Auth Guarded)</i>"]:::auth
     end
-    subgraph G2 ["📋 Counselling Desk"]
-        Draft["Draft"]
-        Rev["Initial Review"]
-        Docs["Docs Pending"]
-        Ready["Ready to Submit"]
-        Sub["Submitted"]
+
+    subgraph COUNSEL ["📋 2. Counselling Desk"]
+        Draft["Draft"]:::counsel
+        Rev["Initial Review"]:::counsel
+        Docs["Docs Pending"]:::counsel
+        Ready["Ready to Submit"]:::counsel
+        Sub["Submitted to Uni"]:::counsel
     end
-    subgraph G3 ["🎓 Admissions Desk"]
-        Uni["University Review"]
-        CO["Conditional Offer ⚡"]
-        UO["Unconditional Offer ⚡"]
+
+    subgraph ADM ["🎓 3. Admissions Desk"]
+        Uni["University Review"]:::admin
+        CO["Conditional Offer ⚡<br/><i>(1-Click Approval)</i>"]:::admin
+        UO["Unconditional Offer ⚡<br/><i>(1-Click Approval)</i>"]:::admin
     end
-    subgraph G4 ["💰 Finance Desk"]
-        DP["Deposit Pending"]
-        Paid["Deposit Paid ⚡"]
+
+    subgraph FIN ["💰 4. Finance Desk"]
+        FQueue["Finance Queue<br/><i>(Awaiting Challan)</i>"]:::finance
+        DP["Deposit Pending<br/><i>(Challan Issued)</i>"]:::finance
+        Paid["Deposit Paid ⚡<br/><i>(Payment Approved)</i>"]:::finance
     end
-    subgraph G5 ["✈️ Visa Desk"]
-        CAS["CAS Issued ⚡"]
-        VSub["Visa Submitted ⚡"]
-        VAppr["Visa Approved ⚡"]
+
+    subgraph VISA ["✈️ 5. Visa Desk"]
+        CAS["CAS Issued ⚡<br/><i>(1-Click Issue)</i>"]:::visa
+        VSub["Visa Submitted ⚡<br/><i>(1-Click Lodge)</i>"]:::visa
+        VAppr["Visa Approved ⚡<br/><i>(1-Click Clear)</i>"]:::visa
     end
-    subgraph G6 ["🏁 Outcome"]
-        Enrolled["Enrolled ✅"]
+
+    subgraph OUT ["🏁 6. Outcome"]
+        Enrolled["Enrolled at Uni ✅"]:::final
     end
 
     AI --> Draft --> Rev --> Docs --> Ready --> Sub
     Sub --> Uni
     Uni --> CO
     Uni --> UO
-    CO --> DP
-    UO --> DP
-    DP --> Paid
+    CO --> FQueue
+    UO --> FQueue
+    FQueue -->|"Generate Challan"| DP
+    DP -->|"Approve Payment & Advance"| Paid
     Paid --> CAS --> VSub --> VAppr --> Enrolled
       </div>
     </div>
 
     <div class="doc-footer">
-      <span>EduCRM Architecture Document</span>
-      <span>Page 1 of 3</span>
+      <span>EduCRM Technical Specification • Architecture & System Logic</span>
+      <span>Page 1 of 4</span>
     </div>
   </div>
 
-  <!-- PAGE 2: SYSTEM SEQUENCE DIAGRAM (SSD) -->
+  <!-- PAGE 2: SYSTEM SEQUENCE DIAGRAM (SSD) (BIG) -->
   <div class="page">
-    <h2 class="section-title">2. System Sequence Diagram (SSD) — Black-Box Behavioral View</h2>
-    <p class="section-desc">Illustrates the external system events and responses between human role actors and the EduCRM system boundary, enforcing prerequisite conditions at each gate.</p>
+    <div>
+      <div class="header-bar">
+        <div>
+          <h1>System Sequence Diagram (SSD)</h1>
+          <div class="subtitle">Black-Box Behavioral Interactivity between External Role Actors and the :EduCRM System</div>
+        </div>
+        <span class="tag-badge">Diagram 2 of 3: SSD</span>
+      </div>
+
+      <div class="section-title">2. Black-Box System Sequence Diagram (SSD)</div>
+      <div class="section-desc">Details all external system operations, error rejections for unauthorized attempts, and notification events.</div>
+    </div>
 
     <div class="diagram-container">
       <div class="mermaid">
@@ -276,139 +268,215 @@ sequenceDiagram
     actor Visa as ✈️ Visa Officer
     participant System as 🖥️ :EduCRM System
 
-    Note over Student, System: Phase 1: Authentication & AI CV Extraction Gate
+    Note over Student, System: Phase 1: Authentication & AI CV Gate
     Student->>System: requestCVExtraction(file)
     alt Unauthenticated Visitor
-        System-->>Student: 401 Unauthorized (Lock Dropzone, Prompt Sign In)
+        System-->>Student: 401 Unauthorized (Render Locked Preview: "Sign In to Unlock AI")
     else Authenticated Student
-        System-->>Student: returnExtractedFields(name, email, academics)
+        System-->>Student: returnExtractedFields(name, email, educationHistory)
     end
 
-    Note over Counsellor, System: Phase 2: Application File Lodgement
+    Note over Counsellor, System: Phase 2: Application Lodgement
     Counsellor->>System: submitApplicationDossier(appDetails)
-    System-->>Counsellor: confirmSubmission(status: "Submitted")
+    System-->>Counsellor: confirmSubmission(stage: "Submitted")
 
-    Note over Admissions, System: Phase 3: Offer Decision
-    Admissions->>System: issueOffer(appId, "Conditional Offer" / "Unconditional Offer")
-    System-->>Admissions: offerRecorded()
-    System--)Student: notify("Offer Issued! Forwarded to Finance Desk")
+    Note over Admissions, System: Phase 3: Fast 1-Click Offer Decision
+    Admissions->>System: clickApproveOffer(appId, "Conditional Offer")
+    System-->>Admissions: offerApproved(stage: "Conditional Offer")
+    System--)Student: notify("Offer Issued! Routed to Finance Desk for Challan")
 
-    Note over Finance, System: Phase 4: Fee Challan & Deposit Clearance
-    Finance->>System: generateChallan(appId, depositAmount)
-    System-->>Finance: challanCreated(status: "Deposit Pending")
-    Finance->>System: approvePaymentAndAdvance(appId)
-    System-->>Finance: paymentVerified(status: "Deposit Paid")
-    System--)Visa: notifyQueue("Applicant Cleared for Visa/CAS")
+    Note over Finance, System: Phase 4: Challan Issuance & Payment Clearance
+    Finance->>System: generateChallan(appId, depositAmount: 2000)
+    System-->>Finance: challanCreated(stage: "Deposit Pending")
+    System--)Student: notify("Tuition Deposit Challan Generated")
+    Finance->>System: clickApprovePaymentAndAdvance(appId)
+    System-->>Finance: paymentVerified(stage: "Deposit Paid")
+    System--)Visa: queueUpdated("Applicant Cleared for CAS/Visa Processing")
 
-    Note over Visa, System: Phase 5: CAS Issuance & Visa Clearance
-    Visa->>System: issueCAS(appId, casReferenceNumber)
-    System-->>Visa: casRecorded(status: "CAS Issued")
-    Visa->>System: lodgeVisa(appId)
-    System-->>Visa: visaSubmitted(status: "Visa Submitted")
-    Visa->>System: grantVisaClearance(appId)
-    System-->>Visa: visaApproved(status: "Visa Approved")
+    Note over Visa, System: Phase 5: CAS & Visa Clearance
+    Visa->>System: clickIssueCAS(appId)
+    System-->>Visa: stageUpdated("CAS Issued")
+    Visa->>System: clickLodgeVisa(appId)
+    System-->>Visa: stageUpdated("Visa Submitted")
+    Visa->>System: clickGrantClearance(appId)
+    System-->>Visa: stageUpdated("Visa Approved")
     System--)Student: notify("Visa Clearance Approved! Ready for Travel")
       </div>
     </div>
 
     <div class="doc-footer">
-      <span>EduCRM Architecture Document</span>
-      <span>Page 2 of 3</span>
+      <span>EduCRM Technical Specification • Architecture & System Logic</span>
+      <span>Page 2 of 4</span>
     </div>
   </div>
 
-  <!-- PAGE 3: DETAILED SEQUENCE DIAGRAM (SD) & RBAC MATRIX -->
+  <!-- PAGE 3: DETAILED COMPONENT SEQUENCE DIAGRAM (SD) (BIG) -->
   <div class="page">
-    <h2 class="section-title">3. Detailed Sequence Diagram (SD) — Component & DB Flow</h2>
-    <p class="section-desc">Details internal class/module collaboration across View components, the central RBAC utility, business state hooks, and Google Cloud Firestore.</p>
+    <div>
+      <div class="header-bar">
+        <div>
+          <h1>Component Sequence Diagram (SD)</h1>
+          <div class="subtitle">White-Box Interactivity across UI Components, Security RBAC, Hooks, and Cloud Firestore</div>
+        </div>
+        <span class="tag-badge">Diagram 3 of 3: SD</span>
+      </div>
+
+      <div class="section-title">3. White-Box Component Sequence Diagram (SD)</div>
+      <div class="section-desc">Illustrates internal control flow: UI event capture, RBAC permission verification, data persistence, and notification dispatching.</div>
+    </div>
 
     <div class="diagram-container">
       <div class="mermaid">
 sequenceDiagram
     autonumber
-    actor Officer as 👤 Role Actor (e.g. Admissions / Visa)
-    participant UI as 🖼️ Modal / View UI<br/>(ApplicationDetailModal)
+    actor Officer as 👤 Role Officer (Admissions / Visa / Finance)
+    participant UI as 🖼️ Workspace / Modal UI<br/>(ApplicationDetailModal)
     participant RBAC as 🛡️ stageAuthorization.ts<br/>(canUserSetStage)
-    participant Hook as ⚙️ Business Hook<br/>(useAdmissionsData)
-    participant DB as 🗄️ Cloud Firestore<br/>("applications" col)
-    participant Notif as 🔔 Notification Engine<br/>("notifications" col)
+    participant Hook as ⚙️ Business Hook<br/>(useAdmissionsData / useFinanceData)
+    participant DB as 🗄️ Cloud Firestore<br/>("applications" collection)
+    participant Notif as 🔔 Notification Engine<br/>("notifications" collection)
 
-    Officer->>UI: Click Action (e.g. "Issue Conditional Offer")
+    Officer->>UI: Click 1-Click Action (e.g. "Issue Conditional Offer")
     activate UI
     UI->>RBAC: canUserSetStage(userRole, targetStage)
     activate RBAC
     alt Unauthorized Role
-        RBAC-->>UI: false
-        UI-->>Officer: Show Error Alert: "Permission Denied: [Owner] Only 🔒"
+        RBAC-->>UI: return false
+        UI-->>Officer: Display Alert: "Permission Denied: [Owner Role] Only 🔒"
     else Authorized Role
-        RBAC-->>UI: true
+        RBAC-->>UI: return true
         deactivate RBAC
-        UI->>Hook: updateStage(app, targetStage, note)
+
+        UI->>Hook: updateStage(app, targetStage, auditNote)
         activate Hook
-        Hook->>Hook: appendHistoryItem({ stage, updatedBy, timestamp })
-        Hook->>DB: updateDoc(appRef, { stage, updatedAt, history })
+        Hook->>Hook: appendHistoryItem({ stage, updatedBy: userEmail, timestamp })
+        Hook->>DB: updateDoc(doc(db, "applications", appId), { stage, updatedAt, history })
         activate DB
-        DB-->>Hook: 200 OK
+        DB-->>Hook: 200 OK (Document Updated)
         deactivate DB
-        Hook->>Notif: addDoc(notifRef, { targetUser, title, message })
+
+        Hook->>Notif: addDoc(collection(db, "notifications"), { targetUser, title, message })
         activate Notif
-        Notif-->>Hook: 200 OK
+        Notif-->>Hook: 200 OK (Notification Enqueued)
         deactivate Notif
+
         Hook-->>UI: resolvePromise(success)
         deactivate Hook
-        UI-->>Officer: Show Success Toast & Update Active Queue
+        UI-->>Officer: Display Success Toast & Update Active Queue
     end
     deactivate UI
       </div>
     </div>
 
-    <h2 class="section-title">4. Role-Based Stage Authorization Matrix</h2>
+    <div class="doc-footer">
+      <span>EduCRM Technical Specification • Architecture & System Logic</span>
+      <span>Page 3 of 4</span>
+    </div>
+  </div>
+
+  <!-- PAGE 4: RBAC AUTHORIZATION MATRIX -->
+  <div class="page">
+    <div>
+      <div class="header-bar">
+        <div>
+          <h1>Role-Based Stage Authorization Matrix</h1>
+          <div class="subtitle">Complete 20-Stage Ownership Rules Enforced in stageAuthorization.ts</div>
+        </div>
+        <span class="tag-badge">RBAC Specification</span>
+      </div>
+
+      <div class="section-title">4. Authorized Role Permissions by Stage</div>
+      <div class="section-desc">Single source of truth governing who is authorized to transition applications into each milestone stage.</div>
+    </div>
+
     <table class="spec-table">
       <thead>
         <tr>
           <th>Application Stage</th>
-          <th>Responsible Department</th>
+          <th>Department</th>
           <th>Authorized User Roles</th>
-          <th>Description & Permissions</th>
+          <th>Operational Logic & Responsibility</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>Draft / Review / Submitted</strong></td>
+          <td><strong>Draft</strong></td>
           <td><span class="role-badge role-counselling">Counselling</span></td>
-          <td>counsellor, team_leader, office_manager</td>
-          <td>Student onboarding, document verification, application submission to university.</td>
+          <td>counsellor, team_leader, office_manager, Admins</td>
+          <td>Initial applicant file creation and document assembly.</td>
         </tr>
         <tr>
-          <td><strong>Conditional / Unconditional Offer</strong></td>
+          <td><strong>Initial Review / Documents Pending</strong></td>
+          <td><span class="role-badge role-counselling">Counselling</span></td>
+          <td>counsellor, team_leader, office_manager, Admins</td>
+          <td>Document audit, prerequisites verification, requesting missing items.</td>
+        </tr>
+        <tr>
+          <td><strong>Ready for Submission / Submitted</strong></td>
+          <td><span class="role-badge role-counselling">Counselling</span></td>
+          <td>counsellor, team_leader, office_manager, Admins</td>
+          <td>Final check and formal dispatch to university admissions portal.</td>
+        </tr>
+        <tr>
+          <td><strong>University Reviewing / Additional Info</strong></td>
           <td><span class="role-badge role-admissions">Admissions</span></td>
-          <td>admissions_officer, university_partner</td>
-          <td>Academic assessment, prerequisite evaluation, and issuing offer letters.</td>
+          <td>admissions_officer, university_partner, Admins</td>
+          <td>Academic assessment and evaluation of institution entry requirements.</td>
         </tr>
         <tr>
-          <td><strong>Deposit Pending / Deposit Paid</strong></td>
+          <td><strong>Conditional Offer / Unconditional Offer</strong></td>
+          <td><span class="role-badge role-admissions">Admissions</span></td>
+          <td>admissions_officer, university_partner, Admins</td>
+          <td>1-Click fast decision approval; automatically routes to Finance Desk queue.</td>
+        </tr>
+        <tr>
+          <td><strong>Deposit Pending</strong></td>
           <td><span class="role-badge role-finance">Finance</span></td>
-          <td>finance_officer</td>
-          <td>Generating tuition fee challan, verifying payment receipts, fee clearance.</td>
+          <td>finance_officer, Admins</td>
+          <td>Generate tuition deposit invoice / challan; student notified via in-app alert.</td>
         </tr>
         <tr>
-          <td><strong>CAS Issued / Visa Submitted / Approved</strong></td>
+          <td><strong>Deposit Paid</strong></td>
+          <td><span class="role-badge role-finance">Finance</span></td>
+          <td>finance_officer, Admins</td>
+          <td>1-Click payment verification; marks fee cleared and forwards file to Visa Desk.</td>
+        </tr>
+        <tr>
+          <td><strong>CAS / COE Pending / CAS Issued</strong></td>
           <td><span class="role-badge role-visa">Visa</span></td>
-          <td>visa_officer</td>
-          <td>CAS/COE logging, embassy visa lodgement, and immigration grant clearance.</td>
+          <td>visa_officer, Admins</td>
+          <td>Verification and logging of CAS reference numbers from the institution.</td>
         </tr>
         <tr>
-          <td><strong>Universal Override (All Stages)</strong></td>
-          <td><span class="role-badge role-counselling">Admin</span></td>
+          <td><strong>Visa Preparation / Visa Submitted</strong></td>
+          <td><span class="role-badge role-visa">Visa</span></td>
+          <td>visa_officer, Admins</td>
+          <td>Embassy application lodgement and financial documentation clearance.</td>
+        </tr>
+        <tr>
+          <td><strong>Visa Approved</strong></td>
+          <td><span class="role-badge role-visa">Visa</span></td>
+          <td>visa_officer, Admins</td>
+          <td>Visa grant confirmed; student immigration cleared for flight.</td>
+        </tr>
+        <tr>
+          <td><strong>Enrolled</strong></td>
+          <td><span class="role-badge role-admissions">Admissions</span></td>
+          <td>admissions_officer, team_leader, Admins</td>
+          <td>Physical university arrival, campus registration, and commission eligibility.</td>
+        </tr>
+        <tr>
+          <td><strong>Universal Override (All 20 Stages)</strong></td>
+          <td><span class="role-badge role-admin">Admin</span></td>
           <td>platform_super_admin, org_admin</td>
-          <td>Full operational oversight and administrative exception management across all stages.</td>
+          <td>Platform-wide emergency override, audit corrections, and supervisory adjustments.</td>
         </tr>
       </tbody>
     </table>
 
     <div class="doc-footer">
-      <span>EduCRM Architecture Document</span>
-      <span>Page 3 of 3</span>
+      <span>EduCRM Technical Specification • Architecture & System Logic</span>
+      <span>Page 4 of 4</span>
     </div>
   </div>
 
@@ -416,8 +484,27 @@ sequenceDiagram
     mermaid.initialize({
       startOnLoad: true,
       theme: 'neutral',
-      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
-      sequence: { useMaxWidth: true, showSequenceNumbers: true }
+      themeVariables: {
+        fontSize: '15px',
+        fontFamily: 'Inter, sans-serif'
+      },
+      flowchart: {
+        useMaxWidth: false,
+        htmlLabels: true,
+        curve: 'basis',
+        nodeSpacing: 40,
+        rankSpacing: 45
+      },
+      sequence: {
+        useMaxWidth: false,
+        showSequenceNumbers: true,
+        actorFontSize: '15px',
+        messageFontSize: '14px',
+        noteFontSize: '13px',
+        actorMargin: 65,
+        boxMargin: 12,
+        messageMargin: 30
+      }
     });
   </script>
 </body>
@@ -427,12 +514,14 @@ sequenceDiagram
 fs.writeFileSync(path.join(__dirname, 'diagrams_report.html'), reportHtml);
 
 async function generatePdf() {
-  console.log('Launching browser to generate PDF...');
+  console.log('Launching browser to generate high-resolution landscape PDF...');
   const browser = await chromium.launch({
     executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
     headless: true
   });
-  const context = await browser.newContext();
+  const context = await browser.newContext({
+    viewport: { width: 1920, height: 1080 }
+  });
   const page = await context.newPage();
 
   const fileUrl = 'file:///' + path.join(__dirname, 'diagrams_report.html').replace(/\\/g, '/');
@@ -441,8 +530,7 @@ async function generatePdf() {
 
   console.log('Waiting for Mermaid diagrams to render...');
   await page.waitForSelector('svg', { timeout: 15000 });
-  // Short pause to guarantee complete layout calculations
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(2500);
 
   const outputPath = path.join(__dirname, 'EduCRM_Architecture_and_Flow_Diagrams.pdf');
   console.log('Printing to PDF:', outputPath);
@@ -450,20 +538,20 @@ async function generatePdf() {
   await page.pdf({
     path: outputPath,
     format: 'A4',
+    landscape: true,
     printBackground: true,
     margin: {
-      top: '15mm',
-      bottom: '15mm',
-      left: '15mm',
-      right: '15mm'
+      top: '10mm',
+      bottom: '10mm',
+      left: '12mm',
+      right: '12mm'
     }
   });
 
-  // Also copy to artifact directory
   const artifactDest = 'C:\\Users\\mujta\\.gemini\\antigravity-ide\\brain\\e354b438-2a5e-4953-b5fb-3002ba6efcc4\\EduCRM_Architecture_and_Flow_Diagrams.pdf';
   fs.copyFileSync(outputPath, artifactDest);
 
-  console.log('PDF generation complete!');
+  console.log('High-resolution PDF generation complete!');
   console.log('Saved to:', outputPath);
   console.log('Artifact copied to:', artifactDest);
 
