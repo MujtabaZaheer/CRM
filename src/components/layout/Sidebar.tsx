@@ -204,10 +204,11 @@ const studentNavItems: NavItem[] = [
 
 const agentNavItems: NavItem[] = [
   { label: "Agent Dashboard", path: "/agent/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Support Chat", path: "/agent/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
+  { label: "Partner Universities", path: "/agent/universities", icon: <Building2 className="w-4 h-4" /> },
   { label: "Referred Students", path: "/agent/referrals", icon: <Users2 className="w-4 h-4" /> },
   { label: "Refer New Student", path: "/agent/refer-lead", icon: <CheckSquare className="w-4 h-4" /> },
   { label: "Commission Ledger", path: "/agent/commissions", icon: <CircleDollarSign className="w-4 h-4" /> },
+  { label: "Support Chat", path: "/agent/messages", icon: <LifeBuoy className="w-4 h-4 text-emerald-400" /> },
   { label: "Notifications", path: "/agent/notifications", icon: <Bell className="w-4 h-4" /> },
 ];
 

@@ -86,6 +86,7 @@ import { SuperAdminNotificationsPage } from "./pages/superadmin/Notifications";
 import { AgentDashboardPage } from "./pages/agent/Dashboard";
 import { AgentReferralsPage } from "./pages/agent/Referrals";
 import { AgentReferLeadPage } from "./pages/agent/ReferLead";
+import { AgentUniversitiesPage } from "./pages/agent/Universities";
 import { AgentCommissionsPage } from "./pages/agent/Commissions";
 import { AgentNotificationsPage } from "./pages/agent/Notifications";
 
@@ -315,6 +316,7 @@ export const App: React.FC = () => {
                 {/* External Agent Portal Routes */}
                 <Route path="/agent" element={<RoleRoute role="external_agent" />}>
                   <Route path="dashboard" element={<AgentDashboardPage />} />
+                  <Route path="universities" element={<AgentUniversitiesPage />} />
                   <Route path="referrals" element={<AgentReferralsPage />} />
                   <Route path="refer-lead" element={<AgentReferLeadPage />} />
                   <Route path="messages" element={<CounsellorMessages />} />

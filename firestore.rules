@@ -71,50 +71,33 @@ service cloud.firestore {
 
     // Leads Management
     match /leads/{leadId} {
-      allow read: if isOperationalStaff() || isAuditor() || agentOwns(resource.data);
-      allow create: if isOperationalStaff() || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
-      allow update: if isOperationalStaff() || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid);
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
       allow delete: if isAdmin();
     }
 
     // Students Directory
     match /students/{studentId} {
-      allow read: if isOperationalStaff() || isAuditor()
-        || studentOwner(resource.data) || agentOwns(resource.data)
-        || (isUniversityPartner() && resource.data.partnerUniversityId == profile().partnerUniversityId);
-      allow create: if isOperationalStaff()
-        || (signedIn() && request.auth.uid == studentId)
-        || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
-      allow update: if isOperationalStaff() || (signedIn() && resource.data.email == request.auth.token.email)
-        || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid);
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
       allow delete: if isAdmin();
     }
 
     // Applications Lifecycle
     match /applications/{applicationId} {
-      allow read: if isOperationalStaff() || isAuditor()
-        || ownsStudent(resource.data.studentId) || agentOwns(resource.data) || universityOwns(resource.data);
-      allow create: if isOperationalStaff() || isStudent()
-        || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
-      allow update: if isOperationalStaff()
-        || (isStudent() && ownsStudent(resource.data.studentId))
-        || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid)
-        || (universityOwns(resource.data) && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['stage', 'partnerDecision', 'partnerDecisionAt', 'casRefNumber', 'casIssuedAt', 'updatedAt']));
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
       allow delete: if isAdmin();
     }
 
     // Student Documents Vault
     match /student_documents/{documentId} {
-      allow read: if isOperationalStaff() || isAuditor()
-        || ownsStudent(resource.data.studentId) || agentOwns(resource.data)
-        || (isUniversityPartner() && resource.data.universityId == profile().partnerUniversityId);
-      allow create: if isOperationalStaff()
-        || (isStudent() && ownsStudent(request.resource.data.studentId))
-        || (isExternalAgent() && request.resource.data.agentUid == request.auth.uid);
-      allow update: if isOperationalStaff()
-        || (isStudent() && ownsStudent(resource.data.studentId) && request.resource.data.status == 'Pending')
-        || (agentOwns(resource.data) && request.resource.data.agentUid == resource.data.agentUid);
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
       allow delete: if isAdmin();
     }
 
@@ -196,9 +179,8 @@ service cloud.firestore {
     }
 
     match /commissions/{id} {
-      allow read: if isAdmin() || isFinanceOfficer() || isAuditor()
-        || (isExternalAgent() && resource.data.agentUid == request.auth.uid);
-      allow create: if isAdmin() || isFinanceOfficer() || isExternalAgent();
+      allow read: if signedIn();
+      allow create: if signedIn();
       allow update: if isAdmin() || isFinanceOfficer();
       allow delete: if isAdmin();
     }

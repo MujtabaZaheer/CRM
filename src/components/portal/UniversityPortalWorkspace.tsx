@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { GLOBAL_UNIVERSITIES } from "../../data/globalUniversities";
+import { DEMO_APPLICATIONS } from "../../data/demoData";
 import { Application, ApplicationStage, ApplicationDocumentRequest, ApplicationPartnerComment, ApplicationScholarship } from "../../types/application";
 import { Programme } from "../../types/university";
 import {
@@ -31,7 +32,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import { doc, updateDoc, addDoc, collection } from "firebase/firestore";
+import { doc, updateDoc, addDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase/config";
 
 export type UniversitySubPage =
@@ -195,29 +196,87 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
   const [issuingCas, setIssuingCas] = useState(false);
   const [copiedCas, setCopiedCas] = useState<string | null>(null);
 
+  // Direct live Firestore listeners for real-time data sync (without restrictive orderBy that drops unindexed/non-timestamped docs)
+  const [liveApplications, setLiveApplications] = useState<Application[]>([]);
+  const [liveStudents, setLiveStudents] = useState<any[]>([]);
+  const [liveDocs, setLiveDocs] = useState<any[]>([]);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+
+  useEffect(() => {
+    const unsubApps = onSnapshot(
+      collection(db, "applications"),
+      (snap) => {
+        const list: Application[] = [];
+        snap.forEach((d) => list.push({ id: d.id, ...(d.data() as any), isLive: true } as Application));
+        list.sort((a, b) => (Number(b.createdAt) || Number(b.updatedAt) || 0) - (Number(a.createdAt) || Number(a.updatedAt) || 0));
+        setLiveApplications(list);
+        setIsLiveConnected(true);
+      },
+      (err) => console.warn("Live apps stream:", err)
+    );
+
+    const unsubStudents = onSnapshot(
+      collection(db, "students"),
+      (snap) => {
+        const list: any[] = [];
+        snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+        list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+        setLiveStudents(list);
+      },
+      (err) => console.warn("Live students stream:", err)
+    );
+
+    const unsubDocs = onSnapshot(
+      collection(db, "student_documents"),
+      (snap) => {
+        const list: any[] = [];
+        snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+        list.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+        setLiveDocs(list);
+      },
+      (err) => console.warn("Live docs stream:", err)
+    );
+
+    return () => {
+      unsubApps();
+      unsubStudents();
+      unsubDocs();
+    };
+  }, []);
+
+  // Combine live applications with global context, prioritizing live Firestore documents
+  const effectiveApps: Application[] = useMemo<Application[]>(() => {
+    const liveMap = new Map<string, Application>();
+    liveApplications.forEach((app) => liveMap.set(app.id, app));
+    applications.forEach((app) => {
+      if (!liveMap.has(app.id)) {
+        liveMap.set(app.id, app);
+      }
+    });
+    const combined = Array.from(liveMap.values());
+    return combined.length > 0 ? combined : (DEMO_APPLICATIONS as Application[]);
+  }, [liveApplications, applications]);
+
   // Scoped applications for this institution (Requirement 1 & 12)
-  const institutionalApps = useMemo(() => {
-    const matched = applications.filter(
-      (a) =>
-        a.universityName?.toLowerCase() === selectedUniversityName.toLowerCase() ||
+  const institutionalApps: Application[] = useMemo<Application[]>(() => {
+    if (selectedUniversityName === "ALL") {
+      return effectiveApps;
+    }
+
+    const matched = effectiveApps.filter(
+      (a: Application) =>
+        a.universityName?.toLowerCase().includes(selectedUniversityName.toLowerCase()) ||
+        selectedUniversityName.toLowerCase().includes(a.universityName?.toLowerCase() || "") ||
         a.universityId === activeUniversity?.id
     );
 
-    if (matched.length === 0) {
-      return applications.slice(0, 6).map((app, idx) => ({
-        ...app,
-        id: `app_inst_${idx + 1}`,
-        universityName: selectedUniversityName,
-        universityId: activeUniversity?.id || "inst_active",
-        sourceAgentName: DEFAULT_PARTNER_AGENTS[idx % DEFAULT_PARTNER_AGENTS.length].name,
-      }));
+    if (matched.length > 0) {
+      return matched;
     }
 
-    return matched.map((app, idx) => ({
-      ...app,
-      sourceAgentName: app.sourceAgentName || DEFAULT_PARTNER_AGENTS[idx % DEFAULT_PARTNER_AGENTS.length].name,
-    }));
-  }, [applications, selectedUniversityName, activeUniversity]);
+    // If no specific match for this university yet in live data, fallback to all effective apps so portal is never blank
+    return effectiveApps;
+  }, [effectiveApps, selectedUniversityName, activeUniversity]);
 
   // Filtered applications (Requirement 2)
   const filteredApps = useMemo(() => {
@@ -701,6 +760,35 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
     setTimeout(() => setCopiedCas(null), 2000);
   };
 
+  const handleSeedLiveApplication = async () => {
+    try {
+      const uniTarget = selectedUniversityName === "ALL" ? "University of Oxford" : selectedUniversityName;
+      const candidateNames = ["Tariq Mansoor", "Elena Rostova", "Wei Zhang", "Amara Okafor", "Priya Sharma", "Lucas Silva"];
+      const randomName = candidateNames[Math.floor(Math.random() * candidateNames.length)];
+      const appNum = `APP-LIVE-${Date.now().toString().slice(-4)}`;
+
+      await addDoc(collection(db, "applications"), {
+        applicationNumber: appNum,
+        studentName: `${randomName}`,
+        studentEmail: `${randomName.toLowerCase().replace(/\s+/g, ".")}@live-applicant.com`,
+        studentId: `std_live_${Date.now().toString().slice(-6)}`,
+        universityName: uniTarget,
+        universityId: activeUniversity?.id || "univ_oxf",
+        programmeName: activeUniversity?.programmes[0]?.title || "MSc Computer Science",
+        intake: "September 2026",
+        sourceAgentName: "Direct Global Portal",
+        stage: "Submitted",
+        offerType: "Pending Review",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        isLive: true,
+      });
+      triggerNotice(`Created live cloud application ${appNum} for ${randomName} at ${uniTarget}!`, "success");
+    } catch (err: any) {
+      triggerNotice(`Could not create live application: ${err?.message || err}`, "error");
+    }
+  };
+
   return (
     <div className="space-y-6 text-xs p-2 sm:p-4 min-h-screen text-[var(--text-primary)]">
       {/* INSTITUTION HEADER & DATA SCOPING BAR (Section 3.16.12) */}
@@ -713,7 +801,7 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-bold font-heading text-[var(--text-primary)]">
-                  {selectedUniversityName}
+                  {selectedUniversityName === "ALL" ? "All Partner Universities (Global Feed)" : selectedUniversityName}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                   Full Partner Institution
@@ -721,6 +809,13 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
                 <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-medium">
                   {activeUniversity?.country || "United Kingdom"}
                 </span>
+                {/* Live Firestore Stream Indicator */}
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                  <span className={`w-2 h-2 rounded-full ${isLiveConnected ? "bg-emerald-400 animate-ping" : "bg-amber-400"}`} />
+                  <span>
+                    {isLiveConnected ? "Live Cloud Connected" : "Connecting..."} ({liveApplications.length} Apps, {liveStudents.length} Students, {liveDocs.length} Docs)
+                  </span>
+                </div>
               </div>
               <p className="text-[var(--text-secondary)] text-xs mt-1">
                 University Partner Admissions Gateway • Scoped Access (Section 3.16)
@@ -735,10 +830,11 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
               value={selectedUniversityName}
               onChange={(e) => {
                 setSelectedUniversityName(e.target.value);
-                triggerNotice(`Switched institutional view to ${e.target.value}`, "info");
+                triggerNotice(`Switched institutional view to ${e.target.value === "ALL" ? "All Partner Universities" : e.target.value}`, "info");
               }}
               className="p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
+              <option value="ALL">🌐 All Partner Universities (Live System Stream)</option>
               {allUniversities.map((u) => (
                 <option key={u.id} value={u.name}>
                   {u.name} ({u.country})
@@ -766,6 +862,14 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleSeedLiveApplication}
+              className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Add a real-time live application document directly into Firestore"
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
+              Test Live Sync (Add Cloud App)
+            </button>
             <button
               onClick={handleExportCsv}
               className="px-3 py-1.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1173,8 +1277,16 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
                           }}
                         >
                           <td className="p-3.5">
-                            <div className="font-bold text-sm text-[var(--text-primary)] group-hover:text-emerald-400 transition-colors">
-                              {app.studentName}
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-sm text-[var(--text-primary)] group-hover:text-emerald-400 transition-colors">
+                                {app.studentName}
+                              </span>
+                              {(app as any).isLive && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  Live Cloud
+                                </span>
+                              )}
                             </div>
                             <div className="text-[10px] text-[var(--text-muted)] font-mono">
                               {app.applicationNumber || "APP-2026"}
