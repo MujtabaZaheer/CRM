@@ -1,5 +1,5 @@
 import React, { FormEvent, useMemo, useState } from "react";
-import { BarChart3, CircleDollarSign, Download, FileText, Plus, ReceiptText, RefreshCw, Search, WalletCards, Printer } from "lucide-react";
+import { BarChart3, CircleDollarSign, Download, FileText, Plus, ReceiptText, RefreshCw, Search, WalletCards, Printer, CheckCircle2 } from "lucide-react";
 import { useFinanceData } from "../../hooks/useFinanceData";
 import { CommissionStatus, InvoiceStatus, InvoiceType, PaymentMethod, RefundStatus, Invoice, Payment } from "../../types/finance";
 import { generateInvoiceHtml, generateReceiptHtml, printDocumentHtml } from "../../utils/invoiceGenerator";
@@ -109,6 +109,33 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
     } catch { setNotice(`Unable to generate challan.`); }
   };
 
+  const handleApprovePaymentAndAdvance = async (app: Application) => {
+    try {
+      const newStage: ApplicationStage = "Deposit Paid";
+      updateApplication(app.id, { stage: newStage, updatedAt: Date.now() });
+      await updateDoc(doc(db, "applications", app.id), { stage: newStage, updatedAt: Date.now() });
+
+      // Dispatch notification to student
+      if (app.studentId) {
+        try {
+          await addDoc(collection(db, "notifications"), {
+            targetUser: app.studentId,
+            type: "payment_approved",
+            title: "Tuition Deposit Verified & Approved",
+            message: `Your deposit fee for ${app.universityName} has been officially recorded by Finance. Your application is now advancing to the Visa Desk for CAS/COE processing.`,
+            read: false,
+            relatedApplicationId: app.id,
+            createdAt: Date.now(),
+          });
+        } catch (_) {}
+      }
+
+      setNotice(`Payment verified for ${app.applicationNumber}. Application advanced to "Deposit Paid" and routed to Visa Processing Desk.`);
+    } catch (err: any) {
+      setNotice(`Failed to advance application: ${err.message || "Unknown error"}`);
+    }
+  };
+
   const exportCsv = (name: string, rows: object[]) => { const keys = rows[0] ? Object.keys(rows[0]) : []; const data = [keys.join(","), ...rows.map((row) => keys.map((key) => `"${String((row as Record<string, unknown>)[key] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n"); const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([data], { type: "text/csv" })); link.download = `${name}-${today}.csv`; link.click(); URL.revokeObjectURL(link.href); };
   const cards = [["Revenue", currency(finance.summary.paidRevenue), ReceiptText], ["Outstanding", currency(finance.summary.outstanding), WalletCards], ["Pending invoices", String(finance.summary.pendingInvoices), FileText], ["Refund exposure", currency(finance.summary.refunds), RefreshCw], ["Agent commissions", currency(finance.summary.commissions), CircleDollarSign]];
   if (finance.loading) return <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{Array.from({ length: 5 }, (_, index) => <div key={index} className="h-28 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card animate-pulse" />)}</div>;
@@ -133,7 +160,40 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
     {finance.error && <div className="p-3 bg-rose-500/10 text-rose-400 border border-rose-500/20 sq-card">{finance.error}</div>}{notice && <div className="p-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 sq-card">{notice}</div>}
     {page === "dashboard" && <><div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{cards.map(([label, value, Icon]) => { const CardIcon = Icon as React.ElementType; return <div key={label as string} className="p-4 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card"><div className="flex justify-between text-[var(--text-muted)] uppercase font-bold"><span>{label as string}</span><CardIcon className="w-4 h-4 text-emerald-400" /></div><p className="text-xl font-bold text-[var(--text-primary)] mt-3">{value as string}</p></div>; })}</div><div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] sq-card"><h2 className="font-bold text-sm text-[var(--text-primary)]">Revenue analytics</h2><div className="h-40 mt-4 flex items-end gap-3">{revenueTrend.length === 0 ? <p className="text-[var(--text-muted)]">Record payments to populate the revenue trend.</p> : revenueTrend.map(([month, amount]) => <div key={month} className="flex-1 h-full flex flex-col justify-end min-w-10"><div className="bg-emerald-500/70 rounded-t" style={{ height: `${Math.max(8, (amount / Math.max(...revenueTrend.map(([, value]) => value))) * 100)}%` }} title={currency(amount)} /><span className="mt-2 text-center text-[10px] text-[var(--text-muted)]">{month.slice(5)}</span></div>)}</div></div><div className="grid lg:grid-cols-2 gap-6"><DataTable title="Recent transactions" headers={["Receipt", "Student", "Amount", "Method"]} rows={finance.payments.slice(0, 6).map((payment) => [payment.reference, payment.studentName, currency(payment.amount, payment.currency), payment.method])} /><DataTable title="Payment reminders" headers={["Invoice", "Student", "Due", "Balance"]} rows={finance.invoices.filter((invoice) => invoice.status !== "Paid" && invoice.status !== "Cancelled").slice(0, 6).map((invoice) => [invoice.invoiceNumber, invoice.studentName, invoice.dueDate, currency(invoice.amount, invoice.currency)])} /></div></>}
     {page === "invoices" && <>
-      <DataTable title="Applications Awaiting Challan" headers={["App #", "Student", "University", "Action"]} rows={applications.filter(a => a.stage === "Unconditional Offer").map(app => [app.applicationNumber, app.studentName, app.universityName, <button onClick={() => { setSelectedApp(app); setShowChallanForm(true); }} className="px-3 py-1 text-xs bg-emerald-500 text-zinc-950 font-bold rounded">Generate Challan</button>])} />
+      <DataTable
+        title="Applications Awaiting Challan & Deposit Clearance"
+        headers={["App #", "Student", "University", "Stage", "Action"]}
+        rows={applications
+          .filter((a) => a.stage === "Unconditional Offer" || a.stage === "Conditional Offer" || a.stage === "Deposit Pending")
+          .map((app) => [
+            app.applicationNumber,
+            app.studentName,
+            app.universityName,
+            <StatusBadge value={app.stage} />,
+            <div className="flex items-center gap-2">
+              {app.stage === "Deposit Pending" ? (
+                <button
+                  onClick={() => handleApprovePaymentAndAdvance(app)}
+                  className="px-2.5 py-1 text-xs bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded shadow-sm transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                  title="Mark deposit paid and advance file to Visa processing"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Approve Payment & Advance to Visa
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setSelectedApp(app);
+                    setShowChallanForm(true);
+                  }}
+                  className="px-3 py-1 text-xs bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded shadow-sm transition-all cursor-pointer"
+                >
+                  Generate Challan
+                </button>
+              )}
+            </div>,
+          ])}
+      />
       <div className="my-4"></div>
       <SearchBar value={query} setValue={setQuery} /><DataTable title="Invoices" headers={["Invoice", "Student", "Service", "Amount", "Due", "Status", "PDF", "Edit"]} rows={filteredInvoices.map((invoice) => [invoice.invoiceNumber, invoice.studentName, invoice.type, currency(invoice.amount, invoice.currency), invoice.dueDate, <StatusBadge value={invoice.status} />, <button onClick={() => handlePrintInvoice(invoice)} className="p-1 text-emerald-400 hover:text-emerald-300 flex items-center gap-1"><Printer className="w-3.5 h-3.5" />Print</button>, <select aria-label="Invoice status" value={invoice.status} onChange={(event) => finance.updateInvoice(invoice, event.target.value as InvoiceStatus)} className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1">{["Draft", "Pending", "Partially Paid", "Paid", "Overdue", "Cancelled"].map((status) => <option key={status}>{status}</option>)}</select>])} /></>}
     {page === "payments" && <DataTable title="Payment history and receipts" headers={["Reference", "Invoice", "Student", "Amount", "Method", "Date", "Receipt"]} rows={finance.payments.map((payment) => [payment.reference, payment.invoiceNumber, payment.studentName, currency(payment.amount, payment.currency), payment.method, payment.paidAt, <button onClick={() => handlePrintReceipt(payment)} className="p-1 text-emerald-400 hover:text-emerald-300 flex items-center gap-1"><Printer className="w-3.5 h-3.5" />Receipt</button>])} />}

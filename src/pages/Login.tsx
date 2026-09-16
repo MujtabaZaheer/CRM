@@ -6,7 +6,7 @@ import { auth, db, isDemoMode, requiresVerifiedEmail } from "../firebase/config"
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
 import { getRoleDashboardPath } from "../types/registrationConfig";
-import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield, UserPlus } from "lucide-react";
+import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield, UserPlus, ChevronUp, ChevronDown, X } from "lucide-react";
 import { bootstrapAdminAccounts } from "../utils/bootstrapAdmins";
 
 export const Login: React.FC = () => {
@@ -18,6 +18,7 @@ export const Login: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   // Bootstrap admin accounts on first load (idempotent)
   useEffect(() => {
@@ -251,139 +252,6 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {/* Quick Role Access for instant evaluation and demo access */}
-        <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-3">
-          <div className="text-xs font-semibold text-emerald-400 flex items-center justify-between">
-            <div className="flex items-center space-x-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>One-Click Demo Access:</span>
-            </div>
-            <span className="text-[10px] text-zinc-400 font-normal">No password required</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("counsellor")}
-              className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>Counsellor</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("team_leader")}
-              className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <Users2 className="w-3.5 h-3.5" />
-              <span>Team Leader</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("org_admin")}
-              className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Org Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("admissions_officer")}
-              className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>Admissions</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("finance_officer")}
-              className="px-2.5 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>Finance</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("platform_super_admin")}
-              className="px-2.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Super Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("support_user")}
-              className="px-2.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>Support</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("auditor")}
-              className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>Auditor</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("visa_officer")}
-              className="px-2.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>Visa Officer</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: true })}
-              className="px-2.5 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] ring-1 ring-emerald-500/20"
-              title="Aarav Patel (Already Registered: Dashboard, Applications & Documents)"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Student (Registered)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: false })}
-              className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              title="New Student (Test Onboarding Wizard from Step 1)"
-            >
-              <span>Student (New)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("external_agent")}
-              className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>Agent</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoLogin("university_partner")}
-              className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-            >
-              <span>University</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Demo Registered Student Fast Access Callout */}
-        <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl space-y-1.5 text-xs">
-          <div className="flex items-center justify-between text-zinc-300 font-semibold text-[11px]">
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              Demo Registered Student: Aarav Patel
-            </span>
-            <span className="text-[10px] text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono">
-              Profile 100%
-            </span>
-          </div>
-          <p className="text-[11px] text-zinc-400">
-            Click <strong className="text-emerald-300">Student (Registered)</strong> above or sign in with <code className="text-emerald-300 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">aarav.patel@gmail.com</code> (any password).
-          </p>
-        </div>
-
-        <div className="flex items-center space-x-3 my-2">
-          <div className="h-px bg-zinc-800 flex-1" />
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">or sign in with live credentials</span>
-          <div className="h-px bg-zinc-800 flex-1" />
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
@@ -444,6 +312,159 @@ export const Login: React.FC = () => {
             </Link>
           </>}
         </div>
+      </div>
+
+      {/* Collapsible Floating Demo Accounts Trigger & Panel at Bottom-Right */}
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+        {demoOpen && (
+          <div className="mb-3 w-80 sm:w-96 max-h-[75vh] overflow-y-auto bg-zinc-950/95 border border-zinc-800 rounded-2xl shadow-2xl p-4 backdrop-blur-xl space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <div className="text-xs font-semibold text-emerald-400 flex items-center justify-between pb-1 border-b border-zinc-800/80">
+              <div className="flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>One-Click Demo Access</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDemoOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 p-1"
+                aria-label="Close demo panel"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("counsellor")}
+                className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>Counsellor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("team_leader")}
+                className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <Users2 className="w-3.5 h-3.5" />
+                <span>Team Leader</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("org_admin")}
+                className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>Org Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("admissions_officer")}
+                className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>Admissions</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("finance_officer")}
+                className="px-2.5 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>Finance</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("platform_super_admin")}
+                className="px-2.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>Super Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("support_user")}
+                className="px-2.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>Support</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("auditor")}
+                className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>Auditor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("visa_officer")}
+                className="px-2.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>Visa Officer</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: true })}
+                className="px-2.5 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] ring-1 ring-emerald-500/20"
+                title="Aarav Patel (Already Registered: Dashboard, Applications & Documents)"
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Student (Reg)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: false })}
+                className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+                title="New Student (Test Onboarding Wizard from Step 1)"
+              >
+                <span>Student (New)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("external_agent")}
+                className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>Agent</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("university_partner")}
+                className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
+              >
+                <span>University</span>
+              </button>
+            </div>
+
+            {/* Demo Registered Student Fast Access Callout */}
+            <div className="p-2.5 bg-emerald-950/30 border border-emerald-500/30 rounded-xl space-y-1 text-xs">
+              <div className="flex items-center justify-between text-zinc-300 font-semibold text-[10px]">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  Registered Student: Aarav Patel
+                </span>
+                <span className="text-[9px] text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/20 font-mono">
+                  100%
+                </span>
+              </div>
+              <p className="text-[10px] text-zinc-400">
+                Sign in with <code className="text-emerald-300 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">aarav.patel@gmail.com</code> (any password).
+              </p>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setDemoOpen(!demoOpen)}
+          className="flex items-center space-x-2 px-4 py-2.5 bg-zinc-900/95 hover:bg-zinc-850 text-zinc-200 hover:text-white border border-zinc-700/80 rounded-full shadow-2xl shadow-black/60 backdrop-blur-xl transition-all active:scale-95 group hover:border-emerald-500/60 text-xs font-semibold"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-emerald-400 group-hover:rotate-12 transition-transform" />
+          <span>Demo Accounts</span>
+          <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-full text-[10px] font-mono">13</span>
+          {demoOpen ? (
+            <ChevronDown className="w-4 h-4 text-zinc-400 group-hover:text-emerald-400" />
+          ) : (
+            <ChevronUp className="w-4 h-4 text-zinc-400 group-hover:text-emerald-400" />
+          )}
+        </button>
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { REGISTRATION_CONFIGS, EXTERNAL_ROLES, STAFF_ROLES } from "../types/regi
 import { StudentCVUploader } from "../components/ai/StudentCVUploader";
 import { toNationalityDemonym, toCountryName } from "../utils/cvExtractor";
 import { getRoleBackground } from "../utils/roleBackgrounds";
+import { useAuth } from "../contexts/AuthContext";
 
 /* ------------------------------------------------------------------ */
 /*  Password strength rules                                           */
@@ -134,6 +135,8 @@ const ACCENT_CLASSES: Record<string, { card: string; cardHover: string; border: 
 /* ================================================================== */
 export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) => {
   const navigate = useNavigate();
+  const { appUser, firebaseUser } = useAuth();
+  const isAuthenticated = Boolean(appUser || firebaseUser);
   const [searchParams] = useSearchParams();
   const queryRole = (searchParams.get("role") as UserRole) || null;
   const initialRole = defaultRole || queryRole;
@@ -529,6 +532,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         {selectedRole === "student" && (
           <div className="space-y-3">
             <StudentCVUploader
+              requireAuth={true}
+              isAuthenticated={isAuthenticated}
+              onAuthRequiredClick={() => navigate("/login")}
               onExtracted={(extracted) => {
                 const dem = toNationalityDemonym(extracted.nationality);
                 const matchedNat = NATIONALITIES.includes(dem) ? dem : "Pakistani";

@@ -5,6 +5,7 @@ import { Application, ApplicationStage } from "../../types/application";
 import { db } from "../../firebase/config";
 import { updateDoc, doc } from "firebase/firestore";
 import { ApplicationDetailModal } from "../common/ApplicationDetailModal";
+import { canUserSetStage, getStageSelectOptionLabel } from "../../utils/stageAuthorization";
 
 type VisaPage = "dashboard" | "cases";
 
@@ -165,19 +166,53 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
                         <span className="px-2 py-0.5 sq-badge bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">{app.stage}</span>
                       </td>
                       <td className="p-3 text-[var(--text-secondary)]">
-                        <select 
-                          aria-label="Application Stage" 
-                          value={app.stage} 
-                          onChange={(e) => handleStageChange(app, e.target.value as ApplicationStage)} 
-                          className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1"
-                        >
-                          <option value="Deposit Paid">Deposit Paid</option>
-                          <option value="CAS / COE Pending">CAS / COE Pending</option>
-                          <option value="CAS Issued">CAS Issued</option>
-                          <option value="Visa Preparation">Visa Preparation</option>
-                          <option value="Visa Submitted">Visa Submitted</option>
-                          <option value="Visa Approved">Visa Approved</option>
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select 
+                            aria-label="Application Stage" 
+                            value={app.stage} 
+                            onChange={(e) => handleStageChange(app, e.target.value as ApplicationStage)} 
+                            className="bg-[var(--bg-input)] border border-[var(--border-default)] sq-input p-1 text-xs"
+                          >
+                            {["Deposit Paid", "CAS / COE Pending", "CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved"].map((stg) => {
+                              const isAllowed = canUserSetStage("visa_officer", stg as ApplicationStage);
+                              return (
+                                <option key={stg} value={stg} disabled={!isAllowed}>
+                                  {getStageSelectOptionLabel(stg as ApplicationStage, "visa_officer")}
+                                </option>
+                              );
+                            })}
+                          </select>
+
+                          {/* Contextual Quick Action Button */}
+                          {app.stage === "Deposit Paid" || app.stage === "CAS / COE Pending" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleStageChange(app, "CAS Issued", "Visa Officer: CAS / COE issued.")}
+                              className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded text-[11px] shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
+                              title="Advance to CAS Issued"
+                            >
+                              Issue CAS
+                            </button>
+                          ) : app.stage === "CAS Issued" || app.stage === "Visa Preparation" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleStageChange(app, "Visa Submitted", "Visa Officer: Visa application lodged.")}
+                              className="px-2 py-1 bg-teal-500 hover:bg-teal-400 text-zinc-950 font-bold rounded text-[11px] shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
+                              title="Advance to Visa Submitted"
+                            >
+                              Lodge Visa
+                            </button>
+                          ) : app.stage === "Visa Submitted" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleStageChange(app, "Visa Approved", "Visa Officer: Visa granted.")}
+                              className="px-2 py-1 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded text-[11px] shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer"
+                              title="Advance to Visa Approved"
+                            >
+                              Grant Clearance
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="p-3 text-right">
                         <button
@@ -207,6 +242,7 @@ export const VisaWorkspace: React.FC<{ page: VisaPage }> = ({ page }) => {
             setSelectedApp(null);
           }}
           role="visa"
+          userRole="visa_officer"
         />
       )}
     </div>

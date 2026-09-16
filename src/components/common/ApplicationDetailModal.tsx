@@ -14,10 +14,17 @@ import {
   AlertTriangle,
   History,
   FileCheck,
+  Sparkles,
 } from "lucide-react";
 import { Application, ApplicationStage } from "../../types/application";
 import { StudentDocument } from "../../pages/Documents";
 import { getDocumentBlobOrUrl } from "../../utils/documentStorage";
+import { UserRole } from "../../types/role";
+import {
+  canUserSetStage,
+  getStageOwnerLabel,
+  getStageSelectOptionLabel,
+} from "../../utils/stageAuthorization";
 
 export interface ApplicationDetailModalProps {
   application: Application;
@@ -25,6 +32,7 @@ export interface ApplicationDetailModalProps {
   onClose: () => void;
   onStageChange: (app: Application, newStage: ApplicationStage, note: string) => Promise<void>;
   role: "admissions" | "visa";
+  userRole?: UserRole;
   onVerifyDocument?: (docId: string, status: "Verified" | "Rejected", feedback?: string) => Promise<void>;
 }
 
@@ -78,8 +86,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onClose,
   onStageChange,
   role,
+  userRole,
   onVerifyDocument,
 }) => {
+  const effectiveRole: UserRole = userRole || (role === "admissions" ? "admissions_officer" : "visa_officer");
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "timeline" | "conditions">("overview");
   const [selectedStage, setSelectedStage] = useState<ApplicationStage>(application.stage);
   const [stageNote, setStageNote] = useState("");
@@ -118,9 +128,38 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     }
   };
 
+  const handleQuickAdvance = async (targetStage: ApplicationStage, defaultNote: string) => {
+    if (!canUserSetStage(effectiveRole, targetStage)) {
+      const owner = getStageOwnerLabel(targetStage);
+      setActionNotice(`Permission Denied: Only ${owner} is authorized to transition to "${targetStage}".`);
+      return;
+    }
+    setSelectedStage(targetStage);
+    setStageNote(defaultNote);
+    setIsSubmitting(true);
+    setActionNotice(null);
+    try {
+      await onStageChange(application, targetStage, defaultNote);
+      setActionNotice(`Application stage successfully advanced to "${targetStage}".`);
+      setStageNote("");
+      setTimeout(() => {
+        setActionNotice(null);
+      }, 3500);
+    } catch (err: any) {
+      setActionNotice(`Failed to advance stage: ${err.message || "Unknown error"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleStageUpdate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedStage) return;
+    if (!canUserSetStage(effectiveRole, selectedStage)) {
+      const owner = getStageOwnerLabel(selectedStage);
+      setActionNotice(`Permission Denied: Only ${owner} is authorized to transition to "${selectedStage}".`);
+      return;
+    }
     setIsSubmitting(true);
     setActionNotice(null);
     try {
@@ -624,44 +663,170 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         {/* BOTTOM ACTION PANEL: STAGE TRANSITIONS */}
         <footer className="p-4 sm:p-5 bg-[var(--bg-elevated)] border-t border-[var(--border-default)] space-y-3">
+          {/* Quick Action Approval Bar */}
+          {role === "admissions" && (
+            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                <div>
+                  <span className="text-xs font-bold text-indigo-200">Admissions Quick Approval:</span>
+                  <span className="text-[11px] text-zinc-400 ml-1.5">
+                    1-click decision will issue offer and route to Finance desk for fee deposit
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {application.stage === "Conditional Offer" || application.stage === "Unconditional Offer" ? (
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Offer Issued ({application.stage}) • Routed to Finance
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isSubmitting || !canUserSetStage(effectiveRole, "Conditional Offer")}
+                      onClick={() =>
+                        handleQuickAdvance(
+                          "Conditional Offer",
+                          "Admissions Officer: Approved and issued Conditional Offer. Application routed to Finance Desk."
+                        )
+                      }
+                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Issue Conditional Offer</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting || !canUserSetStage(effectiveRole, "Unconditional Offer")}
+                      onClick={() =>
+                        handleQuickAdvance(
+                          "Unconditional Offer",
+                          "Admissions Officer: Approved and issued Unconditional Offer. Application routed to Finance Desk."
+                        )
+                      }
+                      className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Issue Unconditional Offer</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {role === "visa" && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <div>
+                  <span className="text-xs font-bold text-amber-200">Visa Officer Workflow:</span>
+                  <span className="text-[11px] text-zinc-400 ml-1.5">
+                    Advance immigration & visa compliance stage
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {application.stage === "Deposit Paid" || application.stage === "CAS / COE Pending" ? (
+                  <button
+                    type="button"
+                    disabled={isSubmitting || !canUserSetStage(effectiveRole, "CAS Issued")}
+                    onClick={() =>
+                      handleQuickAdvance(
+                        "CAS Issued",
+                        "Visa Officer: Confirmation of Acceptance for Studies (CAS) verified and issued."
+                      )
+                    }
+                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Issue CAS / COE</span>
+                  </button>
+                ) : application.stage === "CAS Issued" || application.stage === "Visa Preparation" ? (
+                  <button
+                    type="button"
+                    disabled={isSubmitting || !canUserSetStage(effectiveRole, "Visa Submitted")}
+                    onClick={() =>
+                      handleQuickAdvance(
+                        "Visa Submitted",
+                        "Visa Officer: Visa application file lodged with immigration authority."
+                      )
+                    }
+                    className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Lodge Visa Application</span>
+                  </button>
+                ) : application.stage === "Visa Submitted" ? (
+                  <button
+                    type="button"
+                    disabled={isSubmitting || !canUserSetStage(effectiveRole, "Visa Approved")}
+                    onClick={() =>
+                      handleQuickAdvance(
+                        "Visa Approved",
+                        "Visa Officer: Visa granted. Student immigration clearance complete."
+                      )
+                    }
+                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Grant Visa Clearance</span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {role === "admissions" ? "Admissions Decision / Stage Update" : "Visa Processing Stage"}
+                {role === "admissions" ? "Admissions Stage Selection" : "Visa Processing Stage"}
               </span>
             </div>
             {/* Quick Stage Shortcuts */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {shortcuts.map((stg) => (
-                <button
-                  key={stg}
-                  type="button"
-                  onClick={() => setSelectedStage(stg)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                    selectedStage === stg
-                      ? "bg-emerald-500 text-zinc-950 font-bold border-emerald-400 shadow-sm"
-                      : "bg-[var(--bg-card)] border-[var(--border-default)] hover:border-emerald-500/40 text-[var(--text-secondary)]"
-                  }`}
-                >
-                  {stg}
-                </button>
-              ))}
+              {shortcuts.map((stg) => {
+                const isAllowed = canUserSetStage(effectiveRole, stg);
+                return (
+                  <button
+                    key={stg}
+                    type="button"
+                    disabled={!isAllowed}
+                    onClick={() => setSelectedStage(stg)}
+                    title={isAllowed ? `Select ${stg}` : `${getStageOwnerLabel(stg)} Only`}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      !isAllowed
+                        ? "opacity-40 cursor-not-allowed border-zinc-800 text-zinc-500"
+                        : selectedStage === stg
+                        ? "bg-emerald-500 text-zinc-950 font-bold border-emerald-400 shadow-sm"
+                        : "bg-[var(--bg-card)] border-[var(--border-default)] hover:border-emerald-500/40 text-[var(--text-secondary)]"
+                    }`}
+                  >
+                    {stg} {!isAllowed && "🔒"}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <form onSubmit={handleStageUpdate} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-            <div className="w-full sm:w-60 shrink-0">
+            <div className="w-full sm:w-64 shrink-0">
               <select
                 aria-label="Application Stage"
                 value={selectedStage}
                 onChange={(e) => setSelectedStage(e.target.value as ApplicationStage)}
                 className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)]"
               >
-                {ALL_STAGES.filter((stg) => role !== "visa" || stg !== "Enrolled").map((stg) => (
-                  <option key={stg} value={stg}>
-                    {stg}
-                  </option>
-                ))}
+                {ALL_STAGES.filter((stg) => role !== "visa" || stg !== "Enrolled").map((stg) => {
+                  const isAllowed = canUserSetStage(effectiveRole, stg);
+                  return (
+                    <option key={stg} value={stg} disabled={!isAllowed}>
+                      {getStageSelectOptionLabel(stg, effectiveRole)}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -685,9 +850,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || selectedStage === application.stage}
+                disabled={isSubmitting || selectedStage === application.stage || !canUserSetStage(effectiveRole, selectedStage)}
                 className={`px-5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  selectedStage !== application.stage
+                  selectedStage !== application.stage && canUserSetStage(effectiveRole, selectedStage)
                     ? "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-md active:scale-95"
                     : "bg-[var(--bg-hover)] text-[var(--text-muted)] cursor-not-allowed"
                 }`}

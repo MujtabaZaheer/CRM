@@ -11,6 +11,7 @@ import { cloneApplication, getRequiredDocumentsForCountry } from "../utils/appli
 import { isApplicationLocked, toggleApplicationLock, canUnlockApplication } from "../utils/applicationLock";
 import { triggerApplicationCommission } from "../utils/commissionEngine";
 import { executeWorkflowRules } from "../utils/workflowEngine";
+import { canUserSetStage, getStageOwnerLabel, getStageSelectOptionLabel } from "../utils/stageAuthorization";
 import { Plus, Search, FileText, GraduationCap, AlertCircle, X, Copy, Lock, Unlock, CheckCircle2, ChevronDown, ChevronRight, FileCheck } from "lucide-react";
 
 const STAGES: ApplicationStage[] = [
@@ -140,6 +141,12 @@ export const Applications: React.FC = () => {
   const handleStageChange = async (app: Application, newStage: ApplicationStage) => {
     if (isApplicationLocked(app.lockedAt) && !canUnlockApplication(appUser)) {
       alert("This application is locked from editing. Contact an Administrator to modify it.");
+      return;
+    }
+
+    if (!canUserSetStage(appUser?.role, newStage)) {
+      const owner = getStageOwnerLabel(newStage);
+      alert(`Permission Denied: Only ${owner} is authorized to transition applications to "${newStage}".`);
       return;
     }
 
@@ -417,11 +424,14 @@ export const Applications: React.FC = () => {
                                 onChange={(e) => handleStageChange(app, e.target.value as ApplicationStage)}
                                 className="px-2 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg text-[11px] text-[var(--text-primary)] disabled:opacity-50"
                               >
-                                {STAGES.map((s) => (
-                                  <option key={s} value={s}>
-                                    {s}
-                                  </option>
-                                ))}
+                                {STAGES.map((s) => {
+                                  const isAllowed = canUserSetStage(appUser?.role, s);
+                                  return (
+                                    <option key={s} value={s} disabled={!isAllowed}>
+                                      {getStageSelectOptionLabel(s, appUser?.role)}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </div>
                           </td>

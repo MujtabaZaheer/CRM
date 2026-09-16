@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useCounsellorData } from "../../hooks/useCounsellorData";
 import { Application, ApplicationStage } from "../../types/application";
+import { canUserSetStage, getStageSelectOptionLabel, getStageOwnerLabel } from "../../utils/stageAuthorization";
 import {
   Search,
   History,
@@ -36,6 +37,12 @@ export const CounsellorApplications: React.FC = () => {
   const handleUpdateStageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedApp) return;
+
+    if (!canUserSetStage("counsellor", targetStage)) {
+      const owner = getStageOwnerLabel(targetStage);
+      alert(`Permission Denied: Only ${owner} is authorized to transition applications to "${targetStage}".`);
+      return;
+    }
 
     await updateApplicationStage(selectedApp.id, targetStage, stageNote);
     setSelectedApp(null);
@@ -215,26 +222,35 @@ export const CounsellorApplications: React.FC = () => {
                   onChange={(e) => setTargetStage(e.target.value as ApplicationStage)}
                   className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)] font-semibold"
                 >
-                  <option value="Draft">Draft</option>
-                  <option value="Initial Review">Initial Review</option>
-                  <option value="Documents Pending">Documents Pending</option>
-                  <option value="Ready for Submission">Ready for Submission</option>
-                  <option value="Submitted">Submitted</option>
-                  <option value="University Reviewing">University Reviewing</option>
-                  <option value="Additional Info Requested">Additional Info Requested</option>
-                  <option value="Conditional Offer">Conditional Offer</option>
-                  <option value="Unconditional Offer">Unconditional Offer</option>
-                  <option value="Deposit Pending">Deposit Pending</option>
-                  <option value="Deposit Paid">Deposit Paid</option>
-                  <option value="CAS / COE Pending">CAS / COE Pending</option>
-                  <option value="CAS Issued">CAS Issued</option>
-                  <option value="Visa Preparation">Visa Preparation</option>
-                  <option value="Visa Submitted">Visa Submitted</option>
-                  <option value="Visa Approved">Visa Approved</option>
-                  <option value="Enrolled">Enrolled</option>
-                  <option value="Deferred">Deferred</option>
-                  <option value="Withdrawn">Withdrawn</option>
-                  <option value="Rejected">Rejected</option>
+                  {[
+                    "Draft",
+                    "Initial Review",
+                    "Documents Pending",
+                    "Ready for Submission",
+                    "Submitted",
+                    "University Reviewing",
+                    "Additional Info Requested",
+                    "Conditional Offer",
+                    "Unconditional Offer",
+                    "Deposit Pending",
+                    "Deposit Paid",
+                    "CAS / COE Pending",
+                    "CAS Issued",
+                    "Visa Preparation",
+                    "Visa Submitted",
+                    "Visa Approved",
+                    "Enrolled",
+                    "Deferred",
+                    "Withdrawn",
+                    "Rejected",
+                  ].map((stg) => {
+                    const isAllowed = canUserSetStage("counsellor", stg as ApplicationStage);
+                    return (
+                      <option key={stg} value={stg} disabled={!isAllowed}>
+                        {getStageSelectOptionLabel(stg as ApplicationStage, "counsellor")}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

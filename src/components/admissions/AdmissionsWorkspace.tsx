@@ -4,6 +4,7 @@ import { db } from "../../firebase/config";
 import { useAdmissionsData } from "../../hooks/useAdmissionsData";
 import { Application, ApplicationStage } from "../../types/application";
 import { ApplicationDetailModal } from "../common/ApplicationDetailModal";
+import { canUserSetStage, getStageSelectOptionLabel } from "../../utils/stageAuthorization";
 import {
   BarChart3,
   CheckCircle2,
@@ -459,14 +460,34 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
                       <StatusBadge value={app.stage} />
                     </td>
                     <td className="p-3 text-right">
-                      <button
-                        onClick={() => {
-                          setDetailApp(app);
-                        }}
-                        className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-bold rounded-md cursor-pointer transition-colors"
-                      >
-                        Review Application
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {app.stage === "Conditional Offer" || app.stage === "Unconditional Offer" ? (
+                          <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded">
+                            Offer Issued • In Finance
+                          </span>
+                        ) : ["Submitted", "University Reviewing", "Additional Info Requested", "Ready for Submission", "Initial Review"].includes(app.stage) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDecisionAppId(app.id);
+                              setDecisionType("Conditional Offer");
+                              setShowDecisionModal(true);
+                            }}
+                            className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-md cursor-pointer transition-colors shadow-sm active:scale-95"
+                            title="Issue Conditional or Unconditional Offer Letter"
+                          >
+                            Approve Offer
+                          </button>
+                        ) : null}
+                        <button
+                          onClick={() => {
+                            setDetailApp(app);
+                          }}
+                          className="px-3 py-1.5 bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/60 text-zinc-200 text-xs font-semibold rounded-md cursor-pointer transition-colors"
+                        >
+                          Review
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -658,6 +679,7 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
             setDetailApp(null);
           }}
           role="admissions"
+          userRole="admissions_officer"
           onVerifyDocument={async (docId, status, feedback) => {
             await admissions.verifyDocument(docId, status, feedback);
           }}
@@ -679,11 +701,14 @@ export const AdmissionsWorkspace: React.FC<{ page: AdmissionsSubPage }> = ({ pag
                 onChange={(e) => setNewStage(e.target.value as ApplicationStage)}
                 className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
               >
-                {ALL_STAGES.map((stg) => (
-                  <option key={stg} value={stg}>
-                    {stg}
-                  </option>
-                ))}
+                {ALL_STAGES.map((stg) => {
+                  const isAllowed = canUserSetStage("admissions_officer", stg);
+                  return (
+                    <option key={stg} value={stg} disabled={!isAllowed}>
+                      {getStageSelectOptionLabel(stg, "admissions_officer")}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>

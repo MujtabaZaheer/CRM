@@ -10,6 +10,8 @@ import {
   FileCode,
   Zap,
   GraduationCap,
+  Lock,
+  LogIn,
 } from "lucide-react";
 import {
   extractStudentCVDetails,
@@ -21,12 +23,18 @@ interface StudentCVUploaderProps {
   onExtracted: (data: ExtractedStudentCVData) => void;
   title?: string;
   subtitle?: string;
+  requireAuth?: boolean;
+  isAuthenticated?: boolean;
+  onAuthRequiredClick?: () => void;
 }
 
 export const StudentCVUploader: React.FC<StudentCVUploaderProps> = ({
   onExtracted,
   title = "Auto-Fill with AI from CV / Resume",
   subtitle = "Upload or drop your CV (PDF, DOCX, TXT, Image) to extract your personal details and academic history instantly.",
+  requireAuth = false,
+  isAuthenticated = true,
+  onAuthRequiredClick,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,6 +43,51 @@ export const StudentCVUploader: React.FC<StudentCVUploaderProps> = ({
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pastedText, setPastedText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (requireAuth && !isAuthenticated) {
+    return (
+      <div className="w-full bg-zinc-950/80 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 relative overflow-hidden shadow-lg backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-zinc-200">{title}</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" /> Sign-in Required
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 max-w-xl">
+                AI extraction and CV auto-fill require an active user session. Please sign in or complete registration first to upload your CV and automatically extract your academic history.
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center">
+            {onAuthRequiredClick ? (
+              <button
+                type="button"
+                onClick={onAuthRequiredClick}
+                className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In to Unlock AI</span>
+              </button>
+            ) : (
+              <a
+                href="/login"
+                className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In to Unlock AI</span>
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const processFile = async (file: File) => {
     setError(null);
