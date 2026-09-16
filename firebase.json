@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "education-crm-9fee2",
     "public": "dist",
     "ignore": [
       "firebase.json",
