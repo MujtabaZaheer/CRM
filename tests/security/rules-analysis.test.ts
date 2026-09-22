@@ -68,6 +68,40 @@ describe('Firestore & Firebase Storage Security Rules Audit', () => {
       const hasDefaultDeny = /match \/\{document=\*\*\}\s*\{\s*allow read, write:\s*if false;\s*\}/.test(firestoreRules);
       expect(hasDefaultDeny).toBe(true);
     });
+
+    it('SEC-FIX-AGENT-001: Students and Applications enforce admissionsVisibility isolation for admissions officers', () => {
+      const studentBlock = firestoreRules.match(/match \/students\/\{studentId\} \{[\s\S]*?\}/);
+      expect(studentBlock).not.toBeNull();
+      if (studentBlock) {
+        expect(studentBlock[0]).toContain('!isAdmissionsOfficer() || resource.data.admissionsVisibility != false');
+        expect(studentBlock[0]).toContain('isImmutableVettingUpdate()');
+      }
+
+      const appBlock = firestoreRules.match(/match \/applications\/\{applicationId\} \{[\s\S]*?\}/);
+      expect(appBlock).not.toBeNull();
+      if (appBlock) {
+        expect(appBlock[0]).toContain('!isAdmissionsOfficer() || resource.data.admissionsVisibility != false');
+        expect(appBlock[0]).toContain('isImmutableVettingUpdate()');
+      }
+    });
+
+    it('SEC-FIX-AGENT-002: External agents cannot tamper with vetting status or admissions visibility', () => {
+      expect(firestoreRules).toContain("function isImmutableVettingUpdate()");
+      expect(firestoreRules).toContain("affectedKeys().hasAny(['admissionsVisibility', 'vettedBy', 'vettedAt', 'vettingStatus', 'vettingNotes'])");
+    });
+
+    it('SEC-FIX-COUNSELLOR-001: Student counsellor assignment is strictly restricted to Office Managers and Admins', () => {
+      expect(firestoreRules).toContain("function canAssignStudentCounsellor()");
+      expect(firestoreRules).toContain("isPlatformAdmin() || isOrgAdmin() || hasRole('office_manager')");
+      expect(firestoreRules).toContain("function isImmutableStudentCounsellorUpdate()");
+      expect(firestoreRules).toContain("affectedKeys().hasAny(['assignedCounsellorId', 'assignedCounsellor', 'assignedCounsellorEmail'])");
+
+      const studentBlock = firestoreRules.match(/match \/students\/\{studentId\} \{[\s\S]*?\}/);
+      expect(studentBlock).not.toBeNull();
+      if (studentBlock) {
+        expect(studentBlock[0]).toContain("isImmutableStudentCounsellorUpdate()");
+      }
+    });
   });
 
   describe('Storage Security Rules Audit', () => {

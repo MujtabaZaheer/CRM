@@ -1,3 +1,12 @@
+import {
+  EmergencyContact,
+  AcademicHistoryRecord,
+  EnglishProficiencyData,
+  StudyGapRecord,
+  ImmigrationHistoryData,
+  DeclarationData,
+} from "./application";
+
 export type QualificationLevel =
   | "High School / A-Levels"
   | "Bachelor's Degree"
@@ -7,12 +16,16 @@ export type QualificationLevel =
 
 export interface AcademicRecord {
   institution: string;
-  qualification: QualificationLevel;
-  degreeTitle: string;
+  qualification: QualificationLevel | string;
+  degreeTitle?: string;
   country: string;
-  completionYear: number;
-  gradeGpa: string;
+  completionYear?: number;
+  gradeGpa?: string;
+  passingYear?: number;
+  gradeScale?: string;
+  score?: string;
 }
+
 
 export interface EnglishTestScore {
   testType: "IELTS" | "PTE" | "TOEFL" | "Duolingo" | "MOI Evidence";
@@ -80,8 +93,8 @@ export interface Student {
   passportNumber?: string;
   passportExpiry?: string;
   
-  academicHistory: AcademicRecord[];
-  englishProficiency?: EnglishTestScore;
+  academicHistory: (AcademicRecord | AcademicHistoryRecord)[];
+  englishProficiency?: EnglishTestScore | EnglishProficiencyData;
   
   // Employment & Gap
   employmentHistory?: EmploymentRecord[];
@@ -131,6 +144,23 @@ export interface Student {
   // Consent
   consentGivenAt?: number;
   consentVersion?: string;
+
+  // Agent Referral & Admissions Triage Isolation
+  agentUid?: string;
+  agentName?: string;
+  agentReferred?: boolean;
+  admissionsVisibility?: boolean;
+  vettedBy?: string;
+  vettedAt?: number;
+  vettingNotes?: string;
+  vettingStatus?: "pending_triage" | "documents_verified" | "submitted_to_admissions" | "rejected";
+
+  // Public Intake & EduBridge Compliance Extensions
+  emergencyContact?: EmergencyContact;
+  studyGaps?: StudyGapRecord[];
+  immigrationHistory?: ImmigrationHistoryData;
+  declaration?: DeclarationData;
+  wizardStepCompleted?: number;
 
   createdAt: number;
   updatedAt: number;

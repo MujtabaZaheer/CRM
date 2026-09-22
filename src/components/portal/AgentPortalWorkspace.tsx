@@ -221,6 +221,11 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
 
     try {
       const trackingCode = `REF-${Date.now().toString().slice(-4)}`;
+      const agentUid = appUser?.uid || "agent_external";
+      const agentName = appUser?.displayName || appUser?.agencyName || "External Referral Agent";
+      const tenantId = appUser?.tenantId || "tenant-london";
+
+      // 1. Create Lead in Firestore
       await addDoc(
         collection(db, "leads"),
         cleanPayload({
@@ -235,8 +240,12 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
           notes: leadNotes || "",
           source: "External Agent Referral",
           trackingCode: trackingCode,
-          agentUid: appUser?.uid || "agent_external",
-          agentName: appUser?.displayName || appUser?.agencyName || "External Referral Agent",
+          agentUid,
+          agentName,
+          agentReferred: true,
+          admissionsVisibility: false,
+          vettingStatus: "pending_triage",
+          tenantId,
           stage: "New Referral",
           status: "New Referral",
           createdAt: Date.now(),
@@ -244,6 +253,53 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
           isLive: true,
         })
       );
+
+      // 2. Create Student record in Firestore with agent referral isolation tags
+      const studentDoc = await addDoc(
+        collection(db, "students"),
+        cleanPayload({
+          fullName: leadName,
+          email: leadEmail,
+          phone: leadPhone || "",
+          countryOfResidence: leadCountry || "United Kingdom",
+          nationality: leadCountry || "International",
+          preferredDestination: leadCountry,
+          preferredProgram: leadProgram || "Undergraduate / Master Studies",
+          agentUid,
+          agentName,
+          agentReferred: true,
+          admissionsVisibility: false,
+          vettingStatus: "pending_triage",
+          tenantId,
+          profileCompleteness: 40,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+      );
+
+      // 3. Create Application record in Firestore with admissionsVisibility: false
+      await addDoc(
+        collection(db, "applications"),
+        cleanPayload({
+          studentId: studentDoc.id,
+          studentName: leadName,
+          studentEmail: leadEmail,
+          universityName: leadUniversity || "Partner University",
+          programName: leadProgram || "Undergraduate / Master Studies",
+          country: leadCountry,
+          status: "Draft",
+          stage: "Draft",
+          agentUid,
+          agentName,
+          agentReferred: true,
+          admissionsVisibility: false,
+          vettingStatus: "pending_triage",
+          tenantId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+      );
+
       setFormSuccess(`Referral for ${leadName} submitted to Firestore! Tracking Reference: ${trackingCode}.`);
       setLeadName("");
       setLeadEmail("");
@@ -267,6 +323,9 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
     ];
     const pick = samples[Math.floor(Math.random() * samples.length)];
     const code = `REF-${Date.now().toString().slice(-4)}`;
+    const agentUid = appUser?.uid || "agent_external";
+    const agentName = appUser?.displayName || "External Referral Agent";
+    const tenantId = appUser?.tenantId || "tenant-london";
 
     try {
       await addDoc(
@@ -283,8 +342,12 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
           notes: "Real-time live referral registered via cloud agent portal.",
           source: "External Agent Referral",
           trackingCode: code,
-          agentUid: appUser?.uid || "agent_external",
-          agentName: appUser?.displayName || "External Referral Agent",
+          agentUid,
+          agentName,
+          agentReferred: true,
+          admissionsVisibility: false,
+          vettingStatus: "pending_triage",
+          tenantId,
           stage: "New Referral",
           status: "New Referral",
           createdAt: Date.now(),
@@ -292,6 +355,51 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
           isLive: true,
         })
       );
+
+      const studentDoc = await addDoc(
+        collection(db, "students"),
+        cleanPayload({
+          fullName: pick.name,
+          email: `${pick.name.toLowerCase().replace(/[^a-z]/g, "")}@applicant-cloud.com`,
+          phone: "+44 7900 " + Math.floor(100000 + Math.random() * 900000),
+          countryOfResidence: pick.country,
+          nationality: pick.country,
+          preferredDestination: pick.country,
+          preferredProgram: pick.prog,
+          agentUid,
+          agentName,
+          agentReferred: true,
+          admissionsVisibility: false,
+          vettingStatus: "pending_triage",
+          tenantId,
+          profileCompleteness: 55,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+      );
+
+      await addDoc(
+        collection(db, "applications"),
+        cleanPayload({
+          studentId: studentDoc.id,
+          studentName: pick.name,
+          studentEmail: `${pick.name.toLowerCase().replace(/[^a-z]/g, "")}@applicant-cloud.com`,
+          universityName: pick.uni,
+          programName: pick.prog,
+          country: pick.country,
+          status: "Draft",
+          stage: "Draft",
+          agentUid,
+          agentName,
+          agentReferred: true,
+          admissionsVisibility: false,
+          vettingStatus: "pending_triage",
+          tenantId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+      );
+
       setFormSuccess(`Live cloud referral for ${pick.name} registered instantly! Tracking ID: ${code}`);
     } catch (err: any) {
       setFormSuccess(`Live cloud referral queued.`);

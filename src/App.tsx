@@ -9,6 +9,7 @@ import { VerifyEmail } from "./pages/VerifyEmail";
 import { AcceptInvitation } from "./pages/AcceptInvitation";
 import { PublicFormPage } from "./pages/PublicFormPage";
 import { PublicFormSuccess } from "./pages/PublicFormSuccess";
+import { ApplicationWizard } from "./pages/public/ApplicationWizard";
 import { Dashboard } from "./pages/Dashboard";
 import { Leads } from "./pages/Leads";
 import { Students } from "./pages/Students";
@@ -135,6 +136,7 @@ import { CounsellorDocuments } from "./pages/counsellor/Documents";
 import { CounsellorTasks } from "./pages/counsellor/Tasks";
 import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
 import { CounsellorMessages } from "./pages/counsellor/CounsellorMessages";
+import { AgentTriageDesk } from "./pages/counsellor/AgentTriageDesk";
 
 import { GlobalDataProvider } from "./contexts/GlobalDataContext";
 import { NotificationProvider } from "./contexts/NotificationProvider";
@@ -158,6 +160,9 @@ export const App: React.FC = () => {
               {/* Public Form Routes (Unauthenticated) */}
               <Route path="/public/forms/:formId" element={<PublicFormPage />} />
               <Route path="/public/form-success" element={<PublicFormSuccess />} />
+
+              {/* Public Application Intake Wizard (EduBridge Compliance Parity) */}
+              <Route path="/apply/:token" element={<ApplicationWizard />} />
 
               {/* Direct Apply Routes */}
               <Route element={<RoleRoute role="student" />}>
@@ -190,6 +195,14 @@ export const App: React.FC = () => {
                 <Route path="/apply" element={<StudentNewApplication />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/applications" element={<Applications />} />
+                <Route
+                  path="/agent-triage"
+                  element={
+                    <RoleGate allowedRoles={["platform_super_admin", "org_admin", "counsellor", "office_manager", "team_leader"]}>
+                      <AgentTriageDesk />
+                    </RoleGate>
+                  }
+                />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/documents" element={<Documents />} />
                 <Route path="/tasks" element={<Tasks />} />
@@ -237,6 +250,7 @@ export const App: React.FC = () => {
                 {/* Counsellor Module Routes */}
                 <Route path="/counsellor" element={<CounsellorRoute />}>
                   <Route path="dashboard" element={<CounsellorDashboard />} />
+                  <Route path="agent-triage" element={<AgentTriageDesk />} />
                   <Route path="leads" element={<CounsellorLeads />} />
                   <Route path="students" element={<CounsellorStudents />} />
                   <Route path="messages" element={<CounsellorMessages />} />

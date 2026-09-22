@@ -12,7 +12,12 @@ import { isApplicationLocked, toggleApplicationLock, canUnlockApplication } from
 import { triggerApplicationCommission } from "../utils/commissionEngine";
 import { executeWorkflowRules } from "../utils/workflowEngine";
 import { canUserSetStage, getStageOwnerLabel, getStageSelectOptionLabel } from "../utils/stageAuthorization";
-import { Plus, Search, FileText, GraduationCap, AlertCircle, X, Copy, Lock, Unlock, CheckCircle2, ChevronDown, ChevronRight, FileCheck } from "lucide-react";
+import { Plus, Search, FileText, GraduationCap, AlertCircle, X, Copy, Lock, Unlock, CheckCircle2, ChevronDown, ChevronRight, FileCheck, ArrowRightLeft, Building2, UserCheck, ShieldCheck } from "lucide-react";
+import { ReassignmentModal } from "../components/applications/ReassignmentModal";
+import { TENANT_DEFINITIONS, getTenantById, resolveUserTenantId } from "../utils/tenantScoping";
+import { canReassignApplications } from "../utils/applicationReassignment";
+import { filterForAdmissionsDesk } from "../utils/agentTriage";
+
 
 const STAGES: ApplicationStage[] = [
   "Draft",
@@ -40,11 +45,16 @@ const STAGES: ApplicationStage[] = [
 export const Applications: React.FC = () => {
   const location = useLocation();
   const { appUser } = useAuth();
-  const { applications, students, addApplication, updateApplication, initialLoading: loading } = useGlobalData();
+  const { applications, students, users, activeTenantId, setActiveTenantId, addApplication, updateApplication, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [expandedDocAppId, setExpandedDocAppId] = useState<string | null>(null);
+
+  // Selection & Reassignment State
+  const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [reassignModalApps, setReassignModalApps] = useState<Application[]>([]);
 
   useEffect(() => {
     if (location.state?.preselectedStudentId) {
@@ -229,7 +239,7 @@ export const Applications: React.FC = () => {
     }
   };
 
-  const filteredApps = applications.filter((app) => {
+  const filteredApps = filterForAdmissionsDesk(applications, appUser?.role).filter((app) => {
     const matchesSearch =
       app.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.universityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -237,6 +247,40 @@ export const Applications: React.FC = () => {
     const matchesStage = selectedStage === "All" || app.stage === selectedStage;
     return matchesSearch && matchesStage;
   });
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedAppIds(filteredApps.map((a) => a.id));
+    } else {
+      setSelectedAppIds([]);
+    }
+  };
+
+  const handleToggleSelectApp = (id: string) => {
+    setSelectedAppIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenSingleReassign = (app: Application) => {
+    setReassignModalApps([app]);
+    setIsReassignModalOpen(true);
+  };
+
+  const handleOpenBulkReassign = () => {
+    const selected = applications.filter((a) => selectedAppIds.includes(a.id));
+    if (selected.length === 0) return;
+    setReassignModalApps(selected);
+    setIsReassignModalOpen(true);
+  };
+
+  const handleReassignmentSuccess = (updatedApps: Application[], message: string) => {
+    updatedApps.forEach((u) => {
+      updateApplication(u.id, u);
+    });
+    setSelectedAppIds([]);
+    setNotice(message);
+  };
 
   return (
     <RoleGate allowedRoles={["platform_super_admin", "org_admin", "counsellor", "office_manager", "admissions_officer"]}>
@@ -271,8 +315,8 @@ export const Applications: React.FC = () => {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        {/* Filters & Tenant Controls */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-[var(--text-muted)]" />
             <input
@@ -283,6 +327,33 @@ export const Applications: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
             />
           </div>
+
+          {/* Super Admin Tenant Switcher or Local Tenant Indicator */}
+          {appUser?.role === "platform_super_admin" ? (
+            <div className="flex items-center space-x-2 bg-[var(--bg-input)] px-3 py-1.5 rounded-xl border border-emerald-500/30">
+              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+              <select
+                value={activeTenantId}
+                onChange={(e) => setActiveTenantId(e.target.value)}
+                className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
+              >
+                <option value="ALL">🌐 All Institutional Tenants</option>
+                {TENANT_DEFINITIONS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.city})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>
+                Tenant: {getTenantById(resolveUserTenantId(appUser))?.name || "Local Branch"}
+              </span>
+            </div>
+          )}
+
           <select
             value={selectedStage}
             onChange={(e) => setSelectedStage(e.target.value)}
@@ -297,30 +368,65 @@ export const Applications: React.FC = () => {
           </select>
         </div>
 
+        {/* Bulk Action Bar */}
+        {selectedAppIds.length > 0 && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs animate-fade-in">
+            <div className="flex items-center space-x-2 text-emerald-400 font-semibold">
+              <UserCheck className="w-4 h-4" />
+              <span>{selectedAppIds.length} application(s) selected</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setSelectedAppIds([])}
+                className="px-3 py-1.5 text-zinc-400 hover:text-zinc-200 text-xs transition-colors"
+              >
+                Clear
+              </button>
+              {canReassignApplications(appUser) && (
+                <button
+                  onClick={handleOpenBulkReassign}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition-all shadow-md shadow-emerald-500/20"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  <span>Reassign Selected ({selectedAppIds.length})</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Table */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-[var(--text-secondary)]">
               <thead className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)] text-xs text-[var(--text-muted)] uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">App ID</th>
-                  <th className="px-4 py-3">Student Name</th>
+                  <th className="px-3 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={filteredApps.length > 0 && selectedAppIds.length === filteredApps.length}
+                      onChange={handleSelectAll}
+                      className="rounded border-zinc-700 text-emerald-500 focus:ring-0"
+                    />
+                  </th>
+                  <th className="px-4 py-3">App ID / Tenant</th>
+                  <th className="px-4 py-3">Student & Assignee</th>
                   <th className="px-4 py-3">University & Course</th>
                   <th className="px-4 py-3">Intake & Country</th>
                   <th className="px-4 py-3">Stage / Lock</th>
-                  <th className="px-4 py-3 text-right">Actions & Stage</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-[var(--text-muted)]">
+                    <td colSpan={7} className="text-center py-8 text-[var(--text-muted)]">
                       Loading applications...
                     </td>
                   </tr>
                 ) : filteredApps.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-[var(--text-muted)]">
+                    <td colSpan={7} className="text-center py-8 text-[var(--text-muted)]">
                       No applications found. Click "New Application" to initiate one.
                     </td>
                   </tr>
@@ -332,12 +438,30 @@ export const Applications: React.FC = () => {
 
                     return (
                       <React.Fragment key={app.id}>
-                        <tr className="hover:bg-[var(--bg-hover)] transition-colors">
+                        <tr className={`hover:bg-[var(--bg-hover)] transition-colors ${selectedAppIds.includes(app.id) ? "bg-emerald-500/5" : ""}`}>
+                          <td className="px-3 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedAppIds.includes(app.id)}
+                              onChange={() => handleToggleSelectApp(app.id)}
+                              className="rounded border-zinc-700 text-emerald-500 focus:ring-0"
+                            />
+                          </td>
                           <td className="px-4 py-3 font-mono font-bold text-xs text-emerald-400">
                             <div>
                               <span>{app.applicationNumber || `#${app.id.slice(-6)}`}</span>
+                              {(() => {
+                                const tenant = getTenantById(app.tenantId || "tenant-london");
+                                return (
+                                  <span className="block mt-0.5 text-[9px] font-normal text-zinc-400">
+                                    <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                                      {tenant?.code || "LDN"} • {tenant?.city || "London"}
+                                    </span>
+                                  </span>
+                                );
+                              })()}
                               {app.clonedFrom && (
-                                <span className="block text-[9px] text-[var(--text-muted)] font-normal">
+                                <span className="block text-[9px] text-[var(--text-muted)] font-normal mt-0.5">
                                   Cloned from #{app.clonedFrom.slice(-6)}
                                 </span>
                               )}
@@ -347,6 +471,17 @@ export const Applications: React.FC = () => {
                             <div className="flex items-center space-x-2">
                               <GraduationCap className="w-4 h-4 text-teal-400" />
                               <span>{app.studentName}</span>
+                            </div>
+                            <div className="flex items-center space-x-1.5 text-[10px] text-[var(--text-muted)] mt-1 font-normal">
+                              <UserCheck className="w-3 h-3 text-teal-400" />
+                              <span className="text-zinc-300">
+                                {app.assignedOfficer || app.assignedOfficerName || app.assignedCounsellor || "Unassigned"}
+                              </span>
+                              {app.assignedDepartment && (
+                                <span className="px-1.5 py-0.2 rounded bg-teal-500/10 text-teal-300 text-[9px] border border-teal-500/20">
+                                  {app.assignedDepartment}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-xs">
@@ -379,6 +514,18 @@ export const Applications: React.FC = () => {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end space-x-2">
+                              {/* Reassign Button */}
+                              {canReassignApplications(appUser) && (
+                                <button
+                                  onClick={() => handleOpenSingleReassign(app)}
+                                  className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-teal-400 rounded-lg text-xs font-semibold flex items-center space-x-1 border border-[var(--border-default)] transition-colors"
+                                  title="Reassign to another Officer / Team"
+                                >
+                                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline text-[10px]">Reassign</span>
+                                </button>
+                              )}
+
                               {/* Document Checklist Expander */}
                               <button
                                 onClick={() => setExpandedDocAppId(isExpanded ? null : app.id)}
@@ -440,7 +587,7 @@ export const Applications: React.FC = () => {
                         {/* Expanded Compliance Checklist Sub-Row */}
                         {isExpanded && (
                           <tr className="bg-[var(--bg-main)]/50">
-                            <td colSpan={6} className="px-6 py-4 border-b border-[var(--border-default)]">
+                            <td colSpan={7} className="px-6 py-4 border-b border-[var(--border-default)]">
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <span className="font-bold text-xs text-[var(--text-primary)] flex items-center space-x-1.5">
@@ -659,6 +806,16 @@ export const Applications: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Reassignment Modal */}
+        <ReassignmentModal
+          isOpen={isReassignModalOpen}
+          onClose={() => setIsReassignModalOpen(false)}
+          applications={reassignModalApps}
+          availableStaff={users}
+          currentActor={appUser}
+          onSuccess={handleReassignmentSuccess}
+        />
       </div>
     </RoleGate>
   );

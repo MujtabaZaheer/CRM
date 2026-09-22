@@ -7,6 +7,7 @@ import { logAuditEvent } from "../utils/auditLogger";
 import { Application, ApplicationStage } from "../types/application";
 import { AdmissionsDecision, AdmissionsMetrics, DocumentVerificationStatus } from "../types/admissions";
 import { Task } from "../types/task";
+import { filterForAdmissionsDesk } from "../utils/agentTriage";
 
 export const useAdmissionsData = () => {
   const { appUser } = useAuth();
@@ -155,16 +156,20 @@ export const useAdmissionsData = () => {
     [appUser, addGlobalTask]
   );
 
+  const visibleApplications = useMemo(() => {
+    return filterForAdmissionsDesk(applications, appUser?.role);
+  }, [applications, appUser?.role]);
+
   const metrics: AdmissionsMetrics = useMemo(() => {
-    const totalPendingReview = applications.filter((a) =>
+    const totalPendingReview = visibleApplications.filter((a) =>
       ["Initial Review", "Submitted", "University Reviewing"].includes(a.stage)
     ).length;
     const documentsPendingVerification = documents.filter((d) => d.status === "Received" || d.status === "Pending").length;
-    const offersIssued = applications.filter((a) =>
+    const offersIssued = visibleApplications.filter((a) =>
       ["Conditional Offer", "Unconditional Offer", "Deposit Paid", "CAS Issued", "Visa Approved", "Enrolled"].includes(a.stage)
     ).length;
-    const casPending = applications.filter((a) => a.stage === "Deposit Paid" || a.stage === "CAS Issued").length;
-    const enrolledTotal = applications.filter((a) => a.stage === "Enrolled").length;
+    const casPending = visibleApplications.filter((a) => a.stage === "Deposit Paid" || a.stage === "CAS Issued").length;
+    const enrolledTotal = visibleApplications.filter((a) => a.stage === "Enrolled").length;
 
     return {
       totalPendingReview,
@@ -173,10 +178,10 @@ export const useAdmissionsData = () => {
       casPending,
       enrolledTotal,
     };
-  }, [applications, documents]);
+  }, [visibleApplications, documents]);
 
   return {
-    applications,
+    applications: visibleApplications,
     documents,
     decisions,
     tasks,

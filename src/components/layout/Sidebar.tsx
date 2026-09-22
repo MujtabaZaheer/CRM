@@ -61,6 +61,12 @@ const navItems: NavItem[] = [
   },
   { label: "Students", path: "/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Applications", path: "/applications", icon: <FileText className="w-4 h-4" /> },
+  { 
+    label: "Agent Triage Desk", 
+    path: "/agent-triage", 
+    icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, 
+    rolesAllowed: ["platform_super_admin", "org_admin", "counsellor", "office_manager", "team_leader"] 
+  },
   { label: "Calendar", path: "/calendar", icon: <Calendar className="w-4 h-4" /> },
   { label: "Admissions Desk", path: "/admissions/dashboard", icon: <ShieldCheck className="w-4 h-4" /> },
   { label: "Finance Module", path: "/finance/dashboard", icon: <CircleDollarSign className="w-4 h-4" /> },
@@ -106,6 +112,7 @@ const navItems: NavItem[] = [
 
 const teamLeaderNavItems: NavItem[] = [
   { label: "Dashboard", path: "/team-leader/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Agent Triage Desk", path: "/agent-triage", icon: <ShieldCheck className="w-4 h-4 text-emerald-400" /> },
   { label: "Team Members", path: "/team-leader/team-members", icon: <Users2 className="w-4 h-4" /> },
   { label: "Applications Pool", path: "/team-leader/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "Assign Workloads", path: "/team-leader/assign-applications", icon: <UserCheck className="w-4 h-4" /> },
@@ -118,6 +125,7 @@ const teamLeaderNavItems: NavItem[] = [
 
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Agent Triage Desk", path: "/agent-triage", icon: <ShieldCheck className="w-4 h-4 text-emerald-400" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
   { label: "My Students", path: "/counsellor/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Messages & Support", path: "/counsellor/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },

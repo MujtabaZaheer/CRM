@@ -116,17 +116,6 @@ export const useTeamLeaderData = () => {
         updatedAt: Date.now()
       });
 
-      // Synchronize assigned counsellor on the associated student record
-      if (appData?.studentId) {
-        try {
-          await updateDoc(doc(db, "students", appData.studentId), {
-            assignedCounsellor: targetCounsellor?.displayName || counsellorEmail,
-            assignedCounsellorId: targetCounsellor?.uid || counsellorEmail,
-            updatedAt: Date.now(),
-          });
-        } catch (_) {}
-      }
-
       await logAuditEvent(
         "APPLICATION_ASSIGNED",
         appUser?.email || "Unknown",
@@ -138,13 +127,9 @@ export const useTeamLeaderData = () => {
     } catch (err) {
       console.warn("Firestore update notice (persisted in local state):", err);
     }
-  }, [applications, users, appUser, updateGlobalApplication]);
+  }, [applications, appUser, updateGlobalApplication]);
 
   const bulkAssignApplications = useCallback(async (appIds: string[], counsellorEmail: string) => {
-    const targetCounsellor = users.find(
-      (u) => (u.email || "").toLowerCase().trim() === counsellorEmail.toLowerCase().trim()
-    );
-
     for (const appId of appIds) {
       const appData = applications.find(a => a.id === appId);
       const appNum = appData?.applicationNumber || "APP";
@@ -157,17 +142,6 @@ export const useTeamLeaderData = () => {
           assignedCounsellor: counsellorEmail,
           updatedAt: Date.now()
         });
-
-        // Synchronize assigned counsellor on the associated student record
-        if (appData?.studentId) {
-          try {
-            await updateDoc(doc(db, "students", appData.studentId), {
-              assignedCounsellor: targetCounsellor?.displayName || counsellorEmail,
-              assignedCounsellorId: targetCounsellor?.uid || counsellorEmail,
-              updatedAt: Date.now(),
-            });
-          } catch (_) {}
-        }
 
         await logAuditEvent(
           "APPLICATION_ASSIGNED",

@@ -8,18 +8,79 @@ import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { getStudentJourneyFeed, JourneyEvent, STANDARD_JOURNEY_MILESTONES } from "../utils/studentJourney";
-import { Plus, Search, Eye, GraduationCap, AlertCircle, X, Mail, Phone, Globe, BookOpen, Award, History, FilePlus } from "lucide-react";
+import { canAssignStudentCounsellor, assignStudentCounsellor } from "../utils/studentAssignment";
+import { Plus, Search, Eye, GraduationCap, AlertCircle, X, Mail, Phone, Globe, BookOpen, Award, History, FilePlus, UserCheck, ShieldAlert, Info, CheckCircle2 } from "lucide-react";
 
 export const Students: React.FC = () => {
   const navigate = useNavigate();
   const { appUser } = useAuth();
-  const { students, addStudent, initialLoading: loading } = useGlobalData();
+  const { students, users, addStudent, updateStudent, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [studentModalTab, setStudentModalTab] = useState<"overview" | "journey">("overview");
   const [journeyEvents, setJourneyEvents] = useState<JourneyEvent[]>([]);
   const [loadingJourney, setLoadingJourney] = useState(false);
+
+  // Counsellor Assignment State & Role Checks
+  const [assignModalStudent, setAssignModalStudent] = useState<Student | null>(null);
+  const [selectedCounsellorUid, setSelectedCounsellorUid] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [assignmentNotice, setAssignmentNotice] = useState("");
+
+  const canAssign = canAssignStudentCounsellor(appUser);
+  const isTeamLead = appUser?.role === "team_leader";
+  const counsellorsList = users.filter((u) => u.role === "counsellor");
+
+  const handleAssignCounsellorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignModalStudent || !selectedCounsellorUid || !appUser) return;
+    const targetCounsellor = users.find((u) => u.uid === selectedCounsellorUid);
+    if (!targetCounsellor) return;
+
+    setAssigning(true);
+    try {
+      await assignStudentCounsellor(
+        assignModalStudent.id,
+        {
+          uid: targetCounsellor.uid,
+          displayName: targetCounsellor.displayName,
+          email: targetCounsellor.email,
+        },
+        appUser,
+        assignModalStudent.fullName
+      );
+
+      // Optimistic update in global data context
+      updateStudent(assignModalStudent.id, {
+        assignedCounsellorId: targetCounsellor.uid,
+        assignedCounsellor: targetCounsellor.displayName || targetCounsellor.email,
+      });
+
+      if (selectedStudent?.id === assignModalStudent.id) {
+        setSelectedStudent((prev) =>
+          prev
+            ? {
+                ...prev,
+                assignedCounsellorId: targetCounsellor.uid,
+                assignedCounsellor: targetCounsellor.displayName || targetCounsellor.email,
+              }
+            : null
+        );
+      }
+
+      setAssignmentNotice(
+        `Assigned ${assignModalStudent.fullName} to primary intake counsellor ${targetCounsellor.displayName || targetCounsellor.email}!`
+      );
+      setAssignModalStudent(null);
+      setSelectedCounsellorUid("");
+      setTimeout(() => setAssignmentNotice(""), 5000);
+    } catch (err: any) {
+      alert(`Assignment failed: ${err.message}`);
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   // Form State
   const [fullName, setFullName] = useState("");
@@ -160,6 +221,14 @@ export const Students: React.FC = () => {
           />
         </div>
 
+        {/* Assignment Toast Notice */}
+        {assignmentNotice && (
+          <div className="flex items-center space-x-2 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-400">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>{assignmentNotice}</span>
+          </div>
+        )}
+
         {/* Table */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-card overflow-hidden">
           <div className="overflow-x-auto">
@@ -169,6 +238,7 @@ export const Students: React.FC = () => {
                   <th className="px-4 py-3">Student Name</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">Nationality</th>
+                  <th className="px-4 py-3">Assigned Counsellor</th>
                   <th className="px-4 py-3">Academic Background</th>
                   <th className="px-4 py-3">English Test</th>
                   <th className="px-4 py-3">Completeness</th>
@@ -178,13 +248,13 @@ export const Students: React.FC = () => {
               <tbody className="divide-y divide-[var(--border-default)]">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-[var(--text-muted)]">
+                    <td colSpan={8} className="text-center py-8 text-[var(--text-muted)]">
                       Loading student records...
                     </td>
                   </tr>
                 ) : filteredStudents.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-[var(--text-muted)]">
+                    <td colSpan={8} className="text-center py-8 text-[var(--text-muted)]">
                       No student records found. Click "Add Student Profile" to create one.
                     </td>
                   </tr>
@@ -207,6 +277,35 @@ export const Students: React.FC = () => {
                         <div className="text-[10px] text-[var(--text-muted)]">{student.phone}</div>
                       </td>
                       <td className="px-4 py-3 text-xs">{student.nationality}</td>
+                      <td className="px-4 py-3 text-xs">
+                        <div className="flex items-center space-x-2">
+                          <span className={student.assignedCounsellor ? "text-emerald-400 font-medium" : "text-[var(--text-muted)] italic"}>
+                            {student.assignedCounsellor || "Unassigned"}
+                          </span>
+                          {isTeamLead ? (
+                            <button
+                              type="button"
+                              disabled
+                              title="Assigning counsellors to students requires Office Manager or Admin authorization."
+                              className="p-1 rounded bg-[var(--bg-elevated)] text-slate-500 cursor-not-allowed opacity-50"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                            </button>
+                          ) : canAssign ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAssignModalStudent(student);
+                                setSelectedCounsellorUid(student.assignedCounsellorId || "");
+                              }}
+                              title="Assign / Reassign Counsellor"
+                              className="p-1 rounded bg-[var(--bg-elevated)] hover:bg-emerald-500/10 text-[var(--text-muted)] hover:text-emerald-400 transition-colors cursor-pointer"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-xs">
                         {student.academicHistory && student.academicHistory.length > 0 ? (
                           <div>
@@ -240,7 +339,7 @@ export const Students: React.FC = () => {
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleOpenStudentModal(student)}
-                          className="p-1.5 bg-[var(--bg-elevated)] hover:bg-emerald-500/10 text-[var(--text-secondary)] hover:text-emerald-400 sq-btn transition-colors border border-[var(--border-default)]"
+                          className="p-1.5 bg-[var(--bg-elevated)] hover:bg-emerald-500/10 text-[var(--text-secondary)] hover:text-emerald-400 sq-btn transition-colors border border-[var(--border-default)] cursor-pointer"
                           title="View Profile & Journey"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -507,6 +606,60 @@ export const Students: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Primary Intake Counsellor Assignment Section */}
+                  <div className="p-4 bg-[var(--bg-main)] border border-[var(--border-default)] rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <UserCheck className="w-4 h-4 text-emerald-400" />
+                        <span className="font-bold text-[var(--text-primary)] text-xs">Primary Intake Counsellor</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {selectedStudent.assignedCounsellor ? "Assigned" : "Unassigned"}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                      <div>
+                        <span className="text-[11px] text-[var(--text-muted)] block">Designated Intake Caseworker:</span>
+                        <span className="text-sm font-bold text-[var(--text-primary)]">
+                          {selectedStudent.assignedCounsellor || "No Intake Counsellor Designated"}
+                        </span>
+                      </div>
+
+                      <div>
+                        {isTeamLead ? (
+                          <div className="space-y-1">
+                            <button
+                              type="button"
+                              disabled
+                              title="Assigning counsellors to students requires Office Manager or Admin authorization."
+                              className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-500 border border-slate-700/50 text-xs font-semibold cursor-not-allowed opacity-60 flex items-center space-x-1.5"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>Reassign Counsellor</span>
+                            </button>
+                            <p className="text-[10px] text-amber-400/90 flex items-center space-x-1">
+                              <Info className="w-3 h-3 flex-shrink-0" />
+                              <span>Assigning counsellors to students requires Office Manager or Admin authorization.</span>
+                            </p>
+                          </div>
+                        ) : canAssign ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAssignModalStudent(selectedStudent);
+                              setSelectedCounsellorUid(selectedStudent.assignedCounsellorId || "");
+                            }}
+                            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Reassign Counsellor</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Academic Details */}
                   <div className="space-y-2">
                     <span className="font-bold text-[var(--text-primary)] text-xs flex items-center space-x-1.5">
@@ -602,6 +755,100 @@ export const Students: React.FC = () => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Designate / Reassign Intake Counsellor */}
+        {assignModalStudent && (
+          <div className="fixed inset-0 z-50 bg-[var(--backdrop)] backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-scale-up">
+              <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+                <div className="flex items-center space-x-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[var(--text-primary)]">
+                      Assign Primary Counsellor
+                    </h3>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Designate intake caseworker for {assignModalStudent.fullName}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAssignModalStudent(null)}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAssignCounsellorSubmit} className="space-y-4 text-xs">
+                <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-[var(--text-muted)]">Candidate:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{assignModalStudent.fullName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--text-muted)]">Current Intake Assignee:</span>
+                    <span className="font-semibold text-emerald-400">
+                      {assignModalStudent.assignedCounsellor || "Unassigned"}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[var(--text-secondary)] font-semibold mb-1.5">
+                    Select New Intake Counsellor *
+                  </label>
+                  <select
+                    required
+                    value={selectedCounsellorUid}
+                    onChange={(e) => setSelectedCounsellorUid(e.target.value)}
+                    className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)] rounded-xl"
+                  >
+                    <option value="">-- Choose Counsellor --</option>
+                    {counsellorsList.map((c) => (
+                      <option key={c.uid} value={c.uid}>
+                        {c.displayName || c.email} ({c.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300 flex items-start space-x-2">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Authorized by {appUser?.role?.replace("_", " ").toUpperCase()}. Assigning will update the student dossier, log an immutable audit event, and notify the caseworker.
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3 pt-2 border-t border-[var(--border-default)]">
+                  <button
+                    type="button"
+                    onClick={() => setAssignModalStudent(null)}
+                    className="px-4 py-2 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] font-medium rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={assigning || !selectedCounsellorUid}
+                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {assigning ? (
+                      <span>Saving...</span>
+                    ) : (
+                      <>
+                        <UserCheck className="w-4 h-4" />
+                        <span>Confirm Assignment</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

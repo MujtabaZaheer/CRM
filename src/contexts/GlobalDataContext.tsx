@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { AppUser } from "../types/role";
@@ -12,6 +12,8 @@ import { useAuth } from "./AuthContext";
 
 import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_TASKS, DEMO_UNIVERSITIES, DEMO_USERS } from "../data/demoData";
 
+import { filterRecordsByTenant, resolveUserTenantId, scopeDocumentWithTenant } from "../utils/tenantScoping";
+
 interface GlobalDataContextType {
   users: AppUser[];
   leads: Lead[];
@@ -20,6 +22,8 @@ interface GlobalDataContextType {
   documents: StudentDocument[];
   tasks: Task[];
   universities: University[];
+  activeTenantId: string;
+  setActiveTenantId: (tenantId: string) => void;
   initialLoading: boolean;
   error: string | null;
   showDemoData: boolean;
@@ -45,6 +49,8 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
   documents: [],
   tasks: [],
   universities: [],
+  activeTenantId: "ALL",
+  setActiveTenantId: () => {},
   initialLoading: true,
   error: null,
   showDemoData: true,
@@ -72,6 +78,21 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [activeTenantId, setActiveTenantIdState] = useState<string>("ALL");
+
+  useEffect(() => {
+    if (appUser) {
+      if (appUser.role !== "platform_super_admin") {
+        setActiveTenantIdState(resolveUserTenantId(appUser));
+      }
+    }
+  }, [appUser]);
+
+  const setActiveTenantId = useCallback((newTenantId: string) => {
+    if (appUser?.role === "platform_super_admin") {
+      setActiveTenantIdState(newTenantId);
+    }
+  }, [appUser?.role]);
 
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
 
@@ -264,7 +285,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addApplication = (newApp: Application) => {
-    setApplications((prev) => [newApp, ...prev.filter((a) => a.id !== newApp.id)]);
+    const scopedApp = newApp.tenantId ? newApp : scopeDocumentWithTenant(newApp, appUser);
+    setApplications((prev) => [scopedApp, ...prev.filter((a) => a.id !== scopedApp.id)]);
   };
 
   const updateApplication = (appId: string, updates: Partial<Application>) => {
@@ -279,16 +301,39 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setDocuments((prev) => prev.map((d) => (d.id === docId ? { ...d, ...updates } : d)));
   };
 
+  // Strictly enforce tenant boundary filtering on all exposed records
+  const scopedApplications = useMemo(() => {
+    return filterRecordsByTenant(applications, appUser, activeTenantId);
+  }, [applications, appUser, activeTenantId]);
+
+  const scopedLeads = useMemo(() => {
+    return filterRecordsByTenant(leads, appUser, activeTenantId);
+  }, [leads, appUser, activeTenantId]);
+
+  const scopedStudents = useMemo(() => {
+    return filterRecordsByTenant(students, appUser, activeTenantId);
+  }, [students, appUser, activeTenantId]);
+
+  const scopedTasks = useMemo(() => {
+    return filterRecordsByTenant(tasks, appUser, activeTenantId);
+  }, [tasks, appUser, activeTenantId]);
+
+  const scopedDocuments = useMemo(() => {
+    return filterRecordsByTenant(documents, appUser, activeTenantId);
+  }, [documents, appUser, activeTenantId]);
+
   return (
     <GlobalDataContext.Provider
       value={{
         users,
-        leads,
-        students,
-        applications,
-        documents,
-        tasks,
+        leads: scopedLeads,
+        students: scopedStudents,
+        applications: scopedApplications,
+        documents: scopedDocuments,
+        tasks: scopedTasks,
         universities,
+        activeTenantId,
+        setActiveTenantId,
         initialLoading,
         error: null,
         showDemoData,

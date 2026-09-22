@@ -79,6 +79,69 @@ export interface ApplicationScholarship {
   awardedDate: number;
 }
 
+export interface ApplicationTransferEvent {
+  id: string;
+  timestamp: number;
+  previousAssignee: string;
+  newAssignee: string;
+  previousTeam?: string;
+  newTeam?: string;
+  previousDepartment?: string;
+  newDepartment?: string;
+  authorizingUser: string;
+  authorizingRole?: string;
+  reason: string;
+  isCrossTenant: boolean;
+  originTenantId?: string;
+  destinationTenantId?: string;
+}
+
+export interface EmergencyContact {
+  name: string;
+  relation: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
+export interface AcademicHistoryRecord {
+  institution: string;
+  qualification: string;
+  passingYear: number;
+  gradeScale: string;
+  score: string;
+  country: string;
+  degreeTitle?: string;
+  completionYear?: number;
+  gradeGpa?: string;
+}
+
+export interface EnglishProficiencyData {
+  testType: 'IELTS' | 'PTE' | 'TOEFL' | 'Duolingo' | 'WAEC' | 'None';
+  overallScore?: string;
+  trfNumber?: string;
+  testDate?: string;
+}
+
+export interface StudyGapRecord {
+  startDate: string;
+  endDate: string;
+  explanation: string;
+  documentationAttached: boolean;
+}
+
+export interface ImmigrationHistoryData {
+  hasPriorRefusal: boolean;
+  refusalDetails?: string;
+  refusalCountries?: string[];
+}
+
+export interface DeclarationData {
+  signedName: string;
+  agreedAt: string;
+  consentGiven: boolean;
+}
+
 export interface Application {
   id: string;
   applicationNumber: string; // e.g. APP-2026-0042
@@ -95,6 +158,10 @@ export interface Application {
   eligibilityScore?: number;
   applicationStatus?: ApplicationStage;
   assignedOfficer?: string;
+  assignedOfficerEmail?: string;
+  assignedOfficerName?: string;
+  assignedTeam?: string;
+  assignedDepartment?: string;
   submittedAt?: number;
   submissionRequested?: boolean;
   deadline?: string;
@@ -114,6 +181,9 @@ export interface Application {
   casRefNumber?: string;
   casIssuedAt?: number;
   tenantId?: string;
+  tenantType?: "city" | "university" | "regional_hub";
+  campusCity?: string;
+  transferHistory?: ApplicationTransferEvent[];
   history?: ApplicationHistoryItem[];
   offerLetterUrl?: string;
   offerLetterFileName?: string;
@@ -127,6 +197,27 @@ export interface Application {
   partnerComments?: ApplicationPartnerComment[];
   requestedDocuments?: ApplicationDocumentRequest[];
   sourceAgentName?: string;
+  // Agent Referral & Admissions Triage Isolation
+  agentUid?: string;
+  agentName?: string;
+  agentReferred?: boolean;
+  admissionsVisibility?: boolean;
+  vettedBy?: string;
+  vettedAt?: number;
+  vettingNotes?: string;
+  vettingStatus?: "pending_triage" | "documents_verified" | "submitted_to_admissions" | "rejected";
+
+  // Public Intake & EduBridge Compliance Extensions
+  emergencyContact?: EmergencyContact;
+  academicHistory?: AcademicHistoryRecord[];
+  englishProficiency?: EnglishProficiencyData;
+  studyGaps?: StudyGapRecord[];
+  immigrationHistory?: ImmigrationHistoryData;
+  declaration?: DeclarationData;
+  wizardStepCompleted?: number;
+  intakeToken?: string;
+
   createdAt: number;
   updatedAt: number;
 }
+

@@ -60,6 +60,11 @@ export interface AppUser {
   universityName?: string;
   partnerUniversityId?: string;
   tenantId?: string;
+  tenantType?: "city" | "university" | "regional_hub";
+  campusCity?: string;
+  assignedDepartment?: string;
+  isDeprecatedRole?: boolean;
+  roleEffectiveFallback?: UserRole;
   accountStatus?: "active" | "suspended";
   onboardingStatus?: "not_started" | "in_progress" | "completed";
   profileCompleted?: boolean;
