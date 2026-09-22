@@ -170,9 +170,9 @@ export const StudentOnboardingStage1: React.FC = () => {
 
           if (data.englishProficiency) {
             setEnglishTestType(data.englishProficiency.testType);
-            setEnglishOverallScore(data.englishProficiency.overallScore);
+            setEnglishOverallScore(data.englishProficiency.overallScore || "");
             setEnglishTestDate(data.englishProficiency.testDate || "");
-            setEnglishExpiryDate(data.englishProficiency.expiryDate || "");
+            setEnglishExpiryDate((data.englishProficiency as any).expiryDate || "");
             if ((data.englishProficiency as any).subScores) {
               setEnglishSubScores((data.englishProficiency as any).subScores);
             }
@@ -348,7 +348,7 @@ export const StudentOnboardingStage1: React.FC = () => {
       passportNumber: hasPassport ? passportNumber.trim() : "",
       passportCountry: hasPassport ? passportCountry : "",
       passportExpiry: hasPassport ? passportExpiry : "",
-      academicHistory: academicRecords.filter((r) => r.institution.trim() || r.degreeTitle.trim()),
+      academicHistory: academicRecords.filter((r) => (r.institution || "").trim() || (r.degreeTitle || "").trim()),
       englishProficiency: noEnglishTestYet
         ? { testType: "MOI Evidence" as any, overallScore: "Pending" }
         : {

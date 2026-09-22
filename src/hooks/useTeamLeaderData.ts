@@ -102,9 +102,6 @@ export const useTeamLeaderData = () => {
   const assignApplication = useCallback(async (appId: string, counsellorEmail: string) => {
     const appData = applications.find(a => a.id === appId);
     const appNum = appData?.applicationNumber || "APP";
-    const targetCounsellor = users.find(
-      (u) => (u.email || "").toLowerCase().trim() === counsellorEmail.toLowerCase().trim()
-    );
 
     // Optimistic update
     updateGlobalApplication(appId, { assignedCounsellor: counsellorEmail, updatedAt: Date.now() });

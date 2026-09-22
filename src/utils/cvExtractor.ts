@@ -1001,7 +1001,7 @@ export function extractAcademicRecordsFromText(
   const seenKeys = new Set<string>();
 
   for (const r of records) {
-    const key = `${r.qualification}_${r.institution.toLowerCase().replace(/[^a-z0-9]/g, "")}_${r.degreeTitle.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+    const key = `${r.qualification}_${(r.institution || "").toLowerCase().replace(/[^a-z0-9]/g, "")}_${(r.degreeTitle || "").toLowerCase().replace(/[^a-z0-9]/g, "")}`;
     if (!seenKeys.has(key)) {
       seenKeys.add(key);
       uniqueRecords.push(r);
@@ -1009,7 +1009,7 @@ export function extractAcademicRecordsFromText(
   }
 
   // Sort: latest completion year first
-  uniqueRecords.sort((a, b) => b.completionYear - a.completionYear);
+  uniqueRecords.sort((a, b) => (b.completionYear ?? 0) - (a.completionYear ?? 0));
 
   if (uniqueRecords.length > 0) {
     return uniqueRecords;

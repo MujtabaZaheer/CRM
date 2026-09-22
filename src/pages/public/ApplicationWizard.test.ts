@@ -9,7 +9,6 @@ import {
   validateStep6Declaration,
   cleanPayload,
   submitPublicApplication,
-  MAX_WIZARD_FILE_SIZE,
   WizardDocumentUpload,
 } from "../../utils/applicationIntakeTriage";
 

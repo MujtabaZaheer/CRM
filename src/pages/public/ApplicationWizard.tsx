@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   CheckCircle2,
   AlertCircle,
@@ -17,11 +17,9 @@ import {
   Plus,
   Loader2,
   Calendar,
-  Lock,
   Download,
   AlertTriangle,
   Building,
-  HelpCircle,
   FileUp,
 } from "lucide-react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -38,7 +36,6 @@ import {
   validateStep6Declaration,
   submitPublicApplication,
   cleanPayload,
-  MAX_WIZARD_FILE_SIZE,
 } from "../../utils/applicationIntakeTriage";
 
 const STEPS = [
@@ -103,7 +100,6 @@ const INITIAL_FORM_DATA: ApplicationWizardFormData = {
 export const ApplicationWizard: React.FC = () => {
   const { token, applicationId: paramAppId } = useParams<{ token?: string; applicationId?: string }>();
   const activeId = token || paramAppId || "draft-intake";
-  const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [formData, setFormData] = useState<ApplicationWizardFormData>(INITIAL_FORM_DATA);
@@ -548,7 +544,7 @@ export const ApplicationWizard: React.FC = () => {
                         : "bg-slate-800 text-slate-400"
                     }`}
                   >
-                    {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.id}
+                    {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Icon className="w-3 h-3" />}
                   </div>
                   <div className="overflow-hidden">
                     <p className="text-xs font-semibold truncate leading-tight">{s.title}</p>

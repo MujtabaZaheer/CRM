@@ -10,14 +10,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ArrowRight,
   X,
-  FileText,
-  User,
-  Building,
-  GraduationCap,
-  Sparkles,
-  ExternalLink,
   ShieldAlert,
 } from "lucide-react";
 
@@ -285,7 +278,6 @@ export const AgentTriageDesk: React.FC = () => {
           {displayList.map((student) => {
             const check = getChecklist(student.id);
             const complete = isChecklistComplete(student.id);
-            const linkedApp = getLinkedApplication(student.id);
 
             return (
               <div

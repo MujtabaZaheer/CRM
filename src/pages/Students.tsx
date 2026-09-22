@@ -9,7 +9,7 @@ import { useGlobalData } from "../contexts/GlobalDataContext";
 import { logAuditEvent } from "../utils/auditLogger";
 import { getStudentJourneyFeed, JourneyEvent, STANDARD_JOURNEY_MILESTONES } from "../utils/studentJourney";
 import { canAssignStudentCounsellor, assignStudentCounsellor } from "../utils/studentAssignment";
-import { Plus, Search, Eye, GraduationCap, AlertCircle, X, Mail, Phone, Globe, BookOpen, Award, History, FilePlus, UserCheck, ShieldAlert, Info, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Eye, GraduationCap, AlertCircle, X, Mail, Phone, Globe, BookOpen, Award, History, FilePlus, UserCheck, Info, CheckCircle2 } from "lucide-react";
 
 export const Students: React.FC = () => {
   const navigate = useNavigate();
