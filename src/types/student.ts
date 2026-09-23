@@ -136,6 +136,12 @@ export interface Student {
   profileCompleteness: number; // 0-100%
   assignedCounsellorId?: string;
   assignedCounsellor?: string;
+  assignedCounsellorEmail?: string;
+  assignedTeamLeaderId?: string;
+  assignedTeamLeaderEmail?: string;
+  assignedTeamLeader?: string;
+  assignedCity?: string;
+  processingCity?: string;
   preferredProgram?: string;
   office?: string;
   tenantId?: string;

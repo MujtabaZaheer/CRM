@@ -60,6 +60,26 @@ export const TENANT_DEFINITIONS: TenantDefinition[] = [
     description: "Pakistan operations for undergraduate and postgraduate counselling.",
   },
   {
+    id: "tenant-islamabad",
+    name: "Islamabad Branch",
+    code: "ISB",
+    type: "city",
+    city: "Islamabad",
+    country: "Pakistan",
+    domain: "islamabad.educrm.com",
+    description: "Islamabad and Northern Pakistan regional hub for student counselling and visa.",
+  },
+  {
+    id: "tenant-karachi",
+    name: "Karachi Branch",
+    code: "KHI",
+    type: "city",
+    city: "Karachi",
+    country: "Pakistan",
+    domain: "karachi.educrm.com",
+    description: "Karachi and Sindh regional operations for higher education placements.",
+  },
+  {
     id: "tenant-dubai",
     name: "Dubai Middle East Hub",
     code: "DXB",
@@ -106,19 +126,24 @@ export const TENANT_DEFINITIONS: TenantDefinition[] = [
  */
 export function mapOfficeToTenantId(office?: string, branchId?: string): string {
   if (branchId) {
-    if (branchId.includes("london")) return "tenant-london";
-    if (branchId.includes("manchester")) return "tenant-manchester";
-    if (branchId.includes("delhi")) return "tenant-delhi";
-    if (branchId.includes("lahore")) return "tenant-lahore";
-    if (branchId.includes("dubai")) return "tenant-dubai";
+    const b = branchId.toLowerCase();
+    if (b.includes("islamabad") || b.includes("isb")) return "tenant-islamabad";
+    if (b.includes("karachi") || b.includes("khi")) return "tenant-karachi";
+    if (b.includes("lahore") || b.includes("lhr")) return "tenant-lahore";
+    if (b.includes("london") || b.includes("ldn")) return "tenant-london";
+    if (b.includes("manchester")) return "tenant-manchester";
+    if (b.includes("delhi")) return "tenant-delhi";
+    if (b.includes("dubai") || b.includes("dxb")) return "tenant-dubai";
   }
 
   if (!office) return "tenant-london";
   const o = office.toLowerCase();
+  if (o.includes("islamabad") || o.includes("isb") || o.includes("rawalpindi")) return "tenant-islamabad";
+  if (o.includes("karachi") || o.includes("khi")) return "tenant-karachi";
+  if (o.includes("lahore") || o.includes("lhr")) return "tenant-lahore";
   if (o.includes("manchester")) return "tenant-manchester";
   if (o.includes("delhi")) return "tenant-delhi";
-  if (o.includes("lahore")) return "tenant-lahore";
-  if (o.includes("dubai")) return "tenant-dubai";
+  if (o.includes("dubai") || o.includes("dxb")) return "tenant-dubai";
   if (o.includes("london") || o.includes("hq")) return "tenant-london";
   return "tenant-london";
 }

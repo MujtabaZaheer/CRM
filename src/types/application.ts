@@ -183,6 +183,12 @@ export interface Application {
   tenantId?: string;
   tenantType?: "city" | "university" | "regional_hub";
   campusCity?: string;
+  assignedCity?: string;
+  processingCity?: string;
+  assignedCounsellorId?: string;
+  assignedTeamLeaderId?: string;
+  assignedTeamLeaderEmail?: string;
+  assignedTeamLeader?: string;
   transferHistory?: ApplicationTransferEvent[];
   history?: ApplicationHistoryItem[];
   offerLetterUrl?: string;

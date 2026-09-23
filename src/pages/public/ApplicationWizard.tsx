@@ -37,6 +37,7 @@ import {
   submitPublicApplication,
   cleanPayload,
 } from "../../utils/applicationIntakeTriage";
+import { SUPPORTED_BRANCH_CITIES, resolveCityTenant } from "../../utils/cityTenantRouting";
 
 const STEPS = [
   { id: 1, title: "Personal Details", subtitle: "Passport & Identity", icon: User },
@@ -55,6 +56,7 @@ const INITIAL_FORM_DATA: ApplicationWizardFormData = {
   gender: "",
   nationality: "",
   countryOfResidence: "",
+  processingCity: "Islamabad",
   passportNumber: "",
   passportExpiry: "",
   passportIssueCountry: "",
@@ -94,7 +96,7 @@ const INITIAL_FORM_DATA: ApplicationWizardFormData = {
     consentGiven: false,
   },
   agentReferred: false,
-  tenantId: "tenant-london",
+  tenantId: "tenant-islamabad",
 };
 
 export const ApplicationWizard: React.FC = () => {
@@ -682,6 +684,42 @@ export const ApplicationWizard: React.FC = () => {
                     {errors.countryOfResidence && (
                       <p className="text-rose-400 text-xs mt-1">{errors.countryOfResidence}</p>
                     )}
+                  </div>
+
+                  {/* Processing Branch & Localized Tenant Assignment */}
+                  <div className="sm:col-span-2 bg-[#0B1120]/80 p-4 rounded-2xl border border-[#1e3366] space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="block text-xs font-semibold text-slate-200">
+                        Preferred Branch / Processing City <span className="text-rose-400">*</span>
+                      </label>
+                      {formData.processingCity && (
+                        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/30">
+                          Assigned Partition: {resolveCityTenant(formData.processingCity)}
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={formData.processingCity || ""}
+                      onChange={(e) => {
+                        const city = e.target.value;
+                        const tId = resolveCityTenant(city);
+                        updateFormData((prev) => ({ ...prev, processingCity: city, tenantId: tId }));
+                      }}
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-[#141f36] border text-sm text-slate-100 focus:outline-none focus:border-[#F5A623] ${
+                        errors.processingCity ? "border-rose-500" : "border-[#1e3366]"
+                      }`}
+                    >
+                      <option value="">Select Processing Branch Office...</option>
+                      {SUPPORTED_BRANCH_CITIES.map((b) => (
+                        <option key={b.tenantId} value={b.city}>
+                          {b.label} — {b.branchName}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.processingCity && <p className="text-rose-400 text-xs mt-1">{errors.processingCity}</p>}
+                    <p className="text-[11px] text-slate-400">
+                      Your application, documents, and dedicated Counsellor & Team Leader will be strictly partitioned to this local branch for focused handling.
+                    </p>
                   </div>
 
                   <div>

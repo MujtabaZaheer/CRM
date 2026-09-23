@@ -7,6 +7,7 @@ import {
   ImmigrationHistoryData,
   DeclarationData,
 } from "../types/application";
+import { resolveCityTenant, autoAssignCityStaff } from "./cityTenantRouting";
 
 export const MAX_WIZARD_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ALLOWED_WIZARD_MIME_TYPES = [
@@ -36,6 +37,7 @@ export interface ApplicationWizardFormData {
   gender: "Male" | "Female" | "Other" | "Prefer not to say" | "";
   nationality: string;
   countryOfResidence: string;
+  processingCity?: string;
   passportNumber: string;
   passportExpiry: string;
   passportIssueCountry: string;
@@ -116,6 +118,9 @@ export const validateStep1Personal = (data: Partial<ApplicationWizardFormData>):
   if (!data.dob) errors.dob = "Date of birth is required";
   if (!data.nationality?.trim()) errors.nationality = "Nationality is required";
   if (!data.countryOfResidence?.trim()) errors.countryOfResidence = "Country of residence is required";
+  if (data.processingCity !== undefined && !data.processingCity.trim()) {
+    errors.processingCity = "Please select your preferred branch / processing city";
+  }
   if (!data.passportNumber?.trim()) errors.passportNumber = "Passport number is required";
   if (!data.passportExpiry) errors.passportExpiry = "Passport expiry date is required";
   return errors;
@@ -259,7 +264,13 @@ export const submitPublicApplication = async (
   try {
     const now = Date.now();
     const isAgent = Boolean(formData.agentReferred);
-    const resolvedTenant = formData.tenantId || tenantId;
+    
+    // Resolve dynamic city tenant
+    const cityInput = formData.processingCity || formData.countryOfResidence;
+    const resolvedTenant = formData.tenantId || (cityInput ? resolveCityTenant(cityInput) : tenantId);
+
+    // Auto-assign branch staff (Counsellor & Team Leader)
+    const staffAssignment = await autoAssignCityStaff(resolvedTenant, firestoreDb);
 
     // 1. Prepare application update payload
     const applicationPayload = cleanPayload({
@@ -283,6 +294,15 @@ export const submitPublicApplication = async (
         agreedAt: formData.declaration.agreedAt || new Date(now).toISOString(),
       } : undefined,
       tenantId: resolvedTenant,
+      campusCity: staffAssignment.assignedCity,
+      assignedCity: staffAssignment.assignedCity,
+      processingCity: formData.processingCity || staffAssignment.assignedCity,
+      assignedCounsellor: staffAssignment.assignedCounsellor,
+      assignedCounsellorId: staffAssignment.assignedCounsellorId,
+      assignedOfficerEmail: staffAssignment.assignedCounsellorEmail,
+      assignedTeamLeader: staffAssignment.assignedTeamLeader,
+      assignedTeamLeaderId: staffAssignment.assignedTeamLeaderId,
+      assignedTeamLeaderEmail: staffAssignment.assignedTeamLeaderEmail,
       // Agent Referral & Admissions Triage Scoping Gate
       agentReferred: isAgent,
       agentUid: formData.agentUid,
@@ -311,9 +331,49 @@ export const submitPublicApplication = async (
       });
     }
 
-    // 2. Append immutable audit event in audit_logs
+    // 2. Also ensure Student document in students collection is scoped and assigned
+    if (formData.studentId) {
+      try {
+        const studentRef = doc(firestoreDb, "students", formData.studentId);
+        const studentPayload = cleanPayload({
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          dob: formData.dob,
+          nationality: formData.nationality,
+          countryOfResidence: formData.countryOfResidence,
+          tenantId: resolvedTenant,
+          campusCity: staffAssignment.assignedCity,
+          assignedCity: staffAssignment.assignedCity,
+          processingCity: formData.processingCity || staffAssignment.assignedCity,
+          assignedCounsellor: staffAssignment.assignedCounsellor,
+          assignedCounsellorId: staffAssignment.assignedCounsellorId,
+          assignedCounsellorEmail: staffAssignment.assignedCounsellorEmail,
+          assignedTeamLeader: staffAssignment.assignedTeamLeader,
+          assignedTeamLeaderId: staffAssignment.assignedTeamLeaderId,
+          assignedTeamLeaderEmail: staffAssignment.assignedTeamLeaderEmail,
+          updatedAt: now,
+        });
+        const stSnap = await getDoc(studentRef);
+        if (stSnap.exists()) {
+          await updateDoc(studentRef, studentPayload);
+        } else {
+          await setDoc(studentRef, {
+            ...studentPayload,
+            id: formData.studentId,
+            profileCompleted: true,
+            createdAt: now,
+          });
+        }
+      } catch (stErr) {
+        console.warn("Student record scoping notice:", stErr);
+      }
+    }
+
+    // 3. Append immutable audit events in audit_logs
     let auditLogId: string | undefined;
     try {
+      // Primary public application submission audit event
       const auditRef = await addDoc(collection(firestoreDb, "audit_logs"), {
         action: "PUBLIC_APPLICATION_SUBMITTED",
         performedBy: formData.email || formData.declaration?.signedName || "Applicant",
@@ -321,19 +381,36 @@ export const submitPublicApplication = async (
         targetEntity: "application",
         targetId: applicationId,
         tenantId: resolvedTenant,
-        details: `EduBridge public intake completed (Steps 1-6). Agent referred: ${isAgent}. Triage routing: ${isAgent ? "agent_triage" : "intake_desk"}.`,
+        details: `EduBridge public intake completed (Steps 1-6). Agent referred: ${isAgent}. Triage routing: ${isAgent ? "agent_triage" : "intake_desk"}. Assigned City: ${staffAssignment.assignedCity}.`,
         timestamp: now,
         source: "public_application_wizard",
       });
       auditLogId = auditRef.id;
+
+      // Specialized city tenant auto-routing audit event
+      await addDoc(collection(firestoreDb, "audit_logs"), {
+        action: "STUDENT_AUTO_ROUTED_TO_CITY",
+        performedBy: formData.email || formData.declaration?.signedName || "Intake Routing Engine",
+        performedByRole: "applicant",
+        targetEntity: "application",
+        targetId: applicationId,
+        tenantId: resolvedTenant,
+        city: staffAssignment.assignedCity,
+        assignedCounsellor: staffAssignment.assignedCounsellor,
+        assignedTeamLead: staffAssignment.assignedTeamLeader,
+        details: `Applicant ${formData.fullName} automatically routed to ${staffAssignment.assignedCity} Branch (${resolvedTenant}). Assigned Counsellor: ${staffAssignment.assignedCounsellor} (${staffAssignment.assignedCounsellorEmail}), Team Leader: ${staffAssignment.assignedTeamLeader} (${staffAssignment.assignedTeamLeaderEmail}).`,
+        timestamp: now,
+        source: "public_application_wizard",
+      });
     } catch (auditErr) {
       console.warn("Audit logging notice:", auditErr);
     }
 
-    // 3. Dispatch in-app notification to branch intake or triage queue
+    // 4. Dispatch targeted in-app notifications
     let notificationId: string | undefined;
     try {
-      const notifRef = await addDoc(collection(firestoreDb, "notifications"), {
+      // General triage queue notification
+      const triageNotifRef = await addDoc(collection(firestoreDb, "notifications"), {
         targetRole: isAgent ? "counsellor" : "admissions_officer",
         targetDesk: isAgent ? "agent_triage" : "intake_desk",
         tenantId: resolvedTenant,
@@ -350,7 +427,35 @@ export const submitPublicApplication = async (
         read: false,
         createdAt: now,
       });
-      notificationId = notifRef.id;
+      notificationId = triageNotifRef.id;
+
+      // Notification to assigned City Counsellor
+      await addDoc(collection(firestoreDb, "notifications"), {
+        targetUser: staffAssignment.assignedCounsellorEmail,
+        targetRole: "counsellor",
+        targetDesk: "counsellor_desk",
+        tenantId: resolvedTenant,
+        type: "new_student_assigned_city",
+        title: `📍 New Applicant Assigned to ${staffAssignment.assignedCity} Branch`,
+        message: `New applicant ${formData.fullName || "Student"} has completed public intake and is assigned to you at ${staffAssignment.assignedCity} Branch.`,
+        link: `/applications?id=${applicationId}`,
+        read: false,
+        createdAt: now,
+      });
+
+      // Notification to assigned City Team Leader
+      await addDoc(collection(firestoreDb, "notifications"), {
+        targetUser: staffAssignment.assignedTeamLeaderEmail,
+        targetRole: "team_leader",
+        targetDesk: "branch_management",
+        tenantId: resolvedTenant,
+        type: "new_student_assigned_city",
+        title: `📍 New Applicant Assigned to ${staffAssignment.assignedCity} Branch`,
+        message: `New applicant ${formData.fullName || "Student"} assigned to ${staffAssignment.assignedCity} Branch under counsellor ${staffAssignment.assignedCounsellor}.`,
+        link: `/applications?id=${applicationId}`,
+        read: false,
+        createdAt: now,
+      });
     } catch (notifErr) {
       console.warn("Notification notice:", notifErr);
     }

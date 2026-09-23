@@ -322,10 +322,14 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return filterRecordsByTenant(documents, appUser, activeTenantId);
   }, [documents, appUser, activeTenantId]);
 
+  const scopedUsers = useMemo(() => {
+    return filterRecordsByTenant(users, appUser, activeTenantId);
+  }, [users, appUser, activeTenantId]);
+
   return (
     <GlobalDataContext.Provider
       value={{
-        users,
+        users: scopedUsers,
         leads: scopedLeads,
         students: scopedStudents,
         applications: scopedApplications,

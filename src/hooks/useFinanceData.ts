@@ -5,6 +5,7 @@ import { logAuditEvent } from "../utils/auditLogger";
 import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Commission, CommissionStatus, Invoice, InvoiceStatus, Payment, Refund, RefundStatus } from "../types/finance";
+import { filterRecordsByTenant, resolveUserTenantId } from "../utils/tenantScoping";
 
 import { DEMO_COMMISSIONS, DEMO_INVOICES, DEMO_PAYMENTS, DEMO_REFUNDS } from "../data/demoData";
 
@@ -13,7 +14,7 @@ const readCollection = <T extends { id: string }>(name: string, setValue: (data:
 
 export const useFinanceData = () => {
   const { appUser } = useAuth();
-  const { showDemoData } = useGlobalData();
+  const { showDemoData, activeTenantId } = useGlobalData();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
@@ -47,7 +48,13 @@ export const useFinanceData = () => {
   }, [showDemoData]);
 
   const record = useCallback(async (collectionName: string, data: Record<string, unknown>, action: string, details: string) => {
-    const created = await addDoc(collection(db, collectionName), { ...data, createdAt: Date.now(), updatedAt: Date.now() });
+    const effectiveTenant = (data as any).tenantId || (appUser ? resolveUserTenantId(appUser) : "tenant-london");
+    const created = await addDoc(collection(db, collectionName), {
+      ...data,
+      tenantId: effectiveTenant,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
     await logAuditEvent(action, appUser?.email || "Unknown", "Finance", details, created.id, appUser?.role);
   }, [appUser]);
 
@@ -63,10 +70,40 @@ export const useFinanceData = () => {
   const createCommission = useCallback((data: Omit<Commission, "id" | "createdAt" | "updatedAt" | "status">) => record("commissions", { ...data, status: "Pending" }, "COMMISSION_CREATED", `Created commission for ${data.agentName}`), [record]);
   const updateRefund = useCallback(async (refund: Refund, status: RefundStatus) => { await updateDoc(doc(db, "refunds", refund.id), { status, updatedAt: Date.now() }); await logAuditEvent("REFUND_UPDATED", appUser?.email || "Unknown", "Refund", `Refund for ${refund.studentName} marked ${status}`, refund.id, appUser?.role); }, [appUser]);
   const updateCommission = useCallback(async (commission: Commission, status: CommissionStatus) => { await updateDoc(doc(db, "commissions", commission.id), { status, updatedAt: Date.now() }); await logAuditEvent("COMMISSION_UPDATED", appUser?.email || "Unknown", "Commission", `Commission for ${commission.agentName} marked ${status}`, commission.id, appUser?.role); }, [appUser]);
+
+  // Strictly enforce tenant boundary filtering across all financial records
+  const scopedInvoices = useMemo(() => filterRecordsByTenant(invoices, appUser, activeTenantId), [invoices, appUser, activeTenantId]);
+  const scopedPayments = useMemo(() => filterRecordsByTenant(payments, appUser, activeTenantId), [payments, appUser, activeTenantId]);
+  const scopedRefunds = useMemo(() => filterRecordsByTenant(refunds, appUser, activeTenantId), [refunds, appUser, activeTenantId]);
+  const scopedCommissions = useMemo(() => filterRecordsByTenant(commissions, appUser, activeTenantId), [commissions, appUser, activeTenantId]);
+
   const summary = useMemo(() => {
-    const paidRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    const outstanding = invoices.filter((invoice) => !["Paid", "Cancelled"].includes(invoice.status)).reduce((sum, invoice) => sum + invoice.amount - payments.filter((payment) => payment.invoiceId === invoice.id).reduce((paid, payment) => paid + payment.amount, 0), 0);
-    return { paidRevenue, outstanding, pendingInvoices: invoices.filter((invoice) => ["Pending", "Partially Paid", "Overdue"].includes(invoice.status)).length, paidInvoices: invoices.filter((invoice) => invoice.status === "Paid").length, refunds: refunds.filter((refund) => refund.status !== "Rejected").reduce((sum, refund) => sum + refund.amount, 0), commissions: commissions.filter((commission) => commission.status !== "Paid" && commission.status !== "Reversed").reduce((sum, commission) => sum + commission.amount, 0) };
-  }, [commissions, invoices, payments, refunds]);
-  return { invoices, payments, refunds, commissions, loading, error, summary, createInvoice, updateInvoice, recordPayment, createRefund, createCommission, updateRefund, updateCommission };
+    const paidRevenue = scopedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const outstanding = scopedInvoices.filter((invoice) => !["Paid", "Cancelled"].includes(invoice.status)).reduce((sum, invoice) => sum + invoice.amount - scopedPayments.filter((payment) => payment.invoiceId === invoice.id).reduce((paid, payment) => paid + payment.amount, 0), 0);
+    return {
+      paidRevenue,
+      outstanding,
+      pendingInvoices: scopedInvoices.filter((invoice) => ["Pending", "Partially Paid", "Overdue"].includes(invoice.status)).length,
+      paidInvoices: scopedInvoices.filter((invoice) => invoice.status === "Paid").length,
+      refunds: scopedRefunds.filter((refund) => refund.status !== "Rejected").reduce((sum, refund) => sum + refund.amount, 0),
+      commissions: scopedCommissions.filter((commission) => commission.status !== "Paid" && commission.status !== "Reversed").reduce((sum, commission) => sum + commission.amount, 0)
+    };
+  }, [scopedCommissions, scopedInvoices, scopedPayments, scopedRefunds]);
+
+  return {
+    invoices: scopedInvoices,
+    payments: scopedPayments,
+    refunds: scopedRefunds,
+    commissions: scopedCommissions,
+    loading,
+    error,
+    summary,
+    createInvoice,
+    updateInvoice,
+    recordPayment,
+    createRefund,
+    createCommission,
+    updateRefund,
+    updateCommission
+  };
 };
