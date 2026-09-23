@@ -825,12 +825,12 @@ export const StudentApplicationWizard: React.FC = () => {
         declarationAccepted: allDeclarationsAccepted,
         visaReviewed,
         academicHistory: (student?.academicHistory || []) as any,
-        englishProficiency: (englishTest.testType && englishTest.overallScore) ? {
+        ...((englishTest.testType && englishTest.overallScore) ? { englishProficiency: {
           testType: englishTest.testType,
           overallScore: englishTest.overallScore,
           ...(englishTest.testDate ? { testDate: englishTest.testDate } : {}),
           ...(englishTest.expiryDate ? { expiryDate: englishTest.expiryDate } : {}),
-        } as any : undefined,
+        } as any } : {}),
         studentDetails: {
           fullName: userName,
           phone: personalOverrides.phone || student?.phone || "",
@@ -921,12 +921,12 @@ export const StudentApplicationWizard: React.FC = () => {
         declarationAccepted: true,
         visaReviewed: true,
         academicHistory: (student?.academicHistory || []) as any,
-        englishProficiency: (englishTest.testType && englishTest.overallScore) ? {
+        ...((englishTest.testType && englishTest.overallScore) ? { englishProficiency: {
           testType: englishTest.testType,
           overallScore: englishTest.overallScore,
           ...(englishTest.testDate ? { testDate: englishTest.testDate } : {}),
           ...(englishTest.expiryDate ? { expiryDate: englishTest.expiryDate } : {}),
-        } as any : undefined,
+        } as any } : {}),
         studentDetails: {
           fullName: userName,
           phone: personalOverrides.phone || student?.phone || "",
