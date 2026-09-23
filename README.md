@@ -16,6 +16,155 @@
 
 ---
 
+## 🔑 Pre-Configured Demo Credentials & Access Matrix
+
+You can sign in using the **One-Click Demo Launcher** (floating button on the bottom-right of `/login`) or by entering the pre-configured credentials below:
+
+### 🌟 Live Admin Accounts (Persistent Firebase Auth)
+| Role | Email Address | Password | Landing Page | Access Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **Platform Super Admin** | `live_superadmin@educrm.com` | `superadmin123` | `/` (Dashboard) | Global tenant management, security logs, branch provisioning, full system control |
+| **Organization Admin** | `live_orgadmin@educrm.com` | `orgadmin123` | `/` (Dashboard) | Staff creation, regional office management, commission tiers, lead triage |
+
+### 👥 Role-Based Demo Accounts (Instant 1-Click Access)
+| Role Identifier | Role Name | Demo Email | Standard Password | Default Route |
+| :--- | :--- | :--- | :--- | :--- |
+| `student` | **Registered Student (Aarav Patel)** | `aarav.patel@gmail.com` | `EduCrmDemo2026!` *(or any)* | `/student/dashboard` |
+| `student` | **New Student (Fresh Onboarding)** | `student@educrm.demo` | `EduCrmDemo2026!` | `/student/onboarding/step-1` |
+| `counsellor` | **Education Counsellor** | `counsellor@educrm.demo` | `EduCrmDemo2026!` | `/counsellor/leads` |
+| `team_leader` | **Admissions Team Leader** | `team_leader@educrm.demo` | `EduCrmDemo2026!` | `/team-leader` |
+| `admissions_officer` | **Admissions Officer** | `admissions_officer@educrm.demo` | `EduCrmDemo2026!` | `/admissions` |
+| `finance_officer` | **Finance & Accounts Officer** | `finance_officer@educrm.demo` | `EduCrmDemo2026!` | `/finance` |
+| `visa_officer` | **Visa & Immigration Officer** | `visa_officer@educrm.demo` | `EduCrmDemo2026!` | `/visa` |
+| `compliance_officer` | **Compliance & Auditor** | `auditor@educrm.demo` | `EduCrmDemo2026!` | `/compliance` |
+| `support_user` | **Support Specialist** | `support_user@educrm.demo` | `EduCrmDemo2026!` | `/support` |
+| `external_agent` | **External Recruitment Agent** | `external_agent@educrm.demo` | `EduCrmDemo2026!` | `/agent/dashboard` |
+| `university_partner`| **University Partner Rep** | `university_partner@educrm.demo` | `EduCrmDemo2026!` | `/partner/dashboard` |
+
+> 💡 **Demo Tip:** You can also register a brand new student account at `/register` and test the instant AI CV auto-fill scanner in real-time.
+
+---
+
+## 🔄 End-to-End System Flows
+
+### Flow 1: Student Registration & AI CV Ingestion Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    participant Reg as Registration (/register)
+    participant AI as Gemini 3.8 Flash AI Engine
+    participant DB as Firestore (users & students)
+    participant Guard as Onboarding Guard
+    participant Stage1 as Onboarding Stage 1 (/step-1)
+
+    Student->>Reg: Upload/Drop CV file (PDF, DOCX, TXT)
+    Reg->>AI: extractStudentCVDetails(file)
+    AI-->>Reg: Extracted profile (Name, Email, Phone, Country, Education, IELTS)
+    Reg->>Reg: Auto-fills registration form inputs
+    Student->>Reg: Sets password and submits registration
+    Reg->>DB: setDoc(users) & setDoc(students) with sanitized payload
+    Reg->>Guard: Redirects to /verify-email (instant demo verify)
+    Guard->>Stage1: Directs to Onboarding Stage 1
+    Stage1->>Stage1: Pre-hydrates personal & academic records from profile
+```
+
+1. **CV Upload**: Student drops their résumé on `/register` or `/student/onboarding/step-1`.
+2. **AI Extraction**: Multi-modal Gemini 3.8 Flash extracts personal identity, contact data, academic qualifications, and language test scores.
+3. **Form Auto-Fill**: All inputs are populated with zero manual typing required.
+4. **Account Creation**: Firebase Auth and Firestore records are created with sanitized, non-null payloads.
+5. **Onboarding Guard**: Guides the student through the remaining onboarding stages if necessary.
+
+---
+
+### Flow 2: Programme Selection & 6-Step Application Wizard
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    participant Search as Programme Catalog
+    participant Wiz as Application Wizard
+    participant AI as AI Document Extractor
+    participant Sync as Profile Two-Way Sync
+    participant DB as Firestore (applications & students)
+
+    Student->>Search: Browse & click "Apply Now" on a Programme
+    Search->>Wiz: Opens /student/apply/:programmeId
+    Wiz->>Wiz: Step 1: Displays Min IELTS, Tuition, Intakes & Academic Thresholds
+    Student->>Wiz: Step 2: Uploads Transcripts / CV for fast AI extraction
+    Wiz->>AI: Extracts qualifications & English test scores
+    Wiz->>Wiz: Step 3: Personal details verification
+    Wiz->>Wiz: Step 4: Interactive English test entry & live requirement comparison
+    Wiz->>Wiz: Step 5: Statement of Purpose (SOP) & study gap history
+    Wiz->>Wiz: Step 6: Review, GDPR declaration & submission
+    Wiz->>Sync: syncProfileWithApplication()
+    Sync->>DB: Updates master student profile + writes application document
+```
+
+1. **Step 1 — Programme & Eligibility**: Displays specific program requirements (e.g. Min IELTS 6.5, tuition fees, application deadlines).
+2. **Step 2 — Document Upload & AI Scanner**: Ingests transcripts and resumes with instant data extraction.
+3. **Step 3 — Personal Info Verification**: Auto-populated from the student profile with edit capabilities.
+4. **Step 4 — English Language Proficiency**: Interactive selector (IELTS, PTE, TOEFL, Duolingo, MOI) with real-time pass/fail eligibility badges comparing the student score to programme thresholds.
+5. **Step 5 — Statements & Visa History**: Statement of Purpose guidance, study gaps, and previous visa refusal declarations.
+6. **Step 6 — Review & Two-Way Sync**: Submits the application and simultaneously updates `students/{uid}` and `users/{uid}` in Firestore.
+
+---
+
+### Flow 3: Admissions Triage, Partner Review & Offer Issuance
+
+```mermaid
+graph LR
+    A[Student Submits Application] --> B[Admissions Officer Triage]
+    B --> C{Academic & Language Check}
+    C -->|Meets Thresholds| D[Forwarded to University Partner]
+    C -->|Missing Docs| E[Request Additional Evidence]
+    D --> F[University Partner Reviews Portfolio]
+    F --> G[Issue Conditional / Unconditional Offer]
+    G --> H[Student Accepts Offer]
+```
+
+1. **Admissions Triage (`/admissions`)**: Admissions Officers review submitted applications, verify attached transcripts and English scores, and check regional eligibility.
+2. **University Partner Portal (`/partner/dashboard`)**: Partner universities review candidate dossiers, update applicant status, and issue official conditional/unconditional offer letters.
+3. **Student Notification**: The student's dashboard reflects real-time status transitions (`submitted` → `under_review` → `conditional_offer` → `unconditional_offer`).
+
+---
+
+### Flow 4: Visa Processing & CAS/I-20 Clearance Flow
+
+```mermaid
+graph LR
+    A[Offer Accepted] --> B[Visa Officer Portal]
+    B --> C[Financial Proof & Bank Statement Audit]
+    C --> D[CAS / I-20 Document Readiness]
+    D --> E[Mock Visa Interview Session]
+    E --> F[Embassy Visa Application Lodged]
+    F --> G[Visa Granted & Enrolment Confirmed]
+```
+
+1. **Visa Officer Assessment (`/visa`)**: Specialist visa officers verify proof of funds, source of income, tuberculosis tests, and academic progression.
+2. **CAS / I-20 Management**: Verifies Confirmation of Acceptance for Studies (CAS) or I-20 certificates.
+3. **Visa Interview Preparation**: Counselors schedule mock interview sessions and record readiness notes.
+
+---
+
+### Flow 5: Finance Invoicing & Agent Commission Settlement Flow
+
+```mermaid
+graph LR
+    A[Student Enrolled at University] --> B[Finance Officer Invoicing]
+    B --> C[University Commission Invoice Generated]
+    C --> D[University Settles Invoice]
+    D --> E[External Agent Referral Commission Computed]
+    E --> F[Agent Commission Payout & Tier Upgrade]
+```
+
+1. **Invoicing (`/finance`)**: Generates automated commission invoices to universities upon student enrolment.
+2. **Agent Commissions (`/agent/dashboard`)**: External recruitment partners receive automated commission calculations based on their active commission tier (Standard, Silver, Gold, Platinum).
+
+---
+
 ## 🚀 Key Platform Capabilities
 
 ### 1. 🤖 Gemini 3.8 Flash AI Student & CV Engine
@@ -47,44 +196,6 @@ The platform supports **10+ distinct user roles** with strict tenant and boundar
 | `external_agent` | External Recruitment Partner | Submits student referrals, tracks application statuses, and monitors commission earnings. |
 | `university_partner` | University Admissions Rep | Reviews candidate portfolios, issues conditional/unconditional offers, and manages program seats. |
 | `student` | Prospective International Student | Builds master profile, auto-applies with AI CV scanner, uploads documents, and tracks admissions. |
-
----
-
-### 3. 🎓 Unified Student Lifecycle & Multi-Stage Portals
-
-```mermaid
-graph TD
-    A[Public Registration / Role Selector] -->|AI CV Fast-Track| B[Student Profile Ingestion]
-    B --> C[Email Verification / Demo Mode Bypass]
-    C --> D[4-Stage Master Onboarding Wizard]
-    D --> E[Student Dashboard & Document Vault]
-    E -->|Select Programme & University| F[6-Step Application Wizard]
-    F -->|AI CV & Transcript Extraction| G[Document & Language Verification]
-    G --> H[Admissions & Partner Review]
-    H --> I[Visa Officer Evaluation]
-    I --> J[Enrolment & Commission Settlement]
-```
-
-#### A. Multi-Stage Student Onboarding (`/student/onboarding/*`)
-1. **Stage 1 — Personal & Academic History**: Captures identity, contact numbers, country of residence, desired study level, and multiple qualification records. Includes integrated AI CV scanner.
-2. **Stage 2 — Study Preferences**: Destination countries (UK, USA, Canada, Australia, Germany, Ireland, etc.), preferred intakes, budgets, and study modes.
-3. **Stage 3 — English Proficiency & Documents**: Test scores (IELTS/PTE/TOEFL/Duolingo), passport validation, and initial credential uploads.
-4. **Stage 4 — Final Review & Verification**: Profile completeness meter, GDPR declaration, and instant redirection to Student Dashboard.
-
-#### B. Application Wizard (`/student/apply/:programmeId`)
-1. **Step 1 — Programme Selection & Eligibility**: Displays minimum IELTS score, tuition fees, intake dates, and academic grade thresholds.
-2. **Step 2 — Document Upload & AI Scanner**: Ingests transcripts and resumes with immediate data extraction.
-3. **Step 3 — Personal Details Verification**: Two-way synced with the student's master profile.
-4. **Step 4 — English Language Proficiency**: Interactive form comparing student scores directly against program minimums with real-time pass/fail eligibility badges.
-5. **Step 5 — Statements & Visa History**: Statement of Purpose (SOP) guidance, study gap explanation, and immigration history.
-6. **Step 6 — Final Review & Submit**: Summary card, declaration acceptance, and automatic profile sync (`syncProfileWithApplication()`).
-
----
-
-### 4. 🏢 Multi-Tenant & Multi-Branch Architecture
-- **Multi-Branch Support**: London HQ, Manchester, Birmingham, Dubai, Toronto, Sydney, Lahore, Islamabad, Delhi, and Regional Desks.
-- **Tenant Scoping**: All leads, students, applications, and documents are scoped by tenant ID and branch ID.
-- **Cross-Branch Transfers**: Reassignment utility allows team leaders to transfer leads with full audit trails.
 
 ---
 
