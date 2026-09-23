@@ -19,7 +19,8 @@ import { auth, db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AcademicRecord, QualificationLevel, Student } from "../../../types/student";
 import { calculateProfileCompleteness } from "../../../utils/profileCompleteness";
-import { toCountryName } from "../../../utils/cvExtractor";
+import { toCountryName, ExtractedStudentCVData } from "../../../utils/cvExtractor";
+import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
 import { getRoleBackground } from "../../../utils/roleBackgrounds";
 import { getRoleDashboardPath } from "../../../types/registrationConfig";
 
@@ -260,6 +261,49 @@ export const StudentOnboardingStage1: React.FC = () => {
     fetchProfile();
   }, [appUser, firebaseUser]);
 
+  const handleCVExtracted = (extracted: ExtractedStudentCVData) => {
+    setError(null);
+    if (extracted.firstName) setFirstName(extracted.firstName.trim());
+    if (extracted.lastName) setLastName(extracted.lastName.trim());
+    if (extracted.phone) setPhone(extracted.phone.trim());
+    if (extracted.dob) setDob(extracted.dob.trim());
+    if (extracted.gender) setGender(extracted.gender);
+    if (extracted.city) setCity(extracted.city.trim());
+    if (extracted.desiredStudyLevel) setDesiredStudyLevel(extracted.desiredStudyLevel);
+
+    if (extracted.nationality) {
+      const nat = toCountryName(extracted.nationality) || extracted.nationality;
+      if (COUNTRIES.includes(nat)) setNationality(nat);
+    }
+    if (extracted.countryOfResidence) {
+      const c = toCountryName(extracted.countryOfResidence) || extracted.countryOfResidence;
+      if (COUNTRIES.includes(c)) setCountryOfResidence(c);
+    }
+
+    if (Array.isArray(extracted.academicRecords) && extracted.academicRecords.length > 0) {
+      const mappedRecords: AcademicRecord[] = extracted.academicRecords.map((r) => ({
+        institution: r.institution || "",
+        qualification: (QUALIFICATIONS.includes(r.qualification as any) ? r.qualification : "Bachelor's Degree") as QualificationLevel,
+        degreeTitle: r.degreeTitle || "",
+        country: r.country || countryOfResidence || "Pakistan",
+        completionYear: Number(r.completionYear) || new Date().getFullYear(),
+        gradeGpa: r.gradeGpa || "",
+      }));
+      setAcademicRecords(mappedRecords);
+    }
+
+    try {
+      sessionStorage.setItem("student_extracted_cv", JSON.stringify(extracted));
+      if (extracted.firstName) sessionStorage.setItem("student_registration_first_name", extracted.firstName.trim());
+      if (extracted.lastName) sessionStorage.setItem("student_registration_last_name", extracted.lastName.trim());
+      if (extracted.fullName) sessionStorage.setItem("student_registration_full_name", extracted.fullName.trim());
+      if (extracted.phone) sessionStorage.setItem("student_registration_phone", extracted.phone.trim());
+    } catch (_) {}
+
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 5000);
+  };
+
   // Centralized completeness calculation
   const completeness = useMemo(() => {
     const fullName = `${firstName} ${lastName}`.trim();
@@ -484,6 +528,13 @@ export const StudentOnboardingStage1: React.FC = () => {
             <span>Profile draft and personal information saved successfully.</span>
           </div>
         )}
+
+        {/* AI CV Auto-Fill Engine */}
+        <StudentCVUploader
+          title="Auto-Fill Profile with AI (CV / Resume Scanner)"
+          subtitle="Upload or drop your CV (PDF, DOCX, TXT) or paste text to instantly auto-fill your personal details, contact info, and academic history."
+          onExtracted={handleCVExtracted}
+        />
 
         {/* Section 1: Personal Information */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">

@@ -10,8 +10,23 @@ import {
 } from "lucide-react";
 import { UserRole } from "../types/role";
 import { REGISTRATION_CONFIGS, EXTERNAL_ROLES, STAFF_ROLES } from "../types/registrationConfig";
-import { COMMON_COUNTRIES } from "../utils/cvExtractor";
+import { COMMON_COUNTRIES, ExtractedStudentCVData, toCountryName } from "../utils/cvExtractor";
+import { StudentCVUploader } from "../components/ai/StudentCVUploader";
 import { getRoleBackground } from "../utils/roleBackgrounds";
+
+// Recursive sanitizer to ensure Firestore never throws on undefined values
+function sanitizeFirestoreData<T extends Record<string, any>>(data: T): T {
+  const result: any = Array.isArray(data) ? [] : {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined) continue;
+    if (value !== null && typeof value === "object" && !(value instanceof Date)) {
+      result[key] = sanitizeFirestoreData(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Password strength rules                                           */
@@ -144,6 +159,44 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success] = useState(false);
+  const [cvAutoFilled, setCvAutoFilled] = useState(false);
+
+  const handleCVExtracted = (extracted: ExtractedStudentCVData) => {
+    setSelectedRole("student");
+    setCvAutoFilled(true);
+    setError(null);
+
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (extracted.firstName) next.firstName = extracted.firstName.trim();
+      if (extracted.lastName) next.lastName = extracted.lastName.trim();
+      if (extracted.fullName) next.fullName = extracted.fullName.trim();
+      if (extracted.email) next.email = extracted.email.trim();
+      if (extracted.phone) next.phone = extracted.phone.trim();
+      if (extracted.countryOfResidence) {
+        const c = toCountryName(extracted.countryOfResidence) || extracted.countryOfResidence;
+        if (COMMON_COUNTRIES.includes(c)) next.countryOfResidence = c;
+      }
+      if (extracted.nationality) {
+        const nat = toCountryName(extracted.nationality) || extracted.nationality;
+        if (COMMON_COUNTRIES.includes(nat)) next.nationality = nat;
+      }
+      if (!next.fullName && (next.firstName || next.lastName)) {
+        next.fullName = `${next.firstName || ""} ${next.lastName || ""}`.trim();
+      }
+      return next;
+    });
+
+    try {
+      sessionStorage.setItem("student_extracted_cv", JSON.stringify(extracted));
+      if (extracted.firstName) sessionStorage.setItem("student_registration_first_name", extracted.firstName.trim());
+      if (extracted.lastName) sessionStorage.setItem("student_registration_last_name", extracted.lastName.trim());
+      if (extracted.fullName) sessionStorage.setItem("student_registration_full_name", extracted.fullName.trim());
+      if (extracted.phone) sessionStorage.setItem("student_registration_phone", extracted.phone.trim());
+      if (extracted.countryOfResidence) sessionStorage.setItem("student_registration_country", extracted.countryOfResidence);
+      if (extracted.nationality) sessionStorage.setItem("student_registration_nationality", extracted.nationality);
+    } catch (_) {}
+  };
 
   // Synchronize default country and nationality when student role is chosen
   React.useEffect(() => {
@@ -213,8 +266,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
     setLoading(true);
     try {
+      const cleanEmail = formData.email.trim().toLowerCase();
       // 1. Create Firebase Auth account
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
       const uid = userCredential.user.uid;
 
       const finalFirstName = (formData.firstName || "").trim() || (formData.fullName || "").trim().split(/\s+/)[0] || "";
@@ -229,9 +283,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
       const isStudentRole = selectedRole === "student";
       // 2. Create base user profile in Firestore
-      await setDoc(doc(db, "users", uid), {
+      const userPayload = sanitizeFirestoreData({
         uid,
-        email: formData.email.toLowerCase(),
+        email: cleanEmail,
         firstName: finalFirstName,
         lastName: finalLastName,
         displayName: finalFullName,
@@ -243,10 +297,11 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         onboardingStatus: isStudentRole ? "not_started" : "completed",
         profileCompleted: !isStudentRole,
         currentStep: isStudentRole ? 1 : 4,
-        ...(formData.phone ? { phone: formData.phone.trim() } : {}),
-        ...(selectedRole === "external_agent" ? { agencyName: formData.agencyName } : {}),
-        ...(selectedRole === "university_partner" ? { universityName: formData.universityName } : {}),
+        phone: formData.phone ? formData.phone.trim() : undefined,
+        agencyName: selectedRole === "external_agent" ? formData.agencyName : undefined,
+        universityName: selectedRole === "university_partner" ? formData.universityName : undefined,
       });
+      await setDoc(doc(db, "users", uid), userPayload);
 
       // 3. Create role-specific profile document
       if (selectedRole === "student") {
@@ -268,24 +323,31 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             if (parsed.gender) extractedGender = parsed.gender;
             if (parsed.city) extractedCity = parsed.city;
             if (parsed.desiredStudyLevel) extractedStudyLevel = parsed.desiredStudyLevel;
-            if (parsed.englishProficiency) extractedEnglish = parsed.englishProficiency;
+            if (parsed.englishProficiency) {
+              extractedEnglish = {
+                testType: parsed.englishProficiency.testType || "IELTS",
+                overallScore: parsed.englishProficiency.overallScore || "",
+                ...(parsed.englishProficiency.testDate ? { testDate: parsed.englishProficiency.testDate } : {}),
+                ...(parsed.englishProficiency.expiryDate ? { expiryDate: parsed.englishProficiency.expiryDate } : {}),
+              };
+            }
           }
         } catch (_) {}
 
-        await setDoc(doc(db, "students", uid), {
+        const studentPayload = sanitizeFirestoreData({
           id: uid,
           firstName: finalFirstName,
           lastName: finalLastName,
           fullName: finalFullName,
-          email: formData.email.toLowerCase(),
+          email: cleanEmail,
           phone: formData.phone.trim(),
-          nationality: formData.nationality,
-          countryOfResidence: formData.countryOfResidence,
-          ...(extractedDob ? { dob: extractedDob } : {}),
-          ...(extractedGender ? { gender: extractedGender } : {}),
-          ...(extractedCity ? { city: extractedCity } : {}),
-          ...(extractedStudyLevel ? { desiredStudyLevel: extractedStudyLevel } : {}),
-          ...(extractedEnglish ? { englishProficiency: extractedEnglish } : {}),
+          nationality: formData.nationality || "Pakistan",
+          countryOfResidence: formData.countryOfResidence || "Pakistan",
+          dob: extractedDob || undefined,
+          gender: extractedGender || undefined,
+          city: extractedCity || undefined,
+          desiredStudyLevel: extractedStudyLevel || undefined,
+          englishProficiency: extractedEnglish || undefined,
           academicHistory: extractedAcademicHistory,
           profileCompleteness: extractedAcademicHistory.length > 0 ? 55 : 30,
           consentGivenAt: Date.now(),
@@ -293,13 +355,15 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
+
+        await setDoc(doc(db, "students", uid), studentPayload);
       } else if (selectedRole === "external_agent") {
-        await setDoc(doc(db, "agents", uid), {
+        const agentPayload = sanitizeFirestoreData({
           id: uid,
           firstName: finalFirstName,
           lastName: finalLastName,
           fullName: finalFullName,
-          email: formData.email.toLowerCase(),
+          email: cleanEmail,
           phone: formData.phone.trim(),
           agencyName: formData.agencyName,
           countryOfResidence: formData.countryOfResidence,
@@ -313,13 +377,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
+        await setDoc(doc(db, "agents", uid), agentPayload);
       } else if (selectedRole === "university_partner") {
-        await setDoc(doc(db, "university_partners", uid), {
+        const partnerPayload = sanitizeFirestoreData({
           id: uid,
           firstName: finalFirstName,
           lastName: finalLastName,
           fullName: finalFullName,
-          email: formData.email.toLowerCase(),
+          email: cleanEmail,
           universityName: formData.universityName,
           position: formData.position,
           countryOfResidence: formData.countryOfResidence,
@@ -331,6 +396,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
+        await setDoc(doc(db, "university_partners", uid), partnerPayload);
       }
 
       // Cache registration data in session storage for instant sync with onboarding wizard
@@ -347,12 +413,12 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       try {
         await addDoc(collection(db, "consent_records"), {
           userId: uid,
-          userEmail: formData.email.toLowerCase(),
+          userEmail: cleanEmail,
           userRole: selectedRole,
           consentType: "data_processing",
           version: "v1.0",
           grantedAt: Date.now(),
-          ipFingerprint: typeof navigator !== "undefined" ? btoa(navigator.userAgent).slice(0, 32) : "unknown",
+          ipFingerprint: typeof navigator !== "undefined" ? encodeURIComponent(navigator.userAgent.slice(0, 32)) : "unknown",
         });
       } catch (_) { /* consent logging is best-effort */ }
 
@@ -492,6 +558,15 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             })}
           </div>
 
+          {/* Student Fast-Track CV Auto-Fill */}
+          <div className="pt-1">
+            <StudentCVUploader
+              title="Student Fast-Track: Auto-Fill Registration from CV"
+              subtitle="Uploading or pasting your CV will select Student role and pre-fill your entire registration form in seconds."
+              onExtracted={handleCVExtracted}
+            />
+          </div>
+
           {/* Info note */}
           <p className="text-[11px] text-zinc-500 text-center">
             Internal staff accounts (Counsellor, Finance, Admissions, Audit, Support, Visa) are provisioned by your organization's Super Admin.
@@ -558,6 +633,25 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ---- STUDENT: AI CV Auto-Fill ---- */}
+          {selectedRole === "student" && (
+            <div className="space-y-2 mb-2">
+              <StudentCVUploader
+                title="Upload CV / Resume to Auto-Fill Registration"
+                subtitle="Upload or drop your CV (PDF, DOCX, TXT) or paste text to automatically fill all your registration fields."
+                onExtracted={handleCVExtracted}
+              />
+              {cvAutoFilled && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>
+                    Your registration details have been auto-filled from your CV! Review the information below and create a password to finish.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ---- SHARED: Full Name (First Name & Last Name) ---- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

@@ -16,17 +16,18 @@ describe("Student Registration vs New Application CV Flow & Gemini 3.8 Flash", (
     expect(content).toContain("Auto-Fill with AI");
   });
 
-  it("verifies Register.tsx does NOT include StudentCVUploader during initial registration", () => {
+  it("verifies Register.tsx includes StudentCVUploader for student registration auto-fill", () => {
     const registerPath = path.resolve(process.cwd(), "src/pages/Register.tsx");
     const content = fs.readFileSync(registerPath, "utf8");
 
-    // StudentCVUploader must not be imported or rendered in initial registration
-    expect(content).not.toContain("StudentCVUploader");
-    expect(content).not.toContain("cvNotice");
-    expect(content).not.toContain("Upload CV / Transcript (Optional AI Auto-Fill)");
+    // StudentCVUploader must be imported and rendered for CV auto-fill
+    expect(content).toContain("StudentCVUploader");
+    expect(content).toContain("handleCVExtracted");
+    expect(content).toContain("Auto-Fill Registration from CV");
 
     // Standard details must be present
-    expect(content).toContain("Full Name");
+    expect(content).toContain("First Name");
+    expect(content).toContain("Last Name");
     expect(content).toContain("Email");
     expect(content).toContain("Phone");
     expect(content).toContain("Country of Residence");
@@ -60,11 +61,13 @@ describe("Student Registration vs New Application CV Flow & Gemini 3.8 Flash", (
     expect(content).toContain("Gemini 3.8 Flash");
   });
 
-  it("verifies StudentOnboardingStage1 does NOT include StudentCVUploader", () => {
+  it("verifies StudentOnboardingStage1 includes StudentCVUploader for profile auto-fill", () => {
     const onboardingPath = path.resolve(process.cwd(), "src/pages/portal/onboarding/StudentOnboardingStage1.tsx");
     const content = fs.readFileSync(onboardingPath, "utf8");
 
-    expect(content).not.toContain("StudentCVUploader");
+    expect(content).toContain("StudentCVUploader");
+    expect(content).toContain("handleCVExtracted");
+    expect(content).toContain("Auto-Fill Profile with AI");
   });
 
   it("verifies Country of Residence is a static dropdown in Register and Application Wizard", () => {
