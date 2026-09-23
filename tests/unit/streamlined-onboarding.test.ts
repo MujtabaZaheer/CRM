@@ -92,4 +92,49 @@ describe("Streamlined Student Onboarding Stage 1 & Profile Completeness", () => 
     expect(content).toContain("2. Academic Background");
     expect(content).toContain("3. Desired Study Level");
   });
+
+  it("verifies global universities dataset includes international destinations and valid programmes", async () => {
+    const { GLOBAL_UNIVERSITIES } = await import("../../src/data/globalUniversities");
+    const countries = Array.from(new Set(GLOBAL_UNIVERSITIES.map((u) => u.country)));
+
+    // Major global study destinations must be present
+    expect(countries).toContain("United Kingdom");
+    expect(countries).toContain("United States");
+    expect(countries).toContain("Canada");
+    expect(countries).toContain("Australia");
+    expect(countries).toContain("Germany");
+    expect(countries).toContain("Pakistan");
+    expect(countries).toContain("India");
+    expect(countries).toContain("Malaysia");
+    expect(countries).toContain("Turkey");
+    expect(countries).toContain("Italy");
+    expect(countries).toContain("Spain");
+    expect(countries).toContain("Switzerland");
+    expect(countries).toContain("China");
+    expect(countries).toContain("Japan");
+    expect(countries).toContain("Saudi Arabia");
+    expect(countries).toContain("Cyprus");
+
+    // Every university must have at least one programme with fee and level
+    GLOBAL_UNIVERSITIES.forEach((u) => {
+      expect(u.programmes.length).toBeGreaterThan(0);
+      u.programmes.forEach((p) => {
+        expect(p.title).toBeTruthy();
+        expect(p.level).toBeTruthy();
+        expect(typeof p.tuitionFeeAnnual).toBe("number");
+      });
+    });
+  });
+
+  it("verifies country normalization handles aliases accurately", async () => {
+    const { normalizeCountry } = await import("../../src/utils/immigrationData");
+    expect(normalizeCountry("UK")).toBe("united kingdom");
+    expect(normalizeCountry("Great Britain")).toBe("united kingdom");
+    expect(normalizeCountry("England")).toBe("united kingdom");
+    expect(normalizeCountry("USA")).toBe("united states");
+    expect(normalizeCountry("America")).toBe("united states");
+    expect(normalizeCountry("UAE")).toBe("united arab emirates");
+    expect(normalizeCountry("Pakistan")).toBe("pakistan");
+    expect(normalizeCountry("Germany")).toBe("germany");
+  });
 });

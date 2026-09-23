@@ -469,3 +469,12 @@ export function getDocumentChecklist(
 
   return base;
 }
+
+export const normalizeCountry = (c: string): string => {
+  const s = (c || "").toLowerCase().trim();
+  if (s === "uk" || s === "great britain" || s === "england") return "united kingdom";
+  if (s === "usa" || s === "us" || s === "america") return "united states";
+  if (s === "uae" || s === "emirates" || s === "dubai") return "united arab emirates";
+  if (s === "nz") return "new zealand";
+  return s;
+};

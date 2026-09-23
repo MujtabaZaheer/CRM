@@ -211,11 +211,24 @@ export const StudentOnboardingStage2: React.FC = () => {
   const toggleCountry = (name: string) => {
     setSelectedCountries((prev) => {
       if (prev.includes(name)) {
-        if (prev.length === 1) return prev;
         return prev.filter((c) => c !== name);
       }
       return [...prev, name];
     });
+  };
+
+  /* ---- Select / Clear all countries ---- */
+  const selectAllCountries = () => {
+    setSelectedCountries(availableDestinations.map((d) => d.name));
+  };
+
+  const selectAllFiltered = () => {
+    const names = filteredDestinations.map((d) => d.name);
+    setSelectedCountries((prev) => Array.from(new Set([...prev, ...names])));
+  };
+
+  const clearAllCountries = () => {
+    setSelectedCountries([]);
   };
 
   /* ---- Toggle quick filter ---- */
@@ -270,17 +283,23 @@ export const StudentOnboardingStage2: React.FC = () => {
   const savePreferences = async (isProceeding = false) => {
     const uid = firebaseUser?.uid || appUser?.uid;
     if (!uid) return;
-    if (selectedCountries.length === 0) {
-      setError("Please select at least one preferred study destination.");
-      return;
-    }
+
+    // If no countries explicitly checked, default to all available destinations so the student can discover programs globally
+    const finalSelected = selectedCountries.length > 0
+      ? selectedCountries
+      : availableDestinations.map((d) => d.name);
+
+    // Save to sessionStorage immediately for instant zero-latency handover to Step 3
+    try {
+      sessionStorage.setItem("student_preferred_destinations", JSON.stringify(finalSelected));
+    } catch (_) {}
 
     setSaving(true);
     setError(null);
 
     const payload = {
-      preferredDestinations: selectedCountries,
-      preferredDestination: selectedCountries[0] || "United Kingdom",
+      preferredDestinations: finalSelected,
+      preferredDestination: finalSelected[0] || "United Kingdom",
       budgetAnnualUsd,
       preferredIntake,
       preferredStudyMode,
@@ -362,7 +381,7 @@ export const StudentOnboardingStage2: React.FC = () => {
             <button
               type="button"
               onClick={() => savePreferences(true)}
-              disabled={selectedCountries.length === 0 || saving}
+              disabled={saving}
               className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <span>Continue to Programs</span>
@@ -419,6 +438,9 @@ export const StudentOnboardingStage2: React.FC = () => {
 
           {/* Region Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-t border-subtle/50 pt-3">
+            <span className="text-[11px] font-bold text-muted uppercase tracking-wider shrink-0 mr-1">
+              Region View:
+            </span>
             {REGION_TABS.map((r) => (
               <button
                 key={r}
@@ -437,36 +459,79 @@ export const StudentOnboardingStage2: React.FC = () => {
         </div>
 
         {/* Selected Destinations Chips Bar */}
-        {selectedCountries.length > 0 && (
-          <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center gap-2 animate-fade-in">
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold text-emerald-400 mr-1 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" /> Selected Destinations ({selectedCountries.length}):
             </span>
-            {selectedCountries.map((c) => (
-              <span
-                key={c}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface border border-emerald-500/30 text-xs font-bold text-primary shadow-sm"
-              >
-                <span>{availableDestinations.find((d) => d.name === c)?.flag || "🌐"}</span>
-                <span>{c}</span>
-                <button
-                  type="button"
-                  onClick={() => toggleCountry(c)}
-                  className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-muted hover:text-rose-400 transition-colors cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+            {selectedCountries.length === 0 ? (
+              <span className="text-xs text-muted italic">
+                None selected (will explore all international universities worldwide)
               </span>
-            ))}
+            ) : selectedCountries.length > 8 ? (
+              <>
+                {selectedCountries.slice(0, 8).map((c) => (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-surface border border-emerald-500/30 text-xs font-bold text-primary shadow-sm"
+                  >
+                    <span>{availableDestinations.find((d) => d.name === c)?.flag || "🌐"}</span>
+                    <span>{c}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleCountry(c)}
+                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-muted hover:text-rose-400 transition-colors cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <span className="text-xs font-bold text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-500/20">
+                  +{selectedCountries.length - 8} more
+                </span>
+              </>
+            ) : (
+              selectedCountries.map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-surface border border-emerald-500/30 text-xs font-bold text-primary shadow-sm"
+                >
+                  <span>{availableDestinations.find((d) => d.name === c)?.flag || "🌐"}</span>
+                  <span>{c}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleCountry(c)}
+                    className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-muted hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setSelectedCountries([])}
-              className="text-xs text-muted hover:text-rose-400 ml-auto font-semibold underline cursor-pointer"
+              onClick={selectAllCountries}
+              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
             >
-              Clear All
+              Select All ({availableDestinations.length} Countries)
             </button>
+            {selectedCountries.length > 0 && (
+              <>
+                <span className="text-muted text-xs">•</span>
+                <button
+                  type="button"
+                  onClick={clearAllCountries}
+                  className="text-xs text-muted hover:text-rose-400 font-semibold underline cursor-pointer"
+                >
+                  Clear All
+                </button>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         {/* ---- Main Grid ---- */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -479,11 +544,39 @@ export const StudentOnboardingStage2: React.FC = () => {
                     <Globe className="w-5 h-5 text-emerald-400" /> Destination Hub
                   </h2>
                   <p className="text-xs text-muted mt-1">
-                    Select one or more countries to explore immigration requirements.
+                    Select one or more countries to explore immigration requirements and universities.
                     <span className="ml-2 text-emerald-400 font-medium">
                       {selectedCountries.length} selected
                     </span>
                   </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={selectAllCountries}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Select All Countries ({availableDestinations.length})
+                  </button>
+                  {selectedRegion !== "All" && filteredDestinations.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={selectAllFiltered}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-elevated hover:bg-hover text-secondary border border-subtle transition-all cursor-pointer"
+                    >
+                      Select {selectedRegion} ({filteredDestinations.length})
+                    </button>
+                  )}
+                  {selectedCountries.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAllCountries}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-elevated hover:bg-hover text-muted hover:text-rose-400 border border-subtle transition-all cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
 

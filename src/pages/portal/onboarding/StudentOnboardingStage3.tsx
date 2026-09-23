@@ -61,14 +61,8 @@ const SUBJECT_AREAS = [
   "Law & Legal Studies",
 ];
 
-export const normalizeCountry = (c: string): string => {
-  const s = (c || "").toLowerCase().trim();
-  if (s === "uk" || s === "great britain" || s === "england") return "united kingdom";
-  if (s === "usa" || s === "us" || s === "america") return "united states";
-  if (s === "uae" || s === "emirates" || s === "dubai") return "united arab emirates";
-  if (s === "nz") return "new zealand";
-  return s;
-};
+import { normalizeCountry } from "../../../utils/immigrationData";
+export { normalizeCountry };
 
 /* ------------------------------------------------------------------ */
 /*  Debounce hook                                                      */
@@ -127,7 +121,7 @@ export const StudentOnboardingStage3: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<Student | null>(null);
-  const [universities, setUniversities] = useState<University[]>([]);
+  const [universities, setUniversities] = useState<University[]>(DEMO_UNIVERSITIES);
 
   // Search & Filters
   const [searchInput, setSearchInput] = useState("");
@@ -161,19 +155,31 @@ export const StudentOnboardingStage3: React.FC = () => {
   /* ---- Load data ---- */
   useEffect(() => {
     const initData = async () => {
+      // Synchronously check sessionStorage for instantaneous handover from Step 2
+      try {
+        const cachedDest = sessionStorage.getItem("student_preferred_destinations");
+        if (cachedDest) {
+          const parsed = JSON.parse(cachedDest);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSelectedCountries(parsed);
+          }
+        }
+      } catch (_) {}
+
       const uid = firebaseUser?.uid || appUser?.uid;
-      if (!uid) return;
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const studentSnap = await getDoc(doc(db, "students", uid));
         if (studentSnap.exists()) {
           const sd = studentSnap.data() as Student;
           setStudent(sd);
           if (sd.shortlistedPrograms?.length) setShortlistedKeys(sd.shortlistedPrograms);
-          if (sd.desiredStudyLevel) {
-            if (sd.desiredStudyLevel.includes("Master")) setSelectedLevels(["Master's"]);
-            else if (sd.desiredStudyLevel.includes("Bachelor")) setSelectedLevels(["Bachelor's"]);
-          }
-          // Default to 100,000 (unconstrained / All Budgets) so students see all universities across all destinations
+          // Keep selectedLevels unconstrained by default so all programs are discoverable,
+          // while matching engine scores user's preferred study level higher.
           setMaxBudget(100000);
           if (sd.preferredDestinations?.length) {
             setSelectedCountries(sd.preferredDestinations);
@@ -235,7 +241,9 @@ export const StudentOnboardingStage3: React.FC = () => {
   /* ---- Matching engine ---- */
   const matchedPrograms = useMemo<ProgramMatchItem[]>(() => {
     if (universities.length === 0) return [];
-    const dests = student?.preferredDestinations || (student?.preferredDestination ? [student.preferredDestination] : []);
+    const dests = selectedCountries.length > 0 
+      ? selectedCountries 
+      : (student?.preferredDestinations || (student?.preferredDestination ? [student.preferredDestination] : []));
     const desiredLevel = student?.desiredStudyLevel || "";
     const results: ProgramMatchItem[] = [];
 
@@ -245,7 +253,7 @@ export const StudentOnboardingStage3: React.FC = () => {
         const reasons: string[] = [];
 
         const countryMatch = dests.some((d) => normalizeCountry(d) === normalizeCountry(univ.country || ""));
-        if (countryMatch) { score += 20; reasons.push(`Destination match: ${univ.country}`); }
+        if (countryMatch) { score += 25; reasons.push(`Preferred Destination: ${univ.country}`); }
 
         const pl = prog.level || "";
         if (
@@ -274,7 +282,7 @@ export const StudentOnboardingStage3: React.FC = () => {
       });
     });
     return results.sort((a, b) => b.matchScore - a.matchScore);
-  }, [universities, student, maxBudget]);
+  }, [universities, student, maxBudget, selectedCountries]);
 
   /* ---- Filtered programs ---- */
   const filteredMatches = useMemo(() => {
@@ -283,10 +291,6 @@ export const StudentOnboardingStage3: React.FC = () => {
       const univCountry = normalizeCountry(university.country || "");
       if (activeCountryTab !== "All") {
         if (univCountry !== normalizeCountry(activeCountryTab)) return false;
-      } else if (selectedCountries.length > 0) {
-        if (!selectedCountries.some((c) => normalizeCountry(c) === univCountry)) {
-          return false;
-        }
       }
 
       // Search query
@@ -334,7 +338,7 @@ export const StudentOnboardingStage3: React.FC = () => {
 
       return true;
     });
-  }, [matchedPrograms, debouncedSearch, selectedLevels, selectedFields, maxBudget, onlyEligible, activeCountryTab, selectedCountries]);
+  }, [matchedPrograms, debouncedSearch, selectedLevels, selectedFields, maxBudget, onlyEligible, activeCountryTab]);
 
   /* ---- Grouped by University ---- */
   const universitiesWithMatches = useMemo(() => {
@@ -348,6 +352,25 @@ export const StudentOnboardingStage3: React.FC = () => {
     });
     return Array.from(map.values());
   }, [filteredMatches]);
+
+  /* ---- Fallback International Universities when a specific country tab has no direct local campuses ---- */
+  const fallbackInternationalMatches = useMemo(() => {
+    if (activeCountryTab === "All" || universitiesWithMatches.length > 0) return [];
+    const map = new Map<string, { university: University; programs: ProgramMatchItem[] }>();
+    matchedPrograms.forEach((item) => {
+      const uId = item.university.id;
+      if (!map.has(uId)) {
+        map.set(uId, { university: item.university, programs: [] });
+      }
+      map.get(uId)!.programs.push(item);
+    });
+    return Array.from(map.values()).slice(0, 15);
+  }, [activeCountryTab, universitiesWithMatches.length, matchedPrograms]);
+
+  const fallbackPrograms = useMemo(() => {
+    if (activeCountryTab === "All" || filteredMatches.length > 0) return [];
+    return matchedPrograms.slice(0, 20);
+  }, [activeCountryTab, filteredMatches.length, matchedPrograms]);
 
   /* ---- Distinct countries available ---- */
   const availableCountries = useMemo(() => {
@@ -820,8 +843,144 @@ export const StudentOnboardingStage3: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                {universitiesWithMatches.length === 0 && fallbackInternationalMatches.length > 0 && (
+                  <div className="space-y-6">
+                    <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <Globe className="w-5 h-5 text-sky-400 shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sky-200">
+                            Direct campus registry for &quot;{activeCountryTab}&quot; is currently expanding.
+                          </p>
+                          <p className="text-xs text-sky-400/80">
+                            Showing top international partner universities worldwide that welcome international students from {activeCountryTab}:
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveCountryTab("All")}
+                        className="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-lg text-xs font-bold border border-sky-500/40 transition-colors whitespace-nowrap cursor-pointer"
+                      >
+                        Explore All Destinations
+                      </button>
+                    </div>
 
-                {universitiesWithMatches.length === 0 && (
+                    {fallbackInternationalMatches.map(({ university, programs }) => (
+                      <div
+                        key={university.id}
+                        className="bg-surface border border-subtle rounded-2xl p-6 sq-card shadow-sm space-y-5"
+                      >
+                        {/* University Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
+                          <div className="flex items-start gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-elevated border border-subtle flex items-center justify-center shrink-0">
+                              {university.logoUrl ? (
+                                <img src={university.logoUrl} alt={university.name} className="w-10 h-10 object-contain" />
+                              ) : (
+                                <Building2 className="w-7 h-7 text-emerald-400" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h2 className="text-lg font-bold text-primary font-heading">{university.name}</h2>
+                                {university.accreditationStatus && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    <Shield className="w-2.5 h-2.5 inline mr-1" /> {university.accreditationStatus}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted flex items-center gap-1.5 mt-1">
+                                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>{university.city}, {university.country}</span>
+                                {university.globalRanking && (
+                                  <span className="ml-2 font-semibold text-secondary">
+                                    • #{university.globalRanking} Worldwide
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-secondary bg-elevated px-3 py-1.5 rounded-xl border border-subtle shrink-0">
+                            {programs.length} {programs.length === 1 ? "Program Available" : "Programs Available"}
+                          </span>
+                        </div>
+
+                        {/* Offering Programs */}
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 gap-3">
+                            {programs.map(({ programme, matchScore, eligibility }) => {
+                              const key = `${university.id}-${programme.id}`;
+                              const isShortlisted = shortlistedKeys.includes(key);
+                              const appNumber = appliedMap[key];
+                              const isApplying = applyingKey === key;
+                              const eligBadge = ELIG_BADGE[eligibility.status] || ELIG_BADGE.not_checked;
+
+                              return (
+                                <div
+                                  key={key}
+                                  className="p-4 rounded-xl bg-main border border-subtle hover:border-default transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                >
+                                  <div className="flex-1 min-w-0 space-y-1.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className="text-sm font-bold text-primary hover:text-emerald-400 transition-colors">
+                                        {programme.title}
+                                      </h4>
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${eligBadge.bg} ${eligBadge.text} ${eligBadge.border}`}>
+                                        {eligBadge.icon} {eligibility.label}
+                                      </span>
+                                      {appNumber && (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
+                                          ✓ Draft: {appNumber}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+                                      <span><span className="text-secondary font-medium">Level:</span> {programme.level}</span>
+                                      <span>•</span>
+                                      <span><span className="text-secondary font-medium">Tuition:</span> {programme.currency} {programme.tuitionFeeAnnual?.toLocaleString()}/yr</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => setDrawerItem({ university, programme, matchScore, eligibility, matchReasons: [] })}
+                                      className="px-3 py-1.5 bg-elevated hover:bg-hover text-xs font-semibold text-secondary rounded-lg border border-subtle transition-colors flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" /> Details
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleShortlist(key)}
+                                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                        isShortlisted
+                                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                                          : "bg-elevated border-subtle text-muted hover:text-primary"
+                                      }`}
+                                      title={isShortlisted ? "Shortlisted" : "Shortlist program"}
+                                    >
+                                      {isShortlisted ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isApplying}
+                                      onClick={() => handleApplyToProgram(university, programme)}
+                                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Send className="w-3.5 h-3.5" /> Apply Now
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {universitiesWithMatches.length === 0 && fallbackInternationalMatches.length === 0 && (
                   <div className="py-16 text-center bg-surface border border-subtle rounded-2xl p-8 sq-card">
                     <Building2 className="w-10 h-10 text-muted mx-auto mb-3 opacity-40" />
                     <h3 className="text-base font-bold text-primary">No universities match the selected criteria</h3>
@@ -831,91 +990,116 @@ export const StudentOnboardingStage3: React.FC = () => {
               </div>
             ) : (
               /* View Mode 2: Program Grid View */
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {filteredMatches.map(({ university, programme, matchScore, eligibility }) => {
-                  const key = `${university.id}-${programme.id}`;
-                  const isShortlisted = shortlistedKeys.includes(key);
-                  const appNumber = appliedMap[key];
-                  const eligBadge = ELIG_BADGE[eligibility.status] || ELIG_BADGE.not_checked;
-
-                  return (
-                    <article
-                      key={key}
-                      className="bg-surface rounded-2xl p-5 border border-subtle hover:border-default transition-all flex flex-col justify-between space-y-4 group hover-lift relative sq-card"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${eligBadge.bg} ${eligBadge.text} ${eligBadge.border}`}>
-                            {eligBadge.icon} {eligibility.label}
-                          </span>
-                          <span className="text-[10px] font-semibold text-muted bg-elevated px-2 py-0.5 rounded border border-subtle">
-                            {university.country}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setDrawerItem({ university, programme, matchScore, eligibility, matchReasons: [] })}
-                            className="p-1.5 rounded-lg bg-main text-muted hover:text-primary border border-default cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => toggleShortlist(key)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                              isShortlisted ? "bg-emerald-500 text-white" : "bg-main text-muted hover:text-primary border border-default"
-                            }`}
-                          >
-                            {isShortlisted ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-
+              <div className="space-y-6">
+                {filteredMatches.length === 0 && fallbackPrograms.length > 0 && (
+                  <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <Globe className="w-5 h-5 text-sky-400 shrink-0" />
                       <div>
-                        <h3 className="text-base font-bold text-primary font-heading line-clamp-2 leading-tight group-hover:text-emerald-400 transition-colors">
-                          {programme.title}
-                        </h3>
-                        <p className="text-xs text-muted flex items-center gap-1.5 mt-1">
-                          <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="font-medium text-secondary">{university.name}</span>
+                        <p className="font-semibold text-sky-200">
+                          Direct campus registry for &quot;{activeCountryTab}&quot; is expanding.
+                        </p>
+                        <p className="text-xs text-sky-400/80">
+                          Showing top international programs accepting students from {activeCountryTab}:
                         </p>
                       </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveCountryTab("All")}
+                      className="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-lg text-xs font-bold border border-sky-500/40 transition-colors whitespace-nowrap cursor-pointer"
+                    >
+                      Explore All Destinations
+                    </button>
+                  </div>
+                )}
 
-                      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-subtle/50 text-xs">
-                        <div className="bg-main rounded-lg p-2 border border-subtle">
-                          <span className="text-[10px] text-muted uppercase font-semibold block">Tuition / Yr</span>
-                          <span className="font-bold text-primary">{programme.currency} {programme.tuitionFeeAnnual?.toLocaleString()}</span>
-                        </div>
-                        <div className="bg-main rounded-lg p-2 border border-subtle">
-                          <span className="text-[10px] text-muted uppercase font-semibold block">Intakes</span>
-                          <span className="font-bold text-primary line-clamp-1">{programme.intakes?.join(", ") || "September"}</span>
-                        </div>
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {(filteredMatches.length > 0 ? filteredMatches : fallbackPrograms).map(({ university, programme, matchScore, eligibility }) => {
+                    const key = `${university.id}-${programme.id}`;
+                    const isShortlisted = shortlistedKeys.includes(key);
+                    const appNumber = appliedMap[key];
+                    const eligBadge = ELIG_BADGE[eligibility.status] || ELIG_BADGE.not_checked;
 
-                      <div className="pt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={applyingKey === key}
-                          onClick={() => handleApplyToProgram(university, programme)}
-                          className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer ${
-                            appNumber
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
-                              : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
-                          }`}
-                        >
-                          {applyingKey === key ? (
-                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating Application...</>
-                          ) : appNumber ? (
-                            <><CheckCircle2 className="w-3.5 h-3.5" /> Drafted ({appNumber})</>
-                          ) : (
-                            <><Send className="w-3.5 h-3.5" /> Apply Now</>
-                          )}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                    return (
+                      <article
+                        key={key}
+                        className="bg-surface rounded-2xl p-5 border border-subtle hover:border-default transition-all flex flex-col justify-between space-y-4 group hover-lift relative sq-card"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${eligBadge.bg} ${eligBadge.text} ${eligBadge.border}`}>
+                              {eligBadge.icon} {eligibility.label}
+                            </span>
+                            <span className="text-[10px] font-semibold text-muted bg-elevated px-2 py-0.5 rounded border border-subtle">
+                              {university.country}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setDrawerItem({ university, programme, matchScore, eligibility, matchReasons: [] })}
+                              className="p-1.5 rounded-lg bg-main text-muted hover:text-primary border border-default cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleShortlist(key)}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                isShortlisted ? "bg-emerald-500 text-white" : "bg-main text-muted hover:text-primary border border-default"
+                              }`}
+                            >
+                              {isShortlisted ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h3 className="text-base font-bold text-primary font-heading line-clamp-2 leading-tight group-hover:text-emerald-400 transition-colors">
+                            {programme.title}
+                          </h3>
+                          <p className="text-xs text-muted flex items-center gap-1.5 mt-1">
+                            <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="font-medium text-secondary">{university.name}</span>
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-subtle/50 text-xs">
+                          <div className="bg-main rounded-lg p-2 border border-subtle">
+                            <span className="text-[10px] text-muted uppercase font-semibold block">Tuition / Yr</span>
+                            <span className="font-bold text-primary">{programme.currency} {programme.tuitionFeeAnnual?.toLocaleString()}</span>
+                          </div>
+                          <div className="bg-main rounded-lg p-2 border border-subtle">
+                            <span className="text-[10px] text-muted uppercase font-semibold block">Intakes</span>
+                            <span className="font-bold text-primary line-clamp-1">{programme.intakes?.join(", ") || "September"}</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={applyingKey === key}
+                            onClick={() => handleApplyToProgram(university, programme)}
+                            className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer ${
+                              appNumber
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                                : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
+                            }`}
+                          >
+                            {applyingKey === key ? (
+                              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating Application...</>
+                            ) : appNumber ? (
+                              <><CheckCircle2 className="w-3.5 h-3.5" /> Drafted ({appNumber})</>
+                            ) : (
+                              <><Send className="w-3.5 h-3.5" /> Apply Now</>
+                            )}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
