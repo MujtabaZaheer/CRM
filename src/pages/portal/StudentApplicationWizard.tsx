@@ -97,6 +97,19 @@ export const StudentApplicationWizard: React.FC = () => {
     passportNumber: "",
   });
 
+  // Step 4: English Language Proficiency
+  const [englishTest, setEnglishTest] = useState<{
+    testType: string;
+    overallScore: string;
+    testDate: string;
+    expiryDate: string;
+  }>({
+    testType: "IELTS",
+    overallScore: "",
+    testDate: "",
+    expiryDate: "",
+  });
+
   // Step 6: Dynamic University Questions
   const [questionResponses, setQuestionResponses] = useState<Record<string, any>>({});
 
@@ -135,6 +148,15 @@ export const StudentApplicationWizard: React.FC = () => {
       passportNumber: (extracted as any).passportNumber || personalOverrides.passportNumber,
     };
     setPersonalOverrides(newOverrides);
+
+    // 1b. Update englishTest state from extracted data
+    if (extracted.englishProficiency) {
+      setEnglishTest((prev) => ({
+        ...prev,
+        testType: extracted.englishProficiency?.testType || prev.testType,
+        overallScore: extracted.englishProficiency?.overallScore || prev.overallScore,
+      }));
+    }
 
     // 2. Update student profile state (guarantee non-null state even if student was initially null)
     setStudent((prev) => {
@@ -219,6 +241,67 @@ export const StudentApplicationWizard: React.FC = () => {
       setTimeout(() => setSaveNotice(null), 5000);
     } catch (err) {
       console.warn("Notice: Local state populated from CV, Firestore update notice:", err);
+    }
+  };
+
+  // Sync application data back to student master profile
+  const syncProfileWithApplication = async (overrideFields?: Record<string, any>) => {
+    const uid = firebaseUser?.uid || appUser?.uid;
+    if (!uid) return;
+
+    try {
+      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || "Student";
+      const profileUpdate: Record<string, any> = {
+        fullName: userName,
+        phone: personalOverrides.phone || student?.phone || "",
+        countryOfResidence: personalOverrides.countryOfResidence || student?.countryOfResidence || "",
+        nationality: personalOverrides.nationality || student?.nationality || "",
+        city: personalOverrides.city || (student as any)?.city || "",
+        dob: personalOverrides.dob || student?.dob || "",
+        gender: personalOverrides.gender || student?.gender || "",
+        passportNumber: personalOverrides.passportNumber || student?.passportNumber || "",
+        updatedAt: Date.now(),
+        ...(overrideFields || {}),
+      };
+
+      // Include academic history if available
+      if (student?.academicHistory && student.academicHistory.length > 0) {
+        profileUpdate.academicHistory = student.academicHistory;
+      }
+
+      // Include english proficiency from the englishTest state
+      if (englishTest.testType && englishTest.overallScore) {
+        profileUpdate.englishProficiency = {
+          testType: englishTest.testType,
+          overallScore: englishTest.overallScore,
+          ...(englishTest.testDate ? { testDate: englishTest.testDate } : {}),
+          ...(englishTest.expiryDate ? { expiryDate: englishTest.expiryDate } : {}),
+        };
+      }
+
+      // Persist to students collection
+      await setDoc(doc(db, "students", uid), profileUpdate, { merge: true });
+
+      // Keep users collection in sync (core auth record)
+      await setDoc(doc(db, "users", uid), {
+        displayName: userName,
+        phone: profileUpdate.phone,
+        nationality: profileUpdate.nationality,
+        countryOfResidence: profileUpdate.countryOfResidence,
+        updatedAt: Date.now(),
+      }, { merge: true });
+
+      // Also persist to sessionStorage for cross-page hydration
+      try {
+        const cached = sessionStorage.getItem("student_profile_cache");
+        const existing = cached ? JSON.parse(cached) : {};
+        sessionStorage.setItem("student_profile_cache", JSON.stringify({
+          ...existing,
+          ...profileUpdate,
+        }));
+      } catch (_) {}
+    } catch (err) {
+      console.warn("Profile sync notice:", err);
     }
   };
 
@@ -333,6 +416,17 @@ export const StudentApplicationWizard: React.FC = () => {
           gender: resolvedGender,
           passportNumber: studentData?.passportNumber || "",
         });
+
+        // Populate englishTest state from student profile
+        if (studentData?.englishProficiency) {
+          const ep = studentData.englishProficiency as any;
+          setEnglishTest({
+            testType: ep.testType || "IELTS",
+            overallScore: ep.overallScore || "",
+            testDate: ep.testDate || "",
+            expiryDate: ep.expiryDate || "",
+          });
+        }
 
         // 2. Fetch universities with timeout protection and catalog fallback
         let allUnivs: University[] = [];
@@ -731,6 +825,12 @@ export const StudentApplicationWizard: React.FC = () => {
         declarationAccepted: allDeclarationsAccepted,
         visaReviewed,
         academicHistory: (student?.academicHistory || []) as any,
+        englishProficiency: (englishTest.testType && englishTest.overallScore) ? {
+          testType: englishTest.testType,
+          overallScore: englishTest.overallScore,
+          ...(englishTest.testDate ? { testDate: englishTest.testDate } : {}),
+          ...(englishTest.expiryDate ? { expiryDate: englishTest.expiryDate } : {}),
+        } as any : undefined,
         studentDetails: {
           fullName: userName,
           phone: personalOverrides.phone || student?.phone || "",
@@ -763,6 +863,9 @@ export const StudentApplicationWizard: React.FC = () => {
         });
         setApplicationId(newRef.id);
       }
+
+      // Sync personal + academic + english data back to master student profile
+      syncProfileWithApplication();
 
       setSaveNotice("Draft saved automatically.");
       setTimeout(() => setSaveNotice(null), 2000);
@@ -818,6 +921,12 @@ export const StudentApplicationWizard: React.FC = () => {
         declarationAccepted: true,
         visaReviewed: true,
         academicHistory: (student?.academicHistory || []) as any,
+        englishProficiency: (englishTest.testType && englishTest.overallScore) ? {
+          testType: englishTest.testType,
+          overallScore: englishTest.overallScore,
+          ...(englishTest.testDate ? { testDate: englishTest.testDate } : {}),
+          ...(englishTest.expiryDate ? { expiryDate: englishTest.expiryDate } : {}),
+        } as any : undefined,
         studentDetails: {
           fullName: userName,
           phone: personalOverrides.phone || student?.phone || "",
@@ -872,6 +981,9 @@ export const StudentApplicationWizard: React.FC = () => {
           createdAt: now,
         });
       } catch (_) {}
+
+      // Sync all application data back to master student profile on submission
+      await syncProfileWithApplication();
 
       // Redirect to application detail tracking
       navigate(`/student/applications/${finalAppId}`);
@@ -1540,14 +1652,142 @@ export const StudentApplicationWizard: React.FC = () => {
               </span>
             </div>
 
+            <p className="text-xs text-secondary">
+              Enter your standardised English language test results below. These are saved to your master profile and compared against programme entry requirements.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Standardised Test Type *</label>
+                <select
+                  value={englishTest.testType}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEnglishTest((prev) => ({ ...prev, testType: val }));
+                    setStudent((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        englishProficiency: {
+                          ...(prev.englishProficiency as any || {}),
+                          testType: val,
+                        },
+                      };
+                    });
+                  }}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="IELTS">IELTS Academic</option>
+                  <option value="PTE">PTE Academic (Pearson)</option>
+                  <option value="TOEFL">TOEFL iBT</option>
+                  <option value="Duolingo">Duolingo English Test (DET)</option>
+                  <option value="MOI Evidence">Medium of Instruction (MOI Waiver)</option>
+                  <option value="Pending / Not Taken">Pending / Not Taken</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Overall Band / Score *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 7.0 or 65"
+                  value={englishTest.overallScore}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEnglishTest((prev) => ({ ...prev, overallScore: val }));
+                    setStudent((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        englishProficiency: {
+                          ...(prev.englishProficiency as any || {}),
+                          overallScore: val,
+                        },
+                      };
+                    });
+                  }}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Test Date</label>
+                <input
+                  type="date"
+                  value={englishTest.testDate}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEnglishTest((prev) => ({ ...prev, testDate: val }));
+                    setStudent((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        englishProficiency: {
+                          ...(prev.englishProficiency as any || {}),
+                          testDate: val,
+                        },
+                      };
+                    });
+                  }}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  value={englishTest.expiryDate}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEnglishTest((prev) => ({ ...prev, expiryDate: val }));
+                    setStudent((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        englishProficiency: {
+                          ...(prev.englishProficiency as any || {}),
+                          expiryDate: val,
+                        },
+                      };
+                    });
+                  }}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Programme Requirement Comparison */}
             <div className="p-4 rounded-xl bg-elevated/50 border border-subtle space-y-2 text-xs">
               <div className="flex justify-between items-center text-sm font-bold text-primary">
-                <span>Test Type: {student?.englishProficiency?.testType || "Pending / Not Taken"}</span>
-                <span className="text-emerald-400">Score: {student?.englishProficiency?.overallScore || "N/A"}</span>
+                <span>Your Score: {englishTest.testType} {englishTest.overallScore || "N/A"}</span>
+                <span className={`${
+                  programme.minIeltsScore && parseFloat(englishTest.overallScore) >= programme.minIeltsScore
+                    ? "text-emerald-400"
+                    : programme.minIeltsScore && parseFloat(englishTest.overallScore) > 0
+                    ? "text-rose-400"
+                    : "text-secondary"
+                }`}>
+                  Requirement: {programme.minIeltsScore ? `IELTS ${programme.minIeltsScore}` : "None specified"}
+                </span>
               </div>
-              <p className="text-secondary">
-                Minimum Program IELTS Requirement: {programme.minIeltsScore ? `IELTS ${programme.minIeltsScore}` : "None explicitly required"}
-              </p>
+              {programme.minIeltsScore && parseFloat(englishTest.overallScore) > 0 && (
+                <p className={`font-semibold ${
+                  parseFloat(englishTest.overallScore) >= programme.minIeltsScore
+                    ? "text-emerald-400"
+                    : "text-rose-400"
+                }`}>
+                  {parseFloat(englishTest.overallScore) >= programme.minIeltsScore
+                    ? "✓ Your score meets the minimum programme requirement."
+                    : `✗ Your score is below the minimum requirement of ${programme.minIeltsScore}. Pre-sessional English may be required.`
+                  }
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>English test details are automatically synced to your master student profile when you save or advance steps.</span>
             </div>
           </div>
         )}

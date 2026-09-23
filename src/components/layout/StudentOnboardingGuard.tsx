@@ -88,6 +88,16 @@ export const StudentOnboardingGuard: React.FC = () => {
     return <Navigate to={getRoleDashboardPath(appUser.role)} replace />;
   }
 
+  const isApplicationRoute =
+    location.pathname.startsWith("/student/new-application") ||
+    location.pathname.startsWith("/student/apply") ||
+    location.pathname.startsWith("/apply");
+
+  // Always allow application routes to proceed without blocking
+  if (isApplicationRoute) {
+    return <Outlet />;
+  }
+
   // Fallback to step 1 if no student doc
   if (!studentDoc) {
     if (location.pathname !== "/student/onboarding/step-1") {
