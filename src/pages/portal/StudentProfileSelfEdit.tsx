@@ -3,12 +3,12 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { Student, QualificationLevel } from "../../types/student";
-import { DEMO_STUDENTS } from "../../data/demoData";
 import { 
   User, GraduationCap, Globe, FileCheck, 
   CheckCircle2, AlertCircle, Plus, Trash2, ShieldCheck, 
   BookOpen, CreditCard, Loader2, Check, Save
 } from "lucide-react";
+import { calculateProfileCompleteness } from "../../utils/profileCompleteness";
 
 type TabId = 'personal' | 'passport' | 'academic' | 'preferences' | 'english' | 'financial';
 
@@ -21,11 +21,11 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: 'personal', label: 'Personal Information', icon: User, description: 'Legal name, contact number, and residence' },
-  { id: 'passport', label: 'Identity & Passport', icon: Globe, description: 'Official passport number and expiration' },
   { id: 'academic', label: 'Academic History', icon: GraduationCap, description: 'Institutions, qualifications, and grades' },
-  { id: 'preferences', label: 'Study Preferences', icon: BookOpen, description: 'Target destination, intake, and budget' },
-  { id: 'english', label: 'English Proficiency', icon: FileCheck, description: 'Language exam scores and study gap notes' },
-  { id: 'financial', label: 'Financial Sponsor', icon: CreditCard, description: 'Funding source and annual financial support' },
+  { id: 'preferences', label: 'Study Preferences', icon: BookOpen, description: 'Target destination, intake, and study level' },
+  { id: 'passport', label: 'Identity & Passport', icon: Globe, description: 'Official passport number and expiration (Optional for early review)' },
+  { id: 'english', label: 'English Proficiency', icon: FileCheck, description: 'Language exam scores or MOI evidence (Optional)' },
+  { id: 'financial', label: 'Financial Sponsor', icon: CreditCard, description: 'Funding source and annual financial support (Optional)' },
 ];
 
 export const StudentProfileSelfEdit: React.FC = () => {
@@ -46,13 +46,33 @@ export const StudentProfileSelfEdit: React.FC = () => {
       if (!appUser?.uid) return;
       try {
         const snap = await getDoc(doc(db, "students", appUser.uid));
-        const st = snap.exists() ? (snap.data() as Student) : DEMO_STUDENTS[0];
+        let st: Partial<Student> | null = null;
+        if (snap.exists()) {
+          st = snap.data() as Student;
+        } else {
+          // Initialize fresh student profile with current authenticated user credentials
+          st = {
+            id: appUser.uid,
+            fullName: appUser.displayName || "",
+            email: appUser.email || "",
+            phone: (appUser as any)?.phone || "",
+            nationality: (appUser as any).nationality || "Pakistan",
+            countryOfResidence: (appUser as any).countryOfResidence || "Pakistan",
+            desiredStudyLevel: (appUser as any).desiredStudyLevel || "Bachelor's Degree",
+            preferredDestination: "United Kingdom",
+            preferredIntake: "September 2027",
+            budgetAnnualUsd: 25000,
+            academicHistory: [],
+          };
+        }
+
         if (st) {
           setData({
-            fullName: st.fullName || "",
-            phone: st.phone || "",
-            nationality: st.nationality || "",
-            countryOfResidence: st.countryOfResidence || "",
+            fullName: st.fullName || appUser.displayName || "",
+            phone: st.phone || (appUser as any)?.phone || "",
+            nationality: st.nationality || (appUser as any).nationality || "Pakistan",
+            countryOfResidence: st.countryOfResidence || (appUser as any).countryOfResidence || "Pakistan",
+            desiredStudyLevel: (st as any).desiredStudyLevel || "Bachelor's Degree",
             passportNumber: st.passportNumber || "",
             passportExpiry: st.passportExpiry || "",
             preferredDestination: st.preferredDestination || "",
@@ -77,17 +97,16 @@ export const StudentProfileSelfEdit: React.FC = () => {
   // Section completion evaluation
   const sectionStatus = {
     personal: Boolean(data.fullName?.trim() && data.phone?.trim() && data.nationality?.trim() && data.countryOfResidence?.trim()),
-    passport: Boolean(data.passportNumber?.trim() && data.passportExpiry?.trim()),
     academic: Boolean(data.academicHistory && data.academicHistory.length > 0 && data.academicHistory[0].institution?.trim()),
-    preferences: Boolean(data.preferredDestination?.trim() && data.preferredIntake?.trim()),
+    preferences: Boolean(data.preferredDestination?.trim() && (data as any).desiredStudyLevel?.trim()),
+    passport: Boolean(data.passportNumber?.trim() && data.passportExpiry?.trim()),
     english: Boolean(data.englishProficiency?.testType && data.englishProficiency?.overallScore?.trim()),
     financial: Boolean(data.financialSponsor?.name?.trim() && (data.financialSponsor?.annualIncomeUSD || 0) > 0),
   };
 
   const calculateCompleteness = () => {
-    const sections = Object.values(sectionStatus);
-    const completed = sections.filter(Boolean).length;
-    return Math.round((completed / sections.length) * 100);
+    const res = calculateProfileCompleteness(data);
+    return res.percentage;
   };
 
   const handleSave = useCallback(async (currentData: Partial<Student>) => {
@@ -580,6 +599,23 @@ export const StudentProfileSelfEdit: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                <div>
+                  <label className="block text-secondary font-bold text-xs mb-1.5">
+                    Desired Study Level <span className="text-rose-400">*</span>
+                  </label>
+                  <select
+                    value={(data as any).desiredStudyLevel || "Bachelor's Degree"}
+                    onChange={(e) => updateField("desiredStudyLevel" as any, e.target.value)}
+                    className="w-full p-3 bg-input border border-default rounded-xl text-primary text-xs sm:text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                  >
+                    <option value="Bachelor's Degree">Bachelor&apos;s Degree (Undergraduate)</option>
+                    <option value="Master's Degree">Master&apos;s Degree (Postgraduate)</option>
+                    <option value="Doctorate / PhD">Doctorate / PhD</option>
+                    <option value="Diploma / Foundation">Diploma / Foundation Pathway</option>
+                  </select>
+                  <p className="text-[11px] text-muted mt-1">Primary degree objective for admissions triage</p>
+                </div>
+
                 <div>
                   <label className="block text-secondary font-bold text-xs mb-1.5">
                     Target Study Destination <span className="text-rose-400">*</span>

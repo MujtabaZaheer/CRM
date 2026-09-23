@@ -148,7 +148,7 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
     };
   }, []);
 
-  // Merge live leads with context leads
+  // Merge live leads with context leads, strictly isolated to the authenticated agent
   const effectiveLeads = useMemo(() => {
     const liveMap = new Map<string, any>();
     liveLeads.forEach((l) => liveMap.set(l.id, l));
@@ -156,10 +156,24 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
       if (!liveMap.has(l.id)) liveMap.set(l.id, l);
     });
     const combined = Array.from(liveMap.values());
-    return combined.length > 0 ? combined : leads;
-  }, [liveLeads, leads]);
 
-  // Merge live applications with context applications
+    const agentUid = appUser?.uid;
+    const agentEmail = appUser?.email;
+
+    // Filter to only records belonging to this specific agent
+    return combined.filter((lead: any) => {
+      if (!agentUid && !agentEmail) return false;
+      return (
+        lead.agentUid === agentUid ||
+        lead.agentId === agentUid ||
+        lead.referredBy === agentUid ||
+        lead.agentEmail === agentEmail ||
+        lead.agentReferredBy === agentUid
+      );
+    });
+  }, [liveLeads, leads, appUser]);
+
+  // Merge live applications with context applications, strictly isolated to the authenticated agent
   const effectiveApplications = useMemo(() => {
     const liveMap = new Map<string, any>();
     liveApplications.forEach((a) => liveMap.set(a.id, a));
@@ -167,13 +181,38 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
       if (!liveMap.has(a.id)) liveMap.set(a.id, a);
     });
     const combined = Array.from(liveMap.values());
-    return combined.length > 0 ? combined : applications;
-  }, [liveApplications, applications]);
 
-  // Effective Commissions
+    const agentUid = appUser?.uid;
+    const agentEmail = appUser?.email;
+
+    // Filter to only records belonging to this specific agent
+    return combined.filter((app: any) => {
+      if (!agentUid && !agentEmail) return false;
+      return (
+        app.agentUid === agentUid ||
+        app.agentId === agentUid ||
+        app.referredBy === agentUid ||
+        app.agentEmail === agentEmail ||
+        app.agentReferredBy === agentUid
+      );
+    });
+  }, [liveApplications, applications, appUser]);
+
+  // Effective Commissions strictly isolated to the authenticated agent
   const effectiveCommissions = useMemo(() => {
-    return liveCommissions.length > 0 ? liveCommissions : DEMO_COMMISSIONS;
-  }, [liveCommissions]);
+    const agentUid = appUser?.uid;
+    const agentEmail = appUser?.email;
+
+    // Only return commissions belonging to this specific agent - never leak other agents' payouts
+    return liveCommissions.filter((comm: any) => {
+      if (!agentUid && !agentEmail) return false;
+      return (
+        comm.agentUid === agentUid ||
+        comm.agentId === agentUid ||
+        comm.agentEmail === agentEmail
+      );
+    });
+  }, [liveCommissions, appUser]);
 
   // Total commission earned calculations
   const totalEarned = useMemo(() => {
@@ -545,10 +584,10 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
                 <span>Total Referred Students</span>
                 <Users2 className="w-4 h-4 text-emerald-400" />
               </div>
-              <p className="text-3xl font-bold font-heading text-[var(--text-primary)]">{effectiveLeads.length || 12}</p>
+              <p className="text-3xl font-bold font-heading text-[var(--text-primary)]">{effectiveLeads.length}</p>
               <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>{liveLeads.length} synced from Live Firestore</span>
+                <span>{effectiveLeads.filter((l: any) => l.isLive).length} live cloud referrals</span>
               </div>
             </div>
 
@@ -557,8 +596,8 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
                 <span>Active University Applications</span>
                 <FileText className="w-4 h-4 text-teal-400" />
               </div>
-              <p className="text-3xl font-bold font-heading text-[var(--text-primary)]">{effectiveApplications.length || 8}</p>
-              <span className="text-[10px] text-[var(--text-secondary)]">Across {allUniversities.length} Partner Campuses</span>
+              <p className="text-3xl font-bold font-heading text-[var(--text-primary)]">{effectiveApplications.length}</p>
+              <span className="text-[10px] text-[var(--text-secondary)]">Across Partner Campuses</span>
             </div>
 
             <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-2 shadow-sm">
@@ -566,8 +605,8 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
                 <span>Earned Commissions</span>
                 <DollarSign className="w-4 h-4 text-emerald-400" />
               </div>
-              <p className="text-3xl font-bold font-heading text-emerald-400">${totalEarned > 0 ? totalEarned.toLocaleString() : "4,850"} USD</p>
-              <span className="text-[10px] text-[var(--text-secondary)]">${pendingPayout > 0 ? pendingPayout.toLocaleString() : "1,500"} Pending Claim Approval</span>
+              <p className="text-3xl font-bold font-heading text-emerald-400">${totalEarned.toLocaleString()} USD</p>
+              <span className="text-[10px] text-[var(--text-secondary)]">${pendingPayout.toLocaleString()} Pending Claim Approval</span>
             </div>
 
             <div className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-2 shadow-sm">
@@ -1298,42 +1337,51 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)] text-xs">
-                {effectiveCommissions.map((c) => (
-                  <tr key={c.id} className="hover:bg-[var(--bg-hover)] transition-colors">
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-[var(--text-primary)]">{c.studentName}</span>
-                        {(c as any).isLive && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            Live Cloud
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-[var(--text-muted)] font-mono">{(c as any).notes || "Referral commission claim"}</div>
-                    </td>
-                    <td className="p-3.5 text-[var(--text-secondary)] font-medium">{c.universityName}</td>
-                    <td className="p-3.5 font-bold text-emerald-400 font-mono text-sm">${c.amount} {c.currency}</td>
-                    <td className="p-3.5">
-                      <span
-                        className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
-                          c.status === "Paid"
-                            ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
-                            : c.status === "Approved"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                        }`}
-                      >
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-right text-[var(--text-muted)] font-mono text-[11px]">
-                      {c.updatedAt
-                        ? new Date(c.updatedAt).toLocaleDateString()
-                        : new Date(c.createdAt).toLocaleDateString()}
+                {effectiveCommissions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-[var(--text-muted)] space-y-1">
+                      <p className="font-semibold text-xs text-[var(--text-secondary)]">No commissions recorded yet.</p>
+                      <p className="text-[11px]">Refer new student candidates or submit a payout claim above to track your earnings.</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  effectiveCommissions.map((c) => (
+                    <tr key={c.id} className="hover:bg-[var(--bg-hover)] transition-colors">
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-[var(--text-primary)]">{c.studentName}</span>
+                          {(c as any).isLive && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              Live Cloud
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)] font-mono">{(c as any).notes || "Referral commission claim"}</div>
+                      </td>
+                      <td className="p-3.5 text-[var(--text-secondary)] font-medium">{c.universityName}</td>
+                      <td className="p-3.5 font-bold text-emerald-400 font-mono text-sm">${c.amount} {c.currency}</td>
+                      <td className="p-3.5">
+                        <span
+                          className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
+                            c.status === "Paid"
+                              ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
+                              : c.status === "Approved"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                          }`}
+                        >
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right text-[var(--text-muted)] font-mono text-[11px]">
+                        {c.updatedAt
+                          ? new Date(c.updatedAt).toLocaleDateString()
+                          : new Date(c.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

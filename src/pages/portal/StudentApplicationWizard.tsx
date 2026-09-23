@@ -26,6 +26,8 @@ import {
   RefreshCw,
   Clock,
   Sparkles,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
@@ -88,6 +90,10 @@ export const StudentApplicationWizard: React.FC = () => {
     fullName: "",
     phone: "",
     countryOfResidence: "",
+    nationality: "",
+    city: "",
+    dob: "",
+    gender: "",
     passportNumber: "",
   });
 
@@ -114,7 +120,7 @@ export const StudentApplicationWizard: React.FC = () => {
     if (!uid) return;
 
     const matchedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || personalOverrides.countryOfResidence || "Pakistan";
-    const matchedNat = toCountryName(extracted.nationality) || matchedCountry;
+    const matchedNat = toCountryName(extracted.nationality) || personalOverrides.nationality || matchedCountry;
 
     // 1. Update personalOverrides state
     const newOverrides = {
@@ -122,32 +128,51 @@ export const StudentApplicationWizard: React.FC = () => {
       fullName: extracted.fullName || personalOverrides.fullName,
       phone: extracted.phone || personalOverrides.phone,
       countryOfResidence: matchedCountry,
+      nationality: matchedNat,
+      dob: extracted.dob || personalOverrides.dob,
+      gender: extracted.gender || personalOverrides.gender,
+      city: extracted.city || personalOverrides.city,
       passportNumber: (extracted as any).passportNumber || personalOverrides.passportNumber,
     };
     setPersonalOverrides(newOverrides);
 
-    // 2. Update student profile state
+    // 2. Update student profile state (guarantee non-null state even if student was initially null)
     setStudent((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        fullName: extracted.fullName || prev.fullName,
-        phone: extracted.phone || prev.phone,
+      const base: Student = prev || ({
+        id: uid,
+        fullName: extracted.fullName || personalOverrides.fullName || appUser?.displayName || "Student",
+        email: appUser?.email || firebaseUser?.email || "",
+        phone: extracted.phone || personalOverrides.phone || "",
         nationality: matchedNat,
         countryOfResidence: matchedCountry,
-        dob: extracted.dob || prev.dob,
-        gender: extracted.gender || prev.gender,
-        city: extracted.city || (prev as any).city,
+        dob: extracted.dob || "",
+        gender: extracted.gender || "Other",
+        city: extracted.city || "",
+        profileCompleteness: 40,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        academicHistory: [],
+      } as Student);
+
+      return {
+        ...base,
+        fullName: extracted.fullName || base.fullName,
+        phone: extracted.phone || base.phone,
+        nationality: matchedNat,
+        countryOfResidence: matchedCountry,
+        dob: extracted.dob || base.dob,
+        gender: extracted.gender || base.gender,
+        city: extracted.city || (base as any).city,
         academicHistory: (extracted.academicRecords && extracted.academicRecords.length > 0)
           ? extracted.academicRecords
-          : prev.academicHistory,
+          : base.academicHistory,
         englishProficiency: extracted.englishProficiency
           ? {
               testType: extracted.englishProficiency.testType,
               overallScore: extracted.englishProficiency.overallScore,
-              testDate: (prev.englishProficiency as any)?.testDate || "",
+              testDate: (base.englishProficiency as any)?.testDate || "",
             }
-          : prev.englishProficiency,
+          : base.englishProficiency,
       };
     });
 
@@ -176,11 +201,21 @@ export const StudentApplicationWizard: React.FC = () => {
         await setDoc(doc(db, "applications", applicationId), {
           studentName: extracted.fullName || personalOverrides.fullName,
           targetCountry: university?.country,
+          academicHistory: (extracted.academicRecords && extracted.academicRecords.length > 0) ? extracted.academicRecords : undefined,
+          studentDetails: {
+            fullName: extracted.fullName || personalOverrides.fullName,
+            phone: extracted.phone || personalOverrides.phone,
+            nationality: matchedNat,
+            countryOfResidence: matchedCountry,
+            dob: extracted.dob,
+            gender: extracted.gender,
+            city: extracted.city,
+          },
           updatedAt: Date.now(),
         }, { merge: true });
       }
 
-      setSaveNotice("CV parsed successfully with Gemini 3.8 Flash! Your details have been auto-filled into your application.");
+      setSaveNotice("CV parsed successfully with Gemini 3.8 Flash! Your personal and academic details have been auto-filled.");
       setTimeout(() => setSaveNotice(null), 5000);
     } catch (err) {
       console.warn("Notice: Local state populated from CV, Firestore update notice:", err);
@@ -282,11 +317,20 @@ export const StudentApplicationWizard: React.FC = () => {
           userData?.nationality ||
           "";
 
+        const resolvedNat = studentData?.nationality || userData?.nationality || resolvedCountry;
+        const resolvedCity = (studentData as any)?.city || userData?.city || "";
+        const resolvedDob = studentData?.dob || userData?.dob || "";
+        const resolvedGender = studentData?.gender || userData?.gender || "";
+
         setStudent(studentData);
         setPersonalOverrides({
           fullName: resolvedName,
           phone: resolvedPhone,
           countryOfResidence: resolvedCountry,
+          nationality: resolvedNat,
+          city: resolvedCity,
+          dob: resolvedDob,
+          gender: resolvedGender,
           passportNumber: studentData?.passportNumber || "",
         });
 
@@ -686,6 +730,17 @@ export const StudentApplicationWizard: React.FC = () => {
         eligibilityScore: eligibility.score,
         declarationAccepted: allDeclarationsAccepted,
         visaReviewed,
+        academicHistory: (student?.academicHistory || []) as any,
+        studentDetails: {
+          fullName: userName,
+          phone: personalOverrides.phone || student?.phone || "",
+          countryOfResidence: personalOverrides.countryOfResidence || student?.countryOfResidence || "",
+          nationality: personalOverrides.nationality || student?.nationality || "",
+          city: personalOverrides.city || (student as any)?.city || "",
+          dob: personalOverrides.dob || student?.dob || "",
+          gender: personalOverrides.gender || student?.gender || "",
+          passportNumber: personalOverrides.passportNumber || student?.passportNumber || "",
+        },
         updatedAt: Date.now(),
       };
 
@@ -762,6 +817,17 @@ export const StudentApplicationWizard: React.FC = () => {
         eligibilityScore: eligibility.score,
         declarationAccepted: true,
         visaReviewed: true,
+        academicHistory: (student?.academicHistory || []) as any,
+        studentDetails: {
+          fullName: userName,
+          phone: personalOverrides.phone || student?.phone || "",
+          countryOfResidence: personalOverrides.countryOfResidence || student?.countryOfResidence || "",
+          nationality: personalOverrides.nationality || student?.nationality || "",
+          city: personalOverrides.city || (student as any)?.city || "",
+          dob: personalOverrides.dob || student?.dob || "",
+          gender: personalOverrides.gender || student?.gender || "",
+          passportNumber: personalOverrides.passportNumber || student?.passportNumber || "",
+        },
         updatedAt: now,
       };
 
@@ -1174,6 +1240,55 @@ export const StudentApplicationWizard: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Nationality *</label>
+                <select
+                  value={personalOverrides.nationality || personalOverrides.countryOfResidence || "Pakistan"}
+                  onChange={(e) => setPersonalOverrides({ ...personalOverrides, nationality: e.target.value })}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  {COMMON_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Date of Birth</label>
+                <input
+                  type="date"
+                  value={personalOverrides.dob}
+                  onChange={(e) => setPersonalOverrides({ ...personalOverrides, dob: e.target.value })}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Gender</label>
+                <select
+                  value={personalOverrides.gender || "Male"}
+                  onChange={(e) => setPersonalOverrides({ ...personalOverrides, gender: e.target.value })}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">City</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lahore, London, Dubai"
+                  value={personalOverrides.city}
+                  onChange={(e) => setPersonalOverrides({ ...personalOverrides, city: e.target.value })}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1210,24 +1325,202 @@ export const StudentApplicationWizard: React.FC = () => {
                 </div>
               </div>
 
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-secondary font-medium">
+                Add or edit your academic qualifications below. They are saved directly to your application dossier.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const newRec = {
+                    institution: "",
+                    qualification: "Bachelor's Degree",
+                    degreeTitle: "",
+                    country: personalOverrides.countryOfResidence || "Pakistan",
+                    completionYear: new Date().getFullYear(),
+                    gradeGpa: "",
+                  };
+                  setStudent((prev) => {
+                    const base = prev || {
+                      id: firebaseUser?.uid || appUser?.uid || "",
+                      fullName: personalOverrides.fullName || "Student",
+                      email: appUser?.email || firebaseUser?.email || "",
+                      phone: personalOverrides.phone || "",
+                      nationality: personalOverrides.nationality || "Pakistan",
+                      countryOfResidence: personalOverrides.countryOfResidence || "Pakistan",
+                      profileCompleteness: 50,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                      academicHistory: [],
+                    } as Student;
+                    return {
+                      ...base,
+                      academicHistory: [...(base.academicHistory || []), newRec],
+                    };
+                  });
+                }}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Qualification</span>
+              </button>
+            </div>
+
             {student?.academicHistory && student.academicHistory.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {student.academicHistory.map((rec, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-elevated/50 border border-subtle text-xs space-y-1.5">
-                    <div className="flex items-center justify-between font-bold text-sm text-primary">
-                      <span>{rec.degreeTitle}</span>
-                      <span className="text-emerald-400">{rec.gradeGpa}</span>
+                  <div key={i} className="p-4 rounded-xl bg-elevated/60 border border-subtle text-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-subtle/60 pb-2">
+                      <span className="font-bold text-xs text-emerald-400">
+                        Qualification #{i + 1}: {rec.qualification || "Degree"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStudent((prev) => {
+                            if (!prev) return prev;
+                            const updated = [...(prev.academicHistory || [])];
+                            updated.splice(i, 1);
+                            return { ...prev, academicHistory: updated };
+                          });
+                        }}
+                        className="text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove
+                      </button>
                     </div>
-                    <p className="text-secondary">{rec.institution} • {rec.country} ({rec.completionYear})</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-secondary mb-1">Level / Type *</label>
+                        <select
+                          value={rec.qualification || "Bachelor's Degree"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setStudent((prev) => {
+                              if (!prev) return prev;
+                              const updated = [...(prev.academicHistory || [])];
+                              updated[i] = { ...updated[i], qualification: val };
+                              return { ...prev, academicHistory: updated };
+                            });
+                          }}
+                          className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500"
+                        >
+                          <option value="High School / A-Levels">High School / Secondary / A-Levels</option>
+                          <option value="Bachelor's Degree">Bachelor's Degree</option>
+                          <option value="Master's Degree">Master's Degree</option>
+                          <option value="Doctorate / PhD">Doctorate / PhD</option>
+                          <option value="Diploma / Certificate">Diploma / Certificate</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-secondary mb-1">Degree Title / Major *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. BS Computer Science"
+                          value={rec.degreeTitle || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setStudent((prev) => {
+                              if (!prev) return prev;
+                              const updated = [...(prev.academicHistory || [])];
+                              updated[i] = { ...updated[i], degreeTitle: val };
+                              return { ...prev, academicHistory: updated };
+                            });
+                          }}
+                          className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-secondary mb-1">Institution Name *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. University of Punjab"
+                          value={rec.institution || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setStudent((prev) => {
+                              if (!prev) return prev;
+                              const updated = [...(prev.academicHistory || [])];
+                              updated[i] = { ...updated[i], institution: val };
+                              return { ...prev, academicHistory: updated };
+                            });
+                          }}
+                          className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-secondary mb-1">Country *</label>
+                        <select
+                          value={rec.country || personalOverrides.countryOfResidence || "Pakistan"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setStudent((prev) => {
+                              if (!prev) return prev;
+                              const updated = [...(prev.academicHistory || [])];
+                              updated[i] = { ...updated[i], country: val };
+                              return { ...prev, academicHistory: updated };
+                            });
+                          }}
+                          className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
+                        >
+                          {COMMON_COUNTRIES.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-secondary mb-1">Completion Year *</label>
+                        <input
+                          type="number"
+                          value={rec.completionYear || new Date().getFullYear()}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setStudent((prev) => {
+                              if (!prev) return prev;
+                              const updated = [...(prev.academicHistory || [])];
+                              updated[i] = { ...updated[i], completionYear: val };
+                              return { ...prev, academicHistory: updated };
+                            });
+                          }}
+                          className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-secondary mb-1">Grade / GPA / Score *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 3.6 / 4.0 or 80%"
+                          value={rec.gradeGpa || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setStudent((prev) => {
+                              if (!prev) return prev;
+                              const updated = [...(prev.academicHistory || [])];
+                              updated[i] = { ...updated[i], gradeGpa: val };
+                              return { ...prev, academicHistory: updated };
+                            });
+                          }}
+                          className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-6 text-center text-secondary border border-dashed border-subtle rounded-xl">
-                <p className="text-xs">No academic records found in profile.</p>
-                <Link to="/student/onboarding/step-1" className="text-xs font-bold text-emerald-400 underline mt-2 inline-block">
-                  Update Academic History in Profile →
-                </Link>
+              <div className="p-6 text-center text-secondary border border-dashed border-subtle rounded-xl space-y-2">
+                <p className="text-xs">No academic records entered yet.</p>
+                <p className="text-[11px] text-muted">
+                  Upload your CV in Step 2 or click &quot;Add Qualification&quot; above to add your degrees and grades.
+                </p>
               </div>
             )}
           </div>
