@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import { doc, setDoc, addDoc, collection } from "firebase/firestore";
 import { auth, db, getEmailActionSettings } from "../firebase/config";
 import {
@@ -125,6 +125,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   /* ---- state ---- */
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(initialRole);
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     fullName: "",
     email: "",
     phone: "",
@@ -155,7 +157,15 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   }, [selectedRole]);
 
   const updateField = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "firstName" || field === "lastName") {
+        const first = field === "firstName" ? value : prev.firstName;
+        const last = field === "lastName" ? value : prev.lastName;
+        next.fullName = `${first || ""} ${last || ""}`.trim();
+      }
+      return next;
+    });
   };
 
   /* ---- password strength ---- */
@@ -207,12 +217,24 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const uid = userCredential.user.uid;
 
+      const finalFirstName = (formData.firstName || "").trim() || (formData.fullName || "").trim().split(/\s+/)[0] || "";
+      const finalLastName = (formData.lastName || "").trim() || (formData.fullName || "").trim().split(/\s+/).slice(1).join(" ") || "";
+      const finalFullName = `${finalFirstName} ${finalLastName}`.trim() || formData.fullName.trim() || "Student";
+
+      try {
+        await updateProfile(userCredential.user, { displayName: finalFullName });
+      } catch (profErr) {
+        console.warn("Could not set displayName on Auth user:", profErr);
+      }
+
       const isStudentRole = selectedRole === "student";
       // 2. Create base user profile in Firestore
       await setDoc(doc(db, "users", uid), {
         uid,
         email: formData.email.toLowerCase(),
-        displayName: formData.fullName,
+        firstName: finalFirstName,
+        lastName: finalLastName,
+        displayName: finalFullName,
         role: selectedRole,
         office: formData.office || "London HQ",
         team: "Global Team",
@@ -221,7 +243,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         onboardingStatus: isStudentRole ? "not_started" : "completed",
         profileCompleted: !isStudentRole,
         currentStep: isStudentRole ? 1 : 4,
-        ...(formData.phone ? { phone: formData.phone } : {}),
+        ...(formData.phone ? { phone: formData.phone.trim() } : {}),
         ...(selectedRole === "external_agent" ? { agencyName: formData.agencyName } : {}),
         ...(selectedRole === "university_partner" ? { universityName: formData.universityName } : {}),
       });
@@ -252,9 +274,11 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
         await setDoc(doc(db, "students", uid), {
           id: uid,
-          fullName: formData.fullName,
+          firstName: finalFirstName,
+          lastName: finalLastName,
+          fullName: finalFullName,
           email: formData.email.toLowerCase(),
-          phone: formData.phone,
+          phone: formData.phone.trim(),
           nationality: formData.nationality,
           countryOfResidence: formData.countryOfResidence,
           ...(extractedDob ? { dob: extractedDob } : {}),
@@ -272,9 +296,11 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       } else if (selectedRole === "external_agent") {
         await setDoc(doc(db, "agents", uid), {
           id: uid,
-          fullName: formData.fullName,
+          firstName: finalFirstName,
+          lastName: finalLastName,
+          fullName: finalFullName,
           email: formData.email.toLowerCase(),
-          phone: formData.phone,
+          phone: formData.phone.trim(),
           agencyName: formData.agencyName,
           countryOfResidence: formData.countryOfResidence,
           referralCode: `REF-${uid.slice(0, 8).toUpperCase()}`,
@@ -290,7 +316,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       } else if (selectedRole === "university_partner") {
         await setDoc(doc(db, "university_partners", uid), {
           id: uid,
-          fullName: formData.fullName,
+          firstName: finalFirstName,
+          lastName: finalLastName,
+          fullName: finalFullName,
           email: formData.email.toLowerCase(),
           universityName: formData.universityName,
           position: formData.position,
@@ -304,6 +332,16 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           updatedAt: Date.now(),
         });
       }
+
+      // Cache registration data in session storage for instant sync with onboarding wizard
+      try {
+        sessionStorage.setItem("student_registration_first_name", finalFirstName);
+        sessionStorage.setItem("student_registration_last_name", finalLastName);
+        sessionStorage.setItem("student_registration_full_name", finalFullName);
+        if (formData.phone) sessionStorage.setItem("student_registration_phone", formData.phone.trim());
+        if (formData.countryOfResidence) sessionStorage.setItem("student_registration_country", formData.countryOfResidence);
+        if (formData.nationality) sessionStorage.setItem("student_registration_nationality", formData.nationality);
+      } catch (_) {}
 
       // 4. Record GDPR consent
       try {
@@ -520,17 +558,36 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ---- SHARED: Full Name ---- */}
-          <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Full Name *</label>
-            <div className="relative">
-              <User className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-              <input
-                type="text" required value={formData.fullName}
-                onChange={(e) => updateField("fullName", e.target.value)}
-                placeholder="e.g. Jane Doe"
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-              />
+          {/* ---- SHARED: Full Name (First Name & Last Name) ---- */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">First Name *</label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <input
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => updateField("firstName", e.target.value)}
+                  placeholder="Muhammad"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Last Name *</label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => updateField("lastName", e.target.value)}
+                  placeholder="Ali"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                />
+              </div>
             </div>
           </div>
 

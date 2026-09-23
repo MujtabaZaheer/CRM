@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
 import {
   User,
   GraduationCap,
@@ -12,8 +13,9 @@ import {
   Save,
   Loader2,
   BookOpen,
+  CheckCircle2,
 } from "lucide-react";
-import { db } from "../../../firebase/config";
+import { auth, db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AcademicRecord, QualificationLevel, Student } from "../../../types/student";
 import { calculateProfileCompleteness } from "../../../utils/profileCompleteness";
@@ -55,15 +57,45 @@ export const StudentOnboardingStage1: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Personal Info
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  // Personal Info - initialized with immediate fallback to registration cache
+  const [firstName, setFirstName] = useState(() => {
+    try {
+      return sessionStorage.getItem("student_registration_first_name") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [lastName, setLastName] = useState(() => {
+    try {
+      return sessionStorage.getItem("student_registration_last_name") || "";
+    } catch {
+      return "";
+    }
+  });
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState<Student["gender"]>("Prefer not to say");
-  const [nationality, setNationality] = useState("Pakistan");
-  const [countryOfResidence, setCountryOfResidence] = useState("Pakistan");
+  const [nationality, setNationality] = useState(() => {
+    try {
+      return sessionStorage.getItem("student_registration_nationality") || "Pakistan";
+    } catch {
+      return "Pakistan";
+    }
+  });
+  const [countryOfResidence, setCountryOfResidence] = useState(() => {
+    try {
+      return sessionStorage.getItem("student_registration_country") || "Pakistan";
+    } catch {
+      return "Pakistan";
+    }
+  });
   const [city, setCity] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => {
+    try {
+      return sessionStorage.getItem("student_registration_phone") || "";
+    } catch {
+      return "";
+    }
+  });
   const email = firebaseUser?.email || appUser?.email || "";
 
   // Academic History
@@ -88,69 +120,136 @@ export const StudentOnboardingStage1: React.FC = () => {
     }
   }, [appUser, navigate]);
 
-  // Load existing profile from Firestore
+  // Load existing profile from Firestore with comprehensive multi-tier fallback
   useEffect(() => {
     const fetchProfile = async () => {
       const uid = firebaseUser?.uid || appUser?.uid;
       if (!uid) return;
 
       try {
-        const snap = await getDoc(doc(db, "students", uid));
-        if (snap.exists()) {
-          const data = snap.data() as Student;
-          const names = (data.fullName || "").split(" ");
-          setFirstName(names[0] || "");
-          setLastName(names.slice(1).join(" ") || "");
-          setDob(data.dob || "");
-          setGender(data.gender || "Prefer not to say");
-          const normalizedNat = data.nationality ? (toCountryName(data.nationality) || data.nationality) : "Pakistan";
-          const finalNat = COUNTRIES.includes(normalizedNat) ? normalizedNat : (COUNTRIES.includes(data.nationality) ? data.nationality : "Pakistan");
-          setNationality(finalNat);
+        let loadedFirst = "";
+        let loadedLast = "";
+        let loadedPhone = "";
+        let loadedNationality = "";
+        let loadedResidence = "";
+        let loadedCity = "";
+        let loadedDob = "";
+        let loadedGender: Student["gender"] = undefined;
+        let loadedStudyLevel = "";
+        let loadedAcademic: AcademicRecord[] = [];
 
-          const normalizedCountry = data.countryOfResidence ? (toCountryName(data.countryOfResidence) || data.countryOfResidence) : "Pakistan";
-          const finalCountry = COUNTRIES.includes(normalizedCountry) ? normalizedCountry : (COUNTRIES.includes(data.countryOfResidence) ? data.countryOfResidence : "Pakistan");
-          setCountryOfResidence(finalCountry);
-          setCity((data as any).city || "");
-          setPhone(data.phone || "");
-
+        // 1. Primary Source: `students` collection doc
+        const studentSnap = await getDoc(doc(db, "students", uid));
+        if (studentSnap.exists()) {
+          const data = studentSnap.data() as Student;
+          if (data.firstName) loadedFirst = data.firstName;
+          if (data.lastName) loadedLast = data.lastName;
+          if ((!loadedFirst || !loadedLast) && data.fullName) {
+            const parts = data.fullName.trim().split(/\s+/);
+            if (!loadedFirst) loadedFirst = parts[0] || "";
+            if (!loadedLast) loadedLast = parts.slice(1).join(" ") || "";
+          }
+          if (data.phone) loadedPhone = data.phone;
+          if (data.dob) loadedDob = data.dob;
+          if (data.gender) loadedGender = data.gender;
+          if ((data as any).city) loadedCity = (data as any).city;
+          if ((data as any).desiredStudyLevel) loadedStudyLevel = (data as any).desiredStudyLevel;
+          if (data.nationality) loadedNationality = data.nationality;
+          if (data.countryOfResidence) loadedResidence = data.countryOfResidence;
           if (data.academicHistory && data.academicHistory.length > 0) {
-            setAcademicRecords(data.academicHistory);
+            loadedAcademic = data.academicHistory as AcademicRecord[];
           }
-
-          if ((data as any).desiredStudyLevel) {
-            setDesiredStudyLevel((data as any).desiredStudyLevel);
-          }
-        } else if (appUser?.displayName) {
-          const parts = appUser.displayName.split(" ");
-          setFirstName(parts[0] || "");
-          setLastName(parts.slice(1).join(" ") || "");
         }
 
-        // Check if CV was pre-extracted during registration
+        // 2. Secondary Source: `users` collection doc fallback
+        if (!loadedFirst || !loadedLast || !loadedPhone) {
+          try {
+            const userSnap = await getDoc(doc(db, "users", uid));
+            if (userSnap.exists()) {
+              const uData = userSnap.data();
+              if (!loadedFirst && uData.firstName) loadedFirst = uData.firstName;
+              if (!loadedLast && uData.lastName) loadedLast = uData.lastName;
+              if ((!loadedFirst || !loadedLast) && uData.displayName) {
+                const parts = uData.displayName.trim().split(/\s+/);
+                if (!loadedFirst) loadedFirst = parts[0] || "";
+                if (!loadedLast) loadedLast = parts.slice(1).join(" ") || "";
+              }
+              if (!loadedPhone && uData.phone) loadedPhone = uData.phone;
+            }
+          } catch (uErr) {
+            console.warn("Could not check users collection fallback:", uErr);
+          }
+        }
+
+        // 3. Tertiary Source: Context User Profile displayName
+        if ((!loadedFirst || !loadedLast) && appUser?.displayName) {
+          const parts = appUser.displayName.trim().split(/\s+/);
+          if (!loadedFirst) loadedFirst = parts[0] || "";
+          if (!loadedLast) loadedLast = parts.slice(1).join(" ") || "";
+        }
+        if ((!loadedFirst || !loadedLast) && firebaseUser?.displayName) {
+          const parts = firebaseUser.displayName.trim().split(/\s+/);
+          if (!loadedFirst) loadedFirst = parts[0] || "";
+          if (!loadedLast) loadedLast = parts.slice(1).join(" ") || "";
+        }
+
+        // 4. Session Storage Registration Cache
+        try {
+          if (!loadedFirst) loadedFirst = sessionStorage.getItem("student_registration_first_name") || "";
+          if (!loadedLast) loadedLast = sessionStorage.getItem("student_registration_last_name") || "";
+          if (!loadedFirst && !loadedLast) {
+            const sessionFull = sessionStorage.getItem("student_registration_full_name") || "";
+            if (sessionFull) {
+              const parts = sessionFull.trim().split(/\s+/);
+              loadedFirst = parts[0] || "";
+              loadedLast = parts.slice(1).join(" ") || "";
+            }
+          }
+          if (!loadedPhone) loadedPhone = sessionStorage.getItem("student_registration_phone") || "";
+          if (!loadedNationality) loadedNationality = sessionStorage.getItem("student_registration_nationality") || "";
+          if (!loadedResidence) loadedResidence = sessionStorage.getItem("student_registration_country") || "";
+        } catch (_) {}
+
+        // 5. Pre-extracted CV Cache
         try {
           const cachedCV = sessionStorage.getItem("student_extracted_cv");
           if (cachedCV) {
             const parsed = JSON.parse(cachedCV);
-            if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
-            if (parsed.lastName && !lastName) setLastName(parsed.lastName);
-            if (parsed.phone && !phone) setPhone(parsed.phone);
-            if (parsed.nationality) {
-              const matchedCountry = toCountryName(parsed.nationality);
-              setNationality(COUNTRIES.includes(matchedCountry) ? matchedCountry : "Pakistan");
-            }
-            if (parsed.countryOfResidence) {
-              const matchedResidence = toCountryName(parsed.countryOfResidence);
-              setCountryOfResidence(COUNTRIES.includes(matchedResidence) ? matchedResidence : "Pakistan");
-            }
-            if (parsed.dob && !dob) setDob(parsed.dob);
-            if (parsed.gender && (!gender || gender === "Prefer not to say")) setGender(parsed.gender);
-            if (parsed.city && !city) setCity(parsed.city);
-            if (parsed.desiredStudyLevel && !desiredStudyLevel) setDesiredStudyLevel(parsed.desiredStudyLevel);
-            if (parsed.academicRecords && parsed.academicRecords.length > 0) {
-              setAcademicRecords(parsed.academicRecords);
+            if (!loadedFirst && parsed.firstName) loadedFirst = parsed.firstName;
+            if (!loadedLast && parsed.lastName) loadedLast = parsed.lastName;
+            if (!loadedPhone && parsed.phone) loadedPhone = parsed.phone;
+            if (!loadedNationality && parsed.nationality) loadedNationality = parsed.nationality;
+            if (!loadedResidence && parsed.countryOfResidence) loadedResidence = parsed.countryOfResidence;
+            if (!loadedDob && parsed.dob) loadedDob = parsed.dob;
+            if (!loadedGender && parsed.gender) loadedGender = parsed.gender;
+            if (!loadedCity && parsed.city) loadedCity = parsed.city;
+            if (!loadedStudyLevel && parsed.desiredStudyLevel) loadedStudyLevel = parsed.desiredStudyLevel;
+            if ((!loadedAcademic || loadedAcademic.length === 0) && parsed.academicRecords?.length > 0) {
+              loadedAcademic = parsed.academicRecords;
             }
           }
         } catch (_) {}
+
+        // Commit loaded values into state
+        if (loadedFirst) setFirstName(loadedFirst);
+        if (loadedLast) setLastName(loadedLast);
+        if (loadedPhone) setPhone(loadedPhone);
+        if (loadedDob) setDob(loadedDob);
+        if (loadedGender) setGender(loadedGender);
+        if (loadedCity) setCity(loadedCity);
+        if (loadedStudyLevel) setDesiredStudyLevel(loadedStudyLevel);
+
+        const normalizedNat = loadedNationality ? (toCountryName(loadedNationality) || loadedNationality) : "Pakistan";
+        const finalNat = COUNTRIES.includes(normalizedNat) ? normalizedNat : (COUNTRIES.includes(loadedNationality) ? loadedNationality : "Pakistan");
+        setNationality(finalNat);
+
+        const normalizedCountry = loadedResidence ? (toCountryName(loadedResidence) || loadedResidence) : "Pakistan";
+        const finalCountry = COUNTRIES.includes(normalizedCountry) ? normalizedCountry : (COUNTRIES.includes(loadedResidence) ? loadedResidence : "Pakistan");
+        setCountryOfResidence(finalCountry);
+
+        if (loadedAcademic && loadedAcademic.length > 0) {
+          setAcademicRecords(loadedAcademic);
+        }
       } catch (err: any) {
         console.warn("Could not load student profile:", err);
       } finally {
@@ -222,10 +321,24 @@ export const StudentOnboardingStage1: React.FC = () => {
     setSaving(true);
     setError(null);
 
-    const fullName = `${firstName} ${lastName}`.trim() || appUser?.displayName || "Student";
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    const fullName = `${trimmedFirst} ${trimmedLast}`.trim() || appUser?.displayName || firebaseUser?.displayName || "Student";
+
+    // Immediate sync to session storage for instant UI persistence
+    try {
+      sessionStorage.setItem("student_registration_first_name", trimmedFirst);
+      sessionStorage.setItem("student_registration_last_name", trimmedLast);
+      sessionStorage.setItem("student_registration_full_name", fullName);
+      if (phone.trim()) sessionStorage.setItem("student_registration_phone", phone.trim());
+      if (countryOfResidence) sessionStorage.setItem("student_registration_country", countryOfResidence);
+      if (nationality) sessionStorage.setItem("student_registration_nationality", nationality);
+    } catch (_) {}
 
     const payload: Partial<Student> & Record<string, any> = {
       id: uid,
+      firstName: trimmedFirst,
+      lastName: trimmedLast,
       fullName,
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
@@ -242,6 +355,7 @@ export const StudentOnboardingStage1: React.FC = () => {
     };
 
     try {
+      // 1. Persist to students collection
       await setDoc(doc(db, "students", uid), {
         ...payload,
         onboardingStatus: "in_progress",
@@ -249,17 +363,27 @@ export const StudentOnboardingStage1: React.FC = () => {
         currentStep: 2
       }, { merge: true });
       
-      // Also update base user profile display name and completion status
+      // 2. Persist to users base profile
       await setDoc(doc(db, "users", uid), { 
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
         displayName: fullName, 
+        ...(phone.trim() ? { phone: phone.trim() } : {}),
         onboardingStatus: "in_progress",
         profileCompleted: false,
         currentStep: 2,
         updatedAt: Date.now() 
       }, { merge: true });
 
+      // 3. Keep Firebase Auth user displayName synchronized
+      if (auth.currentUser) {
+        try {
+          await updateProfile(auth.currentUser, { displayName: fullName });
+        } catch (_) {}
+      }
+
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
+      setTimeout(() => setSaveSuccess(false), 2500);
 
       if (isProceeding) {
         if (!completeness.isComplete) {
@@ -351,6 +475,13 @@ export const StudentOnboardingStage1: React.FC = () => {
           <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {saveSuccess && (
+          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-2.5 animate-in fade-in duration-200">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span>Profile draft and personal information saved successfully.</span>
           </div>
         )}
 

@@ -50,6 +50,8 @@ export const ACTIVE_ROLES: UserRole[] = [
 export interface AppUser {
   uid: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   displayName?: string;
   role: UserRole;
   createdAt: number;

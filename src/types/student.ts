@@ -83,6 +83,8 @@ export interface ResearchProposal {
 export interface Student {
   id: string;
   leadId?: string;
+  firstName?: string;
+  lastName?: string;
   fullName: string;
   email: string;
   phone: string;
