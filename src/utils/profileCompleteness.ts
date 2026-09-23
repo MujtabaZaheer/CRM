@@ -17,15 +17,13 @@ export interface ProfileCompletenessResult {
 }
 
 /**
- * Calculates student profile completeness based on strict Master Profile requirements.
- * Excludes Destination/University discovery which happens post-onboarding.
+ * Calculates student profile completeness based on streamlined onboarding requirements.
+ * Excludes Passport, English, Employment, Financial Sponsor, Dependants, References.
  * 
- * Core admissions components:
- * - Personal Information (20%)
- * - Passport Details (20%)
- * - Academic History (20%)
- * - English Proficiency (20%)
- * - Sponsorship & Background (20%)
+ * Core admissions onboarding components:
+ * - Personal Information (40%)
+ * - Academic History (35%)
+ * - Desired Study Level (25%)
  */
 export function calculateProfileCompleteness(
   student: Partial<Student> | null | undefined
@@ -35,14 +33,14 @@ export function calculateProfileCompleteness(
       percentage: 0,
       isComplete: false,
       sections: [],
-      missingFields: ["Personal Information", "Passport", "Academic Records", "English Language", "Sponsorship & Background"],
+      missingFields: ["Personal Information", "Academic Records", "Desired Study Level"],
     };
   }
 
   const sections: ProfileSectionStatus[] = [];
   const missing: string[] = [];
 
-  // 1. Personal Info (20%)
+  // 1. Personal Info (40%)
   const hasName = Boolean(student.fullName?.trim());
   const hasEmail = Boolean(student.email?.trim());
   const hasPhone = Boolean(student.phone?.trim());
@@ -51,13 +49,13 @@ export function calculateProfileCompleteness(
   const hasDob = Boolean(student.dob?.trim());
   
   const personalCount = [hasName, hasEmail, hasPhone, hasNationality, hasCountry, hasDob].filter(Boolean).length;
-  const personalScore = Math.round((personalCount / 6) * 20);
+  const personalScore = Math.round((personalCount / 6) * 40);
   const personalComplete = personalCount >= 6;
   
   sections.push({
     id: "personal",
     title: "Personal Information",
-    weight: 20,
+    weight: 40,
     completed: personalComplete,
     score: personalScore,
     hint: personalComplete ? "Complete" : `${6 - personalCount} fields remaining`,
@@ -73,77 +71,38 @@ export function calculateProfileCompleteness(
     missing.push(`Personal Details (${missingFields.join(", ")})`);
   }
 
-  // 2. Passport (20%)
-  const hasPassportNum = Boolean(student.passportNumber?.trim());
-  const hasPassportExp = Boolean(student.passportExpiry?.trim());
-  const passportHandled = Boolean(
-    (hasPassportNum && hasPassportExp) ||
-    student.notes?.includes("no_passport_yet") ||
-    (student as any).passportAvailable === false
-  );
-  const passportScore = passportHandled ? 20 : (hasPassportNum ? 10 : 0);
-  
-  sections.push({
-    id: "passport",
-    title: "Passport Details",
-    weight: 20,
-    completed: passportHandled,
-    score: passportScore,
-    hint: passportHandled ? "Configured" : "Add passport or indicate pending",
-  });
-  if (!passportHandled) missing.push("Complete Passport Information or indicate if pending");
-
-  // 3. Academic History (20%)
+  // 2. Academic History (35%)
   const records = student.academicHistory || [];
   const hasAcademicRecord = records.length > 0 && Boolean(records[0].institution && records[0].gradeGpa && records[0].completionYear);
-  const academicScore = hasAcademicRecord ? 20 : 0;
+  const academicScore = hasAcademicRecord ? 35 : 0;
   
   sections.push({
     id: "academic",
     title: "Academic History",
-    weight: 20,
+    weight: 35,
     completed: hasAcademicRecord,
     score: academicScore,
     hint: hasAcademicRecord ? `${records.length} record(s) recorded` : "Add your previous degree/grades",
   });
   if (!hasAcademicRecord) missing.push("Academic History (At least 1 qualification with grades)");
 
-  // 4. English Proficiency (20%)
-  const english = student.englishProficiency;
-  const hasEnglish = Boolean(
-    (english?.testType && english?.overallScore) ||
-    english?.testType === "MOI Evidence" ||
-    (student as any)?.noEnglishTestYet === true
-  );
-  const englishScore = hasEnglish ? 20 : 0;
-  
-  sections.push({
-    id: "english",
-    title: "English Language",
-    weight: 20,
-    completed: hasEnglish,
-    score: englishScore,
-    hint: hasEnglish ? "Recorded" : "Select test or indicate status",
-  });
-  if (!hasEnglish) missing.push("English test scores or language proficiency status");
-
-  // 5. Sponsorship & Background (20%)
-  // Simple check for intended study level to verify they reached the end of the form
+  // 3. Desired Study Level (25%)
   const hasStudyLevel = Boolean((student as any).desiredStudyLevel?.trim());
+  const studyLevelScore = hasStudyLevel ? 25 : 0;
   
   sections.push({
-    id: "background",
-    title: "Background & Goals",
-    weight: 20,
+    id: "desiredStudyLevel",
+    title: "Desired Study Level",
+    weight: 25,
     completed: hasStudyLevel,
-    score: hasStudyLevel ? 20 : 0,
-    hint: hasStudyLevel ? "Recorded" : "Complete background questions",
+    score: studyLevelScore,
+    hint: hasStudyLevel ? (student as any).desiredStudyLevel : "Select intended study level",
   });
-  if (!hasStudyLevel) missing.push("Study level goal and background information");
+  if (!hasStudyLevel) missing.push("Desired Study Level (Please select your degree goal)");
 
   const totalPercentage = Math.min(100, sections.reduce((sum, s) => sum + s.score, 0));
   
-  // 100% completeness is strictly required to proceed to the application engine
+  // 100% completeness is strictly required to proceed to Step 2
   const isComplete = totalPercentage === 100;
 
   return {

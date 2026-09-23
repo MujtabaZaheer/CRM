@@ -236,7 +236,7 @@ export const StudentOnboardingStage3: React.FC = () => {
   const matchedPrograms = useMemo<ProgramMatchItem[]>(() => {
     if (universities.length === 0) return [];
     const dests = student?.preferredDestinations || (student?.preferredDestination ? [student.preferredDestination] : []);
-    const desiredLevel = student?.desiredStudyLevel || "Master's";
+    const desiredLevel = student?.desiredStudyLevel || "";
     const results: ProgramMatchItem[] = [];
 
     universities.forEach((univ) => {

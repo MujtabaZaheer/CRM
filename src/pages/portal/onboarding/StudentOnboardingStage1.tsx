@@ -5,14 +5,12 @@ import {
   User,
   GraduationCap,
   Globe,
-  FileCheck,
   ArrowRight,
   Plus,
   Trash2,
   AlertCircle,
   Save,
   Loader2,
-  Shield,
   BookOpen,
 } from "lucide-react";
 import { db } from "../../../firebase/config";
@@ -43,9 +41,8 @@ const QUALIFICATIONS: QualificationLevel[] = [
 
 const COUNTRIES = [
   "Pakistan", "United Kingdom", "Canada", "Australia", "United States", "Germany",
-  "Ireland", "New Zealand", "United Arab Emirates", "France", "Netherlands",
-  "Sweden", "Singapore", "Malaysia", "India", "Nigeria",
-  "Ghana", "Bangladesh", "Other",
+  "Ireland", "Malaysia", "Turkey", "United Arab Emirates", "Saudi Arabia", "India",
+  "China", "France", "Netherlands", "Sweden", "New Zealand", "Singapore"
 ];
 
 export const StudentOnboardingStage1: React.FC = () => {
@@ -69,12 +66,6 @@ export const StudentOnboardingStage1: React.FC = () => {
   const [phone, setPhone] = useState("");
   const email = firebaseUser?.email || appUser?.email || "";
 
-  // Passport Info
-  const [hasPassport, setHasPassport] = useState(true);
-  const [passportNumber, setPassportNumber] = useState("");
-  const [passportCountry, setPassportCountry] = useState("Pakistan");
-  const [passportExpiry, setPassportExpiry] = useState("");
-
   // Academic History
   const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([
     {
@@ -87,41 +78,8 @@ export const StudentOnboardingStage1: React.FC = () => {
     },
   ]);
 
-  // English Proficiency
-  const [englishTestType, setEnglishTestType] = useState<string>("IELTS");
-  const [englishOverallScore, setEnglishOverallScore] = useState("");
-  const [englishSubScores, setEnglishSubScores] = useState({
-    listening: "",
-    reading: "",
-    writing: "",
-    speaking: "",
-  });
-  const [englishTestDate, setEnglishTestDate] = useState("");
-  const [englishExpiryDate, setEnglishExpiryDate] = useState("");
-  const [noEnglishTestYet, setNoEnglishTestYet] = useState(false);
-
-  // Study Level Goal
-  const [desiredStudyLevel, setDesiredStudyLevel] = useState("Master's");
-
-  // Financial Sponsor
-  const [hasSponsor, setHasSponsor] = useState(false);
-  const [sponsorName, setSponsorName] = useState("");
-  const [sponsorRelation, setSponsorRelation] = useState("Parent");
-  const [sponsorIncome, setSponsorIncome] = useState("");
-
-  // Employment
-  const [hasEmployment, setHasEmployment] = useState(false);
-  const [employerName, setEmployerName] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-
-  // Dependants
-  const [hasDependants, setHasDependants] = useState(false);
-  const [dependantsCount, setDependantsCount] = useState("1");
-
-  // References
-  const [hasReferences, setHasReferences] = useState(false);
-  const [refName, setRefName] = useState("");
-  const [refEmail, setRefEmail] = useState("");
+  // Study Level Goal (initially empty so not automatically pre-selected)
+  const [desiredStudyLevel, setDesiredStudyLevel] = useState("");
 
   // Redirect non-students away from student onboarding immediately
   useEffect(() => {
@@ -155,54 +113,12 @@ export const StudentOnboardingStage1: React.FC = () => {
           setCity((data as any).city || "");
           setPhone(data.phone || "");
 
-          if (data.passportNumber) {
-            setHasPassport(true);
-            setPassportNumber(data.passportNumber);
-            setPassportExpiry(data.passportExpiry || "");
-            setPassportCountry((data as any).passportCountry || data.nationality || "Pakistan");
-          } else if ((data as any).passportAvailable === false) {
-            setHasPassport(false);
-          }
-
           if (data.academicHistory && data.academicHistory.length > 0) {
             setAcademicRecords(data.academicHistory);
           }
 
-          if (data.englishProficiency) {
-            setEnglishTestType(data.englishProficiency.testType);
-            setEnglishOverallScore(data.englishProficiency.overallScore || "");
-            setEnglishTestDate(data.englishProficiency.testDate || "");
-            setEnglishExpiryDate((data.englishProficiency as any).expiryDate || "");
-            if ((data.englishProficiency as any).subScores) {
-              setEnglishSubScores((data.englishProficiency as any).subScores);
-            }
-          } else if ((data as any).noEnglishTestYet) {
-            setNoEnglishTestYet(true);
-            setEnglishTestType("No test yet");
-          }
-
           if ((data as any).desiredStudyLevel) {
             setDesiredStudyLevel((data as any).desiredStudyLevel);
-          }
-          if (data.financialSponsor) {
-            setHasSponsor(true);
-            setSponsorName(data.financialSponsor.name);
-            setSponsorRelation(data.financialSponsor.relationship);
-            setSponsorIncome(data.financialSponsor.annualIncomeUSD.toString());
-          }
-          if (data.employmentHistory && data.employmentHistory.length > 0) {
-            setHasEmployment(true);
-            setEmployerName(data.employmentHistory[0].employer);
-            setJobTitle(data.employmentHistory[0].jobTitle);
-          }
-          if (data.dependants && data.dependants.length > 0) {
-            setHasDependants(true);
-            setDependantsCount(data.dependants.length.toString());
-          }
-          if (data.references && data.references.length > 0) {
-            setHasReferences(true);
-            setRefName(data.references[0].name);
-            setRefEmail(data.references[0].email);
           }
         } else if (appUser?.displayName) {
           const parts = appUser.displayName.split(" ");
@@ -233,12 +149,6 @@ export const StudentOnboardingStage1: React.FC = () => {
             if (parsed.academicRecords && parsed.academicRecords.length > 0) {
               setAcademicRecords(parsed.academicRecords);
             }
-            if (parsed.englishProficiency?.overallScore && !englishOverallScore) {
-              setEnglishOverallScore(parsed.englishProficiency.overallScore);
-              if (parsed.englishProficiency.testType) {
-                setEnglishTestType(parsed.englishProficiency.testType);
-              }
-            }
           }
         } catch (_) {}
       } catch (err: any) {
@@ -261,21 +171,9 @@ export const StudentOnboardingStage1: React.FC = () => {
       dob,
       nationality,
       countryOfResidence,
-      passportNumber: hasPassport ? passportNumber : undefined,
-      passportExpiry: hasPassport ? passportExpiry : undefined,
       academicHistory: academicRecords,
-      englishProficiency: noEnglishTestYet
-        ? undefined
-        : {
-            testType: englishTestType as any,
-            overallScore: englishOverallScore,
-            testDate: englishTestDate,
-            expiryDate: englishExpiryDate,
-          },
-      notes: !hasPassport ? "no_passport_yet" : undefined,
+      desiredStudyLevel: desiredStudyLevel || undefined,
     };
-    (mockStudent as any).passportAvailable = hasPassport;
-    (mockStudent as any).noEnglishTestYet = noEnglishTestYet;
     (mockStudent as any).desiredStudyLevel = desiredStudyLevel;
 
     return calculateProfileCompleteness(mockStudent);
@@ -287,15 +185,7 @@ export const StudentOnboardingStage1: React.FC = () => {
     dob,
     nationality,
     countryOfResidence,
-    hasPassport,
-    passportNumber,
-    passportExpiry,
     academicRecords,
-    noEnglishTestYet,
-    englishTestType,
-    englishOverallScore,
-    englishTestDate,
-    englishExpiryDate,
     desiredStudyLevel,
   ]);
 
@@ -344,56 +234,12 @@ export const StudentOnboardingStage1: React.FC = () => {
       nationality,
       countryOfResidence,
       city: city.trim(),
-      passportAvailable: hasPassport,
-      passportNumber: hasPassport ? passportNumber.trim() : "",
-      passportCountry: hasPassport ? passportCountry : "",
-      passportExpiry: hasPassport ? passportExpiry : "",
       academicHistory: academicRecords.filter((r) => (r.institution || "").trim() || (r.degreeTitle || "").trim()),
-      englishProficiency: noEnglishTestYet
-        ? { testType: "MOI Evidence" as any, overallScore: "Pending" }
-        : {
-            testType: englishTestType as any,
-            overallScore: englishOverallScore.trim(),
-            testDate: englishTestDate,
-            expiryDate: englishExpiryDate,
-          },
-      noEnglishTestYet,
       desiredStudyLevel,
-      employmentHistory: hasEmployment ? [{
-        employer: employerName.trim(),
-        jobTitle: jobTitle.trim(),
-        country: countryOfResidence,
-        startDate: "",
-        endDate: "",
-        description: ""
-      }] : [],
-      dependants: hasDependants ? Array.from({ length: Number(dependantsCount) || 1 }).map(() => ({
-        name: "Dependant",
-        relationship: "Child/Spouse",
-        dateOfBirth: "",
-        accompanyingStudent: true
-      })) : [],
-      references: hasReferences ? [{
-        name: refName.trim(),
-        email: refEmail.trim(),
-        designation: "Academic",
-        institution: "",
-        phone: "",
-        letterUploaded: false
-      }] : [],
       profileCompleteness: completeness.percentage,
       onboardingStep: 1,
       updatedAt: Date.now(),
     };
-
-    if (hasSponsor) {
-      payload.financialSponsor = {
-        name: sponsorName.trim(),
-        relationship: sponsorRelation,
-        annualIncomeUSD: Number(sponsorIncome) || 0,
-        bankStatementUploaded: false
-      };
-    }
 
     try {
       await setDoc(doc(db, "students", uid), {
@@ -417,7 +263,7 @@ export const StudentOnboardingStage1: React.FC = () => {
 
       if (isProceeding) {
         if (!completeness.isComplete) {
-          setError("Your profile must be 100% complete before proceeding. Please fill in all required fields.");
+          setError("Please complete all required fields (Personal Information, Academic History, and Desired Study Level) before proceeding.");
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
@@ -508,8 +354,6 @@ export const StudentOnboardingStage1: React.FC = () => {
           </div>
         )}
 
-
-
         {/* Section 1: Personal Information */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
@@ -541,12 +385,12 @@ export const StudentOnboardingStage1: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-1.5">Email Address (Auth)</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Email Address</label>
               <input
                 type="email"
                 value={email}
                 disabled
-                className="w-full bg-surface border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-muted cursor-not-allowed"
+                className="w-full bg-elevated border border-default rounded-xl px-3.5 py-2.5 text-sm text-muted cursor-not-allowed opacity-70"
               />
             </div>
 
@@ -562,7 +406,7 @@ export const StudentOnboardingStage1: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-secondary mb-1.5">Date of Birth</label>
+              <label className="block text-xs font-semibold text-secondary mb-1.5">Date of Birth *</label>
               <input
                 type="date"
                 value={dob}
@@ -630,78 +474,12 @@ export const StudentOnboardingStage1: React.FC = () => {
           </div>
         </section>
 
-        {/* Section 2: Passport Information */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-subtle">
-            <div className="flex items-center gap-2.5">
-              <Shield className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">2. Passport Information</h2>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-muted">Do you have a passport?</span>
-              <button
-                type="button"
-                onClick={() => setHasPassport(!hasPassport)}
-                className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
-                  hasPassport
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-elevated text-muted border border-default"
-                }`}
-              >
-                {hasPassport ? "Yes, I have a passport" : "No passport yet"}
-              </button>
-            </div>
-          </div>
-
-          {hasPassport ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Passport Number</label>
-                <input
-                  type="text"
-                  value={passportNumber}
-                  onChange={(e) => setPassportNumber(e.target.value)}
-                  placeholder="AB1234567"
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Passport Issuing Country</label>
-                <select
-                  value={passportCountry}
-                  onChange={(e) => setPassportCountry(e.target.value)}
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Passport Expiry Date</label>
-                <input
-                  type="date"
-                  value={passportExpiry}
-                  onChange={(e) => setPassportExpiry(e.target.value)}
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted bg-main relative overflow-hidden/60 p-3.5 rounded-xl border border-subtle">
-              ℹ Passport details are not required to search programs or draft applications. You can add them later prior to final university CAS/Visa submission.
-            </p>
-          )}
-        </section>
-
-        {/* Section 3: Academic Background */}
+        {/* Section 2: Academic Background */}
         <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
               <GraduationCap className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">3. Academic Background</h2>
+              <h2 className="text-base font-bold text-primary font-heading">2. Academic Background</h2>
             </div>
             <button
               type="button"
@@ -806,127 +584,16 @@ export const StudentOnboardingStage1: React.FC = () => {
           </div>
         </section>
 
-        {/* Section 4: English Language Proficiency */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-5">
+        {/* Section 3: Desired Study Level */}
+        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
             <div className="flex items-center gap-2.5">
-              <FileCheck className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">4. English Language Proficiency</h2>
+              <Globe className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-base font-bold text-primary font-heading">3. Desired Study Level *</h2>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={noEnglishTestYet}
-                  onChange={(e) => setNoEnglishTestYet(e.target.checked)}
-                  className="rounded border-default text-emerald-500 focus:ring-0"
-                />
-                Haven't taken an English test yet
-              </label>
-            </div>
-          </div>
-
-          {!noEnglishTestYet ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">Test Type</label>
-                  <select
-                    value={englishTestType}
-                    onChange={(e) => setEnglishTestType(e.target.value)}
-                    className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="IELTS">IELTS Academic</option>
-                    <option value="PTE">PTE Academic</option>
-                    <option value="TOEFL">TOEFL iBT</option>
-                    <option value="Duolingo">Duolingo English Test (DET)</option>
-                    <option value="MOI Evidence">Medium of Instruction (MOI)</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">Overall Score</label>
-                  <input
-                    type="text"
-                    value={englishOverallScore}
-                    onChange={(e) => setEnglishOverallScore(e.target.value)}
-                    placeholder="e.g. 7.0 or 65 or 120"
-                    className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1.5">Test Date</label>
-                  <input
-                    type="date"
-                    value={englishTestDate}
-                    onChange={(e) => setEnglishTestDate(e.target.value)}
-                    className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {englishTestType === "IELTS" && (
-                <div className="p-4 rounded-xl bg-main relative overflow-hidden/70 border border-subtle space-y-2">
-                  <p className="text-xs font-semibold text-secondary">Sub-scores (Optional but recommended)</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div>
-                      <span className="text-[11px] text-muted">Listening</span>
-                      <input
-                        type="text"
-                        value={englishSubScores.listening}
-                        onChange={(e) => setEnglishSubScores({ ...englishSubScores, listening: e.target.value })}
-                        placeholder="7.5"
-                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-muted">Reading</span>
-                      <input
-                        type="text"
-                        value={englishSubScores.reading}
-                        onChange={(e) => setEnglishSubScores({ ...englishSubScores, reading: e.target.value })}
-                        placeholder="6.5"
-                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-muted">Writing</span>
-                      <input
-                        type="text"
-                        value={englishSubScores.writing}
-                        onChange={(e) => setEnglishSubScores({ ...englishSubScores, writing: e.target.value })}
-                        placeholder="6.5"
-                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-muted">Speaking</span>
-                      <input
-                        type="text"
-                        value={englishSubScores.speaking}
-                        onChange={(e) => setEnglishSubScores({ ...englishSubScores, speaking: e.target.value })}
-                        placeholder="7.0"
-                        className="w-full bg-surface border border-default rounded-lg px-2.5 py-1.5 text-xs text-primary"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-muted bg-main relative overflow-hidden/60 p-3.5 rounded-xl border border-subtle">
-              ℹ No worries! Our Program Matcher will still evaluate programs that offer English test waivers, internal university tests, or pre-sessional English courses.
-            </p>
-          )}
-        </section>
-
-        {/* Section 5: Target Study Level */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-subtle">
-            <Globe className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-bold text-primary font-heading">5. Desired Study Level</h2>
+            {!desiredStudyLevel && (
+              <span className="text-xs text-amber-400 font-medium">Please select a level</span>
+            )}
           </div>
 
           <p className="text-xs text-muted">
@@ -954,200 +621,6 @@ export const StudentOnboardingStage1: React.FC = () => {
           </div>
         </section>
 
-        {/* Section 6: Employment History */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-subtle">
-            <div className="flex items-center gap-2.5">
-              <FileCheck className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">6. Employment History</h2>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-muted">Do you have work experience?</span>
-              <button
-                type="button"
-                onClick={() => setHasEmployment(!hasEmployment)}
-                className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
-                  hasEmployment
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-elevated text-muted border border-default"
-                }`}
-              >
-                {hasEmployment ? "Yes" : "No"}
-              </button>
-            </div>
-          </div>
-
-          {hasEmployment && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Employer Name</label>
-                <input
-                  type="text"
-                  value={employerName}
-                  onChange={(e) => setEmployerName(e.target.value)}
-                  placeholder="Company Inc."
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Job Title</label>
-                <input
-                  type="text"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="Software Engineer"
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Section 7: Financial Sponsor */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-subtle">
-            <div className="flex items-center gap-2.5">
-              <Shield className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">7. Financial Sponsor</h2>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-muted">Do you have a financial sponsor?</span>
-              <button
-                type="button"
-                onClick={() => setHasSponsor(!hasSponsor)}
-                className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
-                  hasSponsor
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-elevated text-muted border border-default"
-                }`}
-              >
-                {hasSponsor ? "Yes" : "No"}
-              </button>
-            </div>
-          </div>
-
-          {hasSponsor && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Sponsor Name</label>
-                <input
-                  type="text"
-                  value={sponsorName}
-                  onChange={(e) => setSponsorName(e.target.value)}
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Relationship</label>
-                <select
-                  value={sponsorRelation}
-                  onChange={(e) => setSponsorRelation(e.target.value)}
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="Parent">Parent</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Self">Self-Funded</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Annual Income (USD)</label>
-                <input
-                  type="number"
-                  value={sponsorIncome}
-                  onChange={(e) => setSponsorIncome(e.target.value)}
-                  placeholder="50000"
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Section 8: Dependants */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-subtle">
-            <div className="flex items-center gap-2.5">
-              <User className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">8. Dependants</h2>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-muted">Any dependants joining you?</span>
-              <button
-                type="button"
-                onClick={() => setHasDependants(!hasDependants)}
-                className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
-                  hasDependants
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-elevated text-muted border border-default"
-                }`}
-              >
-                {hasDependants ? "Yes" : "No"}
-              </button>
-            </div>
-          </div>
-
-          {hasDependants && (
-            <div>
-              <label className="block text-xs font-semibold text-secondary mb-1.5">Number of Dependants</label>
-              <input
-                type="number"
-                min="1"
-                value={dependantsCount}
-                onChange={(e) => setDependantsCount(e.target.value)}
-                className="w-full sm:w-1/3 bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          )}
-        </section>
-
-        {/* Section 9: References */}
-        <section className="bg-surface/80 border border-subtle rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-subtle">
-            <div className="flex items-center gap-2.5">
-              <FileCheck className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-bold text-primary font-heading">9. References</h2>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="text-muted">Add an academic/professional reference?</span>
-              <button
-                type="button"
-                onClick={() => setHasReferences(!hasReferences)}
-                className={`px-3 py-1 rounded-full font-semibold transition-colors cursor-pointer ${
-                  hasReferences
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-elevated text-muted border border-default"
-                }`}
-              >
-                {hasReferences ? "Yes" : "No"}
-              </button>
-            </div>
-          </div>
-
-          {hasReferences && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Reference Name</label>
-                <input
-                  type="text"
-                  value={refName}
-                  onChange={(e) => setRefName(e.target.value)}
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">Reference Email</label>
-                <input
-                  type="email"
-                  value={refEmail}
-                  onChange={(e) => setRefEmail(e.target.value)}
-                  className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-          )}
-        </section>
-
         {!completeness.isComplete && completeness.missingFields.length > 0 && (
           <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400">
             <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
@@ -1155,7 +628,7 @@ export const StudentOnboardingStage1: React.FC = () => {
               Missing Information Required:
             </h3>
             <p className="text-xs mb-2 opacity-90">
-              Optional fields (like Dependants or Employment) are not required. You only need to complete the following to proceed:
+              Please complete the following required fields to proceed:
             </p>
             <ul className="list-disc list-inside text-xs space-y-1 ml-1 opacity-90 font-medium">
               {completeness.missingFields.map((field: string, idx: number) => (

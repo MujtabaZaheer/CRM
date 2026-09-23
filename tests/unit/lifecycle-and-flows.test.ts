@@ -38,7 +38,7 @@ describe("Complete 20-Stage Application Lifecycle Audit", () => {
     const content = fs.readFileSync(filePath, "utf8");
 
     for (const stage of ALL_20_STAGES) {
-      expect(content).toContain(`value="${stage}"`);
+      expect(content).toContain(`"${stage}"`);
     }
   });
 

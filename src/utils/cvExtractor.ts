@@ -564,8 +564,8 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
     }
   }
 
-  // 8. Desired Study Level
-  let desiredStudyLevel = "Master's";
+  // 8. Desired Study Level (not defaulted to Master's so student explicitly selects it)
+  let desiredStudyLevel: string | undefined = undefined;
   const lowerAll = fullText.toLowerCase();
   if (lowerAll.includes("phd") || lowerAll.includes("doctorate") || lowerAll.includes("postgraduate research")) {
     desiredStudyLevel = "PhD";
@@ -576,6 +576,8 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
     lowerAll.includes("fsc pre-engineering")
   ) {
     desiredStudyLevel = "Bachelor's";
+  } else if (lowerAll.includes("master's admission") || lowerAll.includes("masters admission") || lowerAll.includes("postgraduate admission")) {
+    desiredStudyLevel = "Master's";
   }
 
   // 9. Academic Records (real extraction without fake universities)
