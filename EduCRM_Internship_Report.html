@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Summer Internship Report - EduCRM Platform</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Inter:wght@400;500;600;700;800&display=swap');
+
+    @page {
+      size: A4;
+      margin: 20mm 20mm 20mm 20mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Merriweather', Georgia, serif;
+      color: #1e293b;
+      background: #f8fafc;
+      line-height: 1.7;
+      font-size: 11pt;
+    }
+
+    .report-container {
+      max-width: 850px;
+      margin: 30px auto;
+      background: #ffffff;
+      padding: 60px 70px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border-radius: 4px;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      .report-container {
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        max-width: 100%;
+      }
+      .page-break {
+        page-break-after: always;
+        break-after: page;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .page-break {
+      page-break-after: always;
+      margin-bottom: 40px;
+    }
+
+    /* Headings */
+    h1, h2, h3, h4 {
+      font-family: 'Inter', sans-serif;
+      color: #0f172a;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 20pt;
+      margin-top: 24pt;
+      margin-bottom: 12pt;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 6pt;
+    }
+
+    h2 {
+      font-size: 14pt;
+      margin-top: 18pt;
+      margin-bottom: 8pt;
+      color: #1e3a8a;
+    }
+
+    h3 {
+      font-size: 12pt;
+      margin-top: 14pt;
+      margin-bottom: 6pt;
+    }
+
+    p {
+      margin-bottom: 11pt;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 12pt;
+    }
+
+    li {
+      margin-bottom: 4pt;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      text-align: center;
+      padding: 60px 20px 40px;
+      min-height: 850px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cover-uni-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 17pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .cover-report-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 24pt;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-decoration: underline;
+      margin: 40px 0 10px;
+    }
+
+    .cover-subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 13pt;
+      color: #475569;
+      font-weight: 500;
+      margin-bottom: 50px;
+    }
+
+    .cover-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: 13pt;
+      line-height: 2;
+      color: #1e293b;
+    }
+
+    .cover-meta strong {
+      font-weight: 700;
+    }
+
+    .cover-footer {
+      font-family: 'Inter', sans-serif;
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-top: 2px solid #0f172a;
+      padding-top: 15px;
+      width: 100%;
+    }
+
+    /* Tables */
+    table.doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16pt 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 10pt;
+    }
+
+    table.doc-table th, table.doc-table td {
+      border: 1px solid #cbd5e1;
+      padding: 9pt 12pt;
+      text-align: left;
+    }
+
+    table.doc-table th {
+      background-color: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    table.doc-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    /* Image / Screenshot Placeholder Card */
+    .img-placeholder-card {
+      border: 2px dashed #3b82f6;
+      background-color: #eff6ff;
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin: 20pt 0 14pt;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .img-placeholder-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 11pt;
+      color: #1d4ed8;
+      margin-bottom: 8px;
+    }
+
+    .img-badge {
+      background: #1d4ed8;
+      color: #ffffff;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .img-placeholder-body {
+      font-size: 9.5pt;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    .img-placeholder-body strong {
+      color: #0f172a;
+    }
+
+    .embedded-img-box {
+      margin: 14pt 0;
+      text-align: center;
+    }
+
+    .embedded-img-box img {
+      max-width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .fig-caption {
+      font-family: 'Inter', sans-serif;
+      font-size: 9.5pt;
+      color: #475569;
+      font-style: italic;
+      text-align: center;
+      margin-top: 6pt;
+      margin-bottom: 16pt;
+    }
+
+    /* Signature Block */
+    .sig-section {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 60px;
+      font-family: 'Inter', sans-serif;
+      font-size: 10pt;
+    }
+
+    .sig-box {
+      width: 45%;
+      border-top: 1.5px solid #0f172a;
+      padding-top: 8px;
+      line-height: 1.4;
+    }
+
+    /* Print action floating bar */
+    .action-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 30px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      z-index: 1000;
+    }
+
+    .action-btn {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .action-btn:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="action-bar no-print">
+    <span>EduCRM Internship Report</span>
+    <button class="action-btn" onclick="window.print()">🖨️ Print / Save to PDF</button>
+  </div>
+
+  <div class="report-container">
+
+    <!-- COVER PAGE -->
+    <div class="cover-page">
+      <div>
+        <div style="font-size: 38px; margin-bottom: 10px;">🏛️</div>
+        <div class="cover-uni-title">Capital University of Science & Technology</div>
+        <div style="font-family: 'Inter'; font-size: 10pt; color: #64748b; margin-top: 4px;">Islamabad, Pakistan</div>
+      </div>
+
+      <div>
+        <div class="cover-report-title">Summer Internship Report</div>
+        <div class="cover-subtitle">Design and Implementation of EduCRM: An Enterprise Multi-Tenant Platform for Education Consultancy and Student Admissions Lifecycle Management</div>
+
+        <div class="cover-meta">
+          <div><strong>Student Name:</strong> Mujtaba Zaheer</div>
+          <div><strong>Registration No:</strong> [BSE21XXXX / Enter Your Reg No]</div>
+          <div><strong>Internship Duration:</strong> 6 Weeks</div>
+        </div>
+      </div>
+
+      <div class="cover-footer">
+        Department of Software Engineering<br/>
+        Capital University of Science and Technology
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- DOCUMENT CONTROL -->
+    <h1>1. Document Control</h1>
+    <table class="doc-table">
+      <tr>
+        <th style="width: 28%;">Item</th>
+        <th>Details</th>
+      </tr>
+      <tr>
+        <td><strong>Report Title</strong></td>
+        <td>Internship Progress Report — Comprehensive Education CRM and Student Application Lifecycle Management Platform (EduCRM)</td>
+      </tr>
+      <tr>
+        <td><strong>Student Name</strong></td>
+        <td>Mujtaba Zaheer</td>
+      </tr>
+      <tr>
+        <td><strong>Registration No.</strong></td>
+        <td>[BSE21XXXX / Enter Your Reg No]</td>
+      </tr>
+      <tr>
+        <td><strong>Degree Program</strong></td>
+        <td>Bachelor of Science in Software Engineering (BSSE)</td>
+      </tr>
+      <tr>
+        <td><strong>Department</strong></td>
+        <td>Department of Software Engineering</td>
+      </tr>
+      <tr>
+        <td><strong>University</strong></td>
+        <td>Capital University of Science and Technology (CUST), Islamabad</td>
+      </tr>
+      <tr>
+        <td><strong>Host Organization</strong></td>
+        <td>[Enter Host Organization / e.g., EduGlobal Solutions / Yuni (SMC-Pvt) Limited]</td>
+      </tr>
+      <tr>
+        <td><strong>Internship Position</strong></td>
+        <td>Full-Stack Software Engineering Intern</td>
+      </tr>
+      <tr>
+        <td><strong>Internship Start Date</strong></td>
+        <td>[03 August 2026 / Enter Start Date]</td>
+      </tr>
+      <tr>
+        <td><strong>Internship Duration</strong></td>
+        <td>Six (6) Weeks</td>
+      </tr>
+      <tr>
+        <td><strong>Internship Course</strong></td>
+        <td>SE4100 - Software Engineering Internship</td>
+      </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- TABLE OF CONTENTS -->
+    <h1>Table of Contents</h1>
+    <ul style="list-style-type: none; margin-left: 0; line-height: 2; font-family: 'Inter', sans-serif; font-size: 10.5pt;">
+      <li><strong>1. Document Control</strong> ................................................................................................................................ 2</li>
+      <li><strong>2. Executive Summary</strong> ........................................................................................................................... 4</li>
+      <li><strong>3. Acknowledgement</strong> ............................................................................................................................ 4</li>
+      <li><strong>4. Introduction</strong> ....................................................................................................................................... 5</li>
+      <li style="margin-left: 20px;">4.1 Internship Overview ...................................................................................................................... 5</li>
+      <li style="margin-left: 20px;">4.2 Internship Objectives .................................................................................................................... 5</li>
+      <li style="margin-left: 20px;">4.3 Role and Responsibilities .............................................................................................................. 5</li>
+      <li><strong>5. Organization Overview</strong> ...................................................................................................................... 6</li>
+      <li style="margin-left: 20px;">5.1 Host Organization Profile ............................................................................................................ 6</li>
+      <li style="margin-left: 20px;">5.2 Internship Environment and Agile Workflow ................................................................................. 6</li>
+      <li><strong>6. Technical Areas and Tools</strong> ................................................................................................................. 6</li>
+      <li><strong>7. Detailed Internship Progress</strong> .............................................................................................................. 7</li>
+      <li style="margin-left: 20px;">7.1 Week 1 – Multi-Tenant Architecture, Security Rules & RBAC Foundation .................................... 7</li>
+      <li style="margin-left: 20px;">7.2 Week 2 – Lead Lifecycle, Dynamic Form Builder & Intelligent Routing ....................................... 8</li>
+      <li style="margin-left: 20px;">7.3 Week 3 – Student Self-Service Portal & Application Lodgement Wizard ....................................... 9</li>
+      <li style="margin-left: 20px;">7.4 Week 4 – The 20-Stage Application Pipeline & Departmental Desks ........................................... 10</li>
+      <li style="margin-left: 20px;">7.5 Week 5 – AI Counsellor Suite Integration & Document Intelligence ............................................. 12</li>
+      <li style="margin-left: 20px;">7.6 Week 6 – Partner Agent Network, Commission Engine & Comprehensive QA ............................. 13</li>
+      <li style="margin-left: 20px;">7.7 System Verification, Performance Optimization, and Technical Documentation .......................... 14</li>
+      <li><strong>8. Learning Outcomes and Skills Developed</strong> ........................................................................................ 14</li>
+      <li style="margin-left: 20px;">8.1 Technical Skills ............................................................................................................................. 14</li>
+      <li style="margin-left: 20px;">8.2 Software Engineering Methodologies ........................................................................................... 14</li>
+      <li style="margin-left: 20px;">8.3 Professional & Collaborative Competencies ................................................................................ 15</li>
+      <li><strong>9. Challenges and Problem-Solving</strong> ..................................................................................................... 15</li>
+      <li><strong>10. Professional and Workplace Development</strong> ..................................................................................... 16</li>
+      <li><strong>11. Conclusion</strong> .......................................................................................................................................... 16</li>
+      <li><strong>12. Annexure A: Internship Offer Letter</strong> ............................................................................................... 17</li>
+      <li><strong>13. Annexure B: Completion Certificate</strong> .............................................................................................. 18</li>
+      <li><strong>14. Annexure C: Internship Evaluation Form</strong> ......................................................................................... 19</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- EXECUTIVE SUMMARY -->
+    <h1>2. Executive Summary</h1>
+    <p>
+      This internship progress report documents the engineering achievements and technical competencies developed during a six-week professional Software Engineering internship. The role was formally designated as <strong>Full-Stack Software Engineering Intern</strong>, focused on architecting and delivering <strong>EduCRM</strong>, a modern, multi-tenant Education Customer Relationship Management (CRM) and Student Application Lifecycle Management Platform.
+    </p>
+    <p>
+      International student recruitment and university admissions operations are historically plagued by fragmented spreadsheets, manual document verification bottlenecks, lack of role clarity between counselling, admissions, finance, and visa teams, and slow turnaround times. EduCRM was conceptualized and developed to solve these operational pain points through a unified, cloud-native web application built using <strong>React 19, TypeScript, Tailwind CSS, Vite, and Google Firebase (Authentication, Cloud Firestore, and Cloud Storage)</strong>, augmented with an <strong>AI Counsellor Suite powered by the Google Gemini API</strong>.
+    </p>
+    <p>
+      The internship was structured into systematic, goal-oriented engineering sprints:
+    </p>
+    <ul>
+      <li><strong>Week 1:</strong> Multi-tenant architectural setup, 13-role access control (RBAC), and declarative Firestore security rules.</li>
+      <li><strong>Week 2:</strong> Dynamic Form Builder, public inquiry endpoints, lead scoring heuristics, and workload-balanced routing.</li>
+      <li><strong>Week 3:</strong> Student self-service onboarding portal, academic profiling, and dynamic application submission wizard.</li>
+      <li><strong>Week 4:</strong> Core 20-stage application pipeline, departmental desks (Counselling, Admissions, Finance, Visa), and 1-click approvals.</li>
+      <li><strong>Week 5:</strong> AI Counsellor Suite, client-side PDF/DOCX parsing (PDF.js, Mammoth), Gemini API extraction, and zero-cost storage.</li>
+      <li><strong>Week 6:</strong> Partner Agent network, tiered commission calculations, automated Vitest and Playwright test suites, and production deployment on Firebase Hosting.</li>
+    </ul>
+    <p>
+      Overall, the internship provided extensive practical exposure to real-world cloud architectures, distributed reactive state management, asynchronous data streams via Firestore real-time listeners, rigorous automated software testing, and enterprise access governance.
+    </p>
+
+    <!-- ACKNOWLEDGEMENT -->
+    <h1>3. Acknowledgement</h1>
+    <p>
+      I would like to express my sincere appreciation to my industry supervisor and the software engineering team at the host organization for providing me with the opportunity to undertake this professional internship in Full-Stack Web Engineering. Their technical mentorship, constructive code reviews, and continuous guidance were instrumental in shaping the architecture of EduCRM.
+    </p>
+    <p>
+      I am equally indebted to the <strong>Department of Software Engineering at Capital University of Science and Technology (CUST), Islamabad</strong>, for providing a robust academic foundation that enabled me to connect software design patterns, database architecture, and security principles with high-impact industry applications.
+    </p>
+    <p>
+      Finally, I extend my heartfelt thanks to all team members and peers whose collaborative spirit and technical discussions made this internship an invaluable learning experience.
+    </p>
+
+    <div class="page-break"></div>
+
+    <!-- INTRODUCTION -->
+    <h1>4. Introduction</h1>
+    <h2>4.1 Internship Overview</h2>
+    <p>
+      The internship was undertaken as part of the compulsory <strong>SE4100 Software Engineering Internship</strong> course under the Department of Software Engineering, Capital University of Science and Technology (CUST). The program bridges academia and industry by immersing students in high-velocity software engineering teams to solve complex, real-world problems.
+    </p>
+    <p>
+      The primary project assigned during this tenure was <strong>EduCRM</strong>—an enterprise-grade education consultancy and admissions management software platform. The system is engineered to digitize the complete lifecycle of international student recruitment, encompassing prospective lead intake, automated document ingestion, university matching, conditional/unconditional offer issuance, tuition deposit processing, visa filing, and agent commission settlement.
+    </p>
+
+    <h2>4.2 Internship Objectives</h2>
+    <ul>
+      <li><strong>Enterprise Architecture Application:</strong> Implement clean, modular, and maintainable software architecture using modern React 19, TypeScript, and functional programming patterns.</li>
+      <li><strong>Granular Security & Multi-Tenancy:</strong> Engineer robust Role-Based Access Control (RBAC) and tenant isolation rules in Cloud Firestore to enforce strict data privacy across competing education agencies.</li>
+      <li><strong>State Machine & Pipeline Engineering:</strong> Design a deterministic 20-stage application progression state machine with validation gates preventing premature or unauthorized status transitions.</li>
+      <li><strong>Artificial Intelligence Integration:</strong> Integrate the Google Gemini generative AI API to automate CV data extraction, match candidate profiles with academic prerequisites, and reduce counsellor administrative overhead.</li>
+      <li><strong>Quality Assurance & Verification:</strong> Establish comprehensive automated test coverage spanning unit tests (Vitest) and end-to-end browser journeys (Playwright).</li>
+      <li><strong>Professional Engineering Practices:</strong> Adhere to version control protocols (Git), sprint estimation, technical documentation, code reviews, and production release management.</li>
+    </ul>
+
+    <h2>4.3 Role and Responsibilities</h2>
+    <ul>
+      <li>Architect frontend views, component libraries, and custom React hooks for reactive state management.</li>
+      <li>Write and test Firebase Security Rules (<code>firestore.rules</code> and <code>storage.rules</code>) to prevent unauthorized document reads and privilege escalation.</li>
+      <li>Build domain-specific workspaces for Counsellors, Admissions Officers, Finance Officers, and Visa Officers.</li>
+      <li>Implement student self-service onboarding and application submission workflows.</li>
+      <li>Integrate external RESTful services, including Google Gemini AI endpoints and file conversion parsers.</li>
+      <li>Profile performance, resolve layout regressions across mobile and desktop viewports, and generate comprehensive architecture specifications and UML sequence diagrams.</li>
+    </ul>
+
+    <div class="page-break-after: always;"></div>
+
+    <!-- ORGANIZATION OVERVIEW -->
+    <h1>5. Organization Overview</h1>
+    <h2>5.1 Host Organization Profile</h2>
+    <p>
+      The host organization operates at the forefront of digital transformation, cloud application development, and software engineering consulting. With a focus on educational technology and automated enterprise workflows, the engineering division builds scalable, secure, and intuitive platforms designed to modernize business operations for global consultancy agencies and academic partners.
+    </p>
+    <p>
+      The company promotes a culture of technical ownership, clean coding practices, and continuous learning, providing interns with direct immersion into modern full-stack web architectures.
+    </p>
+
+    <h2>5.2 Internship Environment and Agile Workflow</h2>
+    <p>
+      The internship was conducted in a modern, agile software development environment utilizing a hybrid structure. Development was guided by weekly sprint backlogs, daily standups, code reviews, and automated verification before staging deployment.
+    </p>
+
+    <!-- TECHNICAL AREAS AND TOOLS -->
+    <h1>6. Technical Areas and Tools</h1>
+    <table class="doc-table">
+      <tr>
+        <th style="width: 25%;">Area</th>
+        <th style="width: 30%;">Tools & Services</th>
+        <th>Application in EduCRM</th>
+      </tr>
+      <tr>
+        <td><strong>Frontend Core</strong></td>
+        <td>React 19, TypeScript, Vite</td>
+        <td>Reactive single-page application, strict static typing, and lightning-fast build pipeline.</td>
+      </tr>
+      <tr>
+        <td><strong>Styling & Design</strong></td>
+        <td>Tailwind CSS v4, Lucide React</td>
+        <td>Component design system, responsive grids, dark/light accents, and color-coded departmental badges.</td>
+      </tr>
+      <tr>
+        <td><strong>Cloud Database</strong></td>
+        <td>Google Cloud Firestore</td>
+        <td>NoSQL real-time document storage for organizations, leads, applications, and audit logs.</td>
+      </tr>
+      <tr>
+        <td><strong>Authentication</strong></td>
+        <td>Firebase Auth & Custom Claims</td>
+        <td>Email/password login, email verification, multi-tenant role tokens, and session handling.</td>
+      </tr>
+      <tr>
+        <td><strong>Storage Service</strong></td>
+        <td>Firebase Cloud Storage</td>
+        <td>Encrypted storage for passports, transcripts, offer letters, fee challans, and visa grants.</td>
+      </tr>
+      <tr>
+        <td><strong>Artificial Intelligence</strong></td>
+        <td>Google Gemini API (REST)</td>
+        <td>CV/Resume automated parsing, field extraction, SOP evaluation, and programme matching.</td>
+      </tr>
+      <tr>
+        <td><strong>Client Ingestion</strong></td>
+        <td>PDF.js, Mammoth.js</td>
+        <td>Browser-side text extraction from PDF and Word documents prior to LLM processing.</td>
+      </tr>
+      <tr>
+        <td><strong>Data Visualization</strong></td>
+        <td>Recharts</td>
+        <td>Conversion funnels, monthly trends, counsellor workload, and commission dashboards.</td>
+      </tr>
+      <tr>
+        <td><strong>Automated QA</strong></td>
+        <td>Vitest, Playwright</td>
+        <td>Unit testing of RBAC authorization rules and end-to-end browser journeys.</td>
+      </tr>
+      <tr>
+        <td><strong>Hosting & CI</strong></td>
+        <td>Firebase Hosting, Vercel</td>
+        <td>SSL-certified production cloud hosting and global edge CDN caching.</td>
+      </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- DETAILED PROGRESS -->
+    <h1>7. Detailed Internship Progress</h1>
+
+    <h2>7.1 Week 1 – Multi-Tenant Architecture, Security Rules & RBAC Foundation</h2>
+    <p>
+      The opening week established the architectural bedrock of EduCRM. The primary engineering goal was ensuring multi-tenant data segregation—enabling multiple independent education consultancy agencies to operate on the same system without risking cross-organization data leakage.
+    </p>
+    <ul>
+      <li>Engineered normalized schemas for <code>organizations</code>, <code>users</code>, <code>leads</code>, <code>students</code>, <code>applications</code>, and <code>universities</code>.</li>
+      <li>Formulated 13 distinct user roles with strict hierarchy (Platform Super Admin down to Student and Support User).</li>
+      <li>Wrote declarative security rules in <code>firestore.rules</code> enforcing tenant boundaries (<code>request.auth.token.orgId == resource.data.orgId</code>).</li>
+      <li>Engineered <code>AuthContext.tsx</code> and <code>RoleRoute.tsx</code> for reactive route guarding and session sanitization.</li>
+    </ul>
+
+    <div class="embedded-img-box">
+      <img src="diagrams_png/SD1_Authentication_and_Impersonation.png" alt="Figure 1: Authentication and Security Architecture" />
+      <div class="fig-caption">Figure 1: Multi-tenant authentication lifecycle, token validation, and security access gates.</div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 2: Cloud Firestore Console & Collections Architecture</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Open your Google Firebase Console in the browser (<a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>) &rarr; navigate to <strong>Cloud Firestore</strong>.<br/>
+        <strong>What it must show:</strong> Capture the Database tab displaying root collections (<code>organizations</code>, <code>users</code>, <code>applications</code>, <code>leads</code>) and the document structure panel on the right.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>7.2 Week 2 – Lead Lifecycle, Dynamic Form Builder & Intelligent Routing</h2>
+    <p>
+      Week 2 focused on student acquisition. International education consultancy depends heavily on high inquiry volumes. We engineered an embeddable Form Builder and an automated lead intake pipeline.
+    </p>
+    <ul>
+      <li>Built a dynamic drag-and-drop form creator (<code>FormBuilder.tsx</code>) allowing admins to publish custom inquiry forms.</li>
+      <li>Implemented public form endpoints (<code>PublicFormPage.tsx</code>) for anonymous prospective applicants.</li>
+      <li>Programmed algorithmic lead scoring heuristics (<code>LeadScoringConfig.tsx</code>) rating applicant readiness from 0 to 100 based on IELTS/PTE scores and academic standing.</li>
+      <li>Engineered an automated deduplication service matching email and phone records to prevent duplicate counsellor outreach.</li>
+    </ul>
+
+    <div class="embedded-img-box">
+      <img src="diagrams_png/SD2_Lead_Lifecycle_and_Deduplication.png" alt="Figure 3: Lead Lifecycle and Deduplication" />
+      <div class="fig-caption">Figure 3: Lead acquisition lifecycle, algorithmic scoring, and automated deduplication architecture.</div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 4: Dynamic Form Builder & Public Lead Capture View</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Run EduCRM locally (<code>npm run dev</code>) &rarr; log in as Admin &rarr; navigate to <strong>/form-builder</strong> or open a generated public form link (<strong>/forms/:formId</strong>).<br/>
+        <strong>What it must show:</strong> The drag-and-drop form field configuration panel alongside the live preview of the prospective student inquiry form.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>7.3 Week 3 – Student Self-Service Portal & Application Lodgement Wizard</h2>
+    <p>
+      Week 3 transitioned applicant interaction from manual counsellor entry to self-service digital onboarding.
+    </p>
+    <ul>
+      <li>Developed multi-stage onboarding flows (<code>StudentOnboardingStage1.tsx</code>, <code>Stage3.tsx</code>) capturing personal, academic, and language test records.</li>
+      <li>Constructed the self-service application lodgement form (<code>StudentNewApplication.tsx</code>), allowing students to select target universities and programmes.</li>
+      <li>Engineered the reactive student dashboard (<code>RolePortal.tsx</code>) displaying live stage progress meters and document checklists.</li>
+    </ul>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 5: Student Self-Service Portal Dashboard</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Log in as a registered student &rarr; navigate to <strong>/student/dashboard</strong>.<br/>
+        <strong>What it must show:</strong> The student dashboard showing profile completeness percentage, active applications list, and pending document upload notifications.
+      </div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 6: Multi-Stage Student Application Lodgement Form</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> In the student portal, click "New Application" or open <strong>/student/new-application</strong>.<br/>
+        <strong>What it must show:</strong> The application submission form displaying University dropdown, Programme selector, target intake, and document upload drag-and-drop zone.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>7.4 Week 4 – The 20-Stage Application Pipeline & Departmental Desks</h2>
+    <p>
+      Week 4 delivered the system's core capability: an end-to-end 20-stage application pipeline orchestrated across four specialized departmental desks with strict role permissions.
+    </p>
+    <ul>
+      <li>Enforced the complete 20-stage state machine in <code>stageAuthorization.ts</code> across Counselling, Admissions, Finance, and Visa desks.</li>
+      <li>Engineered <code>canUserSetStage</code> guards preventing staff from transitioning stages outside their department.</li>
+      <li>Built the Admissions Desk (<code>/admissions</code>) with 1-click offer letter issuance that automatically routes files to Finance for tuition fee challan generation.</li>
+      <li>Created the Finance Desk (<code>/finance</code>) for deposit challans and payment clearance, and the Visa Desk for CAS tracking and embassy lodgement.</li>
+    </ul>
+
+    <div class="embedded-img-box">
+      <img src="diagrams_png/SSD_System_Sequence_Diagram.png" alt="Figure 7: System Sequence Diagram" />
+      <div class="fig-caption">Figure 7: System Sequence Diagram (SSD) demonstrating inter-desk handoffs across Counselling, Admissions, Finance, and Visa desks.</div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 8: Applications Kanban Pipeline Board</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Log in as Counsellor / Admin &rarr; navigate to <strong>/applications</strong>.<br/>
+        <strong>What it must show:</strong> The horizontal Kanban view showing application cards organized by stages: <em>Draft, Initial Review, Conditional Offer, Deposit Paid, Visa Approved</em>.
+      </div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 9: Admissions Desk 1-Click Offer Issuance Modal</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Navigate to <strong>/admissions</strong> &rarr; click on an application awaiting university decision &rarr; open <strong>ApplicationDetailModal</strong>.<br/>
+        <strong>What it must show:</strong> The modal showing student credentials and the prominent "Issue Conditional Offer" / "Issue Unconditional Offer" 1-Click action button.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>7.5 Week 5 – AI Counsellor Suite Integration & Document Intelligence</h2>
+    <p>
+      Week 5 integrated generative artificial intelligence to minimize manual data entry and expedite application processing.
+    </p>
+    <ul>
+      <li>Integrated <code>pdfjs-dist</code> and <code>mammoth.js</code> for client-side text extraction from student resumes and transcripts.</li>
+      <li>Formulated structured prompts for the Google Gemini API (<code>gemini-1.5-flash</code>) extracting candidate name, GPA, education history, and test scores in JSON.</li>
+      <li>Engineered rate-limiting wrappers and debounce timers (reducing request spam and preventing HTTP 429 quota exhaustion).</li>
+      <li>Designed a zero-cost cloud storage fallback pipeline supporting direct Google Drive links.</li>
+    </ul>
+
+    <div class="embedded-img-box">
+      <img src="diagrams_png/SD3_Gemini_AI_Counsellor_Suite.png" alt="Figure 10: AI Counsellor Sequence Diagram" />
+      <div class="fig-caption">Figure 10: Component Sequence Diagram illustrating client-side parsing, Gemini LLM extraction, and profile auto-fill.</div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 11: AI CV Auto-Fill & Extraction Modal in Action</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Open the "AI CV Auto-Fill" modal on the applicant registration or new application page &rarr; upload a sample CV.<br/>
+        <strong>What it must show:</strong> The uploaded CV preview, the AI parsing status indicator, and the extracted form fields populated with candidate information.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>7.6 Week 6 – Partner Agent Network, Commission Engine & Comprehensive QA</h2>
+    <p>
+      The final sprint focused on business ecosystem integrations, financial settlement automation, rigorous test automation, and cloud deployment.
+    </p>
+    <ul>
+      <li>Built the External Agent Portal (<code>Agents.tsx</code>) allowing recruitment partners to submit referrals and track status.</li>
+      <li>Implemented the automated commission engine (<code>CommissionManager.tsx</code>) computing tier-based payouts upon student enrolment.</li>
+      <li>Authored automated test suites with Vitest (unit authorization logic) and Playwright (end-to-end browser journeys).</li>
+      <li>Configured production bundling in Vite and deployed the live system onto Firebase Hosting.</li>
+    </ul>
+
+    <div class="embedded-img-box">
+      <img src="diagrams_png/SD6_Agent_Network_and_Commissions.png" alt="Figure 12: Agent Network and Commission Engine" />
+      <div class="fig-caption">Figure 12: Partner Agent Network and Automated Commission Disbursement sequence architecture.</div>
+    </div>
+
+    <div class="img-placeholder-card">
+      <div class="img-placeholder-header">
+        <span class="img-badge">UI Screenshot Placeholder</span>
+        <span>Figure 13: Automated Test Execution Terminal (Playwright & Vitest)</span>
+      </div>
+      <div class="img-placeholder-body">
+        <strong>Where to take this picture:</strong> Open your terminal in the CRM project root &rarr; run <code>npm run test:unit</code> followed by <code>npx playwright test</code>.<br/>
+        <strong>What it must show:</strong> The command prompt displaying green passing checkmarks across all test files and the completed test summary.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- LEARNING OUTCOMES -->
+    <h1>8. Learning Outcomes and Skills Developed</h1>
+    <h2>8.1 Technical Skills</h2>
+    <ul>
+      <li><strong>Modern Single-Page Web Applications:</strong> Gained deep mastery of React 19 functional programming, custom hooks, and strict TypeScript interfaces.</li>
+      <li><strong>NoSQL Architecture & Real-Time Data:</strong> Developed practical expertise in designing Cloud Firestore collection models, indexing, and real-time subscription streams via <code>onSnapshot</code>.</li>
+      <li><strong>Cloud Security Engineering:</strong> Mastered the authoring of declarative security rules enforcing tenant segregation and role claims.</li>
+      <li><strong>Generative AI & LLM Ingestion:</strong> Understood practical prompt engineering, JSON schema formatting, and client-side document preprocessing.</li>
+      <li><strong>Automated Test Automation:</strong> Proficient in authoring end-to-end browser tests in Playwright and unit test suites in Vitest.</li>
+    </ul>
+
+    <h2>8.2 Software Engineering Methodologies</h2>
+    <ul>
+      <li><strong>State Machine Modeling:</strong> Translated complex business requirements into a deterministic 20-stage state machine with strict transition guards.</li>
+      <li><strong>Defensive Programming:</strong> Applied runtime validation, safe error boundaries, and debounce techniques.</li>
+      <li><strong>Performance Profiling:</strong> Audited listener lifecycles to prevent memory leaks and optimized bundle chunking.</li>
+    </ul>
+
+    <h2>8.3 Professional & Collaborative Competencies</h2>
+    <ul>
+      <li><strong>Agile Sprint Execution:</strong> Enhanced time estimation, task decomposition, and milestone delivery.</li>
+      <li><strong>Technical Documentation:</strong> Developed proficiency in writing comprehensive architectural specifications and UML diagrams.</li>
+      <li><strong>Compliance Mindset:</strong> Gained appreciation for data protection regulations (GDPR), audit trails, and student confidentiality.</li>
+    </ul>
+
+    <!-- CHALLENGES AND PROBLEM SOLVING -->
+    <h1>9. Challenges and Problem-Solving</h1>
+    <p>
+      <strong>1. Granular RBAC Across 20 Application Stages:</strong> In large consultancies, counsellors must not issue offers, and admissions staff must not clear payments. Solved by creating a central authorization mapping (<code>stageAuthorization.ts</code>) paired with server-side Firestore security rules.
+    </p>
+    <p>
+      <strong>2. AI Rate Limiting & Quota Management:</strong> Rapid uploads occasionally triggered HTTP 429 rate limit exceptions. Resolved by pre-extracting pure text client-side via <code>pdfjs-dist</code> and enforcing an 8-second debounce lock with user-friendly loading feedback.
+    </p>
+    <p>
+      <strong>3. Heavy Document Uploads:</strong> High-resolution certificate scans risked exhausting storage quotas. Solved by introducing client-side file compression and a zero-cost Google Drive link attachment mechanism.
+    </p>
+    <p>
+      <strong>4. Real-Time Listener Memory Leaks:</strong> Multiple simultaneous Firestore subscriptions caused browser memory bloat on rapid route transitions. Solved by conducting a listener audit and ensuring all unsubscribe callbacks execute in React cleanup hooks.
+    </p>
+
+    <div class="page-break"></div>
+
+    <!-- CONCLUSION -->
+    <h1>10. Professional and Workplace Development</h1>
+    <p>
+      The internship provided significant growth beyond coding. It cultivated technical independence, the ability to read and interpret complex requirements, and a deep appreciation for building reliable, production-ready software. Collaborating with senior engineers reinforced the importance of code reviews, documentation hygiene, and automated testing before delivery.
+    </p>
+
+    <h1>11. Conclusion</h1>
+    <p>
+      The six-week internship provided an invaluable practical bridge between university software engineering theory and commercial product engineering. Through the design, development, and testing of **EduCRM**, I contributed to an enterprise cloud platform that streamlines student admissions, accelerates inter-desk handoffs, and leverages artificial intelligence to reduce operational overhead.
+    </p>
+    <p>
+      This experience has strengthened my full-stack development skills, reinforced professional software engineering discipline, and prepared me to deliver substantial value in future engineering endeavors.
+    </p>
+
+    <div class="sig-section">
+      <div class="sig-box">
+        <strong>Mujtaba Zaheer</strong><br/>
+        Student / Software Engineering Intern<br/>
+        Reg No: [BSE21XXXX]<br/>
+        Department of Software Engineering<br/>
+        Capital University of Science & Technology
+      </div>
+      <div class="sig-box">
+        <strong>[Industry Supervisor Name]</strong><br/>
+        Chief Technology Officer / Tech Lead<br/>
+        [Host Organization Name]<br/>
+        Official Stamp & Signature
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ANNEXURES -->
+    <h1>12. Annexure A: Internship Offer Letter</h1>
+    <div class="img-placeholder-card" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 12px;">📄</div>
+      <div class="img-placeholder-header" style="justify-content: center;">
+        <span class="img-badge">Attachment Placeholder</span>
+        <span>Official Internship Offer Letter</span>
+      </div>
+      <div class="img-placeholder-body" style="max-width: 500px;">
+        Insert a clear scan or PDF export of your official Internship Offer Letter here.<br/>
+        Ensure that your name, duration (6 weeks), start date, and company stamp/signature are clearly visible.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h1>13. Annexure B: Completion Certificate</h1>
+    <div class="img-placeholder-card" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 12px;">🏆</div>
+      <div class="img-placeholder-header" style="justify-content: center;">
+        <span class="img-badge">Attachment Placeholder</span>
+        <span>Internship Completion Certificate</span>
+      </div>
+      <div class="img-placeholder-body" style="max-width: 500px;">
+        Insert the official Certificate of Completion awarded by your host organization.<br/>
+        Confirm that it shows your name, role as Tech Team / Software Engineering Intern, date of issuance, and official seal.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h1>14. Annexure C: Internship Evaluation Form</h1>
+    <div class="img-placeholder-card" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 12px;">📋</div>
+      <div class="img-placeholder-header" style="justify-content: center;">
+        <span class="img-badge">Attachment Placeholder</span>
+        <span>Signed CUST Internship Evaluation Form</span>
+      </div>
+      <div class="img-placeholder-body" style="max-width: 500px;">
+        Insert the official Capital University of Science and Technology (CUST) Department of Software Engineering Evaluation Form filled and signed by your supervisor.<br/>
+        Must include performance scores (0–10 scale), project completion checkbox (&gt;80%), and supervisor comments.
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
