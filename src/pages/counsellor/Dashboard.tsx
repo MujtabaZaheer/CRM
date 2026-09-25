@@ -139,7 +139,7 @@ export const CounsellorDashboard: React.FC = () => {
         </Link>
 
         <Link
-          to="/counsellor/documents"
+          to="/counsellor/applications"
           className="p-5 bg-[var(--bg-card)] border border-[var(--border-default)] hover:border-violet-500/30 sq-card space-y-2 transition-all group"
         >
           <div className="flex items-center justify-between text-[var(--text-muted)] text-xs">

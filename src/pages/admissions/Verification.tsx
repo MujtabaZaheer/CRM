@@ -1,4 +1,8 @@
 import React from "react";
-import { AdmissionsWorkspace } from "../../components/admissions/AdmissionsWorkspace";
+import { AdmissionsDocumentVerificationHub } from "../../components/admissions/AdmissionsDocumentVerificationHub";
 
-export const AdmissionsVerification: React.FC = () => <AdmissionsWorkspace page="verification" />;
+export const AdmissionsVerification: React.FC = () => {
+  return <AdmissionsDocumentVerificationHub />;
+};
+
+export default AdmissionsVerification;

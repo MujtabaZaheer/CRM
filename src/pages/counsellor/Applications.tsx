@@ -2,19 +2,24 @@ import React, { useState } from "react";
 import { useCounsellorData } from "../../hooks/useCounsellorData";
 import { Application, ApplicationStage } from "../../types/application";
 import { canUserSetStage, getStageSelectOptionLabel, getStageOwnerLabel } from "../../utils/stageAuthorization";
+import { ApplicationDossierModal } from "../../components/counsellor/ApplicationDossierModal";
 import {
   Search,
   History,
   Building2,
   GraduationCap,
-  X
+  X,
+  Eye,
 } from "lucide-react";
 
 export const CounsellorApplications: React.FC = () => {
-  const { applications, updateApplicationStage, loading } = useCounsellorData();
+  const { applications, documents, updateApplicationStage, loading } = useCounsellorData();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("All");
+
+  // Application Dossier Inspection Modal state
+  const [selectedDossierApp, setSelectedDossierApp] = useState<Application | null>(null);
 
   // Stage update modal
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -67,7 +72,7 @@ export const CounsellorApplications: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold font-heading text-[var(--text-primary)]">My University Applications</h1>
           <p className="text-xs text-[var(--text-secondary)] mt-1">
-            Track student application milestones from initial draft submission through conditional/unconditional offers, visa approvals, and enrolment.
+            Track student application milestones, click any candidate row to open their Application Dossier, inspect profile & academics, and manage university decisions.
           </p>
         </div>
         <div className="flex items-center space-x-2 bg-[var(--bg-card)] border border-[var(--border-default)] px-3 py-1.5 sq-card text-xs">
@@ -135,76 +140,130 @@ export const CounsellorApplications: React.FC = () => {
             <thead className="bg-[var(--bg-elevated)] border-b border-[var(--border-default)] text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
               <tr>
                 <th className="px-4 py-3">App ID</th>
-                <th className="px-4 py-3">Student Name</th>
-                <th className="px-4 py-3">University & Programme</th>
+                <th className="px-4 py-3">Student Candidate</th>
+                <th className="px-4 py-3">Target Programme & University</th>
                 <th className="px-4 py-3">Intake</th>
                 <th className="px-4 py-3">Current Stage</th>
+                <th className="px-4 py-3">Dossier Docs</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-default)]">
               {filteredApps.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-[var(--text-muted)]">
+                  <td colSpan={7} className="text-center py-8 text-[var(--text-muted)]">
                     No applications match the current search or stage filter.
                   </td>
                 </tr>
               ) : (
-                filteredApps.map((app) => (
-                  <tr key={app.id} className="hover:bg-[var(--bg-hover)] transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-sky-400">
-                      {app.applicationNumber}
-                    </td>
+                filteredApps.map((app) => {
+                  const studentDocs = documents.filter(
+                    (d) =>
+                      d.studentId === app.studentId ||
+                      (d.studentName && d.studentName.toLowerCase() === app.studentName.toLowerCase()) ||
+                      (d as any).applicationId === app.id
+                  );
+                  const verifiedDocs = studentDocs.filter((d) => d.status === "Verified");
 
-                    <td className="px-4 py-3 font-semibold text-[var(--text-primary)]">
-                      <div className="flex items-center space-x-2">
-                        <GraduationCap className="w-4 h-4 text-teal-400" />
-                        <span>{app.studentName}</span>
-                      </div>
-                    </td>
+                  return (
+                    <tr
+                      key={app.id}
+                      onClick={() => setSelectedDossierApp(app)}
+                      className="hover:bg-[var(--bg-hover)] transition-colors cursor-pointer group"
+                    >
+                      <td className="px-4 py-3 font-mono font-bold text-sky-400">
+                        {app.applicationNumber}
+                      </td>
 
-                    <td className="px-4 py-3 space-y-0.5">
-                      <div className="font-semibold text-[var(--text-primary)] flex items-center space-x-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-sky-400" />
-                        <span>{app.universityName}</span>
-                      </div>
-                      <div className="text-[11px] text-[var(--text-muted)]">{app.programmeName}</div>
-                    </td>
+                      <td className="px-4 py-3 font-semibold text-[var(--text-primary)]">
+                        <div className="flex items-center space-x-2">
+                          <GraduationCap className="w-4 h-4 text-teal-400 group-hover:scale-110 transition-transform" />
+                          <span className="group-hover:text-sky-400 transition-colors">{app.studentName}</span>
+                        </div>
+                      </td>
 
-                    <td className="px-4 py-3 text-xs font-mono text-[var(--text-muted)]">{app.intake}</td>
+                      <td className="px-4 py-3 space-y-0.5">
+                        <div className="font-semibold text-[var(--text-primary)] flex items-center space-x-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-sky-400" />
+                          <span>{app.universityName}</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">{app.programmeName}</div>
+                      </td>
 
-                    <td className="px-4 py-3 text-xs">
-                      <span className="px-2.5 py-0.5 sq-badge bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold text-[10px]">
-                        {app.stage}
-                      </span>
-                    </td>
+                      <td className="px-4 py-3 text-xs font-mono text-[var(--text-muted)]">{app.intake}</td>
 
-                    <td className="px-4 py-3 text-right space-x-2">
-                      <button
-                        onClick={() => setTimelineApp(app)}
-                        className="px-2.5 py-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-[11px] inline-flex items-center space-x-1"
+                      <td className="px-4 py-3 text-xs">
+                        <span className="px-2.5 py-0.5 sq-badge bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold text-[10px]">
+                          {app.stage}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-xs">
+                        <span
+                          className={`px-2 py-0.5 sq-badge text-[10px] font-mono font-semibold ${
+                            studentDocs.length > 0 && verifiedDocs.length === studentDocs.length
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : studentDocs.length > 0
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                              : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          }`}
+                        >
+                          {studentDocs.length > 0
+                            ? `${verifiedDocs.length}/${studentDocs.length} Verified`
+                            : "0 Uploads"}
+                        </span>
+                      </td>
+
+                      <td
+                        className="px-4 py-3 text-right space-x-2 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <History className="w-3 h-3 text-sky-400" />
-                        <span>Timeline</span>
-                      </button>
+                        <button
+                          onClick={() => setSelectedDossierApp(app)}
+                          className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 sq-btn text-[11px] inline-flex items-center space-x-1 font-semibold"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Inspect Dossier</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setTargetStage(app.stage);
-                        }}
-                        className="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-zinc-950 font-bold sq-btn text-[11px]"
-                      >
-                        Advance Stage
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        <button
+                          onClick={() => setTimelineApp(app)}
+                          className="px-2.5 py-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-[11px] inline-flex items-center space-x-1"
+                        >
+                          <History className="w-3 h-3 text-sky-400" />
+                          <span>Timeline</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedApp(app);
+                            setTargetStage(app.stage);
+                          }}
+                          className="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-zinc-950 font-bold sq-btn text-[11px]"
+                        >
+                          Advance Stage
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Application Dossier Modal */}
+      {selectedDossierApp && (
+        <ApplicationDossierModal
+          application={selectedDossierApp}
+          onClose={() => setSelectedDossierApp(null)}
+          onAdvanceStage={async (app, newStage, note) => {
+            await updateApplicationStage(app.id, newStage, note);
+            setSelectedDossierApp((prev) => (prev ? { ...prev, stage: newStage } : null));
+          }}
+        />
+      )}
 
       {/* Stage Advance Modal */}
       {selectedApp && (
@@ -255,29 +314,29 @@ export const CounsellorApplications: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Milestone Progress Note</label>
+                <label className="block text-[var(--text-secondary)] mb-1">Counsellor Transition Note</label>
                 <textarea
                   rows={3}
                   value={stageNote}
                   onChange={(e) => setStageNote(e.target.value)}
-                  placeholder="e.g. Received offer letter from university admissions portal..."
+                  placeholder="Record reasons for stage progression..."
                   className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-[var(--text-primary)]"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-[var(--border-default)]">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-[var(--border-default)]">
                 <button
                   type="button"
                   onClick={() => setSelectedApp(null)}
-                  className="px-4 py-2 bg-[var(--bg-elevated)] text-[var(--text-secondary)] sq-btn"
+                  className="px-3 py-1.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-sky-500 text-zinc-950 font-bold sq-btn shadow-lg shadow-sky-500/20"
+                  className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-zinc-950 font-bold sq-btn text-xs"
                 >
-                  Save Stage Update
+                  Confirm Transition
                 </button>
               </div>
             </form>
@@ -285,36 +344,48 @@ export const CounsellorApplications: React.FC = () => {
         </div>
       )}
 
-      {/* Timeline Modal */}
+      {/* Timeline View Modal */}
       {timelineApp && (
         <div className="fixed inset-0 z-50 bg-[var(--backdrop)] backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal w-full max-w-lg p-6 space-y-4 shadow-2xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal w-full max-w-lg p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
               <div>
                 <h3 className="text-base font-bold font-heading text-[var(--text-primary)]">
-                  Application Timeline: {timelineApp.applicationNumber}
+                  Milestone History: {timelineApp.applicationNumber}
                 </h3>
-                <p className="text-xs text-[var(--text-muted)]">
-                  {timelineApp.studentName} — {timelineApp.universityName}
-                </p>
+                <p className="text-[11px] text-[var(--text-muted)]">{timelineApp.studentName} • {timelineApp.programmeName}</p>
               </div>
-              <button onClick={() => setTimelineApp(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+              <button
+                onClick={() => setTimelineApp(null)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               {(!timelineApp.history || timelineApp.history.length === 0) ? (
-                <p className="text-xs text-[var(--text-muted)] italic">No historical timeline logs found.</p>
+                <div className="text-center py-8 text-[var(--text-muted)] text-xs">
+                  No stage transition history recorded yet. Currently in <span className="font-bold text-sky-400">{timelineApp.stage}</span>.
+                </div>
               ) : (
-                <div className="relative border-l-2 border-sky-500/30 ml-3 space-y-4 pl-4 text-xs">
-                  {timelineApp.history.map((h, idx) => (
+                <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border-default)]">
+                  {timelineApp.history.map((item, idx) => (
                     <div key={idx} className="relative">
-                      <div className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-sky-400 border border-zinc-950" />
-                      <div className="font-bold text-sky-400">{h.stage}</div>
-                      <div className="text-[11px] text-[var(--text-primary)]">{h.note}</div>
-                      <div className="text-[10px] text-[var(--text-muted)] font-mono">
-                        {new Date(h.timestamp).toLocaleString()} by {h.updatedBy}
+                      <div className="absolute -left-6 top-1 w-3 h-3 rounded-full bg-sky-500 border-2 border-[var(--bg-card)]" />
+                      <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-sky-400">{item.stage}</span>
+                          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                            {new Date(item.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-[var(--text-secondary)]">Updated by: {item.updatedBy}</div>
+                        {item.note && (
+                          <div className="text-xs text-[var(--text-primary)] pt-1 mt-1 border-t border-[var(--border-default)]">
+                            "{item.note}"
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -322,10 +393,10 @@ export const CounsellorApplications: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
               <button
                 onClick={() => setTimelineApp(null)}
-                className="px-5 py-2 bg-[var(--bg-elevated)] text-[var(--text-secondary)] sq-btn text-xs"
+                className="px-4 py-2 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-xs"
               >
                 Close Timeline
               </button>
@@ -336,3 +407,5 @@ export const CounsellorApplications: React.FC = () => {
     </div>
   );
 };
+
+export default CounsellorApplications;
