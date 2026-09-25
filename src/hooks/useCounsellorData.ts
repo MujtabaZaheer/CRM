@@ -60,7 +60,7 @@ export const useCounsellorData = () => {
 
   const filteredStudents = cleanStudents.filter((s) => {
     const sAssignedId = s.assignedCounsellorId || (s as any).counsellorId;
-    const sAssignedEmail = s.assignedCounsellorEmail || s.assignedCounsellor;
+    const sAssignedEmail = s.assignedCounsellorEmail || s.assignedCounsellor || (s as any).counsellorEmail;
     return (
       (userUid && (sAssignedId === userUid || sAssignedEmail === userUid)) ||
       (userEmail && (
@@ -77,7 +77,8 @@ export const useCounsellorData = () => {
 
   const filteredApplications = applications.filter((a) => {
     const aCounsellorId = a.assignedCounsellorId || (a as any).counsellorId;
-    const aCounsellor = a.assignedCounsellor || (a as any).assignedCounsellorEmail;
+    const aCounsellor = a.assignedCounsellor || (a as any).assignedCounsellorEmail || (a as any).counsellorEmail;
+    const aCounsellorName = a.assignedCounsellorName;
 
     const matchesIdOrEmail =
       (userUid && (aCounsellorId === userUid || aCounsellor === userUid)) ||
@@ -85,7 +86,8 @@ export const useCounsellorData = () => {
         aCounsellorId === userEmail ||
         aCounsellor === userEmail ||
         (typeof aCounsellor === "string" && aCounsellor.toLowerCase().trim() === userEmail.toLowerCase().trim())
-      ));
+      )) ||
+      (appUser?.displayName && aCounsellorName && aCounsellorName.toLowerCase().trim() === appUser.displayName.toLowerCase().trim());
 
     const matchesStudent =
       (a.studentId && myStudentIds.includes(a.studentId)) ||

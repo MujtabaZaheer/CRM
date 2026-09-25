@@ -13,8 +13,12 @@ import {
   Search,
   ChevronRight,
   FolderCheck,
+  Eye,
+  ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Application } from "../../types/application";
+import { ApplicationDossierModal } from "../../components/counsellor/ApplicationDossierModal";
 
 export const CounsellorDashboard: React.FC = () => {
   const {
@@ -33,6 +37,9 @@ export const CounsellorDashboard: React.FC = () => {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDueDate, setTaskDueDate] = useState(new Date().toISOString().split("T")[0]);
   const [taskPriority, setTaskPriority] = useState<"Low" | "Medium" | "High">("Medium");
+
+  // Application Dossier Inspection Modal state
+  const [selectedDossierApp, setSelectedDossierApp] = useState<Application | null>(null);
 
   const openTasks = tasks.filter((t) => t.status === "Open");
   const overdueTasks = openTasks.filter((t) => new Date(t.dueDate) < new Date());
@@ -105,6 +112,31 @@ export const CounsellorDashboard: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Agent Referral Triage Desk Direct Access Banner */}
+      <Link
+        to="/counsellor/agent-triage"
+        className="p-4 bg-gradient-to-r from-emerald-950/40 via-[var(--bg-card)] to-[var(--bg-card)] border border-emerald-500/30 hover:border-emerald-500/50 sq-card flex items-center justify-between transition-all group"
+      >
+        <div className="flex items-center space-x-3.5">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2">
+              <span>Agent Referral Triage Desk</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Direct Access</span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              Review incoming partner referrals, inspect student dossiers, and track referred candidate admissions.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-1.5 text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform">
+          <span>Open Triage Desk</span>
+          <ChevronRight className="w-4 h-4" />
+        </div>
+      </Link>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -268,25 +300,42 @@ export const CounsellorDashboard: React.FC = () => {
                     <th className="px-3 py-2">Student</th>
                     <th className="px-3 py-2">University</th>
                     <th className="px-3 py-2">Stage</th>
+                    <th className="px-3 py-2 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-default)]">
                   {applications.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-6 text-[var(--text-muted)]">
+                      <td colSpan={5} className="text-center py-6 text-[var(--text-muted)]">
                         No applications assigned yet.
                       </td>
                     </tr>
                   ) : (
                     applications.slice(0, 5).map((app) => (
-                      <tr key={app.id} className="hover:bg-[var(--bg-hover)]">
-                        <td className="px-3 py-2 font-mono text-[var(--text-primary)]">{app.applicationNumber}</td>
+                      <tr
+                        key={app.id}
+                        onClick={() => setSelectedDossierApp(app)}
+                        className="hover:bg-[var(--bg-hover)] cursor-pointer group transition-colors"
+                      >
+                        <td className="px-3 py-2 font-mono text-[var(--text-primary)] font-semibold group-hover:text-sky-400">
+                          {app.applicationNumber}
+                        </td>
                         <td className="px-3 py-2 font-medium text-[var(--text-primary)]">{app.studentName}</td>
                         <td className="px-3 py-2 truncate max-w-[150px]">{app.universityName}</td>
                         <td className="px-3 py-2">
                           <span className="px-2 py-0.5 sq-badge bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px]">
                             {app.stage}
                           </span>
+                        </td>
+                        <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setSelectedDossierApp(app)}
+                            title="Inspect Application Dossier"
+                            className="px-2 py-1 bg-[var(--bg-elevated)] hover:bg-sky-500/10 hover:border-sky-500/30 text-sky-400 border border-[var(--border-default)] sq-btn text-[11px] inline-flex items-center space-x-1 font-semibold"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Inspect</span>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -442,6 +491,14 @@ export const CounsellorDashboard: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal: Application Dossier Inspection */}
+      {selectedDossierApp && (
+        <ApplicationDossierModal
+          application={selectedDossierApp}
+          onClose={() => setSelectedDossierApp(null)}
+        />
       )}
     </div>
   );

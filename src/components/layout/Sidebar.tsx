@@ -125,6 +125,7 @@ const teamLeaderNavItems: NavItem[] = [
 
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { label: "Agent Triage Desk", path: "/counsellor/agent-triage", icon: <ShieldCheck className="w-4 h-4 text-emerald-400" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
   { label: "My Students", path: "/counsellor/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Messages & Support", path: "/counsellor/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },

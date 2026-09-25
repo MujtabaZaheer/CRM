@@ -201,7 +201,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/agent-triage"
                   element={
-                    <RoleGate allowedRoles={["platform_super_admin", "org_admin", "office_manager", "team_leader", "admissions_officer"]}>
+                    <RoleGate allowedRoles={["platform_super_admin", "org_admin", "office_manager", "team_leader", "admissions_officer", "counsellor"]}>
                       <AgentTriageDesk />
                     </RoleGate>
                   }
@@ -253,6 +253,7 @@ export const App: React.FC = () => {
                 {/* Counsellor Module Routes */}
                 <Route path="/counsellor" element={<CounsellorRoute />}>
                   <Route path="dashboard" element={<CounsellorDashboard />} />
+                  <Route path="agent-triage" element={<AgentTriageDesk />} />
                   <Route path="leads" element={<CounsellorLeads />} />
                   <Route path="students" element={<CounsellorStudents />} />
                   <Route path="messages" element={<CounsellorMessages />} />
