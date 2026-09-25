@@ -57,6 +57,7 @@ export interface StudentDocument {
   uploadedBy: string;
   tenantId?: string;
   office?: string;
+  applicationId?: string;
   createdAt: number;
 }
 

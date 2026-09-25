@@ -334,6 +334,7 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
       ],
     };
 
+    try {
       (newApplication as any).documents = formData.documents;
 
       // 1. Optimistic Local Context Commit
@@ -347,7 +348,7 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
           studentId,
           applicationId,
           studentName: studentFullName,
-          docType: (d.slotType || d.docType || "Other") as any,
+          docType: (d.slotType || (d as any).docType || "Other") as any,
           fileName: d.fileName,
           fileUrl: d.fileUrl,
           filePath: d.filePath,
