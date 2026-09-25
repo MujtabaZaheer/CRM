@@ -69,8 +69,7 @@ describe("Agent Referral Isolation & Triage Engine", () => {
   };
 
   describe("canAccessAgentTriage() Access Control Gate", () => {
-    it("allows Counsellors, Team Leaders, Office Managers, and Admins", () => {
-      expect(canAccessAgentTriage(counsellor)).toBe(true);
+    it("allows Team Leaders, Office Managers, and Admins", () => {
       expect(canAccessAgentTriage(teamLeader)).toBe(true);
       expect(canAccessAgentTriage(superAdmin)).toBe(true);
       expect(
@@ -81,7 +80,8 @@ describe("Agent Referral Isolation & Triage Engine", () => {
       );
     });
 
-    it("strictly blocks Admissions Officers, Agents, and Students", () => {
+    it("strictly blocks Counsellors, Admissions Officers, Agents, and Students", () => {
+      expect(canAccessAgentTriage(counsellor)).toBe(false);
       expect(canAccessAgentTriage(admissionsOfficer)).toBe(false);
       expect(canAccessAgentTriage(externalAgent)).toBe(false);
       expect(canAccessAgentTriage(studentUser)).toBe(false);

@@ -65,7 +65,7 @@ const navItems: NavItem[] = [
     label: "Agent Triage Desk", 
     path: "/agent-triage", 
     icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, 
-    rolesAllowed: ["platform_super_admin", "org_admin", "office_manager", "team_leader", "admissions_officer"] 
+    rolesAllowed: ["platform_super_admin", "org_admin", "office_manager", "team_leader"] 
   },
   { label: "Calendar", path: "/calendar", icon: <Calendar className="w-4 h-4" /> },
   { label: "Admissions Desk", path: "/admissions/dashboard", icon: <ShieldCheck className="w-4 h-4" /> },
@@ -125,7 +125,6 @@ const teamLeaderNavItems: NavItem[] = [
 
 const counsellorNavItems: NavItem[] = [
   { label: "Dashboard", path: "/counsellor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Agent Triage Desk", path: "/counsellor/agent-triage", icon: <ShieldCheck className="w-4 h-4 text-emerald-400" /> },
   { label: "My Leads", path: "/counsellor/leads", icon: <Users2 className="w-4 h-4" /> },
   { label: "My Students", path: "/counsellor/students", icon: <GraduationCap className="w-4 h-4" /> },
   { label: "Messages & Support", path: "/counsellor/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
@@ -147,7 +146,6 @@ const financeNavItems: NavItem[] = [
 
 const admissionsNavItems: NavItem[] = [
   { label: "Admissions Dashboard", path: "/admissions/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-  { label: "Agent Triage Desk", path: "/agent-triage", icon: <ShieldCheck className="w-4 h-4 text-emerald-400" /> },
   { label: "Application Queue", path: "/admissions/applications", icon: <FileText className="w-4 h-4" /> },
   { label: "Messages & Support", path: "/admissions/messages", icon: <MessageSquare className="w-4 h-4 text-emerald-400" /> },
   { label: "Document Verification", path: "/admissions/verification", icon: <FolderOpen className="w-4 h-4" /> },

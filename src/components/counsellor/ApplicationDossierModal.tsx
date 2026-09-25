@@ -5,6 +5,7 @@ import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { canUserSetStage, getStageOwnerLabel } from "../../utils/stageAuthorization";
 import { useApplicationDocuments } from "../../hooks/useApplicationDocuments";
+import { assignReferralToCounsellor } from "../../services/assignmentService";
 import {
   X,
   User,
@@ -40,8 +41,10 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
   const { appUser } = useAuth();
   const {
     students,
+    users,
     documents: globalDocuments,
     updateApplication,
+    updateStudent,
     updateDocument,
   } = useGlobalData();
 
@@ -51,7 +54,25 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
   const isCounsellor = userRole === "counsellor";
   const isAdmissionsOrAbove = ["admissions", "university", "admin", "super_admin"].includes(userRole);
 
-  // Team Leaders: read-only profile & docs, primary action = assign counsellor
+  // Assign Counsellor Constraint: Strictly Team Leader, Office Manager, and Admins.
+  // Never rendered in Counsellor, Admissions Officer, External Agent, Student, University Partner, or Finance portals.
+  const canAssignCounsellor = [
+    "team_leader",
+    "office_manager",
+    "org_admin",
+    "platform_super_admin",
+  ].includes(userRole);
+
+  const counsellorUsers = useMemo(() => {
+    return (users || []).filter((u) => u.role === "counsellor");
+  }, [users]);
+
+  const [selectedCounsellorEmail, setSelectedCounsellorEmail] = useState<string>(
+    application.assignedCounsellor || (counsellorUsers[0]?.email ?? "")
+  );
+  const [isAssigningCounsellor, setIsAssigningCounsellor] = useState(false);
+
+  // Team Leaders / Office Managers: read-only profile & docs, primary action = assign counsellor
   // Counsellors: profile, docs, request docs, advance stage — NO decision/offer or scholarship
   // Admissions+: full access
   const canAccessRequestDocs = isCounsellor || isAdmissionsOrAbove;
@@ -258,6 +279,45 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
     setNewInternalNote("");
     setIsSubmittingNote(false);
     showToast("Internal communication note posted.");
+  };
+
+  const handleAssignCounsellor = async () => {
+    const targetEmail = selectedCounsellorEmail || (counsellorUsers[0]?.email ?? "");
+    if (!targetEmail) return;
+    const targetCounsellor = counsellorUsers.find((c) => c.email === targetEmail) || counsellorUsers[0];
+    if (!targetCounsellor) return;
+
+    setIsAssigningCounsellor(true);
+    const actorName = appUser?.displayName || appUser?.email || "Team Leader";
+    const student = students.find((s) => s.id === application.studentId);
+
+    try {
+      const result = await assignReferralToCounsellor({
+        applicationId: application.id,
+        studentId: application.studentId || student?.id || "",
+        counsellorId: targetCounsellor.uid,
+        counsellorName: targetCounsellor.displayName || targetCounsellor.email,
+        counsellorEmail: targetCounsellor.email,
+        assignedByUserId: appUser?.uid || "internal_staff",
+        assignedByName: actorName,
+        assignedByRole: userRole,
+        officeId: targetCounsellor.office || targetCounsellor.campusCity || "Main Branch",
+        tenantId: targetCounsellor.tenantId || "tenant-london",
+        studentName: application.studentName,
+        applicationNumber: application.applicationNumber,
+      });
+
+      updateApplication(application.id, result.applicationUpdate);
+      if (application.studentId || student?.id) {
+        updateStudent(application.studentId || student!.id, result.studentUpdate);
+      }
+      showToast(`Referral accepted & assigned to ${targetCounsellor.displayName || targetCounsellor.email}!`);
+    } catch (err) {
+      console.error("Failed to assign counsellor:", err);
+      alert("Failed to assign counsellor. Please try again.");
+    } finally {
+      setIsAssigningCounsellor(false);
+    }
   };
 
   const handleAdvanceStageSubmit = async (e: React.FormEvent) => {
@@ -1104,15 +1164,38 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
               Close Dossier
             </button>
 
-            {/* Team Leader: primary action is Assign Counsellor (handled externally via onClose + triage) */}
-            {isTeamLeader && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold sq-btn text-xs shadow-md shadow-emerald-500/20 inline-flex items-center space-x-1.5 cursor-pointer"
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Return to Assign Counsellor</span>
-              </button>
+            {/* Team Leader / Office Manager ONLY: Assign Counsellor selector and action */}
+            {canAssignCounsellor && (
+              <div className="flex flex-wrap items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-default)] p-1.5 sq-card">
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)] pl-1 whitespace-nowrap">
+                  Assign Counsellor:
+                </span>
+                <select
+                  aria-label="Assign Counsellor"
+                  value={selectedCounsellorEmail || (counsellorUsers[0]?.email ?? "")}
+                  onChange={(e) => setSelectedCounsellorEmail(e.target.value)}
+                  disabled={isAssigningCounsellor}
+                  className="px-2 py-1 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none w-44"
+                >
+                  {counsellorUsers.map((c) => (
+                    <option key={c.uid} value={c.email}>
+                      {c.displayName || c.email} ({c.office || c.campusCity || "Branch"})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAssignCounsellor}
+                  disabled={isAssigningCounsellor || (!selectedCounsellorEmail && counsellorUsers.length === 0)}
+                  className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold sq-btn text-xs shadow-md shadow-emerald-500/20 inline-flex items-center space-x-1 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                >
+                  {isAssigningCounsellor ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <UserCheck className="w-3.5 h-3.5" />
+                  )}
+                  <span>{application.assignedCounsellor ? "Reassign Counsellor" : "Assign Counsellor"}</span>
+                </button>
+              </div>
             )}
 
             {/* Counsellor / Admissions: Advance Stage */}

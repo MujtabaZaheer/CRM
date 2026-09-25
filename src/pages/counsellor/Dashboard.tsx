@@ -14,7 +14,6 @@ import {
   ChevronRight,
   FolderCheck,
   Eye,
-  ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Application } from "../../types/application";
@@ -112,31 +111,6 @@ export const CounsellorDashboard: React.FC = () => {
           </Link>
         </div>
       </div>
-
-      {/* Agent Referral Triage Desk Direct Access Banner */}
-      <Link
-        to="/counsellor/agent-triage"
-        className="p-4 bg-gradient-to-r from-emerald-950/40 via-[var(--bg-card)] to-[var(--bg-card)] border border-emerald-500/30 hover:border-emerald-500/50 sq-card flex items-center justify-between transition-all group"
-      >
-        <div className="flex items-center space-x-3.5">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2">
-              <span>Agent Referral Triage Desk</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">Direct Access</span>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Review incoming partner referrals, inspect student dossiers, and track referred candidate admissions.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-1.5 text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform">
-          <span>Open Triage Desk</span>
-          <ChevronRight className="w-4 h-4" />
-        </div>
-      </Link>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

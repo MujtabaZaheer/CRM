@@ -18,13 +18,12 @@ export interface TriageSubmissionResult {
 
 /**
  * Validates whether the user is authorized to access the Agent Triage Desk.
- * Allowed: Counsellors, Team Leaders, Office Managers, Org Admins, Platform Super Admins.
- * Explicitly denied: Admissions Officers and External Agents.
+ * Allowed: Team Leaders, Office Managers, Org Admins, Platform Super Admins.
+ * Explicitly denied: Counsellors, Admissions Officers, External Agents, and Students.
  */
 export function canAccessAgentTriage(user: AppUser | null): boolean {
   if (!user) return false;
   const permittedRoles = [
-    "counsellor",
     "team_leader",
     "office_manager",
     "org_admin",

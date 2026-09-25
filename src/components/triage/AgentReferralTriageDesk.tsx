@@ -30,14 +30,22 @@ import {
 } from "../../services/assignmentService";
 import { ApplicationDossierModal } from "../counsellor/ApplicationDossierModal";
 
+// Triage Desk: Team Leaders, Office Managers, Admins only.
+// Counsellors are NOT permitted to triage/accept/reject agent referrals.
 const ALLOWED_TRIAGE_ROLES = [
   "platform_super_admin",
   "org_admin",
   "office_manager",
   "team_leader",
-  "admissions_officer",
-  "counsellor",
 ] as const;
+
+// Only these roles can perform assign / accept / reject triage actions
+const TRIAGE_ACTION_ROLES = [
+  "platform_super_admin",
+  "org_admin",
+  "office_manager",
+  "team_leader",
+];
 
 export const AgentReferralTriageDesk: React.FC = () => {
   const { appUser } = useAuth();
@@ -50,9 +58,9 @@ export const AgentReferralTriageDesk: React.FC = () => {
     addTask,
   } = useGlobalData();
 
-  const isCounsellor = appUser?.role === "counsellor";
+  const canPerformTriageActions = TRIAGE_ACTION_ROLES.includes(appUser?.role || "");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"pending" | "accepted" | "rejected" | "my_assigned" | "all">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "accepted" | "rejected" | "all">("pending");
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<string>("All");
 
   // Rejection modal state
@@ -89,19 +97,16 @@ export const AgentReferralTriageDesk: React.FC = () => {
     });
   }, [applications]);
 
-  // Applications assigned specifically to the logged-in user
-  const myAssignedApps = useMemo(() => {
-    const uid = appUser?.uid;
-    const email = (appUser?.email || "").toLowerCase().trim();
-    return agentReferredApplications.filter((app) => {
-      const aCounsellorId = app.assignedCounsellorId || (app as any).counsellorId;
-      const aCounsellor = (app.assignedCounsellor || (app as any).assignedCounsellorEmail || "").toLowerCase().trim();
-      return (
-        (uid && (aCounsellorId === uid || aCounsellor === uid)) ||
-        (email && (aCounsellor === email || aCounsellorId === email))
-      );
-    });
-  }, [agentReferredApplications, appUser]);
+  // Helper: determine if an application has been formally accepted by triage
+  const isAcceptedByTriage = (app: Application): boolean => {
+    return (
+      app.admissionsVisibility === true ||
+      app.vettingStatus === "documents_verified" ||
+      app.vettingStatus === "submitted_to_admissions" ||
+      Boolean(app.assignedCounsellorId) ||
+      Boolean(app.assignedCounsellor)
+    );
+  };
 
   // Unique agents for filtering
   const uniqueAgents = useMemo(() => {
@@ -113,22 +118,25 @@ export const AgentReferralTriageDesk: React.FC = () => {
     return Array.from(names);
   }, [agentReferredApplications]);
 
-  // Split into categories
+  // Split into categories — strict mutex: once accepted, never shows in pending
   const pendingApps = useMemo(() => {
     return agentReferredApplications.filter((app) => {
-      const isPendingStatus =
-        app.stage === "Draft" ||
-        app.stage === "Initial Review" ||
+      if (app.stage === "Rejected" || app.vettingStatus === "rejected") return false;
+      // Exclude any app that has been formally accepted/assigned by triage
+      if (isAcceptedByTriage(app)) return false;
+      // Pending = waiting for triage assignment
+      return (
         app.vettingStatus === "pending_triage" ||
-        (!app.admissionsVisibility && app.stage !== "Rejected");
-      return isPendingStatus && app.stage !== "Rejected" && app.vettingStatus !== "rejected";
+        app.stage === "Draft" ||
+        (!app.admissionsVisibility && !app.assignedCounsellorId)
+      );
     });
   }, [agentReferredApplications]);
 
   const acceptedApps = useMemo(() => {
     return agentReferredApplications.filter(
       (app) =>
-        (app.admissionsVisibility === true || app.vettingStatus === "documents_verified" || app.vettingStatus === "submitted_to_admissions") &&
+        isAcceptedByTriage(app) &&
         app.stage !== "Rejected" &&
         app.vettingStatus !== "rejected"
     );
@@ -146,7 +154,6 @@ export const AgentReferralTriageDesk: React.FC = () => {
     if (activeTab === "pending") list = pendingApps;
     else if (activeTab === "accepted") list = acceptedApps;
     else if (activeTab === "rejected") list = rejectedApps;
-    else if (activeTab === "my_assigned") list = myAssignedApps;
     else list = agentReferredApplications;
 
     if (selectedAgentFilter !== "All") {
@@ -178,6 +185,9 @@ export const AgentReferralTriageDesk: React.FC = () => {
     selectedAgentFilter,
     searchQuery,
   ]);
+
+  // Canonical flag for accepted state (used per row)
+  const getIsAccepted = (app: Application) => isAcceptedByTriage(app);
 
   const showToast = (message: string) => {
     setSuccessToast(message);
@@ -448,7 +458,7 @@ export const AgentReferralTriageDesk: React.FC = () => {
         {/* Filter & Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2 w-full sm:w-auto">
-            {(["pending", "accepted", "rejected", ...(isCounsellor ? (["my_assigned"] as const) : []), "all"] as const).map((tab) => (
+            {(["pending", "accepted", "rejected", "all"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -461,7 +471,6 @@ export const AgentReferralTriageDesk: React.FC = () => {
                 {tab === "pending" && `Pending (${pendingApps.length})`}
                 {tab === "accepted" && `Accepted (${acceptedApps.length})`}
                 {tab === "rejected" && `Rejected (${rejectedApps.length})`}
-                {tab === "my_assigned" && `Assigned to Me (${myAssignedApps.length})`}
                 {tab === "all" && `All Referrals (${agentReferredApplications.length})`}
               </button>
             ))}
@@ -510,8 +519,8 @@ export const AgentReferralTriageDesk: React.FC = () => {
                   <th className="px-4 py-3">Partner Agency</th>
                   <th className="px-4 py-3">Target University & Course</th>
                   <th className="px-4 py-3">Stage / Compliance</th>
-                  <th className="px-4 py-3">Assign Counsellor</th>
-                  <th className="px-4 py-3 text-right">Triage Actions</th>
+                  {canPerformTriageActions && <th className="px-4 py-3">Assign Counsellor</th>}
+                  {canPerformTriageActions && <th className="px-4 py-3 text-right">Triage Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)]">
@@ -539,7 +548,7 @@ export const AgentReferralTriageDesk: React.FC = () => {
                       assignedCounsellorState[app.id] ||
                       app.assignedCounsellor ||
                       (defaultCounsellor ? defaultCounsellor.email : "");
-                    const isAccepted = app.vettingStatus === "documents_verified" || app.admissionsVisibility === true;
+                    const isAccepted = getIsAccepted(app);
                     const isRejected = app.stage === "Rejected" || app.vettingStatus === "rejected";
 
                     return (
@@ -618,94 +627,108 @@ export const AgentReferralTriageDesk: React.FC = () => {
                           )}
                         </td>
 
-                        {/* Counsellor Dropdown */}
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          {isRejected ? (
-                            <span className="text-[11px] text-[var(--text-muted)] italic">N/A (Disqualified)</span>
-                          ) : (
-                            <div className="space-y-1">
-                              <select
-                                aria-label={`Assign Counsellor for ${app.studentName}`}
-                                value={currentAssigned}
-                                disabled={isProcessing}
-                                onChange={(e) => handleCounsellorSelect(app.id, e.target.value)}
-                                className="px-2 py-1 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 w-52"
-                              >
-                                {rankedCounsellors.map((c) => (
-                                  <option key={c.uid} value={c.email}>
-                                    {c.displayName || c.email} ({c.badgeLabel})
-                                  </option>
-                                ))}
-                              </select>
-                              {rankedCounsellors[0] && (
-                                <div className="flex items-center space-x-1 text-[10px] text-sky-400 font-mono">
-                                  <MapPin className="w-2.5 h-2.5 text-sky-400 flex-shrink-0" />
-                                  <span className="truncate max-w-[200px]" title={rankedCounsellors[0].matchReason}>
-                                    Rec: {rankedCounsellors[0].displayName || rankedCounsellors[0].email} ({rankedCounsellors[0].office || rankedCounsellors[0].campusCity || "Local Branch"})
-                                  </span>
+                        {/* Counsellor Dropdown — Team Leader / Admin only */}
+                        {canPerformTriageActions && (
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            {isRejected ? (
+                              <span className="text-[11px] text-[var(--text-muted)] italic">N/A (Disqualified)</span>
+                            ) : isAccepted ? (
+                              <div className="space-y-1">
+                                <div className="text-[11px] text-emerald-400 font-semibold">
+                                  {app.assignedCounsellorName || app.assignedCounsellor || "Assigned"}
                                 </div>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                                <div className="text-[10px] text-[var(--text-muted)] italic">Accepted — locked</div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <select
+                                  aria-label={`Assign Counsellor for ${app.studentName}`}
+                                  value={currentAssigned}
+                                  disabled={isProcessing}
+                                  onChange={(e) => handleCounsellorSelect(app.id, e.target.value)}
+                                  className="px-2 py-1 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 w-52"
+                                >
+                                  {rankedCounsellors.map((c) => (
+                                    <option key={c.uid} value={c.email}>
+                                      {c.displayName || c.email} ({c.badgeLabel})
+                                    </option>
+                                  ))}
+                                </select>
+                                {rankedCounsellors[0] && (
+                                  <div className="flex items-center space-x-1 text-[10px] text-sky-400 font-mono">
+                                    <MapPin className="w-2.5 h-2.5 text-sky-400 flex-shrink-0" />
+                                    <span className="truncate max-w-[200px]" title={rankedCounsellors[0].matchReason}>
+                                      Rec: {rankedCounsellors[0].displayName || rankedCounsellors[0].email} ({rankedCounsellors[0].office || rankedCounsellors[0].campusCity || "Local Branch"})
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        )}
 
-                        {/* Triage Actions */}
-                        <td
-                          className="px-4 py-3 text-right space-x-1.5 whitespace-nowrap"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {/* Inspect Full Dossier */}
-                          <button
-                            onClick={() => setInspectingApp(app)}
-                            title="Inspect Full Application Dossier"
-                            className="px-2.5 py-1 bg-[var(--bg-elevated)] hover:bg-sky-500/10 hover:border-sky-500/30 text-sky-400 border border-[var(--border-default)] sq-btn text-xs inline-flex items-center space-x-1 font-semibold"
+                        {/* Triage Actions — Team Leader / Admin only */}
+                        {canPerformTriageActions && (
+                          <td
+                            className="px-4 py-3 text-right space-x-1.5 whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Inspect</span>
-                          </button>
+                            {/* Inspect Full Dossier */}
+                            <button
+                              onClick={() => setInspectingApp(app)}
+                              title="Inspect Full Application Dossier"
+                              className="px-2.5 py-1 bg-[var(--bg-elevated)] hover:bg-sky-500/10 hover:border-sky-500/30 text-sky-400 border border-[var(--border-default)] sq-btn text-xs inline-flex items-center space-x-1 font-semibold"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Inspect</span>
+                            </button>
 
-                          {!isRejected && (
-                            <>
-                              {/* Accept Action */}
+                            {/* Accept action — only on pending (not yet accepted) */}
+                            {!isRejected && !isAccepted && (
+                              <>
+                                <button
+                                  onClick={() => handleAcceptReferral(app)}
+                                  disabled={isProcessing}
+                                  className="px-2.5 py-1 sq-btn text-xs font-bold inline-flex items-center space-x-1 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-sm shadow-emerald-500/20"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  <span>Accept Referral</span>
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setRejectingApp(app);
+                                    setRejectionComment("");
+                                    setRejectionReasonCode("duplicate_lead");
+                                  }}
+                                  disabled={isProcessing}
+                                  className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 sq-btn text-xs font-semibold inline-flex items-center space-x-1"
+                                >
+                                  <X className="w-3 h-3" />
+                                  <span>Reject</span>
+                                </button>
+                              </>
+                            )}
+
+                            {/* Accepted state: show locked badge — counsellor reassignment from All Referrals tab only */}
+                            {!isRejected && isAccepted && (
+                              <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 sq-badge text-[10px] font-semibold inline-flex items-center space-x-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Accepted</span>
+                              </span>
+                            )}
+
+                            {isRejected && (
                               <button
                                 onClick={() => handleAcceptReferral(app)}
                                 disabled={isProcessing}
-                                className={`px-2.5 py-1 sq-btn text-xs font-bold inline-flex items-center space-x-1 ${
-                                  isAccepted
-                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
-                                    : "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-sm shadow-emerald-500/20"
-                                }`}
+                                className="px-2 py-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-[11px]"
                               >
-                                <Check className="w-3 h-3" />
-                                <span>{isAccepted ? "Reassign" : "Accept Referral"}</span>
+                                Restore / Accept
                               </button>
-
-                              {/* Reject Action */}
-                              <button
-                                onClick={() => {
-                                  setRejectingApp(app);
-                                  setRejectionComment("");
-                                  setRejectionReasonCode("duplicate_lead");
-                                }}
-                                disabled={isProcessing}
-                                className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 sq-btn text-xs font-semibold inline-flex items-center space-x-1"
-                              >
-                                <X className="w-3 h-3" />
-                                <span>Reject</span>
-                              </button>
-                            </>
-                          )}
-
-                          {isRejected && (
-                            <button
-                              onClick={() => handleAcceptReferral(app)}
-                              disabled={isProcessing}
-                              className="px-2 py-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-[11px]"
-                            >
-                              Restore / Accept
-                            </button>
-                          )}
-                        </td>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })
