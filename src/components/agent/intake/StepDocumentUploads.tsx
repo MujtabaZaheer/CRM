@@ -122,10 +122,14 @@ export const StepDocumentUploads: React.FC<StepDocumentUploadsProps> = ({
 
       try {
         const uploaded = await uploadStudentDocument(studentId, file, slotType);
-        fileUrl = uploaded.driveUrl || "";
+        fileUrl = uploaded.driveUrl || (typeof window !== "undefined" && window.URL ? URL.createObjectURL(file) : `doc://${file.name}`);
         filePath = uploaded.driveFileId;
       } catch {
-        fileUrl = URL.createObjectURL(file);
+        fileUrl = typeof window !== "undefined" && window.URL ? URL.createObjectURL(file) : `doc://${file.name}`;
+      }
+
+      if (!fileUrl) {
+        fileUrl = typeof window !== "undefined" && window.URL ? URL.createObjectURL(file) : `doc://${file.name}`;
       }
 
       // Simulated instant AI Quality Check

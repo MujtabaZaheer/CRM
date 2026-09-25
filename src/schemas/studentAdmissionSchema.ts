@@ -235,8 +235,8 @@ export const agentUploadedDocumentSchema = z.object({
   slotType: z.string(),
   label: z.string(),
   isMandatory: z.boolean(),
-  fileName: z.string().min(1),
-  fileUrl: z.string().min(1),
+  fileName: z.string().min(1, "File name is required"),
+  fileUrl: z.string().optional().default(""),
   filePath: z.string().optional(),
   fileSize: z.number().max(MAX_FILE_SIZE_BYTES, "File must not exceed 10MB"),
   mimeType: z

@@ -412,6 +412,16 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
   };
 
   const handleSubmitInitialReview = async () => {
+    // Ensure all documents have a valid fileUrl even if loaded from an older draft
+    const normalizedDocuments = formData.documents.map((doc) => ({
+      ...doc,
+      fileUrl: doc.fileUrl && doc.fileUrl.trim().length > 0 ? doc.fileUrl : `doc://${doc.fileName || doc.id}`,
+    }));
+
+    if (JSON.stringify(normalizedDocuments) !== JSON.stringify(formData.documents)) {
+      setFormData((prev) => ({ ...prev, documents: normalizedDocuments }));
+    }
+
     // Run full schema validation
     const result = fullAdmissionSubmissionSchema.safeParse({
       personalInfo: formData.personalInfo,
@@ -419,7 +429,7 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
       language: formData.language,
       compliance: formData.compliance,
       programs: formData.programs,
-      documents: formData.documents,
+      documents: normalizedDocuments,
     });
 
     if (!result.success) {

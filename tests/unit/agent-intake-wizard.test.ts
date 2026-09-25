@@ -356,6 +356,15 @@ describe("External Agent Student Intake Wizard & Dossier Builder", () => {
       const res = agentUploadedDocumentSchema.safeParse(badExtension);
       expect(res.success).toBe(false);
     });
+
+    it("should accept documents with empty or local fileUrl from IndexedDB cache", () => {
+      const docWithEmptyUrl = {
+        ...validDocuments[0],
+        fileUrl: "",
+      };
+      const res = agentUploadedDocumentSchema.safeParse(docWithEmptyUrl);
+      expect(res.success).toBe(true);
+    });
   });
 
   describe("Step 7: Full Admission Submission Validation", () => {
