@@ -567,8 +567,10 @@ export function isApplicationVisibleForRole(
 
   // Counsellor jurisdiction
   if (user.role === "counsellor") {
-    if (app.assignedCounsellorId === user.uid) return true;
+    if (app.assignedCounsellorId === user.uid || app.assignedCounsellorId === user.email) return true;
     if (app.assignedCounsellor === user.email || app.assignedCounsellor === user.uid) return true;
+    if ((app as any).counsellorId === user.uid || (app as any).counsellorId === user.email) return true;
+    if (app.assignedCounsellor && user.email && app.assignedCounsellor.toLowerCase().trim() === user.email.toLowerCase().trim()) return true;
     return false;
   }
 

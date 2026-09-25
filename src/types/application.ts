@@ -186,6 +186,8 @@ export interface Application {
   assignedCity?: string;
   processingCity?: string;
   assignedCounsellorId?: string;
+  assignedCounsellorName?: string;
+  officeId?: string;
   assignedTeamLeaderId?: string;
   assignedTeamLeaderEmail?: string;
   assignedTeamLeader?: string;

@@ -139,10 +139,12 @@ export interface Student {
   assignedCounsellorId?: string;
   assignedCounsellor?: string;
   assignedCounsellorEmail?: string;
+  assignedCounsellorName?: string;
   assignedTeamLeaderId?: string;
   assignedTeamLeaderEmail?: string;
   assignedTeamLeader?: string;
   assignedCity?: string;
+  campusCity?: string;
   processingCity?: string;
   preferredProgram?: string;
   office?: string;

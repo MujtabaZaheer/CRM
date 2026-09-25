@@ -262,21 +262,32 @@ export function filterRecordsByTenant<T extends Record<string, any>>(
   // Strict tenant boundary for regional branch staff (counsellor, admissions_officer, etc.)
   const userTenant = resolveUserTenantId(appUser);
   return records.filter((r) => {
+    // Direct personal assignment override (takes precedence: if assigned directly to this user, they must see it)
+    if (
+      (appUser.uid && (
+        r.assignedCounsellorId === appUser.uid ||
+        r.assignedTo === appUser.uid ||
+        r.counsellorId === appUser.uid ||
+        r.assignedOfficerId === appUser.uid ||
+        r.assignedCounsellor === appUser.uid
+      )) ||
+      (appUser.email && (
+        r.assignedTo === appUser.email ||
+        r.assignedOfficerEmail === appUser.email ||
+        r.assignedCounsellor === appUser.email ||
+        r.assignedCounsellorEmail === appUser.email ||
+        r.assignedCounsellorId === appUser.email ||
+        r.counsellorId === appUser.email
+      ))
+    ) {
+      return true;
+    }
+
     // If record explicitly specifies tenantId
     if (r.tenantId) {
       if (r.tenantId === userTenant) return true;
       if (r.tenantId === "ALL" || r.tenantId === "tenant-demo") return true;
       return false;
-    }
-
-    // Direct personal assignment override
-    if (
-      appUser.email &&
-      (r.assignedTo === appUser.email ||
-        r.assignedOfficerEmail === appUser.email ||
-        r.assignedCounsellor === appUser.email)
-    ) {
-      return true;
     }
 
     // If record has office/branch specified, check mapped tenant

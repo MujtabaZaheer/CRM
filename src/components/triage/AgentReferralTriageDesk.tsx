@@ -18,10 +18,16 @@ import {
   Eye,
   Check,
   Users,
+  MapPin,
 } from "lucide-react";
-import { updateDoc, doc, collection, addDoc } from "firebase/firestore";
+import { updateDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { logAuditEvent } from "../../utils/auditLogger";
+import {
+  assignReferralToCounsellor,
+  detectStudentLocation,
+  rankCounsellorsByProximity,
+} from "../../services/assignmentService";
 
 const ALLOWED_TRIAGE_ROLES = [
   "platform_super_admin",
@@ -35,6 +41,7 @@ export const AgentReferralTriageDesk: React.FC = () => {
   const { appUser } = useAuth();
   const {
     applications,
+    students,
     users,
     updateApplication,
     updateStudent,
@@ -165,63 +172,63 @@ export const AgentReferralTriageDesk: React.FC = () => {
 
   // Action: Accept Referral
   const handleAcceptReferral = async (app: Application) => {
-    const chosenCounsellorEmail = assignedCounsellorState[app.id] || app.assignedCounsellor || (activeCounsellors[0]?.email ?? "counsellor@educrm.demo");
-    const counsellorUser = activeCounsellors.find((c) => c.email === chosenCounsellorEmail);
-    const counsellorName = counsellorUser?.displayName || counsellorUser?.email || chosenCounsellorEmail;
+    const student = students.find(
+      (s) =>
+        s.id === app.studentId ||
+        (s.email && app.studentEmail && s.email.toLowerCase().trim() === app.studentEmail.toLowerCase().trim())
+    );
+    const rankedCounsellors = rankCounsellorsByProximity(activeCounsellors, student, app);
+    const defaultCounsellor = rankedCounsellors[0] || activeCounsellors[0];
+
+    const chosenCounsellorEmail =
+      assignedCounsellorState[app.id] ||
+      app.assignedCounsellor ||
+      (defaultCounsellor ? defaultCounsellor.email : "counsellor@educrm.demo");
+
+    const counsellorUser =
+      activeCounsellors.find((c) => c.email === chosenCounsellorEmail) ||
+      defaultCounsellor;
+
+    const counsellorName =
+      counsellorUser?.displayName ||
+      counsellorUser?.email ||
+      chosenCounsellorEmail;
+
+    const counsellorOffice = counsellorUser?.office || counsellorUser?.campusCity || "Main Branch";
+    const counsellorTenant = counsellorUser?.tenantId || "tenant-london";
 
     setIsProcessing(true);
-    const now = Date.now();
     const actorName = appUser?.displayName || appUser?.email || "Internal Staff";
 
     try {
-      // 1. Update Application in Global Data and Firestore
-      const updatedFields: Partial<Application> = {
-        assignedCounsellor: chosenCounsellorEmail,
-        assignedCounsellorId: counsellorUser?.uid,
-        stage: "Initial Review",
-        admissionsVisibility: true,
-        vettingStatus: "documents_verified",
-        vettedBy: actorName,
-        vettedAt: now,
-        vettingNotes: `Referral accepted by ${actorName}. Assigned to counsellor ${counsellorName}.`,
-        updatedAt: now,
-      };
+      // Execute atomic batch assignment across Application, Student, Notification, Task, and Audit Trail
+      const result = await assignReferralToCounsellor({
+        applicationId: app.id,
+        studentId: app.studentId || student?.id || "",
+        counsellorId: counsellorUser?.uid || `usr_couns_${Date.now()}`,
+        counsellorName,
+        counsellorEmail: chosenCounsellorEmail,
+        assignedByUserId: appUser?.uid || "internal_staff",
+        assignedByName: actorName,
+        assignedByRole: appUser?.role || "team_leader",
+        officeId: counsellorOffice,
+        tenantId: counsellorTenant,
+        studentName: app.studentName,
+        applicationNumber: app.applicationNumber,
+      });
 
-      updateApplication(app.id, updatedFields);
-      try {
-        await updateDoc(doc(db, "applications", app.id), updatedFields);
-      } catch (err) {
-        console.warn("Firestore application update notice:", err);
+      // Update local React global context state immediately
+      updateApplication(app.id, result.applicationUpdate);
+      if (app.studentId || student?.id) {
+        updateStudent(app.studentId || student!.id, result.studentUpdate);
       }
 
-      // 2. Update Student Record
-      if (app.studentId) {
-        updateStudent(app.studentId, {
-          admissionsVisibility: true,
-          vettingStatus: "documents_verified",
-          vettedBy: actorName,
-          vettedAt: now,
-          updatedAt: now,
-        });
-        try {
-          await updateDoc(doc(db, "students", app.studentId), {
-            admissionsVisibility: true,
-            vettingStatus: "documents_verified",
-            vettedBy: actorName,
-            vettedAt: now,
-            updatedAt: now,
-          });
-        } catch (err) {
-          console.warn("Firestore student update notice:", err);
-        }
-      }
-
-      // 3. Dispatch in-app task and notification to assigned Counsellor
+      // Add task to local global context for Counsellor Task Center
       const alertTask: Task = {
-        id: `tsk_ref_${now}`,
+        id: `tsk_ref_${Date.now()}`,
         title: `📥 New Agent Referral Assigned: ${app.studentName}`,
         description: `Agent ${app.agentName || "Partner"} referred ${app.studentName} for ${app.programmeName} at ${app.universityName}. Triaged and assigned by ${actorName}.`,
-        dueDate: new Date(now + 2 * 86400000).toISOString().split("T")[0],
+        dueDate: new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0],
         priority: "High",
         status: "Open",
         assignedTo: chosenCounsellorEmail,
@@ -229,28 +236,12 @@ export const AgentReferralTriageDesk: React.FC = () => {
         linkedEntityType: "application",
         linkedEntityId: app.id,
         linkedEntityName: `${app.studentName} (${app.applicationNumber})`,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
-
       addTask(alertTask);
-      try {
-        await addDoc(collection(db, "tasks"), alertTask);
-      } catch (err) {
-        console.warn("Firestore task insert notice:", err);
-      }
 
-      // 4. Log Audit Event
-      await logAuditEvent(
-        "AGENT_REFERRAL_ACCEPTED",
-        appUser?.email || "Internal Staff",
-        "Application",
-        `Accepted agent referral ${app.applicationNumber} (${app.studentName}) and assigned to counsellor ${counsellorName}`,
-        app.id,
-        appUser?.role
-      );
-
-      showToast(`Referral accepted! ${app.studentName} assigned to ${counsellorName}.`);
+      showToast(`Referral accepted! ${app.studentName} assigned to ${counsellorName} (${counsellorOffice}).`);
     } catch (err) {
       console.error("Error accepting referral:", err);
       alert("Failed to accept referral. Please try again.");
@@ -513,10 +504,19 @@ export const AgentReferralTriageDesk: React.FC = () => {
                   </tr>
                 ) : (
                   displayApplications.map((app) => {
+                    const student = students.find(
+                      (s) =>
+                        s.id === app.studentId ||
+                        (s.email && app.studentEmail && s.email.toLowerCase().trim() === app.studentEmail.toLowerCase().trim())
+                    );
+                    const studentLoc = detectStudentLocation(student, app);
+                    const rankedCounsellors = rankCounsellorsByProximity(activeCounsellors, student, app);
+                    const defaultCounsellor = rankedCounsellors[0] || activeCounsellors[0];
+
                     const currentAssigned =
                       assignedCounsellorState[app.id] ||
                       app.assignedCounsellor ||
-                      (activeCounsellors[0]?.email ?? "");
+                      (defaultCounsellor ? defaultCounsellor.email : "");
                     const isAccepted = app.vettingStatus === "documents_verified" || app.admissionsVisibility === true;
                     const isRejected = app.stage === "Rejected" || app.vettingStatus === "rejected";
 
@@ -541,6 +541,14 @@ export const AgentReferralTriageDesk: React.FC = () => {
                           <div className="text-[11px] text-[var(--text-muted)] truncate max-w-[180px]">
                             {app.studentEmail || "No email"}
                           </div>
+                          {studentLoc.displayLocation && (
+                            <div className="text-[10px] text-emerald-400 font-mono flex items-center space-x-1 mt-0.5">
+                              <MapPin className="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" />
+                              <span className="truncate max-w-[170px]" title={`Student Location: ${studentLoc.displayLocation}`}>
+                                {studentLoc.displayLocation}
+                              </span>
+                            </div>
+                          )}
                         </td>
 
                         {/* Partner Agency */}
@@ -589,19 +597,29 @@ export const AgentReferralTriageDesk: React.FC = () => {
                           {isRejected ? (
                             <span className="text-[11px] text-[var(--text-muted)] italic">N/A (Disqualified)</span>
                           ) : (
-                            <select
-                              aria-label={`Assign Counsellor for ${app.studentName}`}
-                              value={currentAssigned}
-                              disabled={isProcessing}
-                              onChange={(e) => handleCounsellorSelect(app.id, e.target.value)}
-                              className="px-2 py-1 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 w-44"
-                            >
-                              {activeCounsellors.map((c) => (
-                                <option key={c.uid} value={c.email}>
-                                  {c.displayName || c.email} ({c.office || "Branch"})
-                                </option>
-                              ))}
-                            </select>
+                            <div className="space-y-1">
+                              <select
+                                aria-label={`Assign Counsellor for ${app.studentName}`}
+                                value={currentAssigned}
+                                disabled={isProcessing}
+                                onChange={(e) => handleCounsellorSelect(app.id, e.target.value)}
+                                className="px-2 py-1 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 w-52"
+                              >
+                                {rankedCounsellors.map((c) => (
+                                  <option key={c.uid} value={c.email}>
+                                    {c.displayName || c.email} ({c.badgeLabel})
+                                  </option>
+                                ))}
+                              </select>
+                              {rankedCounsellors[0] && (
+                                <div className="flex items-center space-x-1 text-[10px] text-sky-400 font-mono">
+                                  <MapPin className="w-2.5 h-2.5 text-sky-400 flex-shrink-0" />
+                                  <span className="truncate max-w-[200px]" title={rankedCounsellors[0].matchReason}>
+                                    Rec: {rankedCounsellors[0].displayName || rankedCounsellors[0].email} ({rankedCounsellors[0].office || rankedCounsellors[0].campusCity || "Local Branch"})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
 

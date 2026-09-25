@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useGlobalData } from "../contexts/GlobalDataContext";
 import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { logAuditEvent } from "../utils/auditLogger";
+import { assignReferralToCounsellor } from "../services/assignmentService";
 
 export const useTeamLeaderData = () => {
   const { appUser } = useAuth();
@@ -24,6 +25,7 @@ export const useTeamLeaderData = () => {
     addTask,
     updateTask: updateGlobalTask,
     updateLead: updateGlobalLead,
+    updateStudent: updateGlobalStudent,
     updateApplication: updateGlobalApplication,
   } = useGlobalData();
   
@@ -101,58 +103,63 @@ export const useTeamLeaderData = () => {
   // Actions
   const assignApplication = useCallback(async (appId: string, counsellorEmail: string) => {
     const appData = applications.find(a => a.id === appId);
-    const appNum = appData?.applicationNumber || "APP";
+    const targetCounsellor = users.find(u => u.email === counsellorEmail || u.uid === counsellorEmail);
+    const counsellorId = targetCounsellor?.uid || counsellorEmail;
+    const counsellorName = targetCounsellor?.displayName || counsellorEmail;
+    const counsellorOffice = targetCounsellor?.office || appData?.officeId || "Branch";
+    const counsellorTenant = targetCounsellor?.tenantId || appData?.tenantId || "tenant-london";
 
-    // Optimistic update
-    updateGlobalApplication(appId, { assignedCounsellor: counsellorEmail, updatedAt: Date.now() });
+    const result = await assignReferralToCounsellor({
+      applicationId: appId,
+      studentId: appData?.studentId || "",
+      counsellorId,
+      counsellorName,
+      counsellorEmail,
+      assignedByUserId: appUser?.uid || "team_leader",
+      assignedByName: appUser?.displayName || appUser?.email || "Team Leader",
+      assignedByRole: appUser?.role || "team_leader",
+      officeId: counsellorOffice,
+      tenantId: counsellorTenant,
+      studentName: appData?.studentName,
+      applicationNumber: appData?.applicationNumber,
+    });
 
-    try {
-      const appRef = doc(db, "applications", appId);
-      await updateDoc(appRef, {
-        assignedCounsellor: counsellorEmail,
-        updatedAt: Date.now()
-      });
-
-      await logAuditEvent(
-        "APPLICATION_ASSIGNED",
-        appUser?.email || "Unknown",
-        "Application",
-        `Assigned application ${appNum} to counsellor ${counsellorEmail}`,
-        appId,
-        appUser?.role
-      );
-    } catch (err) {
-      console.warn("Firestore update notice (persisted in local state):", err);
+    updateGlobalApplication(appId, result.applicationUpdate);
+    if (appData?.studentId) {
+      updateGlobalStudent(appData.studentId, result.studentUpdate);
     }
-  }, [applications, appUser, updateGlobalApplication]);
+  }, [applications, users, appUser, updateGlobalApplication, updateGlobalStudent]);
 
   const bulkAssignApplications = useCallback(async (appIds: string[], counsellorEmail: string) => {
+    const targetCounsellor = users.find(u => u.email === counsellorEmail || u.uid === counsellorEmail);
+    const counsellorId = targetCounsellor?.uid || counsellorEmail;
+    const counsellorName = targetCounsellor?.displayName || counsellorEmail;
+    const counsellorOffice = targetCounsellor?.office || "Branch";
+    const counsellorTenant = targetCounsellor?.tenantId || "tenant-london";
+
     for (const appId of appIds) {
       const appData = applications.find(a => a.id === appId);
-      const appNum = appData?.applicationNumber || "APP";
+      const result = await assignReferralToCounsellor({
+        applicationId: appId,
+        studentId: appData?.studentId || "",
+        counsellorId,
+        counsellorName,
+        counsellorEmail,
+        assignedByUserId: appUser?.uid || "team_leader",
+        assignedByName: appUser?.displayName || appUser?.email || "Team Leader",
+        assignedByRole: appUser?.role || "team_leader",
+        officeId: counsellorOffice,
+        tenantId: counsellorTenant,
+        studentName: appData?.studentName,
+        applicationNumber: appData?.applicationNumber,
+      });
 
-      updateGlobalApplication(appId, { assignedCounsellor: counsellorEmail, updatedAt: Date.now() });
-
-      try {
-        const appRef = doc(db, "applications", appId);
-        await updateDoc(appRef, {
-          assignedCounsellor: counsellorEmail,
-          updatedAt: Date.now()
-        });
-
-        await logAuditEvent(
-          "APPLICATION_ASSIGNED",
-          appUser?.email || "Unknown",
-          "Application",
-          `Bulk assigned application ${appNum} to counsellor ${counsellorEmail}`,
-          appId,
-          appUser?.role
-        );
-      } catch (err) {
-        console.warn("Firestore update notice (persisted in local state):", err);
+      updateGlobalApplication(appId, result.applicationUpdate);
+      if (appData?.studentId) {
+        updateGlobalStudent(appData.studentId, result.studentUpdate);
       }
     }
-  }, [users, applications, appUser, updateGlobalApplication]);
+  }, [users, applications, appUser, updateGlobalApplication, updateGlobalStudent]);
 
   const assignLead = useCallback(async (leadId: string, counsellorEmailOrUid: string) => {
     const target = users.find(
