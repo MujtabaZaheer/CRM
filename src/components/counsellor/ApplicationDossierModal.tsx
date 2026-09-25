@@ -4,6 +4,7 @@ import { StudentDocument } from "../../pages/Documents";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { canUserSetStage, getStageOwnerLabel } from "../../utils/stageAuthorization";
+import { useApplicationDocuments } from "../../hooks/useApplicationDocuments";
 import {
   X,
   User,
@@ -18,6 +19,9 @@ import {
   ArrowRight,
   Globe,
   FileQuestion,
+  ShieldAlert,
+  Loader2,
+  UserCheck,
 } from "lucide-react";
 
 export interface ApplicationDossierModalProps {
@@ -36,10 +40,25 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
   const { appUser } = useAuth();
   const {
     students,
-    documents,
+    documents: globalDocuments,
     updateApplication,
     updateDocument,
   } = useGlobalData();
+
+  // ── RBAC: Derive role-based permissions ──
+  const userRole = appUser?.role || "counsellor";
+  const isTeamLeader = userRole === "team_leader";
+  const isCounsellor = userRole === "counsellor";
+  const isAdmissionsOrAbove = ["admissions", "university", "admin", "super_admin"].includes(userRole);
+
+  // Team Leaders: read-only profile & docs, primary action = assign counsellor
+  // Counsellors: profile, docs, request docs, advance stage — NO decision/offer or scholarship
+  // Admissions+: full access
+  const canAccessRequestDocs = isCounsellor || isAdmissionsOrAbove;
+  const canAccessDecision = isAdmissionsOrAbove;
+  const canAccessScholarship = isAdmissionsOrAbove;
+  const canAdvanceStage = isCounsellor || isAdmissionsOrAbove;
+  const canVerifyDocs = isCounsellor || isAdmissionsOrAbove; // Team Leaders see docs read-only
 
   const [activeTab, setActiveTab] = useState<TabType>("profile");
 
@@ -107,15 +126,12 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
     );
   }, [students, application]);
 
-  // Find linked documents for this candidate/application
-  const candidateDocuments = useMemo(() => {
-    return documents.filter(
-      (d) =>
-        d.studentId === application.studentId ||
-        (d.studentName && d.studentName.toLowerCase() === application.studentName.toLowerCase()) ||
-        (d as any).applicationId === application.id
-    );
-  }, [documents, application]);
+  // Find linked documents for this candidate/application — uses robust multi-query hook
+  const {
+    documents: candidateDocuments,
+    count: candidateDocCount,
+    loading: docsLoading,
+  } = useApplicationDocuments(application, application.id, application.studentId, globalDocuments);
 
   // Source / Agent attribution
   const agentBadgeLabel = useMemo(() => {
@@ -330,7 +346,9 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
         </div>
 
         {/* Tab Navigation */}
+        {/* Tab Navigation — RBAC-gated */}
         <div className="px-4 sm:px-6 border-b border-[var(--border-default)] bg-[var(--bg-card)] flex items-center space-x-2 sm:space-x-4 overflow-x-auto flex-shrink-0 text-xs">
+          {/* Profile & Academics — always visible */}
           <button
             onClick={() => setActiveTab("profile")}
             className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
@@ -343,6 +361,7 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
             <span>Profile & Academics</span>
           </button>
 
+          {/* Dossier Documents — always visible (read-only for TL) */}
           <button
             onClick={() => setActiveTab("documents")}
             className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
@@ -352,49 +371,71 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Dossier Documents ({candidateDocuments.length})</span>
+            <span>Dossier Documents ({docsLoading ? "…" : candidateDocCount})</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab("request_docs")}
-            className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
-              activeTab === "request_docs"
-                ? "border-sky-500 text-sky-400"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <FileQuestion className="w-3.5 h-3.5" />
-            <span>
-              Request Documents
-              {application.requestedDocuments && application.requestedDocuments.length > 0
-                ? ` (${application.requestedDocuments.filter((r) => r.status === "pending").length})`
-                : ""}
-            </span>
-          </button>
+          {/* Request Documents — Counsellor + Admissions only */}
+          {canAccessRequestDocs && (
+            <button
+              onClick={() => setActiveTab("request_docs")}
+              className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
+                activeTab === "request_docs"
+                  ? "border-sky-500 text-sky-400"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <FileQuestion className="w-3.5 h-3.5" />
+              <span>
+                Request Documents
+                {application.requestedDocuments && application.requestedDocuments.length > 0
+                  ? ` (${application.requestedDocuments.filter((r) => r.status === "pending").length})`
+                  : ""}
+              </span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab("decision")}
-            className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
-              activeTab === "decision"
-                ? "border-sky-500 text-sky-400"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <FileCheck className="w-3.5 h-3.5" />
-            <span>Official Decision & Offer</span>
-          </button>
+          {/* Official Decision & Offer — Admissions/University only */}
+          {canAccessDecision && (
+            <button
+              onClick={() => setActiveTab("decision")}
+              className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
+                activeTab === "decision"
+                  ? "border-sky-500 text-sky-400"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <FileCheck className="w-3.5 h-3.5" />
+              <span>Official Decision & Offer</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab("scholarship_comms")}
-            className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
-              activeTab === "scholarship_comms"
-                ? "border-sky-500 text-sky-400"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>Award Scholarship & Comms</span>
-          </button>
+          {/* Award Scholarship & Comms — Admissions/University only for scholarship; comms always visible */}
+          {canAccessScholarship ? (
+            <button
+              onClick={() => setActiveTab("scholarship_comms")}
+              className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
+                activeTab === "scholarship_comms"
+                  ? "border-sky-500 text-sky-400"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Award Scholarship & Comms</span>
+            </button>
+          ) : (
+            /* Non-admissions roles still see internal comms tab, just relabeled */
+            <button
+              onClick={() => setActiveTab("scholarship_comms")}
+              className={`py-3 px-2 border-b-2 font-semibold transition-all whitespace-nowrap flex items-center space-x-1.5 ${
+                activeTab === "scholarship_comms"
+                  ? "border-sky-500 text-sky-400"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Internal Communications</span>
+            </button>
+          )}
         </div>
 
         {/* Modal Body / Tab Content */}
@@ -556,21 +597,32 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
                     Candidate Document Dossier
                   </h3>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    Review candidate files, preview documents inline, and toggle verification flags.
+                    {isTeamLeader
+                      ? "Read-only view of uploaded candidate documents."
+                      : "Review candidate files, preview documents inline, and toggle verification flags."}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2 text-xs">
                   <span className="text-[var(--text-muted)]">Total Uploads:</span>
-                  <span className="font-mono font-bold text-sky-400">{candidateDocuments.length}</span>
+                  <span className="font-mono font-bold text-sky-400">
+                    {docsLoading ? <Loader2 className="w-3 h-3 animate-spin inline" /> : candidateDocCount}
+                  </span>
                 </div>
               </div>
 
-              {candidateDocuments.length === 0 ? (
+              {docsLoading ? (
+                <div className="p-8 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card text-center space-y-2">
+                  <Loader2 className="w-8 h-8 text-sky-400 mx-auto animate-spin" />
+                  <p className="font-semibold text-[var(--text-primary)]">Loading documents…</p>
+                </div>
+              ) : candidateDocuments.length === 0 ? (
                 <div className="p-8 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card text-center space-y-2">
                   <FileText className="w-8 h-8 text-[var(--text-muted)] mx-auto opacity-50" />
                   <p className="font-semibold text-[var(--text-primary)]">No documents uploaded yet.</p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Use the "Request Documents" tab to trigger missing requirements from the student.
+                    {canAccessRequestDocs
+                      ? 'Use the "Request Documents" tab to trigger missing requirements from the student.'
+                      : "Documents will appear here once the assigned counsellor or agent uploads them."}
                   </p>
                 </div>
               ) : (
@@ -582,7 +634,9 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
                         <th className="px-4 py-3">File Name</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Uploaded</th>
-                        <th className="px-4 py-3 text-right">Verification & Actions</th>
+                        <th className="px-4 py-3 text-right">
+                          {canVerifyDocs ? "Verification & Actions" : "Preview"}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border-default)]">
@@ -625,28 +679,33 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
                               <span>Preview</span>
                             </button>
 
-                            <button
-                              onClick={() =>
-                                handleToggleDocVerification(
-                                  doc.id,
-                                  doc.status === "Verified" ? "Pending" : "Verified"
-                                )
-                              }
-                              className={`px-2 py-1 sq-btn text-xs font-semibold ${
-                                doc.status === "Verified"
-                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                  : "bg-emerald-500 text-zinc-950 font-bold"
-                              }`}
-                            >
-                              {doc.status === "Verified" ? "Verified ✓" : "Mark Verified"}
-                            </button>
+                            {/* Verification controls — hidden for Team Leaders (read-only) */}
+                            {canVerifyDocs && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleToggleDocVerification(
+                                      doc.id,
+                                      doc.status === "Verified" ? "Pending" : "Verified"
+                                    )
+                                  }
+                                  className={`px-2 py-1 sq-btn text-xs font-semibold ${
+                                    doc.status === "Verified"
+                                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                      : "bg-emerald-500 text-zinc-950 font-bold"
+                                  }`}
+                                >
+                                  {doc.status === "Verified" ? "Verified ✓" : "Mark Verified"}
+                                </button>
 
-                            <button
-                              onClick={() => handleToggleDocVerification(doc.id, "Rejected")}
-                              className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 sq-btn text-xs"
-                            >
-                              Reject
-                            </button>
+                                <button
+                                  onClick={() => handleToggleDocVerification(doc.id, "Rejected")}
+                                  className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 sq-btn text-xs"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -657,8 +716,8 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
             </div>
           )}
 
-          {/* TAB 3: Request Documents */}
-          {activeTab === "request_docs" && (
+          {/* TAB 3: Request Documents — Counsellor + Admissions only */}
+          {activeTab === "request_docs" && canAccessRequestDocs && (
             <div className="space-y-6">
               {/* Request Form */}
               <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-4 sm:p-5 space-y-4">
@@ -779,8 +838,8 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
             </div>
           )}
 
-          {/* TAB 4: Official Decision & Offer */}
-          {activeTab === "decision" && (
+          {/* TAB 4: Official Decision & Offer — Admissions/University only */}
+          {activeTab === "decision" && canAccessDecision && (
             <div className="space-y-6">
               <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-4 sm:p-5 space-y-4">
                 <div className="flex items-center space-x-2 text-teal-400 font-bold border-b border-[var(--border-default)] pb-2">
@@ -871,66 +930,99 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
 
           {/* TAB 5: Award Scholarship & Communications */}
           {activeTab === "scholarship_comms" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Award Scholarship Card */}
-              <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-4 sm:p-5 space-y-4">
-                <div className="flex items-center space-x-2 text-amber-400 font-bold border-b border-[var(--border-default)] pb-2">
-                  <Award className="w-4 h-4" />
-                  <h3 className="text-sm font-heading">Award Institutional Scholarship</h3>
+            /* Scholarship form is Admissions-only; internal comms is always visible */
+            <div className={`grid grid-cols-1 ${canAccessScholarship ? 'md:grid-cols-2' : ''} gap-6`}>
+              {/* Award Scholarship Card — Admissions/University only */}
+              {canAccessScholarship ? (
+                <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center space-x-2 text-amber-400 font-bold border-b border-[var(--border-default)] pb-2">
+                    <Award className="w-4 h-4" />
+                    <h3 className="text-sm font-heading">Award Institutional Scholarship</h3>
+                  </div>
+
+                  <form onSubmit={handleSaveScholarship} className="space-y-3">
+                    <div>
+                      <label className="block text-[var(--text-secondary)] mb-1 font-semibold">
+                        Scholarship Award Title *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Vice-Chancellor's International Merit Scholarship"
+                        value={scholarshipName}
+                        onChange={(e) => setScholarshipName(e.target.value)}
+                        className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[var(--text-secondary)] mb-1 font-semibold">
+                        Amount Awarded (£ / $ / %) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. £3,500 or 25% Tuition Fee Waiver"
+                        value={scholarshipAmount}
+                        onChange={(e) => setScholarshipAmount(e.target.value)}
+                        className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[var(--text-secondary)] mb-1 font-semibold">
+                        Criteria & Award Notes
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Based on academic distinction (3.8+ GPA) and early acceptance."
+                        value={scholarshipDesc}
+                        onChange={(e) => setScholarshipDesc(e.target.value)}
+                        className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingScholarship}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold sq-btn text-xs inline-flex items-center space-x-1.5"
+                    >
+                      <Award className="w-3.5 h-3.5" />
+                      <span>Log Scholarship Award</span>
+                    </button>
+                  </form>
                 </div>
-
-                <form onSubmit={handleSaveScholarship} className="space-y-3">
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1 font-semibold">
-                      Scholarship Award Title *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Vice-Chancellor's International Merit Scholarship"
-                      value={scholarshipName}
-                      onChange={(e) => setScholarshipName(e.target.value)}
-                      className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none"
-                    />
+              ) : (
+                /* Team Leader / Counsellor view: show existing scholarship award read-only if one exists */
+                application.scholarshipAwarded && (
+                  <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-4 sm:p-5 space-y-3">
+                    <div className="flex items-center space-x-2 text-amber-400 font-bold border-b border-[var(--border-default)] pb-2">
+                      <Award className="w-4 h-4" />
+                      <h3 className="text-sm font-heading">Scholarship Award (Read-Only)</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase">Award Title</span>
+                        <div className="font-semibold text-[var(--text-primary)]">{application.scholarshipAwarded.name}</div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase">Amount</span>
+                        <div className="font-mono font-bold text-emerald-400">{application.scholarshipAwarded.amount}</div>
+                      </div>
+                      {application.scholarshipAwarded.description && (
+                        <div>
+                          <span className="text-[10px] text-[var(--text-muted)] uppercase">Notes</span>
+                          <div className="text-[var(--text-secondary)]">{application.scholarshipAwarded.description}</div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-1.5 text-[10px] text-amber-400/70 pt-2 border-t border-[var(--border-default)]">
+                      <ShieldAlert className="w-3 h-3" />
+                      <span>Scholarship awards can only be modified by Admissions staff.</span>
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1 font-semibold">
-                      Amount Awarded (£ / $ / %) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. £3,500 or 25% Tuition Fee Waiver"
-                      value={scholarshipAmount}
-                      onChange={(e) => setScholarshipAmount(e.target.value)}
-                      className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[var(--text-secondary)] mb-1 font-semibold">
-                      Criteria & Award Notes
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Based on academic distinction (3.8+ GPA) and early acceptance."
-                      value={scholarshipDesc}
-                      onChange={(e) => setScholarshipDesc(e.target.value)}
-                      className="w-full px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-default)] sq-input text-xs text-[var(--text-primary)] focus:outline-none resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSavingScholarship}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold sq-btn text-xs inline-flex items-center space-x-1.5"
-                  >
-                    <Award className="w-3.5 h-3.5" />
-                    <span>Log Scholarship Award</span>
-                  </button>
-                </form>
-              </div>
+                )
+              )}
 
               {/* Internal Notes & Communications Card */}
               <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card p-4 sm:p-5 space-y-4 flex flex-col justify-between">
@@ -989,13 +1081,19 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
           )}
         </div>
 
-        {/* Modal Footer Bar */}
+        {/* Modal Footer Bar — RBAC-gated actions */}
         <div className="p-4 sm:p-5 border-t border-[var(--border-default)] bg-[var(--bg-elevated)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <span className="text-xs text-[var(--text-muted)]">Lifecycle Stage:</span>
             <span className="px-3 py-1 bg-sky-500/10 text-sky-400 border border-sky-500/20 sq-badge text-xs font-bold">
               {application.stage}
             </span>
+            {isTeamLeader && (
+              <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 sq-badge text-[10px] font-semibold flex items-center space-x-1">
+                <ShieldAlert className="w-3 h-3" />
+                <span>Team Leader View</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -1006,16 +1104,30 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
               Close Dossier
             </button>
 
-            <button
-              onClick={() => {
-                setTargetStage(application.stage);
-                setShowAdvanceModal(true);
-              }}
-              className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold sq-btn text-xs shadow-md shadow-sky-500/20 inline-flex items-center space-x-1.5 cursor-pointer"
-            >
-              <span>Advance Stage</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            {/* Team Leader: primary action is Assign Counsellor (handled externally via onClose + triage) */}
+            {isTeamLeader && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold sq-btn text-xs shadow-md shadow-emerald-500/20 inline-flex items-center space-x-1.5 cursor-pointer"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Return to Assign Counsellor</span>
+              </button>
+            )}
+
+            {/* Counsellor / Admissions: Advance Stage */}
+            {canAdvanceStage && (
+              <button
+                onClick={() => {
+                  setTargetStage(application.stage);
+                  setShowAdvanceModal(true);
+                }}
+                className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold sq-btn text-xs shadow-md shadow-sky-500/20 inline-flex items-center space-x-1.5 cursor-pointer"
+              >
+                <span>Advance Stage</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 

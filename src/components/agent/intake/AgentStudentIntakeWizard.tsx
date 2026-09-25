@@ -334,18 +334,20 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
       ],
     };
 
-    try {
+      (newApplication as any).documents = formData.documents;
+
       // 1. Optimistic Local Context Commit
       addStudent(newStudent);
       addApplication(newApplication);
 
-      // Add uploaded documents into global context
-      formData.documents.forEach((d) => {
+      // Add uploaded documents into global context and persist to Firestore
+      for (const d of formData.documents) {
         const studentDoc: StudentDocument = {
           id: d.id,
           studentId,
+          applicationId,
           studentName: studentFullName,
-          docType: d.slotType as any,
+          docType: (d.slotType || d.docType || "Other") as any,
           fileName: d.fileName,
           fileUrl: d.fileUrl,
           filePath: d.filePath,
@@ -356,7 +358,8 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
           createdAt: Date.now(),
         };
         addDocument(studentDoc);
-      });
+        await setDoc(doc(db, "documents", d.id), studentDoc).catch(() => {});
+      }
 
       // 2. Async Cloud Firestore Commit
       await setDoc(doc(db, "students", studentId), newStudent).catch(() => {});
