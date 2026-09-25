@@ -55,6 +55,8 @@ export interface StudentDocument {
   remarks?: string;
   feedback?: string;
   uploadedBy: string;
+  tenantId?: string;
+  office?: string;
   createdAt: number;
 }
 

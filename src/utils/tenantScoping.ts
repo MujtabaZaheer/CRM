@@ -213,21 +213,80 @@ export function filterRecordsByTenant<T extends Record<string, any>>(
   appUser: AppUser | null,
   activeTenantOverride?: string
 ): T[] {
-  if (!appUser) return [];
+  // If no authenticated user (e.g. initial auth load, public view, or demo preview), return records
+  if (!appUser) return records;
 
-  // Super Admin: respects explicit tenant switcher or sees all
-  if (appUser.role === "platform_super_admin") {
+  // Global Cross-Tenant Roles: Super Admin, Org Admin, Auditor, Support Desk
+  const isGlobalRole =
+    appUser.role === "platform_super_admin" ||
+    appUser.role === "org_admin" ||
+    appUser.role === "auditor" ||
+    appUser.role === "support_user";
+
+  if (isGlobalRole) {
     if (!activeTenantOverride || activeTenantOverride === "ALL") {
       return records;
     }
-    return records.filter((r) => (r.tenantId || mapOfficeToTenantId(r.office, r.branchId)) === activeTenantOverride);
+    return records.filter((r) => {
+      const recordTenant = r.tenantId || (r.office || r.branchId ? mapOfficeToTenantId(r.office, r.branchId) : undefined);
+      return !recordTenant || recordTenant === activeTenantOverride || recordTenant === "ALL" || recordTenant === "tenant-demo";
+    });
   }
 
-  // Strict tenant boundary for all non-super-admins
+  // External Agent: Scoped to agent's own referrals and city partition
+  if (appUser.role === "external_agent") {
+    const userTenant = appUser.tenantId;
+    return records.filter((r) => {
+      // Direct referral attribution (agent owns the record)
+      if (
+        (appUser.uid && (r.agentUid === appUser.uid || r.agentId === appUser.uid || r.referredBy === appUser.uid)) ||
+        (appUser.email && r.agentEmail === appUser.email)
+      ) {
+        return true;
+      }
+      // Demo agent convenience: allow viewing demo agent referrals
+      if (appUser.uid === "demo_external_agent" || appUser.email === "external_agent@educrm.demo") {
+        if (r.agentUid === "agent_gec" || r.agentUid === "agent_opa" || r.agentReferred) {
+          return true;
+        }
+      }
+      // City-scoped agent partition (if agent has a specific branch tenant and record has a specific tenant)
+      if (userTenant && userTenant !== "default_tenant" && userTenant !== "tenant-demo") {
+        const recordTenant = r.tenantId || (r.office || r.branchId ? mapOfficeToTenantId(r.office, r.branchId) : undefined);
+        return recordTenant === userTenant;
+      }
+      return false;
+    });
+  }
+
+  // Strict tenant boundary for regional branch staff (counsellor, admissions_officer, etc.)
   const userTenant = resolveUserTenantId(appUser);
   return records.filter((r) => {
-    const recordTenant = r.tenantId || mapOfficeToTenantId(r.office, r.branchId);
-    return recordTenant === userTenant;
+    // If record explicitly specifies tenantId
+    if (r.tenantId) {
+      if (r.tenantId === userTenant) return true;
+      if (r.tenantId === "ALL" || r.tenantId === "tenant-demo") return true;
+      return false;
+    }
+
+    // Direct personal assignment override
+    if (
+      appUser.email &&
+      (r.assignedTo === appUser.email ||
+        r.assignedOfficerEmail === appUser.email ||
+        r.assignedCounsellor === appUser.email)
+    ) {
+      return true;
+    }
+
+    // If record has office/branch specified, check mapped tenant
+    if (r.office || r.branchId) {
+      const recordTenant = mapOfficeToTenantId(r.office, r.branchId);
+      return recordTenant === userTenant;
+    }
+
+    // Unpartitioned legacy/demo records are accessible
+    return true;
   });
 }
 

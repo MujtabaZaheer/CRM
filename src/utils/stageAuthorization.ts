@@ -1,5 +1,6 @@
 import { ApplicationStage } from "../types/application";
 import { UserRole } from "../types/role";
+import { WORKFLOW_STAGE_MATRIX } from "./applicationWorkflowConfig";
 
 export interface StageRoleConfig {
   allowedRoles: UserRole[];
@@ -8,130 +9,126 @@ export interface StageRoleConfig {
   actionDescription: string;
 }
 
-/**
- * Mapping of each application stage to the roles authorized to transition INTO that stage,
- * along with display metadata for UI badges and disabled options.
- */
 export const STAGE_AUTHORIZATION_MAP: Record<ApplicationStage, StageRoleConfig> = {
   Draft: {
-    allowedRoles: ["counsellor", "team_leader", "office_manager", "external_agent", "platform_super_admin", "org_admin"],
-    ownerLabel: "Counsellor",
+    allowedRoles: WORKFLOW_STAGE_MATRIX.Draft.whoUpdates,
+    ownerLabel: "Student / Agent",
     department: "Counselling",
-    actionDescription: "Create or reset application draft",
+    actionDescription: WORKFLOW_STAGE_MATRIX.Draft.systemBehavior,
   },
   "Initial Review": {
-    allowedRoles: ["counsellor", "team_leader", "office_manager", "platform_super_admin", "org_admin"],
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Initial Review"].whoUpdates,
     ownerLabel: "Counsellor",
     department: "Counselling",
-    actionDescription: "Review initial documents and applicant details",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Initial Review"].systemBehavior,
   },
   "Documents Pending": {
-    allowedRoles: ["counsellor", "team_leader", "office_manager", "external_agent", "platform_super_admin", "org_admin"],
-    ownerLabel: "Counsellor",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Documents Pending"].whoUpdates,
+    ownerLabel: "Student / Counsellor",
     department: "Counselling",
-    actionDescription: "Request missing documents from applicant",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Documents Pending"].systemBehavior,
   },
   "Ready for Submission": {
-    allowedRoles: ["counsellor", "team_leader", "office_manager", "platform_super_admin", "org_admin"],
-    ownerLabel: "Counsellor",
-    department: "Counselling",
-    actionDescription: "Mark file verified and ready to dispatch to university",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Ready for Submission"].whoUpdates,
+    ownerLabel: "Admissions Officer",
+    department: "Admissions",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Ready for Submission"].systemBehavior,
   },
   Submitted: {
-    allowedRoles: ["counsellor", "team_leader", "office_manager", "platform_super_admin", "org_admin"],
-    ownerLabel: "Counsellor",
-    department: "Counselling",
-    actionDescription: "Submit file to university portal / partner",
+    allowedRoles: WORKFLOW_STAGE_MATRIX.Submitted.whoUpdates,
+    ownerLabel: "Admissions Officer",
+    department: "Admissions",
+    actionDescription: WORKFLOW_STAGE_MATRIX.Submitted.systemBehavior,
   },
   "University Reviewing": {
-    allowedRoles: ["admissions_officer", "university_partner", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["University Reviewing"].whoUpdates,
+    ownerLabel: "University Partner",
     department: "Admissions",
-    actionDescription: "Confirm university has logged and is evaluating the application",
+    actionDescription: WORKFLOW_STAGE_MATRIX["University Reviewing"].systemBehavior,
   },
   "Additional Info Requested": {
-    allowedRoles: ["admissions_officer", "university_partner", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Additional Info Requested"].whoUpdates,
+    ownerLabel: "University Partner / Student",
     department: "Admissions",
-    actionDescription: "University requests further academic or identity proofs",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Additional Info Requested"].systemBehavior,
   },
   "Conditional Offer": {
-    allowedRoles: ["admissions_officer", "university_partner", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Conditional Offer"].whoUpdates,
+    ownerLabel: "University Partner",
     department: "Admissions",
-    actionDescription: "Issue Conditional Offer Letter from university",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Conditional Offer"].systemBehavior,
   },
   "Unconditional Offer": {
-    allowedRoles: ["admissions_officer", "university_partner", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Unconditional Offer"].whoUpdates,
+    ownerLabel: "University Partner",
     department: "Admissions",
-    actionDescription: "Issue Unconditional Offer Letter after prerequisites met",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Unconditional Offer"].systemBehavior,
   },
   "Deposit Pending": {
-    allowedRoles: ["finance_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Finance Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Deposit Pending"].whoUpdates,
+    ownerLabel: "Finance Officer / Student",
     department: "Finance",
-    actionDescription: "Generate deposit invoice / fee challan for applicant",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Deposit Pending"].systemBehavior,
   },
   "Deposit Paid": {
-    allowedRoles: ["finance_officer", "platform_super_admin", "org_admin"],
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Deposit Paid"].whoUpdates,
     ownerLabel: "Finance Officer",
     department: "Finance",
-    actionDescription: "Verify deposit receipt and approve fee clearance",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Deposit Paid"].systemBehavior,
   },
   "CAS / COE Pending": {
-    allowedRoles: ["visa_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Visa Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["CAS / COE Pending"].whoUpdates,
+    ownerLabel: "Compliance / Admissions",
     department: "Visa",
-    actionDescription: "Initiate CAS / Confirmation of Enrolment request with university",
+    actionDescription: WORKFLOW_STAGE_MATRIX["CAS / COE Pending"].systemBehavior,
   },
   "CAS Issued": {
-    allowedRoles: ["visa_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Visa Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["CAS Issued"].whoUpdates,
+    ownerLabel: "University Partner",
     department: "Visa",
-    actionDescription: "Record issued CAS / COE reference number",
+    actionDescription: WORKFLOW_STAGE_MATRIX["CAS Issued"].systemBehavior,
   },
   "Visa Preparation": {
-    allowedRoles: ["visa_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Visa Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Visa Preparation"].whoUpdates,
+    ownerLabel: "Counsellor / Student",
     department: "Visa",
-    actionDescription: "Prepare embassy file, financial statements, and biometric appointments",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Visa Preparation"].systemBehavior,
   },
   "Visa Submitted": {
-    allowedRoles: ["visa_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Visa Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Visa Submitted"].whoUpdates,
+    ownerLabel: "Student / Counsellor",
     department: "Visa",
-    actionDescription: "File lodged with immigration authority / embassy",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Visa Submitted"].systemBehavior,
   },
   "Visa Approved": {
-    allowedRoles: ["visa_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Visa Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX["Visa Approved"].whoUpdates,
+    ownerLabel: "Counsellor / Student",
     department: "Visa",
-    actionDescription: "Visa grant clearance confirmed",
+    actionDescription: WORKFLOW_STAGE_MATRIX["Visa Approved"].systemBehavior,
   },
   Enrolled: {
-    allowedRoles: ["admissions_officer", "team_leader", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX.Enrolled.whoUpdates,
+    ownerLabel: "University Partner / Admissions",
     department: "Admissions",
-    actionDescription: "Confirm arrival and university registration complete",
+    actionDescription: WORKFLOW_STAGE_MATRIX.Enrolled.systemBehavior,
   },
   Deferred: {
-    allowedRoles: ["admissions_officer", "counsellor", "team_leader", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions / Counsellor",
+    allowedRoles: WORKFLOW_STAGE_MATRIX.Deferred.whoUpdates,
+    ownerLabel: "Admissions / Team Leader",
     department: "Admissions",
-    actionDescription: "Defer intake to next academic session",
+    actionDescription: WORKFLOW_STAGE_MATRIX.Deferred.systemBehavior,
   },
   Withdrawn: {
-    allowedRoles: ["counsellor", "team_leader", "admissions_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Counsellor / Admissions",
+    allowedRoles: WORKFLOW_STAGE_MATRIX.Withdrawn.whoUpdates,
+    ownerLabel: "Student / Counsellor",
     department: "Counselling",
-    actionDescription: "Withdraw application per student request",
+    actionDescription: WORKFLOW_STAGE_MATRIX.Withdrawn.systemBehavior,
   },
   Rejected: {
-    allowedRoles: ["admissions_officer", "university_partner", "visa_officer", "platform_super_admin", "org_admin"],
-    ownerLabel: "Admissions / Visa Officer",
+    allowedRoles: WORKFLOW_STAGE_MATRIX.Rejected.whoUpdates,
+    ownerLabel: "University Partner / Admissions / Visa Officer",
     department: "Admissions",
-    actionDescription: "Mark application unsuccessful by university or immigration refusal",
+    actionDescription: WORKFLOW_STAGE_MATRIX.Rejected.systemBehavior,
   },
 };
 
@@ -141,7 +138,11 @@ export const STAGE_AUTHORIZATION_MAP: Record<ApplicationStage, StageRoleConfig> 
 export function canUserSetStage(userRole: UserRole | undefined | null, targetStage: ApplicationStage): boolean {
   if (!userRole) return false;
   // Super admins & Org admins have universal override
-  if (userRole === "platform_super_admin" || userRole === "org_admin") {
+  if (
+    userRole === "platform_super_admin" ||
+    userRole === "org_admin" ||
+    userRole === "office_manager"
+  ) {
     return true;
   }
   const config = STAGE_AUTHORIZATION_MAP[targetStage];
@@ -151,7 +152,6 @@ export function canUserSetStage(userRole: UserRole | undefined | null, targetSta
 
 /**
  * Returns the friendly owner role label responsible for this stage.
- * E.g., "Admissions Officer", "Finance Officer", "Visa Officer", "Counsellor".
  */
 export function getStageOwnerLabel(stage: ApplicationStage): string {
   return STAGE_AUTHORIZATION_MAP[stage]?.ownerLabel || "Staff";
@@ -166,7 +166,6 @@ export function getStageDepartment(stage: ApplicationStage): string {
 
 /**
  * Returns formatted select option label with ownership indicator.
- * E.g., "Conditional Offer — Admissions Officer 🔒" or "Conditional Offer (Your Role)"
  */
 export function getStageSelectOptionLabel(stage: ApplicationStage, userRole?: UserRole | null): string {
   const isAllowed = canUserSetStage(userRole, stage);
@@ -183,7 +182,11 @@ export function getStageSelectOptionLabel(stage: ApplicationStage, userRole?: Us
 export function getAuthorizedStagesForRole(userRole: UserRole | undefined | null): ApplicationStage[] {
   const allStages = Object.keys(STAGE_AUTHORIZATION_MAP) as ApplicationStage[];
   if (!userRole) return [];
-  if (userRole === "platform_super_admin" || userRole === "org_admin") {
+  if (
+    userRole === "platform_super_admin" ||
+    userRole === "org_admin" ||
+    userRole === "office_manager"
+  ) {
     return allStages;
   }
   return allStages.filter((stage) => STAGE_AUTHORIZATION_MAP[stage].allowedRoles.includes(userRole));

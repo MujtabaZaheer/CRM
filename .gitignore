@@ -37,4 +37,6 @@ firestore.rules.backup
 .firebase/
 crm_screenshots/
 extracted_images/
+__pycache__/
+*.pyc
 

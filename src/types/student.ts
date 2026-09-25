@@ -155,6 +155,8 @@ export interface Student {
 
   // Agent Referral & Admissions Triage Isolation
   agentUid?: string;
+  agentId?: string;
+  agentEmail?: string;
   agentName?: string;
   agentReferred?: boolean;
   admissionsVisibility?: boolean;

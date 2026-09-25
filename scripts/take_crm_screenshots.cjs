@@ -55,12 +55,6 @@ async function run() {
   });
   const page = await context.newPage();
 
-  console.log('Capturing Login Page...');
-  await page.goto('http://localhost:5173/login', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '01_login_page.png') });
-
-  // Function to set user session
   async function setSession(role, displayName = 'Saad Ali Qureshi') {
     await page.evaluate(({ role, displayName }) => {
       const user = {
@@ -77,76 +71,39 @@ async function run() {
     }, { role, displayName });
   }
 
-  // 1. Counsellor Dashboard
-  console.log('Capturing Counsellor Dashboard...');
-  await setSession('counsellor');
-  await page.goto('http://localhost:5173/counsellor/dashboard', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '02_counsellor_dashboard.png') });
+  // Helper to capture a page
+  async function capture(url, role, filename, delay = 2000) {
+    console.log(`Capturing ${filename} (${url}) as ${role}...`);
+    await setSession(role);
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await wait(delay);
+    await page.screenshot({ path: path.join(screenshotsDir, filename) });
+  }
 
-  // 2. Leads Desk
-  console.log('Capturing Leads Desk...');
-  await page.goto('http://localhost:5173/leads', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '03_leads_management.png') });
+  // Base screenshots
+  await page.goto('http://localhost:5173/login', { waitUntil: 'domcontentloaded' });
+  await wait(1500);
+  await page.screenshot({ path: path.join(screenshotsDir, '01_login_page.png') });
 
-  // 3. Applications Desk
-  console.log('Capturing Applications Desk...');
-  await page.goto('http://localhost:5173/applications', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '04_applications_pipeline.png') });
+  await capture('http://localhost:5173/counsellor/dashboard', 'counsellor', '02_counsellor_dashboard.png');
+  await capture('http://localhost:5173/leads', 'counsellor', '03_leads_management.png');
+  await capture('http://localhost:5173/applications', 'admissions', '04_applications_pipeline.png');
+  await capture('http://localhost:5173/student/dashboard', 'student', '05_student_dashboard.png');
+  await capture('http://localhost:5173/student/universities', 'student', '06_university_catalog.png');
+  await capture('http://localhost:5173/student/programs', 'student', '07_programme_search.png');
+  await capture('http://localhost:5173/student/documents', 'student', '08_student_documents.png');
+  await capture('http://localhost:5173/agent/dashboard', 'agent', '09_agent_portal.png');
+  await capture('http://localhost:5173/university/dashboard', 'university_partner', '10_university_partner_portal.png');
+  await capture('http://localhost:5173/lead-scoring', 'super_admin', '11_lead_scoring_ai.png');
+  await capture('http://localhost:5173/data-quality', 'super_admin', '12_data_quality_dashboard.png');
 
-  // 4. Student Portal Dashboard
-  console.log('Capturing Student Dashboard...');
-  await setSession('student', 'Saad Ali Qureshi');
-  await page.goto('http://localhost:5173/student/dashboard', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '05_student_dashboard.png') });
-
-  // 5. University Catalog
-  console.log('Capturing University Catalog...');
-  await page.goto('http://localhost:5173/student/universities', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '06_university_catalog.png') });
-
-  // 6. Programme Search
-  console.log('Capturing Programme Catalog...');
-  await page.goto('http://localhost:5173/student/programs', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '07_programme_search.png') });
-
-  // 7. Student Document Vault
-  console.log('Capturing Student Document Vault...');
-  await page.goto('http://localhost:5173/student/documents', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '08_student_documents.png') });
-
-  // 8. External Agent Portal
-  console.log('Capturing External Agent Portal...');
-  await setSession('agent', 'Saad Ali Qureshi');
-  await page.goto('http://localhost:5173/agent/dashboard', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '09_agent_portal.png') });
-
-  // 9. University Partner Portal
-  console.log('Capturing University Partner Portal...');
-  await setSession('university_partner', 'University Partner Admin');
-  await page.goto('http://localhost:5173/university/dashboard', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '10_university_partner_portal.png') });
-
-  // 10. Lead Scoring / AI Engine
-  console.log('Capturing Lead Scoring Matrix...');
-  await setSession('super_admin', 'Saad Ali Qureshi');
-  await page.goto('http://localhost:5173/lead-scoring', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '11_lead_scoring_ai.png') });
-
-  // 11. Data Quality / Super Admin
-  console.log('Capturing Super Admin & Data Quality...');
-  await page.goto('http://localhost:5173/data-quality', { waitUntil: 'domcontentloaded' });
-  await wait(2000);
-  await page.screenshot({ path: path.join(screenshotsDir, '12_data_quality_dashboard.png') });
+  // Additional rich dashboard views
+  await capture('http://localhost:5173/lead-routing', 'super_admin', '13_lead_routing_rules.png');
+  await capture('http://localhost:5173/admissions/verification', 'admissions', '14_admissions_verification.png');
+  await capture('http://localhost:5173/counsellor/matcher', 'counsellor', '15_ai_programme_matcher.png');
+  await capture('http://localhost:5173/audit-log', 'super_admin', '16_audit_log_viewer.png');
+  await capture('http://localhost:5173/finance/invoices', 'finance', '17_finance_invoices.png');
+  await capture('http://localhost:5173/counsellor/students', 'counsellor', '18_assigned_students.png');
 
   console.log('All screenshots captured successfully!');
   await browser.close();

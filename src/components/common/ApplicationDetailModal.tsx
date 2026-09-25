@@ -5,7 +5,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Eye,
   User,
   GraduationCap,
   ShieldCheck,
@@ -18,13 +17,13 @@ import {
 } from "lucide-react";
 import { Application, ApplicationStage } from "../../types/application";
 import { StudentDocument } from "../../pages/Documents";
-import { getDocumentBlobOrUrl } from "../../utils/documentStorage";
 import { UserRole } from "../../types/role";
 import {
   canUserSetStage,
   getStageOwnerLabel,
   getStageSelectOptionLabel,
 } from "../../utils/stageAuthorization";
+import { ScopedDocumentVault } from "../documents/ScopedDocumentVault";
 
 export interface ApplicationDetailModalProps {
   application: Application;
@@ -95,7 +94,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [stageNote, setStageNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   // Filter documents belonging to this student or this application
   const studentDocs = documents.filter(
@@ -103,30 +101,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   );
 
   const verifiedCount = studentDocs.filter((d) => d.status === "Verified").length;
-
-  const handlePreviewDocument = async (docItem: StudentDocument) => {
-    setPreviewLoading(docItem.id);
-    try {
-      const url = await getDocumentBlobOrUrl(docItem.id, docItem.fileUrl);
-      if (url) {
-        window.open(url, "_blank", "noopener,noreferrer");
-      } else if (docItem.fileUrl) {
-        window.open(docItem.fileUrl, "_blank", "noopener,noreferrer");
-      } else {
-        setActionNotice(`Document file "${docItem.fileName}" has no external link or local cache.`);
-        setTimeout(() => setActionNotice(null), 4000);
-      }
-    } catch (err: any) {
-      console.warn("Could not preview document:", err);
-      if (docItem.fileUrl) {
-        window.open(docItem.fileUrl, "_blank");
-      } else {
-        setActionNotice("Could not open document preview.");
-      }
-    } finally {
-      setPreviewLoading(null);
-    }
-  };
 
   const handleQuickAdvance = async (targetStage: ApplicationStage, defaultNote: string) => {
     if (!canUserSetStage(effectiveRole, targetStage)) {
@@ -173,17 +147,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       setActionNotice(`Failed to update stage: ${err.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleQuickVerify = async (docId: string, status: "Verified" | "Rejected") => {
-    if (!onVerifyDocument) return;
-    try {
-      await onVerifyDocument(docId, status, `Reviewed during ${role} check`);
-      setActionNotice(`Document marked as ${status}.`);
-      setTimeout(() => setActionNotice(null), 3000);
-    } catch (err: any) {
-      setActionNotice(`Document verification failed: ${err.message}`);
     }
   };
 
@@ -444,116 +407,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           {/* TAB 2: SUPPORTING DOCUMENTS */}
           {activeTab === "documents" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-[var(--text-primary)]">
-                    Student Document Dossier ({studentDocs.length})
-                  </h3>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Click "View Document" to inspect applicant credentials, passport scans, transcripts, and financial proofs.
-                  </p>
-                </div>
-                <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                  {verifiedCount} Verified
-                </div>
-              </div>
-
-              {studentDocs.length === 0 ? (
-                <div className="p-8 text-center bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl space-y-2">
-                  <FileText className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
-                  <p className="font-bold text-sm text-[var(--text-primary)]">No Documents Uploaded Yet</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    This applicant has not uploaded any supporting files into their vault.
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--border-default)] border border-[var(--border-default)] rounded-xl bg-[var(--bg-card)] overflow-hidden">
-                  {studentDocs.map((docItem) => {
-                    const isVerified = docItem.status === "Verified";
-                    const isRejected = docItem.status === "Rejected";
-
-                    return (
-                      <div
-                        key={docItem.id}
-                        className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg-hover)] transition-colors"
-                      >
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-sm text-[var(--text-primary)]">
-                                {docItem.docType || (docItem as any).documentType || "Document"}
-                              </span>
-                              <span
-                                className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
-                                  isVerified
-                                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                                    : isRejected
-                                    ? "bg-rose-500/15 text-rose-400 border-rose-500/30"
-                                    : "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                                }`}
-                              >
-                                {docItem.status}
-                              </span>
-                            </div>
-                            <p className="text-xs font-mono text-[var(--text-secondary)] truncate mt-1">
-                              {docItem.fileName}
-                            </p>
-                            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                              Uploaded: {docItem.createdAt ? new Date(docItem.createdAt).toLocaleDateString() : "Recently"}
-                              {docItem.remarks && ` • Note: ${docItem.remarks}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons for Document */}
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          <button
-                            type="button"
-                            onClick={() => handlePreviewDocument(docItem)}
-                            disabled={previewLoading === docItem.id}
-                            className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{previewLoading === docItem.id ? "Opening..." : "View Document"}</span>
-                          </button>
-
-                          {onVerifyDocument && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleQuickVerify(docItem.id, "Verified")}
-                                className={`p-1.5 rounded-lg border text-xs font-semibold cursor-pointer ${
-                                  isVerified
-                                    ? "bg-emerald-500 text-zinc-950 border-emerald-500"
-                                    : "bg-[var(--bg-elevated)] border-[var(--border-default)] hover:bg-emerald-500/20 text-emerald-400"
-                                }`}
-                                title="Approve & Verify Document"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleQuickVerify(docItem.id, "Rejected")}
-                                className={`p-1.5 rounded-lg border text-xs font-semibold cursor-pointer ${
-                                  isRejected
-                                    ? "bg-rose-500 text-white border-rose-500"
-                                    : "bg-[var(--bg-elevated)] border-[var(--border-default)] hover:bg-rose-500/20 text-rose-400"
-                                }`}
-                                title="Reject Document"
-                              >
-                                <AlertCircle className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <ScopedDocumentVault
+                application={application}
+                studentId={application.studentId}
+                studentName={application.studentName}
+                documents={documents}
+                currentUserRole={effectiveRole}
+                onVerifyDocument={onVerifyDocument}
+              />
             </div>
           )}
 

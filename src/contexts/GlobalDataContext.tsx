@@ -71,13 +71,25 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
 export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { appUser } = useAuth();
 
-  const [users, setUsers] = useState<AppUser[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [documents, setDocuments] = useState<StudentDocument[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [universities, setUniversities] = useState<University[]>([]);
+  // Demo data toggle — persisted in localStorage (defaults to true)
+  const [showDemoData, setShowDemoData] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("educrm_show_demo_data");
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const [users, setUsers] = useState<AppUser[]>(() => (showDemoData ? DEMO_USERS : []));
+  const [leads, setLeads] = useState<Lead[]>(() => (showDemoData ? DEMO_LEADS : []));
+  const [students, setStudents] = useState<Student[]>(() => (showDemoData ? DEMO_STUDENTS : []));
+  const [applications, setApplications] = useState<Application[]>(() => (showDemoData ? DEMO_APPLICATIONS : []));
+  const [documents, setDocuments] = useState<StudentDocument[]>(() => (showDemoData ? DEMO_DOCUMENTS : []));
+  const [tasks, setTasks] = useState<Task[]>(() => (showDemoData ? DEMO_TASKS : []));
+  const [universities, setUniversities] = useState<University[]>(() =>
+    DEMO_UNIVERSITIES && DEMO_UNIVERSITIES.length > 0 ? DEMO_UNIVERSITIES : []
+  );
   const [activeTenantId, setActiveTenantIdState] = useState<string>("ALL");
 
   useEffect(() => {
@@ -94,33 +106,43 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [appUser?.role]);
 
-  const [initialLoading, setInitialLoading] = useState<boolean>(true);
-
-  // Demo data toggle — persisted in localStorage
-  const [showDemoData, setShowDemoData] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem("educrm_show_demo_data");
-      return stored === null ? true : stored === "true";
-    } catch {
-      return true;
-    }
-  });
+  const [initialLoading, setInitialLoading] = useState<boolean>(false);
 
   const toggleDemoData = useCallback(() => {
     setShowDemoData((prev) => {
       const next = !prev;
-      try { localStorage.setItem("educrm_show_demo_data", String(next)); } catch {}
+      try {
+        localStorage.setItem("educrm_show_demo_data", String(next));
+      } catch {}
+      if (next) {
+        setUsers((u) => (u.length === 0 ? DEMO_USERS : u));
+        setLeads((l) => (l.length === 0 ? DEMO_LEADS : l));
+        setStudents((s) => (s.length === 0 ? DEMO_STUDENTS : s));
+        setApplications((a) => (a.length === 0 ? DEMO_APPLICATIONS : a));
+        setDocuments((d) => (d.length === 0 ? DEMO_DOCUMENTS : d));
+        setTasks((t) => (t.length === 0 ? DEMO_TASKS : t));
+        setUniversities((un) => (un.length === 0 ? DEMO_UNIVERSITIES : un));
+      }
       return next;
     });
   }, []);
 
   useEffect(() => {
     if (!appUser) {
+      if (showDemoData) {
+        setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
+        setLeads((prev) => (prev.length === 0 ? DEMO_LEADS : prev));
+        setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
+        setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
+        setDocuments((prev) => (prev.length === 0 ? DEMO_DOCUMENTS : prev));
+        setTasks((prev) => (prev.length === 0 ? DEMO_TASKS : prev));
+        setUniversities((prev) => (prev.length === 0 ? DEMO_UNIVERSITIES : prev));
+      }
       setInitialLoading(false);
       return;
     }
 
-    setInitialLoading(true);
+    setInitialLoading(false);
     const loadedSources = new Set<string>();
 
     const markSourceLoaded = (source: string) => {
@@ -135,17 +157,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       markSourceLoaded(source);
     };
 
-    // Safety timeout: Never keep the UI stuck on loading for more than 1 second & populate demo data if toggle is on
+    // Safety timeout: Ensure data is reliably present
     const timeoutId = setTimeout(() => {
       setInitialLoading(false);
-      setUsers((prev) => (prev.length === 0 && showDemoData ? DEMO_USERS : prev));
-      setLeads((prev) => (prev.length === 0 && showDemoData ? DEMO_LEADS : prev));
-      setStudents((prev) => (prev.length === 0 && showDemoData ? DEMO_STUDENTS : prev));
-      setApplications((prev) => (prev.length === 0 && showDemoData ? DEMO_APPLICATIONS : prev));
-      setDocuments((prev) => (prev.length === 0 && showDemoData ? DEMO_DOCUMENTS : prev));
-      setTasks((prev) => (prev.length === 0 && showDemoData ? DEMO_TASKS : prev));
-      setUniversities((prev) => (prev.length === 0 && showDemoData ? DEMO_UNIVERSITIES : prev));
-    }, 1000);
+      if (showDemoData) {
+        setUsers((prev) => (prev.length === 0 ? DEMO_USERS : prev));
+        setLeads((prev) => (prev.length === 0 ? DEMO_LEADS : prev));
+        setStudents((prev) => (prev.length === 0 ? DEMO_STUDENTS : prev));
+        setApplications((prev) => (prev.length === 0 ? DEMO_APPLICATIONS : prev));
+        setDocuments((prev) => (prev.length === 0 ? DEMO_DOCUMENTS : prev));
+        setTasks((prev) => (prev.length === 0 ? DEMO_TASKS : prev));
+        setUniversities((prev) => (prev.length === 0 ? DEMO_UNIVERSITIES : prev));
+      }
+    }, 500);
 
     const isStudent = appUser.role === "student";
     const noop = () => {};
@@ -165,10 +189,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: AppUser[] = [];
         snap.forEach((d) => list.push({ uid: d.id, ...d.data() } as AppUser));
-        setUsers(list.length > 0 ? list : (showDemoData ? DEMO_USERS : []));
+        setUsers(
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_USERS.filter((du) => !list.some((u) => u.uid === du.uid))]
+              : DEMO_USERS
+            : list
+        );
         markSourceLoaded("users");
       },
-      (err) => { handleSourceError("users", err); setUsers(showDemoData ? DEMO_USERS : []); }
+      (err) => {
+        handleSourceError("users", err);
+        setUsers((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_USERS : [])));
+      }
     );
 
     // 2. Leads (Staff only)
@@ -177,10 +210,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Lead[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Lead));
-        setLeads(list.length > 0 ? list : (showDemoData ? DEMO_LEADS : []));
+        setLeads(
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_LEADS.filter((dl) => !list.some((l) => l.id === dl.id))]
+              : DEMO_LEADS
+            : list
+        );
         markSourceLoaded("leads");
       },
-      (err) => { handleSourceError("leads", err); setLeads(showDemoData ? DEMO_LEADS : []); }
+      (err) => {
+        handleSourceError("leads", err);
+        setLeads((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_LEADS : [])));
+      }
     );
 
     // 3. Students (Staff only for global list)
@@ -189,10 +231,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Student[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Student));
-        setStudents(list.length > 0 ? list : (showDemoData ? DEMO_STUDENTS : []));
+        setStudents(
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_STUDENTS.filter((ds) => !list.some((s) => s.id === ds.id))]
+              : DEMO_STUDENTS
+            : list
+        );
         markSourceLoaded("students");
       },
-      (err) => { handleSourceError("students", err); setStudents(showDemoData ? DEMO_STUDENTS : []); }
+      (err) => {
+        handleSourceError("students", err);
+        setStudents((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_STUDENTS : [])));
+      }
     );
 
     // 4. Applications (Staff only for global list)
@@ -201,10 +252,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Application[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Application));
-        setApplications(list.length > 0 ? list : (showDemoData ? DEMO_APPLICATIONS : []));
+        setApplications(
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_APPLICATIONS.filter((da) => !list.some((a) => a.id === da.id))]
+              : DEMO_APPLICATIONS
+            : list
+        );
         markSourceLoaded("applications");
       },
-      (err) => { handleSourceError("applications", err); setApplications(showDemoData ? DEMO_APPLICATIONS : []); }
+      (err) => {
+        handleSourceError("applications", err);
+        setApplications((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_APPLICATIONS : [])));
+      }
     );
 
     // 5. Student Documents (Staff only for global list)
@@ -213,10 +273,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: StudentDocument[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as StudentDocument));
-        setDocuments(list.length > 0 ? list : (showDemoData ? DEMO_DOCUMENTS : []));
+        setDocuments(
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_DOCUMENTS.filter((dd) => !list.some((d) => d.id === dd.id))]
+              : DEMO_DOCUMENTS
+            : list
+        );
         markSourceLoaded("documents");
       },
-      (err) => { handleSourceError("documents", err); setDocuments(showDemoData ? DEMO_DOCUMENTS : []); }
+      (err) => {
+        handleSourceError("documents", err);
+        setDocuments((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_DOCUMENTS : [])));
+      }
     );
 
     // 6. Tasks (Staff only)
@@ -225,10 +294,19 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Task[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Task));
-        setTasks(list.length > 0 ? list : (showDemoData ? DEMO_TASKS : []));
+        setTasks(
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_TASKS.filter((dt) => !list.some((t) => t.id === dt.id))]
+              : DEMO_TASKS
+            : list
+        );
         markSourceLoaded("tasks");
       },
-      (err) => { handleSourceError("tasks", err); setTasks(showDemoData ? DEMO_TASKS : []); }
+      (err) => {
+        handleSourceError("tasks", err);
+        setTasks((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_TASKS : [])));
+      }
     );
 
     // 7. Universities (Accessible by both staff and students)
@@ -237,10 +315,17 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: University[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as University));
-        setUniversities(list.length > 0 ? list : (showDemoData ? DEMO_UNIVERSITIES : []));
+        setUniversities(
+          list.length > 0
+            ? [...list, ...DEMO_UNIVERSITIES.filter((du) => !list.some((u) => u.id === du.id))]
+            : DEMO_UNIVERSITIES
+        );
         markSourceLoaded("universities");
       },
-      (err) => { handleSourceError("universities", err); setUniversities(showDemoData ? DEMO_UNIVERSITIES : []); }
+      (err) => {
+        handleSourceError("universities", err);
+        setUniversities((prev) => (prev.length > 0 ? prev : DEMO_UNIVERSITIES));
+      }
     );
 
     return () => {

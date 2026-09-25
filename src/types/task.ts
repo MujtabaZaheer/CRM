@@ -19,6 +19,8 @@ export interface Task {
   escalatedAt?: number;
   reminderSentToday?: boolean;
   completedAt?: number;
+  tenantId?: string;
+  office?: string;
   createdBy: string;
   createdAt: number;
   updatedAt: number;

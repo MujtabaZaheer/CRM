@@ -27,13 +27,17 @@ import { GLOBAL_UNIVERSITIES } from "../../data/globalUniversities";
 import { University, Programme } from "../../types/university";
 import { getUniversityCampusImage } from "../../utils/universityImages";
 import { useNavigate } from "react-router-dom";
+import { AgentStudentIntakeWizard } from "../agent/intake/AgentStudentIntakeWizard";
+import { AgentApplicationsTable } from "../agent/dashboard/AgentApplicationsTable";
 
 export type AgentSubPage = "dashboard" | "universities" | "referrals" | "refer-lead" | "commissions" | "notifications";
 
 export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page }) => {
-  const { leads, applications, universities } = useGlobalData();
+  const { leads, applications, universities, documents } = useGlobalData();
   const { appUser } = useAuth();
   const navigate = useNavigate();
+  const [referralMode, setReferralMode] = useState<"wizard" | "express">("wizard");
+  const [referralsTab, setReferralsTab] = useState<"dossiers" | "leads">("dossiers");
 
   // Active Universities list (prefer global universities catalogue with full programmes)
   const allUniversities: University[] = useMemo(() => {
@@ -46,8 +50,6 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
   const [liveCommissions, setLiveCommissions] = useState<Commission[]>([]);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
 
-  // Search & Filters
-  const [searchQuery, setSearchQuery] = useState("");
   const [copyNotice, setCopyNotice] = useState(false);
 
   // University Directory Filters
@@ -1012,264 +1014,334 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
       {/* REFERRALS LIST PAGE */}
       {page === "referrals" && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative max-w-md w-full">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[var(--text-muted)]" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search referred students by name, email, country..."
-                className="w-full pl-9 p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 bg-[var(--bg-input)] p-1 rounded-xl border border-[var(--border-default)]">
+              <button
+                type="button"
+                onClick={() => setReferralsTab("dossiers")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  referralsTab === "dossiers"
+                    ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                Admission Dossiers (Pipeline Engine)
+              </button>
+              <button
+                type="button"
+                onClick={() => setReferralsTab("leads")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  referralsTab === "leads"
+                    ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                Quick Leads Roster ({effectiveLeads.length})
+              </button>
             </div>
-            <button
-              onClick={() => navigate("/agent/refer-lead")}
-              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Submit New Referral</span>
-            </button>
           </div>
 
-          <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
-              <span className="font-bold text-xs text-[var(--text-primary)]">
-                Showing {effectiveLeads.length} Referred Candidates (Live Tracking Roster)
-              </span>
-              <span className="text-[11px] text-[var(--text-muted)]">
-                Full 8-Stage Lifecycle Transparency (Section 3.14)
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] uppercase text-[10px]">
-                  <tr>
-                    <th className="p-3.5">Student Name & ID</th>
-                    <th className="p-3.5">Contact Details</th>
-                    <th className="p-3.5">Target Institution & Program</th>
-                    <th className="p-3.5">Destination</th>
-                    <th className="p-3.5">Milestone Stage</th>
-                    <th className="p-3.5 text-right">Est. Commission</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-default)] text-xs">
-                  {effectiveLeads.length === 0 ? (
+          {referralsTab === "dossiers" ? (
+            <AgentApplicationsTable
+              applications={effectiveApplications.length > 0 ? effectiveApplications : effectiveLeads.map((l: any) => ({
+                id: l.id,
+                studentId: l.studentId || l.id,
+                studentName: l.fullName || l.name,
+                studentEmail: l.email,
+                universityName: l.preferredUniversity || "Partner University",
+                programName: l.preferredProgram || l.programInterest || "Degree Programme",
+                country: l.targetCountry || "United Kingdom",
+                intake: "Sep/Oct 2026",
+                stage: l.stage || "Initial Review",
+                status: l.status || "Initial Review",
+                commissionAmount: 850,
+                commissionStatus: "Eligible",
+                isLive: l.isLive,
+                createdAt: l.createdAt,
+                documents: [],
+              }))}
+              documents={documents}
+              onOpenWizard={() => navigate("/agent/refer-lead")}
+            />
+          ) : (
+            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
+                <span className="font-bold text-xs text-[var(--text-primary)]">
+                  Showing {effectiveLeads.length} Referred Candidates (Live Tracking Roster)
+                </span>
+                <span className="text-[11px] text-[var(--text-muted)]">
+                  Full 8-Stage Lifecycle Transparency (Section 3.14)
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] uppercase text-[10px]">
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-[var(--text-muted)]">
-                        No referred candidates found. Submit your first student referral above!
-                      </td>
+                      <th className="p-3.5">Student Name & ID</th>
+                      <th className="p-3.5">Contact Details</th>
+                      <th className="p-3.5">Target Institution & Program</th>
+                      <th className="p-3.5">Destination</th>
+                      <th className="p-3.5">Milestone Stage</th>
+                      <th className="p-3.5 text-right">Est. Commission</th>
                     </tr>
-                  ) : (
-                    effectiveLeads.map((lead: any, idx: number) => (
-                      <tr key={lead.id || idx} className="hover:bg-[var(--bg-hover)] transition-colors">
-                        <td className="p-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm text-[var(--text-primary)]">
-                              {lead.fullName || lead.name}
-                            </span>
-                            {lead.isLive && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                Live Cloud
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-[var(--text-muted)] font-mono">
-                            {lead.trackingCode || `REF-${(idx + 100).toString()}`}
-                          </div>
-                        </td>
-                        <td className="p-3.5">
-                          <div className="text-[var(--text-secondary)] font-medium">{lead.email}</div>
-                          <div className="text-[10px] text-[var(--text-muted)]">{lead.phone || "+44 7700 900000"}</div>
-                        </td>
-                        <td className="p-3.5">
-                          <div className="font-semibold text-[var(--text-primary)]">
-                            {lead.preferredProgram || lead.programInterest || "MSc Advanced Studies"}
-                          </div>
-                          <div className="text-[10px] text-[var(--text-muted)]">
-                            {lead.preferredUniversity || "Partner University"}
-                          </div>
-                        </td>
-                        <td className="p-3.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-medium">
-                            {lead.targetCountry || "United Kingdom"}
-                          </span>
-                        </td>
-                        <td className="p-3.5">
-                          <span
-                            className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
-                              lead.stage === "Enrolled" || lead.stage === "Visa Granted"
-                                ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
-                                : lead.stage?.includes("Offer")
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                            }`}
-                          >
-                            {lead.stage || "New Referral"}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-right font-bold text-emerald-400 font-mono">
-                          $750 USD
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-default)] text-xs">
+                    {effectiveLeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-[var(--text-muted)]">
+                          No referred candidates found. Submit your first student referral!
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      effectiveLeads.map((lead: any, idx: number) => (
+                        <tr key={lead.id || idx} className="hover:bg-[var(--bg-hover)] transition-colors">
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-sm text-[var(--text-primary)]">
+                                {lead.fullName || lead.name}
+                              </span>
+                              {lead.isLive && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[9px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  Live Cloud
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-[var(--text-muted)] font-mono">
+                              {lead.trackingCode || `REF-${(idx + 100).toString()}`}
+                            </div>
+                          </td>
+                          <td className="p-3.5">
+                            <div className="text-[var(--text-secondary)] font-medium">{lead.email}</div>
+                            <div className="text-[10px] text-[var(--text-muted)]">{lead.phone || "+44 7700 900000"}</div>
+                          </td>
+                          <td className="p-3.5">
+                            <div className="font-semibold text-[var(--text-primary)]">
+                              {lead.preferredProgram || lead.programInterest || "MSc Advanced Studies"}
+                            </div>
+                            <div className="text-[10px] text-[var(--text-muted)]">
+                              {lead.preferredUniversity || "Partner University"}
+                            </div>
+                          </td>
+                          <td className="p-3.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-medium">
+                              {lead.targetCountry || "United Kingdom"}
+                            </span>
+                          </td>
+                          <td className="p-3.5">
+                            <span
+                              className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
+                                lead.stage === "Enrolled" || lead.stage === "Visa Granted"
+                                  ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
+                                  : lead.stage?.includes("Offer")
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                  : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                              }`}
+                            >
+                              {lead.stage || "New Referral"}
+                            </span>
+                          </td>
+                          <td className="p-3.5 text-right font-bold text-emerald-400 font-mono">
+                            $750 USD
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* REFER NEW LEAD FORM PAGE */}
       {page === "refer-lead" && (
-        <div className="max-w-2xl mx-auto p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-6 shadow-sm">
-          <div>
-            <h2 className="font-bold text-lg font-heading text-[var(--text-primary)] flex items-center gap-2">
-              <Plus className="w-5 h-5 text-emerald-400" />
-              Register New Student Referral
-            </h2>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
-              Submit student candidate details directly into the CRM database. Leads are immediately routed to the admissions matching pipeline.
-            </p>
-          </div>
-
-          <form onSubmit={handleReferSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Student Full Name *</label>
-                <input
-                  required
-                  value={leadName}
-                  onChange={(e) => setLeadName(e.target.value)}
-                  placeholder="e.g. Tariq Mansoor"
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Student Email *</label>
-                <input
-                  required
-                  type="email"
-                  value={leadEmail}
-                  onChange={(e) => setLeadEmail(e.target.value)}
-                  placeholder="e.g. tariq.mansoor@example.com"
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Phone / WhatsApp Number</label>
-                <input
-                  value={leadPhone}
-                  onChange={(e) => setLeadPhone(e.target.value)}
-                  placeholder="e.g. +44 7123 456789"
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Target Destination Country</label>
-                <select
-                  value={leadCountry}
-                  onChange={(e) => setLeadCountry(e.target.value)}
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
-                >
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="United States">United States</option>
-                  <option value="Canada">Canada</option>
-                  <option value="Australia">Australia</option>
-                  <option value="Germany">Germany</option>
-                  <option value="Ireland">Ireland</option>
-                </select>
-              </div>
-            </div>
-
-            {/* University & Course Selectors */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Target University</label>
-                <select
-                  value={leadUniversity}
-                  onChange={(e) => {
-                    setLeadUniversity(e.target.value);
-                    const matched = allUniversities.find((u) => u.name === e.target.value);
-                    if (matched && matched.programmes.length > 0) {
-                      setLeadProgram(matched.programmes[0].title);
-                      setLeadCountry(matched.country);
-                    }
-                  }}
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
-                >
-                  {allUniversities.map((u) => (
-                    <option key={u.id} value={u.name}>
-                      {u.name} ({u.country})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Intended Study Programme</label>
-                {selectedUniObj && selectedUniObj.programmes.length > 0 ? (
-                  <select
-                    value={leadProgram}
-                    onChange={(e) => setLeadProgram(e.target.value)}
-                    className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  >
-                    {selectedUniObj.programmes.map((p) => (
-                      <option key={p.id} value={p.title}>
-                        {p.title} ({p.level})
-                      </option>
-                    ))}
-                    <option value="General Undergraduate Studies">General Undergraduate Studies</option>
-                    <option value="General Postgraduate Studies">General Postgraduate Studies</option>
-                  </select>
-                ) : (
-                  <input
-                    value={leadProgram}
-                    onChange={(e) => setLeadProgram(e.target.value)}
-                    placeholder="e.g. MSc Advanced Computer Science"
-                    className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                Referral Notes / Academic Credentials
-              </label>
-              <textarea
-                rows={3}
-                value={leadNotes}
-                onChange={(e) => setLeadNotes(e.target.value)}
-                placeholder="Current qualifications, GPA, English test score (IELTS/TOEFL), desired intake session..."
-                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <div className="pt-2 flex justify-end gap-3">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border-default)]">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleSeedLiveReferral}
-                className="px-4 py-2.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                onClick={() => setReferralMode("wizard")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  referralMode === "wizard"
+                    ? "bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/10"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]"
+                }`}
               >
-                Seed Sample Cloud Lead
+                Admission Intake Wizard & Dossier Builder (CRM.pdf 3.14)
               </button>
               <button
-                type="submit"
-                disabled={submittingLead || !leadName || !leadEmail}
-                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
+                type="button"
+                onClick={() => setReferralMode("express")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  referralMode === "express"
+                    ? "bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/10"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]"
+                }`}
               >
-                {submittingLead ? "Submitting..." : "Submit Referral to CRM"}
+                Express Quick Lead
               </button>
             </div>
-          </form>
+            <button
+              onClick={() => navigate("/agent/referrals")}
+              className="text-xs text-emerald-400 hover:underline font-semibold"
+            >
+              View All Referrals
+            </button>
+          </div>
+
+          {referralMode === "wizard" ? (
+            <AgentStudentIntakeWizard onComplete={() => navigate("/agent/referrals")} />
+          ) : (
+            <div className="max-w-2xl mx-auto p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-6 shadow-sm">
+              <div>
+                <h2 className="font-bold text-lg font-heading text-[var(--text-primary)] flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-emerald-400" />
+                  Register Express Student Referral
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Submit student candidate details directly into the CRM database. Leads are immediately routed to the admissions matching pipeline.
+                </p>
+              </div>
+
+              <form onSubmit={handleReferSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Student Full Name *</label>
+                    <input
+                      required
+                      value={leadName}
+                      onChange={(e) => setLeadName(e.target.value)}
+                      placeholder="e.g. Tariq Mansoor"
+                      className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Student Email *</label>
+                    <input
+                      required
+                      type="email"
+                      value={leadEmail}
+                      onChange={(e) => setLeadEmail(e.target.value)}
+                      placeholder="e.g. tariq.mansoor@example.com"
+                      className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Phone / WhatsApp Number</label>
+                    <input
+                      value={leadPhone}
+                      onChange={(e) => setLeadPhone(e.target.value)}
+                      placeholder="e.g. +44 7123 456789"
+                      className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Target Destination Country</label>
+                    <select
+                      value={leadCountry}
+                      onChange={(e) => setLeadCountry(e.target.value)}
+                      className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="United States">United States</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Australia">Australia</option>
+                      <option value="Germany">Germany</option>
+                      <option value="Ireland">Ireland</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* University & Course Selectors */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Target University</label>
+                    <select
+                      value={leadUniversity}
+                      onChange={(e) => {
+                        setLeadUniversity(e.target.value);
+                        const matched = allUniversities.find((u) => u.name === e.target.value);
+                        if (matched && matched.programmes.length > 0) {
+                          setLeadProgram(matched.programmes[0].title);
+                          setLeadCountry(matched.country);
+                        }
+                      }}
+                      className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      {allUniversities.map((u) => (
+                        <option key={u.id} value={u.name}>
+                          {u.name} ({u.country})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">Intended Study Programme</label>
+                    {selectedUniObj && selectedUniObj.programmes.length > 0 ? (
+                      <select
+                        value={leadProgram}
+                        onChange={(e) => setLeadProgram(e.target.value)}
+                        className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+                      >
+                        {selectedUniObj.programmes.map((p) => (
+                          <option key={p.id} value={p.title}>
+                            {p.title} ({p.level})
+                          </option>
+                        ))}
+                        <option value="General Undergraduate Studies">General Undergraduate Studies</option>
+                        <option value="General Postgraduate Studies">General Postgraduate Studies</option>
+                      </select>
+                    ) : (
+                      <input
+                        value={leadProgram}
+                        onChange={(e) => setLeadProgram(e.target.value)}
+                        placeholder="e.g. MSc Advanced Computer Science"
+                        className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                    Referral Notes / Academic Credentials
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={leadNotes}
+                    onChange={(e) => setLeadNotes(e.target.value)}
+                    placeholder="Current qualifications, GPA, English test score (IELTS/TOEFL), desired intake session..."
+                    className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSeedLiveReferral}
+                    className="px-4 py-2.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    Seed Sample Cloud Lead
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingLead || !leadName || !leadEmail}
+                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {submittingLead ? "Submitting..." : "Submit Referral to CRM"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
