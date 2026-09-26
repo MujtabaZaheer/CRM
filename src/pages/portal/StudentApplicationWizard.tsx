@@ -911,8 +911,11 @@ export const StudentApplicationWizard: React.FC = () => {
         targetCountry: university.country,
         personalStatement,
         formResponses: questionResponses,
-        stage: "Submitted",
-        applicationStatus: "Submitted",
+        stage: "Initial Review",
+        applicationStatus: "Initial Review",
+        assignedCounsellor: student?.assignedCounsellor || student?.assignedCounsellorEmail || (student as any)?.counsellorEmail || undefined,
+        assignedCounsellorId: student?.assignedCounsellorId || (student as any)?.counsellorId || undefined,
+        assignedCounsellorName: student?.assignedCounsellorName || undefined,
         submittedAt: now,
         submissionRequested: true,
         currentStep: 11,
@@ -946,10 +949,10 @@ export const StudentApplicationWizard: React.FC = () => {
         await setDoc(doc(db, "applications", finalAppId), {
           ...payload,
           history: arrayUnion({
-            stage: "Submitted",
+            stage: "Initial Review",
             updatedBy: userEmail || "Student",
             timestamp: now,
-            note: "Application officially submitted by student for university review.",
+            note: "Application officially submitted by student and entered Initial Review for counsellor inspection.",
           }),
         }, { merge: true });
       } else {
@@ -960,10 +963,10 @@ export const StudentApplicationWizard: React.FC = () => {
           createdAt: now,
           history: [
             {
-              stage: "Submitted",
+              stage: "Initial Review",
               updatedBy: userEmail || "Student",
               timestamp: now,
-              note: "Application officially submitted by student for university review.",
+              note: "Application officially submitted by student and entered Initial Review for counsellor inspection.",
             },
           ],
         });
@@ -974,8 +977,8 @@ export const StudentApplicationWizard: React.FC = () => {
       try {
         await addDoc(collection(db, "notifications"), {
           targetUser: uid,
-          title: "Application Submitted Successfully",
-          message: `Your application to ${university.name} for ${programme.title} (${selectedIntake}) has been received and is now in internal admissions review.`,
+          title: "Application Submitted - In Initial Review",
+          message: `Your application to ${university.name} for ${programme.title} (${selectedIntake}) has been received and is now under Initial Review by your education counsellor.`,
           type: "application",
           read: false,
           createdAt: now,

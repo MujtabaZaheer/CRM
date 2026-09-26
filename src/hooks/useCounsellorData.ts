@@ -148,12 +148,19 @@ export const useCounsellorData = () => {
       (a as any).agentId
     );
 
-    if (isAgentReferral) {
+    // Student applications awaiting counsellor review (Initial Review, unassigned, or agent referrals):
+    if (
+      a.stage === "Initial Review" ||
+      !aCounsellor ||
+      aCounsellor === "unassigned" ||
+      isAgentReferral
+    ) {
       if (
         !aCounsellor ||
         aCounsellor === "unassigned" ||
         aCounsellor === userEmail ||
         aCounsellorId === uUidLower ||
+        a.stage === "Initial Review" ||
         isDemoOrPrimaryCounsellor
       ) {
         return true;
