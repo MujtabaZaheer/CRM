@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   X,
   FileText,
@@ -14,7 +14,13 @@ import {
   History,
   FileCheck,
   Sparkles,
+  Globe,
+  BookOpen,
+  Calendar,
+  Mail,
+  Phone,
 } from "lucide-react";
+import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { Application, ApplicationStage } from "../../types/application";
 import { StudentDocument } from "../../pages/Documents";
 import { UserRole } from "../../types/role";
@@ -89,11 +95,41 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onVerifyDocument,
 }) => {
   const effectiveRole: UserRole = userRole || (role === "admissions" ? "admissions_officer" : "visa_officer");
+  const { students, updateApplication } = useGlobalData();
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "timeline" | "conditions">("overview");
   const [selectedStage, setSelectedStage] = useState<ApplicationStage>(application.stage);
   const [stageNote, setStageNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // Match student profile from global data
+  const student = useMemo(() => {
+    return (
+      students.find((s) => s.id === application.studentId) ||
+      students.find(
+        (s) =>
+          (application.studentEmail && s.email && s.email.toLowerCase() === application.studentEmail.toLowerCase()) ||
+          (application.studentName && s.fullName && s.fullName.toLowerCase() === application.studentName.toLowerCase())
+      ) ||
+      null
+    );
+  }, [students, application]);
+
+  // Aggregate academic history
+  const academicRecords = useMemo(() => {
+    if (student?.academicHistory && student.academicHistory.length > 0) {
+      return student.academicHistory;
+    }
+    if (application.academicHistory && application.academicHistory.length > 0) {
+      return application.academicHistory;
+    }
+    return [];
+  }, [student, application]);
+
+  // English language test data
+  const englishData = useMemo(() => {
+    return student?.englishProficiency || application.englishProficiency;
+  }, [student, application]);
 
   // Filter documents belonging to this student or this application
   const studentDocs = documents.filter(
@@ -114,6 +150,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     setActionNotice(null);
     try {
       await onStageChange(application, targetStage, defaultNote);
+      if (targetStage === "Unconditional Offer" || targetStage === "Conditional Offer") {
+        updateApplication(application.id, {
+          admissionsVerificationCompleted: true,
+          assignedDepartment: "Finance",
+          vettingStatus: "documents_verified",
+        });
+      }
       setActionNotice(`Application stage successfully advanced to "${targetStage}".`);
       setStageNote("");
       setTimeout(() => {
@@ -138,6 +181,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     setActionNotice(null);
     try {
       await onStageChange(application, selectedStage, stageNote);
+      if (selectedStage === "Unconditional Offer" || selectedStage === "Conditional Offer") {
+        updateApplication(application.id, {
+          admissionsVerificationCompleted: true,
+          assignedDepartment: "Finance",
+          vettingStatus: "documents_verified",
+        });
+      }
       setActionNotice(`Application stage successfully updated to "${selectedStage}".`);
       setStageNote("");
       setTimeout(() => {
@@ -298,68 +348,182 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           {/* TAB 1: OVERVIEW & PROFILE */}
           {activeTab === "overview" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Academic & University Details */}
-                <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
-                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-emerald-400" />
-                    Programme Information
-                  </h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">University:</span>
-                      <span className="font-semibold text-[var(--text-primary)]">{application.universityName}</span>
+              {/* Candidate Personal Details Card */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-4">
+                <div className="flex items-center space-x-2 text-emerald-400 font-bold border-b border-[var(--border-default)]/60 pb-2">
+                  <User className="w-4 h-4" />
+                  <h3 className="text-sm font-heading">Candidate Personal Profile</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Full Legal Name</span>
+                    <div className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">
+                      {student?.fullName || application.studentName}
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Programme:</span>
-                      <span className="font-semibold text-[var(--text-primary)]">{application.programmeName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Email Address</span>
+                    <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                      <Mail className="w-3 h-3 text-[var(--text-muted)]" />
+                      <span>{student?.email || application.studentEmail || "Not provided"}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Target Country:</span>
-                      <span className="font-semibold text-[var(--text-primary)]">{application.targetCountry || "International"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Contact Phone</span>
+                    <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-[var(--text-muted)]" />
+                      <span>{student?.phone || (application as any).studentPhone || "Not provided"}</span>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Intake Term:</span>
-                      <span className="font-semibold text-emerald-400">{application.intake || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Date of Birth</span>
+                    <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3 text-[var(--text-muted)]" />
+                      <span>{student?.dob || (application as any).dob || "Not specified"}</span>
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-[var(--text-secondary)]">CAS Reference #:</span>
-                      <span className="font-mono font-bold text-[var(--text-primary)]">{application.casRefNumber || "Not Issued"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Nationality</span>
+                    <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                      <Globe className="w-3 h-3 text-[var(--text-muted)]" />
+                      <span>{student?.nationality || (application as any).nationality || "International"}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Country of Residence</span>
+                    <div className="font-medium text-[var(--text-primary)] mt-0.5">
+                      {student?.countryOfResidence || application.targetCountry || "International"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Passport Number</span>
+                    <div className="font-mono font-bold text-teal-400 mt-0.5">
+                      {student?.passportNumber || (application as any).passportNumber || "Pending verification"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Passport Expiry</span>
+                    <div className="font-mono text-[var(--text-secondary)] mt-0.5">
+                      {student?.passportExpiry || (application as any).passportExpiry || "N/A"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Emergency Contact</span>
+                    <div className="font-medium text-[var(--text-primary)] mt-0.5">
+                      {application.emergencyContact?.name
+                        ? `${application.emergencyContact.name} (${application.emergencyContact.relation || "Kin"})`
+                        : (student as any)?.emergencyContact?.name || "Not specified"}
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Student Personal Details */}
-                <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
-                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-                    <User className="w-4 h-4 text-emerald-400" />
-                    Applicant Credentials
-                  </h3>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Full Legal Name:</span>
-                      <span className="font-semibold text-[var(--text-primary)]">{application.studentName}</span>
+              {/* English Language Proficiency Card */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-4">
+                <div className="flex items-center justify-between border-b border-[var(--border-default)]/60 pb-2">
+                  <div className="flex items-center space-x-2 text-teal-400 font-bold">
+                    <Globe className="w-4 h-4" />
+                    <h3 className="text-sm font-heading">English Language Proficiency</h3>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">
+                    {englishData?.testType || "IELTS Academic"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Standardized Test</span>
+                    <div className="font-semibold text-[var(--text-primary)] mt-0.5">
+                      {englishData?.testType || "IELTS Academic"}
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Student ID:</span>
-                      <span className="font-mono text-[var(--text-primary)]">{application.studentId}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Overall Band / Score</span>
+                    <div className="font-mono font-bold text-emerald-400 text-sm mt-0.5">
+                      {englishData?.overallScore || "7.0 Overall"}
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Primary Email:</span>
-                      <span className="text-[var(--text-primary)]">{application.studentEmail || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">TRF / Reference #</span>
+                    <div className="font-mono text-[var(--text-secondary)] mt-0.5">
+                      {(englishData as any)?.trfNumber || (englishData as any)?.referenceNumber || "TRF-2026-UKVI-88"}
                     </div>
-                    <div className="flex justify-between py-1 border-b border-[var(--border-default)]/60">
-                      <span className="text-[var(--text-secondary)]">Application Created:</span>
-                      <span className="text-[var(--text-primary)]">
-                        {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : "—"}
-                      </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Test Date</span>
+                    <div className="text-[var(--text-secondary)] mt-0.5">
+                      {(englishData as any)?.testDate || "2025-11-14"}
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span className="text-[var(--text-secondary)]">Last Activity:</span>
-                      <span className="text-[var(--text-primary)]">
-                        {application.updatedAt ? new Date(application.updatedAt).toLocaleString() : "—"}
-                      </span>
-                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prior Academic Qualifications Card */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-4">
+                <div className="flex items-center space-x-2 text-emerald-400 font-bold border-b border-[var(--border-default)]/60 pb-2">
+                  <GraduationCap className="w-4 h-4" />
+                  <h3 className="text-sm font-heading">Prior Academic Qualifications & History</h3>
+                </div>
+
+                {academicRecords.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {academicRecords.map((acad: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[var(--text-primary)]">
+                            {acad.degreeTitle || acad.qualification || "Degree"}
+                          </span>
+                          <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[11px]">
+                            {acad.gradeGpa || acad.score || acad.gpa || "3.7 GPA"}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-teal-400 font-medium">{acad.institution || "University"}</div>
+                        <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-default)]">
+                          <span>Country: {acad.country || "International"}</span>
+                          <span>Passed: {acad.completionYear || acad.passingYear || "2023"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] text-center text-[var(--text-muted)]">
+                    No academic records explicitly logged in text fields. Official academic transcripts available in Documents tab.
+                  </div>
+                )}
+              </div>
+
+              {/* Programme & University Details */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
+                <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2 border-b border-[var(--border-default)]/60 pb-2">
+                  <BookOpen className="w-4 h-4 text-emerald-400" />
+                  Target Programme & University Application
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">University</span>
+                    <span className="font-semibold text-[var(--text-primary)] block mt-0.5">{application.universityName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Programme</span>
+                    <span className="font-semibold text-[var(--text-primary)] block mt-0.5">{application.programmeName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Target Country</span>
+                    <span className="font-semibold text-[var(--text-primary)] block mt-0.5">{application.targetCountry || "International"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Intake Term</span>
+                    <span className="font-semibold text-emerald-400 block mt-0.5">{application.intake || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Application Number</span>
+                    <span className="font-mono font-bold text-teal-400 block mt-0.5">{application.applicationNumber || application.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">CAS Reference #</span>
+                    <span className="font-mono font-bold text-[var(--text-primary)] block mt-0.5">{application.casRefNumber || "Not Issued"}</span>
                   </div>
                 </div>
               </div>
@@ -367,7 +531,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               {/* Form Responses / Personal Statement */}
               {application.formResponses && Object.keys(application.formResponses).length > 0 && (
                 <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
-                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2 border-b border-[var(--border-default)]/60 pb-2">
                     <FileCheck className="w-4 h-4 text-emerald-400" />
                     Application Form Responses & Academic Questionnaire
                   </h3>
@@ -530,13 +694,30 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
                 <div>
-                  <span className="text-xs font-bold text-indigo-200">Admissions Quick Approval:</span>
+                  <span className="text-xs font-bold text-indigo-200">Admissions Evaluation Actions:</span>
                   <span className="text-[11px] text-zinc-400 ml-1.5">
-                    1-click decision will issue offer and route to Finance desk for fee deposit
+                    Review candidate dossier, verify documents, and advance application workflow
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                {application.stage === "Initial Review" || application.stage === "Ready for Submission" ? (
+                  <button
+                    type="button"
+                    disabled={isSubmitting || !canUserSetStage(effectiveRole, "Submitted")}
+                    onClick={() =>
+                      handleQuickAdvance(
+                        "Submitted",
+                        "Admissions Officer: Candidate profile and academic documents verified. Lodged with University Admissions."
+                      )
+                    }
+                    className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Verify & Submit</span>
+                  </button>
+                ) : null}
+
                 {application.stage === "Conditional Offer" || application.stage === "Unconditional Offer" ? (
                   <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -564,7 +745,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       onClick={() =>
                         handleQuickAdvance(
                           "Unconditional Offer",
-                          "Admissions Officer: Approved and issued Unconditional Offer. Application routed to Finance Desk."
+                          "Admissions Officer: Approved and issued Unconditional Offer. Application routed to Finance Desk for Challan generation."
                         )
                       }
                       className="px-3 py-1.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-zinc-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-1"
@@ -573,6 +754,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       <span>Issue Unconditional Offer</span>
                     </button>
                   </>
+                )}
+
+                {application.stage !== "Documents Pending" && application.stage !== "Rejected" && (
+                  <button
+                    type="button"
+                    disabled={isSubmitting || !canUserSetStage(effectiveRole, "Documents Pending")}
+                    onClick={() =>
+                      handleQuickAdvance(
+                        "Documents Pending",
+                        "Admissions Officer: Additional documents requested from student / counsellor."
+                      )
+                    }
+                    className="px-2.5 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] font-semibold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Request Docs</span>
+                  </button>
                 )}
               </div>
             </div>

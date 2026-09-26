@@ -31,6 +31,7 @@ export const useCounsellorData = () => {
     updateTask,
     updateLead,
     addStudent,
+    updateStudent,
     addApplication,
     updateApplication,
     addDocument,
@@ -397,6 +398,19 @@ export const useCounsellorData = () => {
         updates.admissionsVisibility = true;
         updates.assignedDepartment = "Admissions";
         updates.vettingStatus = "submitted_to_admissions";
+        if (appData.studentId) {
+          updateStudent(appData.studentId, {
+            admissionsVisibility: true,
+            vettingStatus: "submitted_to_admissions",
+          });
+          try {
+            updateDoc(doc(db, "students", appData.studentId), {
+              admissionsVisibility: true,
+              vettingStatus: "submitted_to_admissions",
+              updatedAt: Date.now(),
+            });
+          } catch (_) {}
+        }
       }
 
       // Optimistic update

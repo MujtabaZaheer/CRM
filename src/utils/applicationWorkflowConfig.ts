@@ -97,7 +97,7 @@ export const WORKFLOW_STAGE_MATRIX: Record<ApplicationStage, StageWorkflowRule> 
   Submitted: {
     stage: "Submitted",
     label: "Submitted",
-    whoUpdates: ["admissions_officer", "platform_super_admin", "org_admin"],
+    whoUpdates: ["admissions_officer", "counsellor", "platform_super_admin", "org_admin"],
     whoSees: ["admissions_officer", "university_partner", "counsellor", "team_leader", "student", "external_agent", "platform_super_admin", "org_admin"],
     inboxVisibility: ["admissions_officer", "university_partner"],
     fieldLockMode: "all_locked",

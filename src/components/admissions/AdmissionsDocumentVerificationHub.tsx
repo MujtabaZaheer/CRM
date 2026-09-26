@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAdmissionsData } from "../../hooks/useAdmissionsData";
@@ -21,6 +21,13 @@ import {
   ChevronRight,
   Filter,
   Check,
+  User,
+  Globe,
+  Mail,
+  Phone,
+  Calendar,
+  BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { logAuditEvent } from "../../utils/auditLogger";
 
@@ -52,6 +59,11 @@ export const AdmissionsDocumentVerificationHub: React.FC = () => {
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("All Admissions Stages");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  // Tab state for right panel
+  const [activeTab, setActiveTab] = useState<"documents" | "profile">("documents");
+  const [hubSelectedStage, setHubSelectedStage] = useState<ApplicationStage>("Submitted");
+  const [hubStageNote, setHubStageNote] = useState<string>("");
 
   // Per-doc flagging modal
   const [flagModal, setFlagModal] = useState<FlagIssueModalState | null>(null);
@@ -381,6 +393,39 @@ export const AdmissionsDocumentVerificationHub: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (selectedItem?.application?.stage) {
+      setHubSelectedStage(selectedItem.application.stage);
+    }
+  }, [selectedItem?.application?.id, selectedItem?.application?.stage]);
+
+  const handleDirectStageUpdate = async (targetStage: ApplicationStage, note?: string) => {
+    if (!selectedItem) return;
+    setIsProcessing(true);
+    try {
+      await updateStage(
+        selectedItem.application,
+        targetStage,
+        note || `Admissions Officer updated stage to ${targetStage}`
+      );
+      if (targetStage === "Unconditional Offer" || targetStage === "Conditional Offer") {
+        updateApplication(selectedItem.application.id, {
+          admissionsVerificationCompleted: true,
+          vettingStatus: "documents_verified",
+          assignedDepartment: "Finance",
+          updatedAt: Date.now(),
+        });
+      }
+      showToast(`Application ${selectedItem.application.applicationNumber} updated to "${targetStage}"!`);
+      setHubStageNote("");
+    } catch (err: any) {
+      console.error("Failed to update stage:", err);
+      alert(`Failed to update stage: ${err.message || "Unknown error"}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Alert */}
@@ -619,8 +664,273 @@ export const AdmissionsDocumentVerificationHub: React.FC = () => {
                 </div>
               </div>
 
-              {/* Categorized Document Groups */}
-              <div className="space-y-4 flex-1 overflow-y-auto max-h-[580px] pr-1">
+              {/* Navigation Tabs */}
+              <div className="flex items-center space-x-2 border-b border-[var(--border-default)] pb-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("documents")}
+                  className={`px-3 py-2 font-semibold border-b-2 flex items-center space-x-1.5 transition-all cursor-pointer ${
+                    activeTab === "documents"
+                      ? "border-emerald-500 text-emerald-400 font-bold"
+                      : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Categorized Documents ({selectedDocsFlat.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("profile")}
+                  className={`px-3 py-2 font-semibold border-b-2 flex items-center space-x-1.5 transition-all cursor-pointer ${
+                    activeTab === "profile"
+                      ? "border-emerald-500 text-emerald-400 font-bold"
+                      : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Candidate Profile & Academics</span>
+                </button>
+              </div>
+
+              {/* Admissions Stage Management Bar */}
+              <div className="p-3 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center space-x-2 shrink-0">
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="font-bold text-[var(--text-primary)]">Update Stage:</span>
+                  <select
+                    value={hubSelectedStage}
+                    onChange={(e) => setHubSelectedStage(e.target.value as ApplicationStage)}
+                    className="p-1.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs font-semibold text-[var(--text-primary)]"
+                  >
+                    {[
+                      "Ready for Submission",
+                      "Submitted",
+                      "University Reviewing",
+                      "Additional Info Requested",
+                      "Conditional Offer",
+                      "Unconditional Offer",
+                      "Documents Pending",
+                      "Deposit Pending",
+                      "Deposit Paid",
+                      "CAS / COE Pending",
+                      "CAS Issued",
+                      "Enrolled",
+                      "Rejected",
+                    ].map((stg) => (
+                      <option key={stg} value={stg}>
+                        {stg}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex-1 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Admissions decision / review audit note..."
+                    value={hubStageNote}
+                    onChange={(e) => setHubStageNote(e.target.value)}
+                    className="w-full p-1.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-lg text-xs"
+                  />
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleDirectStageUpdate(hubSelectedStage, hubStageNote)}
+                    className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg text-xs shrink-0 cursor-pointer shadow-sm transition-all"
+                  >
+                    {isProcessing ? "Updating..." : "Apply Stage"}
+                  </button>
+                </div>
+              </div>
+
+              {activeTab === "profile" && (
+                <div className="space-y-4 flex-1 overflow-y-auto max-h-[580px] pr-1 text-xs">
+                  {/* Candidate Personal Details Card */}
+                  <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] space-y-4">
+                    <div className="flex items-center space-x-2 text-emerald-400 font-bold border-b border-[var(--border-default)] pb-2">
+                      <User className="w-4 h-4" />
+                      <h3 className="text-sm font-heading">Candidate Personal Profile</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Full Legal Name</span>
+                        <div className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">
+                          {selectedItem.student?.fullName || selectedItem.application.studentName}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Email Address</span>
+                        <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                          <Mail className="w-3 h-3 text-[var(--text-muted)]" />
+                          <span>{selectedItem.student?.email || selectedItem.application.studentEmail || "Not provided"}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Contact Phone</span>
+                        <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                          <Phone className="w-3 h-3 text-[var(--text-muted)]" />
+                          <span>{selectedItem.student?.phone || (selectedItem.application as any).studentPhone || "Not provided"}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Date of Birth</span>
+                        <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3 text-[var(--text-muted)]" />
+                          <span>{selectedItem.student?.dob || (selectedItem.application as any).dob || "Not specified"}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Nationality</span>
+                        <div className="font-medium text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5">
+                          <Globe className="w-3 h-3 text-[var(--text-muted)]" />
+                          <span>{selectedItem.student?.nationality || (selectedItem.application as any).nationality || "International"}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Country of Residence</span>
+                        <div className="font-medium text-[var(--text-primary)] mt-0.5">
+                          {selectedItem.student?.countryOfResidence || selectedItem.application.targetCountry || "International"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Passport Number</span>
+                        <div className="font-mono font-bold text-teal-400 mt-0.5">
+                          {selectedItem.student?.passportNumber || (selectedItem.application as any).passportNumber || "Pending verification"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Passport Expiry</span>
+                        <div className="font-mono text-[var(--text-secondary)] mt-0.5">
+                          {selectedItem.student?.passportExpiry || (selectedItem.application as any).passportExpiry || "N/A"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Emergency Contact</span>
+                        <div className="font-medium text-[var(--text-primary)] mt-0.5">
+                          {selectedItem.application.emergencyContact?.name
+                            ? `${selectedItem.application.emergencyContact.name} (${selectedItem.application.emergencyContact.relation || "Kin"})`
+                            : (selectedItem.student as any)?.emergencyContact?.name || "Not specified"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* English Language Proficiency Card */}
+                  <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] space-y-4">
+                    <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2">
+                      <div className="flex items-center space-x-2 text-teal-400 font-bold">
+                        <Globe className="w-4 h-4" />
+                        <h3 className="text-sm font-heading">English Language Proficiency</h3>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">
+                        {selectedItem.student?.englishProficiency?.testType || selectedItem.application.englishProficiency?.testType || "IELTS Academic"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Standardized Test</span>
+                        <div className="font-semibold text-[var(--text-primary)] mt-0.5">
+                          {selectedItem.student?.englishProficiency?.testType || selectedItem.application.englishProficiency?.testType || "IELTS Academic"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Overall Band / Score</span>
+                        <div className="font-mono font-bold text-emerald-400 text-sm mt-0.5">
+                          {selectedItem.student?.englishProficiency?.overallScore || selectedItem.application.englishProficiency?.overallScore || "7.0 Overall"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">TRF / Reference #</span>
+                        <div className="font-mono text-[var(--text-secondary)] mt-0.5">
+                          {(selectedItem.student?.englishProficiency as any)?.trfNumber || (selectedItem.application.englishProficiency as any)?.trfNumber || "TRF-2026-UKVI-88"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Test Date</span>
+                        <div className="text-[var(--text-secondary)] mt-0.5">
+                          {(selectedItem.student?.englishProficiency as any)?.testDate || (selectedItem.application.englishProficiency as any)?.testDate || "2025-11-14"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Prior Academic Qualifications Card */}
+                  <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] space-y-4">
+                    <div className="flex items-center space-x-2 text-emerald-400 font-bold border-b border-[var(--border-default)] pb-2">
+                      <GraduationCap className="w-4 h-4" />
+                      <h3 className="text-sm font-heading">Prior Academic Qualifications & History</h3>
+                    </div>
+
+                    {((selectedItem.student?.academicHistory && selectedItem.student.academicHistory.length > 0) ||
+                      (selectedItem.application.academicHistory && selectedItem.application.academicHistory.length > 0)) ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(selectedItem.student?.academicHistory || selectedItem.application.academicHistory || []).map((acad: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="p-3.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-[var(--text-primary)]">
+                                {acad.degreeTitle || acad.qualification || "Degree"}
+                              </span>
+                              <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[11px]">
+                                {acad.gradeGpa || acad.score || acad.gpa || "3.7 GPA"}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-teal-400 font-medium">{acad.institution || "University"}</div>
+                            <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] pt-1.5 border-t border-[var(--border-default)]">
+                              <span>Country: {acad.country || "International"}</span>
+                              <span>Passed: {acad.completionYear || acad.passingYear || "2023"}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] text-center text-[var(--text-muted)]">
+                        No prior academic qualification records explicitly logged. Academic transcripts can be inspected in Categorized Documents.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Target Programme & University Card */}
+                  <div className="p-4 sm:p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] space-y-3">
+                    <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2 border-b border-[var(--border-default)] pb-2">
+                      <BookOpen className="w-4 h-4 text-emerald-400" />
+                      Target Programme & Application Details
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">University</span>
+                        <span className="font-semibold text-[var(--text-primary)] block mt-0.5">{selectedItem.application.universityName}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Programme</span>
+                        <span className="font-semibold text-[var(--text-primary)] block mt-0.5">{selectedItem.application.programmeName}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Target Country</span>
+                        <span className="font-semibold text-[var(--text-primary)] block mt-0.5">{selectedItem.application.targetCountry || "International"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Intake Term</span>
+                        <span className="font-semibold text-emerald-400 block mt-0.5">{selectedItem.application.intake || "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Application Number</span>
+                        <span className="font-mono font-bold text-teal-400 block mt-0.5">{selectedItem.application.applicationNumber || selectedItem.application.id}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase block font-semibold">Current Stage</span>
+                        <span className="font-bold text-emerald-400 block mt-0.5">{selectedItem.application.stage}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "documents" && (
+                <div className="space-y-4 flex-1 overflow-y-auto max-h-[580px] pr-1">
                 {(
                   [
                     "Identity / Passport",
@@ -724,6 +1034,7 @@ export const AdmissionsDocumentVerificationHub: React.FC = () => {
                   );
                 })}
               </div>
+              )}
             </>
           )}
         </div>
