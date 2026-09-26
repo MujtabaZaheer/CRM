@@ -410,12 +410,32 @@ export const StudentApplicationWizard: React.FC = () => {
         const resolvedDob = studentData?.dob || userData?.dob || "";
         const resolvedGender = studentData?.gender || userData?.gender || "";
 
+        // Fallback to session cache from registration if fields are missing in Firestore
+        let cachedFirst = "";
+        let cachedLast = "";
+        let cachedPhone = "";
+        let cachedCountry = "";
+        let cachedNat = "";
+        try {
+          cachedFirst = sessionStorage.getItem("student_registration_first_name") || "";
+          cachedLast = sessionStorage.getItem("student_registration_last_name") || "";
+          cachedPhone = sessionStorage.getItem("student_registration_phone") || "";
+          cachedCountry = sessionStorage.getItem("student_registration_country") || "";
+          cachedNat = sessionStorage.getItem("student_registration_nationality") || "";
+        } catch (_) {}
+
+        const cachedFullName = `${cachedFirst} ${cachedLast}`.trim();
+        const finalResolvedName = resolvedName !== "Student" ? resolvedName : (cachedFullName || "Student");
+        const finalResolvedPhone = resolvedPhone || cachedPhone;
+        const finalResolvedCountry = resolvedCountry || cachedCountry || "Pakistan";
+        const finalResolvedNat = resolvedNat || cachedNat || finalResolvedCountry;
+
         setStudent(studentData);
         setPersonalOverrides({
-          fullName: resolvedName,
-          phone: resolvedPhone,
-          countryOfResidence: resolvedCountry,
-          nationality: resolvedNat,
+          fullName: finalResolvedName,
+          phone: finalResolvedPhone,
+          countryOfResidence: finalResolvedCountry,
+          nationality: finalResolvedNat,
           city: resolvedCity,
           dob: resolvedDob,
           gender: resolvedGender,
