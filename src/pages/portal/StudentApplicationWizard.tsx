@@ -41,6 +41,7 @@ import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/uni
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 import { StudentCVUploader } from "../../components/ai/StudentCVUploader";
 import { ExtractedStudentCVData, toCountryName, COMMON_COUNTRIES } from "../../utils/cvExtractor";
+import { sanitizeFirestoreData } from "../../utils/firestoreSanitizer";
 
 const STEPS = [
   { num: 1, title: "Overview" },
@@ -944,10 +945,11 @@ export const StudentApplicationWizard: React.FC = () => {
       };
 
       let finalAppId = applicationId;
+      const sanitizedPayload = sanitizeFirestoreData(payload);
 
       if (finalAppId) {
         await setDoc(doc(db, "applications", finalAppId), {
-          ...payload,
+          ...sanitizedPayload,
           history: arrayUnion({
             stage: "Initial Review",
             updatedBy: userEmail || "Student",
@@ -958,7 +960,7 @@ export const StudentApplicationWizard: React.FC = () => {
       } else {
         const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
         const created = await addDoc(collection(db, "applications"), {
-          ...payload,
+          ...sanitizedPayload,
           applicationNumber: appNumber,
           createdAt: now,
           history: [

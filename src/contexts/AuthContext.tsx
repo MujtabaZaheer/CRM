@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, collection, query, where, getDocs, getDoc } from "firebase/firestore";
 import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 import { DEMO_STUDENTS } from "../data/demoData";
@@ -65,7 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         office: "London HQ",
         branchId: "branch-london",
         tenantId: "tenant-demo",
-        partnerUniversityId: role === "university_partner" ? "univ-oxford" : undefined,
+        partnerUniversityId: role === "university_partner" ? "univ_oxf" : undefined,
+        universityName: role === "university_partner" ? "University of Oxford" : undefined,
         ...(role === "student"
           ? { onboardingStatus: "not_started", profileCompleted: false, currentStep: 1 }
           : {}),
@@ -316,8 +317,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } catch (updErr) {
                   console.warn("Could not sync completed onboarding status to Firestore:", updErr);
                 }
+
+                // If university partner and universityName is missing from users doc, hydrate from university_partners
+                if (completedStaff.role === "university_partner" && !completedStaff.universityName) {
+                  try {
+                    const pSnap = await getDoc(doc(db, "university_partners", user.uid));
+                    if (pSnap.exists()) {
+                      const pData = pSnap.data();
+                      completedStaff.universityName = pData.universityName;
+                      completedStaff.partnerUniversityId = pData.partnerUniversityId || pData.universityId;
+                    }
+                  } catch (_) {}
+                }
+
                 setAppUser(completedStaff);
               } else {
+                if (uData.role === "university_partner" && !uData.universityName) {
+                  try {
+                    const pSnap = await getDoc(doc(db, "university_partners", user.uid));
+                    if (pSnap.exists()) {
+                      const pData = pSnap.data();
+                      uData.universityName = pData.universityName;
+                      uData.partnerUniversityId = pData.partnerUniversityId || pData.universityId;
+                    }
+                  } catch (_) {}
+                }
                 setAppUser(uData);
               }
             } else {

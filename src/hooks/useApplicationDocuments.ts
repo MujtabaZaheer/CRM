@@ -83,16 +83,27 @@ export function useApplicationDocuments(
           appSnap.forEach((snap) => {
             docMap.set(snap.id, { id: snap.id, ...snap.data() } as StudentDocument);
           });
+          // Also query student_documents collection
+          const studentDocsRef = collection(db, "student_documents");
+          const sdAppSnap = await getDocs(query(studentDocsRef, where("applicationId", "==", resolvedAppId)));
+          sdAppSnap.forEach((snap) => {
+            docMap.set(snap.id, { id: snap.id, ...snap.data() } as StudentDocument);
+          });
         }
       } catch (err) {
         console.warn("Notice: Firestore query by applicationId:", err);
       }
 
-      // 4. Secondary query: root 'documents' by studentId
+      // 4. Secondary query: root 'documents' + 'student_documents' by studentId
       try {
         if (resolvedStudentId) {
           const studentSnap = await getDocs(query(docsRef, where("studentId", "==", resolvedStudentId)));
           studentSnap.forEach((snap) => {
+            docMap.set(snap.id, { id: snap.id, ...snap.data() } as StudentDocument);
+          });
+          const studentDocsRef2 = collection(db, "student_documents");
+          const sdStudentSnap = await getDocs(query(studentDocsRef2, where("studentId", "==", resolvedStudentId)));
+          sdStudentSnap.forEach((snap) => {
             docMap.set(snap.id, { id: snap.id, ...snap.data() } as StudentDocument);
           });
         }
@@ -214,23 +225,39 @@ export function useApplicationDocuments(
 
     fetchAllDocuments();
 
-    // Realtime live subscription on primary query
+    // Realtime live subscriptions on both 'documents' and 'student_documents' collections
     const liveQuery = resolvedAppId
       ? query(docsRef, where("applicationId", "==", resolvedAppId))
       : query(docsRef, where("studentId", "==", resolvedStudentId));
 
+    const sdRef = collection(db, "student_documents");
+    const sdLiveQuery = resolvedAppId
+      ? query(sdRef, where("applicationId", "==", resolvedAppId))
+      : query(sdRef, where("studentId", "==", resolvedStudentId));
+
+    const mergeSnapshotDocs = (liveDocs: StudentDocument[]) => {
+      if (liveDocs.length > 0) {
+        setDocuments((prev) => {
+          const merged = new Map<string, StudentDocument>();
+          prev.forEach((d) => merged.set(d.id, d));
+          liveDocs.forEach((d) => merged.set(d.id, d));
+          return Array.from(merged.values());
+        });
+      }
+    };
+
     const unsubscribe = onSnapshot(
       liveQuery,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const liveDocs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as StudentDocument));
-          setDocuments((prev) => {
-            const merged = new Map<string, StudentDocument>();
-            prev.forEach((d) => merged.set(d.id, d));
-            liveDocs.forEach((d) => merged.set(d.id, d));
-            return Array.from(merged.values());
-          });
-        }
+        mergeSnapshotDocs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as StudentDocument)));
+      },
+      () => {}
+    );
+
+    const unsubscribeSD = onSnapshot(
+      sdLiveQuery,
+      (snapshot) => {
+        mergeSnapshotDocs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as StudentDocument)));
       },
       () => {}
     );
@@ -238,6 +265,7 @@ export function useApplicationDocuments(
     return () => {
       isMounted = false;
       unsubscribe();
+      unsubscribeSD();
     };
   }, [resolvedAppId, resolvedStudentId, resolvedStudentName, resolvedStudentEmail, application, fallbackDocuments]);
 

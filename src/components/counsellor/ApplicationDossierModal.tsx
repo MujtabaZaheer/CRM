@@ -1,11 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Application, ApplicationStage, ApplicationDocumentRequest, ApplicationScholarship, ApplicationPartnerComment } from "../../types/application";
 import { StudentDocument } from "../../pages/Documents";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { canUserSetStage, getStageOwnerLabel } from "../../utils/stageAuthorization";
+import { canUserSetStage, getStageOwnerLabel, getStageSelectOptionLabel } from "../../utils/stageAuthorization";
 import { useApplicationDocuments } from "../../hooks/useApplicationDocuments";
 import { assignReferralToCounsellor } from "../../services/assignmentService";
+import { getDocumentBlobOrUrl } from "../../utils/documentStorage";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 import {
   X,
   User,
@@ -23,6 +26,8 @@ import {
   ShieldAlert,
   Loader2,
   UserCheck,
+  ExternalLink,
+  Download,
 } from "lucide-react";
 
 export interface ApplicationDossierModalProps {
@@ -152,7 +157,46 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
     documents: candidateDocuments,
     count: candidateDocCount,
     loading: docsLoading,
+    setDocuments: setCandidateDocs,
   } = useApplicationDocuments(application, application.id, application.studentId, globalDocuments);
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreviewUrl, setLoadingPreviewUrl] = useState<boolean>(false);
+  const [previewIsLocalOnly, setPreviewIsLocalOnly] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!previewDoc) {
+      setPreviewUrl(null);
+      setPreviewIsLocalOnly(false);
+      return;
+    }
+    let isCancelled = false;
+    setLoadingPreviewUrl(true);
+    setPreviewIsLocalOnly(false);
+    getDocumentBlobOrUrl(previewDoc.id, previewDoc.fileUrl)
+      .then((url) => {
+        if (!isCancelled) {
+          setPreviewUrl(url);
+          setLoadingPreviewUrl(false);
+          // If no URL resolved and doc has no remote fileUrl, it was uploaded on another device
+          const hasRemote = previewDoc.fileUrl && (previewDoc.fileUrl.startsWith('http') || previewDoc.fileUrl.startsWith('blob'));
+          if (!url && !hasRemote) {
+            setPreviewIsLocalOnly(true);
+          }
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setPreviewUrl(null);
+          setLoadingPreviewUrl(false);
+          const hasRemote = previewDoc.fileUrl && (previewDoc.fileUrl.startsWith('http') || previewDoc.fileUrl.startsWith('blob'));
+          if (!hasRemote) setPreviewIsLocalOnly(true);
+        }
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [previewDoc]);
 
   // Source / Agent attribution
   const agentBadgeLabel = useMemo(() => {
@@ -168,7 +212,65 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
     docId: string,
     newStatus: "Verified" | "Rejected" | "Pending"
   ) => {
+    // 1. Update candidate documents immediately in local hook state
+    setCandidateDocs((prev) =>
+      prev.map((d) => (d.id === docId ? { ...d, status: newStatus } : d))
+    );
+
+    // 2. Update GlobalDataContext in-memory state
     updateDocument(docId, { status: newStatus });
+
+    // 3. Update previewDoc if active
+    if (previewDoc && previewDoc.id === docId) {
+      setPreviewDoc((prev) => (prev ? { ...prev, status: newStatus } : null));
+    }
+
+    // 4. Update embedded documents on application if present
+    if ((application as any).documents && Array.isArray((application as any).documents)) {
+      const updatedEmbedded = (application as any).documents.map((d: any) => {
+        if (d.id === docId || d.fileName === docId || d.label === docId) {
+          return { ...d, status: newStatus, verificationStatus: newStatus.toLowerCase() };
+        }
+        return d;
+      });
+      (application as any).documents = updatedEmbedded;
+      updateApplication(application.id, { documents: updatedEmbedded } as any);
+      try {
+        await setDoc(
+          doc(db, "applications", application.id),
+          { documents: updatedEmbedded, updatedAt: Date.now() },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn("Could not sync updated documents array to applications:", err);
+      }
+    }
+
+    // 5. Persist to Firestore across collections
+    try {
+      await Promise.allSettled([
+        setDoc(
+          doc(db, "student_documents", docId),
+          { status: newStatus, verificationStatus: newStatus.toLowerCase(), updatedAt: Date.now() },
+          { merge: true }
+        ),
+        setDoc(
+          doc(db, "documents", docId),
+          { status: newStatus, verificationStatus: newStatus.toLowerCase(), updatedAt: Date.now() },
+          { merge: true }
+        ),
+        application.id
+          ? setDoc(
+              doc(db, "applications", application.id, "documents", docId),
+              { status: newStatus, verificationStatus: newStatus.toLowerCase(), updatedAt: Date.now() },
+              { merge: true }
+            )
+          : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.warn("Notice: Firestore document status update:", err);
+    }
+
     showToast(`Document status updated to ${newStatus}`);
   };
 
@@ -322,7 +424,8 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
 
   const handleAdvanceStageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canUserSetStage("counsellor", targetStage)) {
+    const effectiveRole = (appUser?.role as any) || userRole;
+    if (!canUserSetStage(effectiveRole, targetStage)) {
       const owner = getStageOwnerLabel(targetStage);
       alert(`Permission Denied: Only ${owner} is authorized to transition applications to "${targetStage}".`);
       return;
@@ -1267,11 +1370,16 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
                       "Deferred",
                       "Withdrawn",
                       "Rejected",
-                    ].map((stg) => (
-                      <option key={stg} value={stg}>
-                        {stg}
-                      </option>
-                    ))}
+                    ].map((stg) => {
+                      const effectiveRole = (appUser?.role as any) || userRole;
+                      const label = getStageSelectOptionLabel(stg as any, effectiveRole);
+                      const isLocked = label.includes("🔒");
+                      return (
+                        <option key={stg} value={stg} disabled={isLocked} style={{ opacity: isLocked ? 0.5 : 1 }}>
+                          {label}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -1312,42 +1420,133 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
         {/* Modal: Document Preview */}
         {previewDoc && (
           <div className="fixed inset-0 z-50 bg-[var(--backdrop)] backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal w-full max-w-lg p-6 space-y-4 shadow-2xl">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal w-full max-w-3xl p-6 space-y-4 shadow-2xl">
               <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
                 <div className="flex items-center space-x-2">
                   <FileText className="w-5 h-5 text-sky-400" />
-                  <h3 className="text-base font-bold font-heading text-[var(--text-primary)] truncate max-w-xs">
-                    {previewDoc.fileName}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-6 bg-[var(--bg-elevated)] border border-[var(--border-default)] sq-card flex flex-col items-center justify-center text-center space-y-3">
-                <FileCheck className="w-12 h-12 text-emerald-400 opacity-80" />
-                <div className="space-y-1">
-                  <div className="font-bold text-[var(--text-primary)] text-sm">{previewDoc.fileName}</div>
-                  <div className="text-xs text-[var(--text-muted)]">
-                    Type: {previewDoc.docType} • Status: {previewDoc.status}
-                  </div>
-                  <div className="text-[10px] text-[var(--text-muted)]">
-                    Uploaded by: {previewDoc.uploadedBy}
+                  <div>
+                    <h3 className="text-base font-bold font-heading text-[var(--text-primary)] truncate max-w-md">
+                      {previewDoc.fileName}
+                    </h3>
+                    <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-2">
+                      <span>Type: {previewDoc.docType}</span>
+                      <span>•</span>
+                      <span className={`font-semibold ${previewDoc.status === "Verified" ? "text-emerald-400" : previewDoc.status === "Rejected" ? "text-rose-400" : "text-amber-400"}`}>
+                        {previewDoc.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-sky-500/10 text-sky-400 border border-sky-500/20 sq-badge text-xs font-mono">
-                  Verified Official Document Scan
-                </span>
+                <div className="flex items-center gap-2">
+                  {previewUrl && (
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 sq-btn text-xs inline-flex items-center gap-1.5"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open in New Tab</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setPreviewDoc(null)}
+                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-[var(--border-default)]">
+              {/* Preview Body */}
+              <div className="min-h-[360px] max-h-[540px] flex items-center justify-center bg-[var(--bg-elevated)] rounded-xl border border-[var(--border-default)] overflow-hidden p-2">
+                {loadingPreviewUrl ? (
+                  <div className="text-center space-y-3 p-8">
+                    <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-[var(--text-muted)] font-mono">Retrieving document preview...</p>
+                  </div>
+                ) : previewUrl ? (
+                  previewDoc.fileType?.includes("image") || previewDoc.fileName.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+                    <img
+                      src={previewUrl}
+                      alt={previewDoc.fileName}
+                      className="max-h-[500px] w-auto mx-auto object-contain rounded"
+                    />
+                  ) : (
+                    <iframe
+                      src={previewUrl}
+                      title={previewDoc.fileName}
+                      className="w-full h-[520px] rounded border-0"
+                    />
+                  )
+                ) : previewIsLocalOnly ? (
+                  <div className="text-center p-8 space-y-4 max-w-sm mx-auto">
+                    <div className="w-14 h-14 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                      <ShieldAlert className="w-7 h-7 text-amber-400" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Document stored on agent's device</p>
+                      <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                        This document was uploaded by the agent and is cached locally in their browser.
+                        Preview is only available on the device that uploaded it.
+                      </p>
+                      <p className="text-xs text-amber-400 font-semibold">
+                        ✓ Document metadata is verified in Firestore — you can still mark it as Verified or Rejected below.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-8 space-y-3">
+                    <FileText className="w-12 h-12 text-[var(--text-muted)] mx-auto opacity-60" />
+                    <p className="text-xs text-[var(--text-secondary)]">Direct preview unavailable for this format.</p>
+                    {previewDoc.fileUrl && (
+                      <a
+                        href={previewDoc.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/20 text-sky-400 rounded-lg text-xs hover:bg-sky-500/30"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Open / Download File
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview Footer with Quick Verification Controls */}
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--border-default)]">
+                <div className="flex items-center gap-2">
+                  {canVerifyDocs && (
+                    <>
+                      <button
+                        onClick={() =>
+                          handleToggleDocVerification(
+                            previewDoc.id,
+                            previewDoc.status === "Verified" ? "Pending" : "Verified"
+                          )
+                        }
+                        className={`px-3 py-1.5 sq-btn text-xs font-semibold ${
+                          previewDoc.status === "Verified"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400"
+                        }`}
+                      >
+                        {previewDoc.status === "Verified" ? "Verified ✓ (Click to Undo)" : "Mark Verified ✓"}
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleDocVerification(previewDoc.id, "Rejected")}
+                        className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 sq-btn text-xs font-semibold"
+                      >
+                        Reject Document
+                      </button>
+                    </>
+                  )}
+                </div>
+
                 <button
                   onClick={() => setPreviewDoc(null)}
-                  className="px-4 py-2 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-xs"
+                  className="px-4 py-1.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-default)] sq-btn text-xs"
                 >
                   Close
                 </button>

@@ -3,6 +3,7 @@ import { db } from "../firebase/config";
 import {
   doc,
   updateDoc,
+  setDoc,
   addDoc,
   collection
 } from "firebase/firestore";
@@ -15,6 +16,7 @@ import { Task, TaskPriority, TaskStatus } from "../types/task";
 import { StudentDocument, DocumentType } from "../pages/Documents";
 import { logAuditEvent } from "../utils/auditLogger";
 import { uploadStudentDocument } from "../utils/documentStorage";
+import { sanitizeFirestoreData } from "../utils/firestoreSanitizer";
 
 export const useCounsellorData = () => {
   const { appUser } = useAuth();
@@ -310,13 +312,43 @@ export const useCounsellorData = () => {
   const allMyLeads = [...filteredLeads, ...syntheticLeads];
   const myLeads = isAdminOrManager ? leads : allMyLeads;
 
-  const filteredDocuments = documents.filter(
+  const myAppIds = new Set(myApplications.map((a) => a.id));
+  const myAppStudentNames = new Set(myApplications.map((a) => (a.studentName || "").toLowerCase().trim()).filter(Boolean));
+
+  // Synthesize documents embedded in applications (e.g. from agent intake submissions)
+  const embeddedDocsFromApps: StudentDocument[] = [];
+  myApplications.forEach((app) => {
+    if ((app as any).documents && Array.isArray((app as any).documents)) {
+      (app as any).documents.forEach((d: any, idx: number) => {
+        embeddedDocsFromApps.push({
+          id: d.id || `emb-${app.id}-${idx}`,
+          studentId: app.studentId || app.id,
+          applicationId: app.id,
+          studentName: app.studentName,
+          docType: (d.slotType || d.docType || "Other") as any,
+          fileName: d.fileName || d.name || "Uploaded Document",
+          fileUrl: d.fileUrl || "",
+          filePath: d.filePath,
+          fileSize: d.fileSize || 0,
+          fileType: d.mimeType || d.fileType || "application/pdf",
+          status: d.status || (d.verificationStatus === "verified" ? "Verified" : (d.verificationStatus === "rejected" ? "Rejected" : "Received")),
+          uploadedBy: d.uploadedBy || (app as any).agentEmail || "Agent",
+          createdAt: d.uploadedAt || d.createdAt || app.createdAt || Date.now(),
+        });
+      });
+    }
+  });
+
+  const allCandidateDocs = [...documents, ...embeddedDocsFromApps];
+  const filteredDocuments = allCandidateDocs.filter(
     (d) =>
       myStudentIds.includes(d.studentId) ||
       d.uploadedBy === userEmail ||
-      (d.studentName && myStudents.some((s) => s.fullName.toLowerCase() === d.studentName.toLowerCase()))
+      (d.studentName && myStudents.some((s) => s.fullName.toLowerCase() === d.studentName.toLowerCase())) ||
+      ((d as any).applicationId && myAppIds.has((d as any).applicationId)) ||
+      (d.studentName && myAppStudentNames.has(d.studentName.toLowerCase().trim()))
   );
-  const myDocuments = isAdminOrManager ? documents : filteredDocuments;
+  const myDocuments = isAdminOrManager ? allCandidateDocs : filteredDocuments;
 
   const filteredTasks = tasks.filter((t) => t.assignedTo === userEmail || t.assignedTo === userUid || t.createdBy === userEmail);
   const myTasks = isAdminOrManager ? tasks : filteredTasks;
@@ -482,7 +514,9 @@ export const useCounsellorData = () => {
 
   const updateApplicationStage = useCallback(
     async (appId: string, newStage: ApplicationStage, note?: string) => {
-      const appData = applications.find((a) => a.id === appId);
+      const appData =
+        applications.find((a) => a.id === appId) ||
+        applications.find((a) => a.applicationNumber === appId);
       if (!appData) return;
 
       const newHistoryItem = {
@@ -495,11 +529,26 @@ export const useCounsellorData = () => {
       const updatedHistory = [...(appData.history || []), newHistoryItem];
       const updates: Partial<Application> = {
         stage: newStage,
+        applicationStatus: newStage as any,
+        status: newStage as any,
         history: updatedHistory,
         updatedAt: Date.now(),
       };
 
-      if (newStage === "Ready for Submission" || newStage === "Submitted") {
+      // Ensure counsellor claiming/linking if unassigned
+      if (!appData.assignedCounsellor || appData.assignedCounsellor === "unassigned") {
+        updates.assignedCounsellor = userEmail || "counsellor@educrm.demo";
+        if (userUid) updates.assignedCounsellorId = userUid;
+      }
+
+      const isAdvancingToAdmissions =
+        newStage === "Ready for Submission" ||
+        newStage === "Submitted" ||
+        newStage === "University Reviewing" ||
+        newStage === "Conditional Offer" ||
+        newStage === "Unconditional Offer";
+
+      if (isAdvancingToAdmissions) {
         updates.admissionsVisibility = true;
         updates.assignedDepartment = "Admissions";
         updates.vettingStatus = "submitted_to_admissions";
@@ -507,36 +556,50 @@ export const useCounsellorData = () => {
           updateStudent(appData.studentId, {
             admissionsVisibility: true,
             vettingStatus: "submitted_to_admissions",
-          });
+            applicationStage: newStage,
+          } as any);
           try {
-            updateDoc(doc(db, "students", appData.studentId), {
-              admissionsVisibility: true,
-              vettingStatus: "submitted_to_admissions",
-              updatedAt: Date.now(),
-            });
+            await setDoc(
+              doc(db, "students", appData.studentId),
+              sanitizeFirestoreData({
+                admissionsVisibility: true,
+                vettingStatus: "submitted_to_admissions",
+                applicationStage: newStage,
+                updatedAt: Date.now(),
+              }),
+              { merge: true }
+            );
           } catch (_) {}
         }
       }
 
-      // Optimistic update
-      updateApplication(appId, updates);
+      const fullAppPayload = {
+        ...appData,
+        ...updates,
+        createdAt: appData.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      // Optimistic update in global context
+      updateApplication(appData.id, updates);
 
       try {
-        const appRef = doc(db, "applications", appId);
-        await updateDoc(appRef, updates);
+        const appRef = doc(db, "applications", appData.id);
+        const sanitized = sanitizeFirestoreData(fullAppPayload);
+        await setDoc(appRef, sanitized, { merge: true });
         await logAuditEvent(
           "APPLICATION_STAGE_UPDATED",
           userEmail || "Counsellor",
           "Application",
-          `Updated application ${appData.applicationNumber} stage to "${newStage}"`,
-          appId,
+          `Updated application ${appData.applicationNumber || appData.id} stage to "${newStage}"`,
+          appData.id,
           appUser?.role
         );
       } catch (err) {
-        console.warn("Firestore update app stage notice (persisted locally):", err);
+        console.error("Firestore update app stage notice:", err);
       }
     },
-    [applications, userEmail, appUser, updateApplication]
+    [applications, userEmail, userUid, appUser, updateApplication, updateStudent]
   );
 
   const uploadDocument = useCallback(

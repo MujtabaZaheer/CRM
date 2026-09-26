@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, setDoc, doc } from "firebase/firestore";
 import { AppUser } from "../types/role";
 import { Lead } from "../types/lead";
 import { Student } from "../types/student";
@@ -9,6 +9,7 @@ import { StudentDocument } from "../pages/Documents";
 import { Task } from "../types/task";
 import { University } from "../types/university";
 import { useAuth } from "./AuthContext";
+import { sanitizeFirestoreData } from "../utils/firestoreSanitizer";
 
 import { DEMO_APPLICATIONS, DEMO_DOCUMENTS, DEMO_LEADS, DEMO_STUDENTS, DEMO_TASKS, DEMO_UNIVERSITIES, DEMO_USERS } from "../data/demoData";
 
@@ -248,10 +249,11 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // 4. Applications (Staff only for global list)
     const unsubApps = isStudent ? noop : onSnapshot(
-      query(collection(db, "applications"), orderBy("createdAt", "desc")),
+      collection(db, "applications"),
       (snap) => {
         const list: Application[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Application));
+        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         setApplications((prev) => {
           const localOnly = prev.filter((p) => !list.some((l) => l.id === p.id) && !DEMO_APPLICATIONS.some((da) => da.id === p.id));
           const base = [...list, ...localOnly];
@@ -267,24 +269,50 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     );
 
-    // 5. Student Documents (Staff only for global list)
-    const unsubDocs = isStudent ? noop : onSnapshot(
-      query(collection(db, "student_documents"), orderBy("createdAt", "desc")),
+    // 5. Student Documents & Documents Collections (Staff only for global list)
+    let studentDocsList: StudentDocument[] = [];
+    let rootDocsList: StudentDocument[] = [];
+
+    const syncCombinedDocuments = () => {
+      const mergedMap = new Map<string, StudentDocument>();
+      rootDocsList.forEach((d) => mergedMap.set(d.id, d));
+      studentDocsList.forEach((d) => {
+        const existing = mergedMap.get(d.id);
+        mergedMap.set(d.id, { ...existing, ...d });
+      });
+      const list = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setDocuments(
+        showDemoData
+          ? list.length > 0
+            ? [...list, ...DEMO_DOCUMENTS.filter((dd) => !list.some((d) => d.id === dd.id))]
+            : DEMO_DOCUMENTS
+          : list
+      );
+      markSourceLoaded("documents");
+    };
+
+    const unsubStudentDocs = isStudent ? noop : onSnapshot(
+      collection(db, "student_documents"),
       (snap) => {
-        const list: StudentDocument[] = [];
-        snap.forEach((d) => list.push({ id: d.id, ...d.data() } as StudentDocument));
-        setDocuments(
-          showDemoData
-            ? list.length > 0
-              ? [...list, ...DEMO_DOCUMENTS.filter((dd) => !list.some((d) => d.id === dd.id))]
-              : DEMO_DOCUMENTS
-            : list
-        );
-        markSourceLoaded("documents");
+        studentDocsList = [];
+        snap.forEach((d) => studentDocsList.push({ id: d.id, ...d.data() } as StudentDocument));
+        syncCombinedDocuments();
       },
       (err) => {
         handleSourceError("documents", err);
         setDocuments((prev) => (prev.length > 0 ? prev : (showDemoData ? DEMO_DOCUMENTS : [])));
+      }
+    );
+
+    const unsubRootDocs = isStudent ? noop : onSnapshot(
+      collection(db, "documents"),
+      (snap) => {
+        rootDocsList = [];
+        snap.forEach((d) => rootDocsList.push({ id: d.id, ...d.data() } as StudentDocument));
+        syncCombinedDocuments();
+      },
+      () => {
+        // Optional root documents fallback — ignore if collection permissions differ
       }
     );
 
@@ -334,7 +362,8 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       unsubLeads();
       unsubStudents();
       unsubApps();
-      unsubDocs();
+      unsubStudentDocs();
+      unsubRootDocs();
       unsubTasks();
       unsubUnivs();
     };
@@ -367,23 +396,49 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateStudent = (studentId: string, updates: Partial<Student>) => {
     setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, ...updates } : s)));
+    try {
+      const sanitized = sanitizeFirestoreData(updates);
+      setDoc(doc(db, "students", studentId), sanitized, { merge: true }).catch(() => {});
+    } catch (_) {}
   };
 
   const addApplication = (newApp: Application) => {
     const scopedApp = newApp.tenantId ? newApp : scopeDocumentWithTenant(newApp, appUser);
     setApplications((prev) => [scopedApp, ...prev.filter((a) => a.id !== scopedApp.id)]);
+    try {
+      const sanitized = sanitizeFirestoreData(scopedApp);
+      setDoc(doc(db, "applications", scopedApp.id), sanitized, { merge: true }).catch(() => {});
+    } catch (_) {}
   };
 
   const updateApplication = (appId: string, updates: Partial<Application>) => {
     setApplications((prev) => prev.map((a) => (a.id === appId ? { ...a, ...updates } : a)));
+    try {
+      const sanitized = sanitizeFirestoreData(updates);
+      setDoc(doc(db, "applications", appId), sanitized, { merge: true }).catch(() => {});
+    } catch (_) {}
   };
 
   const addDocument = (newDoc: StudentDocument) => {
     setDocuments((prev) => [newDoc, ...prev.filter((d) => d.id !== newDoc.id)]);
+    try {
+      const sanitized = sanitizeFirestoreData(newDoc);
+      Promise.allSettled([
+        setDoc(doc(db, "student_documents", newDoc.id), sanitized, { merge: true }),
+        setDoc(doc(db, "documents", newDoc.id), sanitized, { merge: true }),
+      ]).catch(() => {});
+    } catch (_) {}
   };
 
   const updateDocument = (docId: string, updates: Partial<StudentDocument>) => {
     setDocuments((prev) => prev.map((d) => (d.id === docId ? { ...d, ...updates } : d)));
+    try {
+      const sanitized = sanitizeFirestoreData(updates);
+      Promise.allSettled([
+        setDoc(doc(db, "student_documents", docId), sanitized, { merge: true }),
+        setDoc(doc(db, "documents", docId), sanitized, { merge: true }),
+      ]).catch(() => {});
+    } catch (_) {}
   };
 
   // Strictly enforce tenant boundary filtering on all exposed records

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { db } from "../firebase/config";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc } from "firebase/firestore";
+import { sanitizeFirestoreData } from "../utils/firestoreSanitizer";
 import { Application, ApplicationStage } from "../types/application";
 import { RoleGate } from "../components/layout/RoleGate";
 import { useAuth } from "../contexts/AuthContext";
@@ -174,6 +175,8 @@ export const Applications: React.FC = () => {
 
     const updates: Partial<Application> = {
       stage: newStage,
+      applicationStatus: newStage as any,
+      status: newStage as any,
       history: updatedHistory,
       updatedAt: Date.now(),
     };
@@ -187,20 +190,32 @@ export const Applications: React.FC = () => {
           admissionsVisibility: true,
           vettingStatus: "submitted_to_admissions",
         });
-        updateDoc(doc(db, "students", app.studentId), {
-          admissionsVisibility: true,
-          vettingStatus: "submitted_to_admissions",
-          updatedAt: Date.now(),
-        }).catch(() => {});
+        setDoc(
+          doc(db, "students", app.studentId),
+          sanitizeFirestoreData({
+            admissionsVisibility: true,
+            vettingStatus: "submitted_to_admissions",
+            updatedAt: Date.now(),
+          }),
+          { merge: true }
+        ).catch(() => {});
       }
     }
+
+    const fullAppPayload = {
+      ...app,
+      ...updates,
+      createdAt: app.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
 
     // Optimistic update
     updateApplication(app.id, updates);
 
     try {
       const appRef = doc(db, "applications", app.id);
-      await updateDoc(appRef, updates);
+      const sanitizedPayload = sanitizeFirestoreData(fullAppPayload);
+      await setDoc(appRef, sanitizedPayload, { merge: true });
 
       await logAuditEvent(
         "APPLICATION_STAGE_UPDATED",
@@ -219,7 +234,7 @@ export const Applications: React.FC = () => {
         await triggerApplicationCommission(app, 24000, "Direct / Agency Partner", appUser?.email);
       }
     } catch (err) {
-      console.warn("Firestore application update notice (persisted in local state):", err);
+      console.warn("Firestore application update notice:", err);
     }
   };
 

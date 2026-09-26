@@ -45,6 +45,7 @@ import { StudentDocument } from "../../../pages/Documents";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase/config";
 import { logAuditEvent } from "../../../utils/auditLogger";
+import { sanitizeFirestoreData } from "../../../utils/firestoreSanitizer";
 
 const STEPS = [
   { id: 1, title: "Personal Details", icon: User },
@@ -368,12 +369,20 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
           createdAt: Date.now(),
         };
         addDocument(studentDoc);
-        await setDoc(doc(db, "documents", d.id), studentDoc).catch(() => {});
+        const sanitizedDoc = sanitizeFirestoreData(studentDoc);
+        await Promise.allSettled([
+          setDoc(doc(db, "student_documents", d.id), sanitizedDoc, { merge: true }),
+          setDoc(doc(db, "documents", d.id), sanitizedDoc, { merge: true }),
+        ]).catch(() => {});
       }
 
       // 2. Async Cloud Firestore Commit
-      await setDoc(doc(db, "students", studentId), newStudent).catch(() => {});
-      await setDoc(doc(db, "applications", applicationId), newApplication).catch(() => {});
+      const sanitizedStudent = sanitizeFirestoreData(newStudent);
+      const sanitizedApp = sanitizeFirestoreData(newApplication);
+      await Promise.allSettled([
+        setDoc(doc(db, "students", studentId), sanitizedStudent, { merge: true }),
+        setDoc(doc(db, "applications", applicationId), sanitizedApp, { merge: true }),
+      ]).catch(() => {});
 
       // Add audit trail event
       await logAuditEvent(

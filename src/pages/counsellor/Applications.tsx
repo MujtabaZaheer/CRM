@@ -3,6 +3,7 @@ import { useCounsellorData } from "../../hooks/useCounsellorData";
 import { Application, ApplicationStage } from "../../types/application";
 import { canUserSetStage, getStageSelectOptionLabel, getStageOwnerLabel } from "../../utils/stageAuthorization";
 import { ApplicationDossierModal } from "../../components/counsellor/ApplicationDossierModal";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Search,
   History,
@@ -13,7 +14,9 @@ import {
 } from "lucide-react";
 
 export const CounsellorApplications: React.FC = () => {
+  const { appUser } = useAuth();
   const { applications, documents, updateApplicationStage, loading } = useCounsellorData();
+  const userRole = (appUser?.role as any) || "counsellor";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("All");
@@ -43,7 +46,7 @@ export const CounsellorApplications: React.FC = () => {
     e.preventDefault();
     if (!selectedApp) return;
 
-    if (!canUserSetStage("counsellor", targetStage)) {
+    if (!canUserSetStage(userRole, targetStage)) {
       const owner = getStageOwnerLabel(targetStage);
       alert(`Permission Denied: Only ${owner} is authorized to transition applications to "${targetStage}".`);
       return;
@@ -157,13 +160,43 @@ export const CounsellorApplications: React.FC = () => {
                 </tr>
               ) : (
                 filteredApps.map((app) => {
-                  const studentDocs = documents.filter(
+                  const appEmbeddedDocs = Array.isArray((app as any).documents) ? (app as any).documents : [];
+                  const combinedDocsMap = new Map<string, any>();
+                  appEmbeddedDocs.forEach((d: any, idx: number) => {
+                    const docId = d.id || `emb-${app.id}-${idx}`;
+                    combinedDocsMap.set(docId, {
+                      id: docId,
+                      status: d.status || (d.verificationStatus === "verified" ? "Verified" : (d.verificationStatus === "rejected" ? "Rejected" : "Received")),
+                      fileName: d.fileName || d.name,
+                      docType: d.slotType || d.docType || "Other",
+                    });
+                  });
+                  documents.forEach((d) => {
+                    if (
+                      (app.studentId && d.studentId === app.studentId) ||
+                      ((d as any).applicationId && (d as any).applicationId === app.id) ||
+                      (d.studentName && app.studentName && d.studentName.toLowerCase().trim() === app.studentName.toLowerCase().trim())
+                    ) {
+                      const existing = combinedDocsMap.get(d.id);
+                      const isVerified =
+                        d.status === "Verified" ||
+                        (d.status as string) === "verified" ||
+                        (d as any).verificationStatus === "verified" ||
+                        existing?.status === "Verified";
+                      combinedDocsMap.set(d.id, {
+                        ...existing,
+                        ...d,
+                        status: isVerified ? "Verified" : (d.status || existing?.status || "Received"),
+                      });
+                    }
+                  });
+                  const studentDocs = Array.from(combinedDocsMap.values());
+                  const verifiedDocs = studentDocs.filter(
                     (d) =>
-                      d.studentId === app.studentId ||
-                      (d.studentName && d.studentName.toLowerCase() === app.studentName.toLowerCase()) ||
-                      (d as any).applicationId === app.id
+                      d.status === "Verified" ||
+                      (d.status as string) === "verified" ||
+                      (d as any).verificationStatus === "verified"
                   );
-                  const verifiedDocs = studentDocs.filter((d) => d.status === "Verified");
 
                   return (
                     <tr
@@ -303,10 +336,10 @@ export const CounsellorApplications: React.FC = () => {
                     "Withdrawn",
                     "Rejected",
                   ].map((stg) => {
-                    const isAllowed = canUserSetStage("counsellor", stg as ApplicationStage);
+                    const isAllowed = canUserSetStage(userRole, stg as ApplicationStage);
                     return (
                       <option key={stg} value={stg} disabled={!isAllowed}>
-                        {getStageSelectOptionLabel(stg as ApplicationStage, "counsellor")}
+                        {getStageSelectOptionLabel(stg as ApplicationStage, userRole)}
                       </option>
                     );
                   })}

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Upload, CheckCircle2, Trash2, Eye, ShieldCheck, Sparkles, X } from "lucide-react";
 import { AgentUploadedDocument } from "../../../types/agentApplication";
-import { uploadStudentDocument } from "../../../utils/documentStorage";
+import { uploadStudentDocument, cacheDocumentFile } from "../../../utils/documentStorage";
 
 interface StepDocumentUploadsProps {
   documents: AgentUploadedDocument[];
@@ -116,14 +116,33 @@ export const StepDocumentUploads: React.FC<StepDocumentUploadsProps> = ({
     setUploadingSlot(slotType);
     setUploadError(null);
 
+    const generatedDocId = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
     try {
       let fileUrl = "";
       let filePath = "";
+      let finalDocId = generatedDocId;
+
+      // Ensure local IndexedDB cache is populated immediately for preview
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (err) => reject(err);
+        });
+        await cacheDocumentFile(generatedDocId, dataUrl, file.name, file.type);
+      } catch (cacheErr) {
+        console.warn("Local IndexedDB caching notice:", cacheErr);
+      }
 
       try {
-        const uploaded = await uploadStudentDocument(studentId, file, slotType);
-        fileUrl = uploaded.driveUrl || (typeof window !== "undefined" && window.URL ? URL.createObjectURL(file) : `doc://${file.name}`);
-        filePath = uploaded.driveFileId;
+        const uploaded = await uploadStudentDocument(studentId, file, slotType, undefined, generatedDocId);
+        if (uploaded?.documentId) {
+          finalDocId = uploaded.documentId;
+        }
+        fileUrl = uploaded?.driveUrl || (typeof window !== "undefined" && window.URL ? URL.createObjectURL(file) : `doc://${file.name}`);
+        filePath = uploaded?.driveFileId || "";
       } catch {
         fileUrl = typeof window !== "undefined" && window.URL ? URL.createObjectURL(file) : `doc://${file.name}`;
       }
@@ -140,7 +159,7 @@ export const StepDocumentUploads: React.FC<StepDocumentUploadsProps> = ({
       };
 
       const newDoc: AgentUploadedDocument = {
-        id: `doc-${Date.now()}`,
+        id: finalDocId,
         slotType,
         label,
         isMandatory,

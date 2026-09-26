@@ -267,29 +267,43 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
   // Scoped applications for this institution (Requirement 1 & 12)
   const institutionalApps: Application[] = useMemo<Application[]>(() => {
     const isPartner = appUser?.role === "university_partner";
-    const targetUniName = (isPartner ? (appUser.universityName || selectedUniversityName) : selectedUniversityName).trim().toLowerCase();
-    const partnerId = (appUser as any)?.partnerUniversityId || (appUser as any)?.universityId || activeUniversity?.id;
 
-    if (!isPartner && selectedUniversityName === "ALL") {
-      return effectiveApps;
+    // For non-partner (e.g. staff inspecting the university portal):
+    if (!isPartner) {
+      if (selectedUniversityName === "ALL") {
+        return effectiveApps;
+      }
+      const selName = selectedUniversityName.trim().toLowerCase();
+      const selUniObj = allUniversities.find((u) => u.name === selectedUniversityName);
+      const selId = selUniObj?.id;
+      return effectiveApps.filter((a: Application) => {
+        if (selId && a.universityId && a.universityId.toLowerCase() === selId.toLowerCase()) return true;
+        if (!a.universityName) return false;
+        const appUni = a.universityName.trim().toLowerCase();
+        return appUni === selName || appUni.includes(selName) || selName.includes(appUni);
+      });
     }
 
-    const matched = effectiveApps.filter((a: Application) => {
-      // 1. Direct ID match
-      if (partnerId && a.universityId && a.universityId === partnerId) return true;
+    // For University Partner: Strictly scope ONLY to this partner's registered university!
+    const partnerUniName = (appUser.universityName || (appUser as any).institutionName || selectedUniversityName || "").trim().toLowerCase();
+    const partnerUniId = ((appUser as any)?.partnerUniversityId || (appUser as any)?.universityId || "").trim().toLowerCase();
 
-      // 2. Name match (case-insensitive substring/equality)
-      if (!a.universityName) return false;
-      const appUni = a.universityName.trim().toLowerCase();
-      if (appUni === targetUniName) return true;
-      if (targetUniName && (appUni.includes(targetUniName) || targetUniName.includes(appUni))) return true;
+    return effectiveApps.filter((a: Application) => {
+      // 1. Direct Partner ID match
+      if (partnerUniId && a.universityId && a.universityId.toLowerCase() === partnerUniId) {
+        return true;
+      }
+
+      // 2. Name match (case-insensitive)
+      if (partnerUniName && a.universityName) {
+        const appUni = a.universityName.trim().toLowerCase();
+        if (appUni === partnerUniName) return true;
+        if (appUni.includes(partnerUniName) || partnerUniName.includes(appUni)) return true;
+      }
 
       return false;
     });
-
-    // Strictly return only matched applications — never leak other universities' applications!
-    return matched;
-  }, [effectiveApps, selectedUniversityName, activeUniversity, appUser]);
+  }, [effectiveApps, selectedUniversityName, allUniversities, appUser]);
 
   // Filtered applications (Requirement 2)
   const filteredApps = useMemo(() => {
