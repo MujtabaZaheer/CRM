@@ -120,8 +120,15 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
 
   // Active institution selector for scoping data (Requirement 12: Access only authorized institutional data)
   const allUniversities = universities.length > 0 ? universities : GLOBAL_UNIVERSITIES;
-  const initialUniversity = appUser?.universityName || allUniversities[0]?.name || "University of Oxford";
+  const partnerRegisteredUni = appUser?.role === "university_partner" ? (appUser.universityName || "") : "";
+  const initialUniversity = partnerRegisteredUni || allUniversities[0]?.name || "University of Oxford";
   const [selectedUniversityName, setSelectedUniversityName] = useState<string>(initialUniversity);
+
+  useEffect(() => {
+    if (appUser?.role === "university_partner" && appUser?.universityName) {
+      setSelectedUniversityName(appUser.universityName);
+    }
+  }, [appUser?.role, appUser?.universityName]);
 
   const activeUniversity = allUniversities.find((u) => u.name === selectedUniversityName) || allUniversities[0];
 
@@ -259,24 +266,30 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
 
   // Scoped applications for this institution (Requirement 1 & 12)
   const institutionalApps: Application[] = useMemo<Application[]>(() => {
-    if (selectedUniversityName === "ALL") {
+    const isPartner = appUser?.role === "university_partner";
+    const targetUniName = (isPartner ? (appUser.universityName || selectedUniversityName) : selectedUniversityName).trim().toLowerCase();
+    const partnerId = (appUser as any)?.partnerUniversityId || (appUser as any)?.universityId || activeUniversity?.id;
+
+    if (!isPartner && selectedUniversityName === "ALL") {
       return effectiveApps;
     }
 
-    const matched = effectiveApps.filter(
-      (a: Application) =>
-        a.universityName?.toLowerCase().includes(selectedUniversityName.toLowerCase()) ||
-        selectedUniversityName.toLowerCase().includes(a.universityName?.toLowerCase() || "") ||
-        a.universityId === activeUniversity?.id
-    );
+    const matched = effectiveApps.filter((a: Application) => {
+      // 1. Direct ID match
+      if (partnerId && a.universityId && a.universityId === partnerId) return true;
 
-    if (matched.length > 0) {
-      return matched;
-    }
+      // 2. Name match (case-insensitive substring/equality)
+      if (!a.universityName) return false;
+      const appUni = a.universityName.trim().toLowerCase();
+      if (appUni === targetUniName) return true;
+      if (targetUniName && (appUni.includes(targetUniName) || targetUniName.includes(appUni))) return true;
 
-    // If no specific match for this university yet in live data, fallback to all effective apps so portal is never blank
-    return effectiveApps;
-  }, [effectiveApps, selectedUniversityName, activeUniversity]);
+      return false;
+    });
+
+    // Strictly return only matched applications — never leak other universities' applications!
+    return matched;
+  }, [effectiveApps, selectedUniversityName, activeUniversity, appUser]);
 
   // Filtered applications (Requirement 2)
   const filteredApps = useMemo(() => {
@@ -826,21 +839,29 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
           {/* Institution Switcher */}
           <div className="flex items-center gap-2 self-end lg:self-center">
             <span className="text-[11px] text-[var(--text-muted)] font-medium">Authorized Institution:</span>
-            <select
-              value={selectedUniversityName}
-              onChange={(e) => {
-                setSelectedUniversityName(e.target.value);
-                triggerNotice(`Switched institutional view to ${e.target.value === "ALL" ? "All Partner Universities" : e.target.value}`, "info");
-              }}
-              className="p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
-            >
-              <option value="ALL">🌐 All Partner Universities (Live System Stream)</option>
-              {allUniversities.map((u) => (
-                <option key={u.id} value={u.name}>
-                  {u.name} ({u.country})
-                </option>
-              ))}
-            </select>
+            {appUser?.role === "university_partner" ? (
+              <div className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400 flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{appUser.universityName || selectedUniversityName}</span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-mono">SCOPED</span>
+              </div>
+            ) : (
+              <select
+                value={selectedUniversityName}
+                onChange={(e) => {
+                  setSelectedUniversityName(e.target.value);
+                  triggerNotice(`Switched institutional view to ${e.target.value === "ALL" ? "All Partner Universities" : e.target.value}`, "info");
+                }}
+                className="p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="ALL">🌐 All Partner Universities (Live System Stream)</option>
+                {allUniversities.map((u) => (
+                  <option key={u.id} value={u.name}>
+                    {u.name} ({u.country})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -1259,8 +1280,14 @@ export const UniversityPortalWorkspace: React.FC<{ page: UniversitySubPage }> = 
                 <tbody className="divide-y divide-[var(--border-default)] text-xs">
                   {filteredApps.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-[var(--text-muted)]">
-                        No applications found matching the selected criteria.
+                      <td colSpan={7} className="p-10 text-center text-[var(--text-muted)] space-y-2">
+                        <Building2 className="w-8 h-8 text-zinc-600 mx-auto" />
+                        <p className="font-semibold text-sm text-[var(--text-secondary)]">
+                          No applications found for {selectedUniversityName}
+                        </p>
+                        <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+                          Only applications submitted specifically to {selectedUniversityName} appear in this portal. Applications for other universities are strictly isolated.
+                        </p>
                       </td>
                     </tr>
                   ) : (

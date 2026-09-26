@@ -11,6 +11,7 @@ import {
 import { UserRole } from "../types/role";
 import { REGISTRATION_CONFIGS, EXTERNAL_ROLES, STAFF_ROLES } from "../types/registrationConfig";
 import { COMMON_COUNTRIES, ExtractedStudentCVData, toCountryName } from "../utils/cvExtractor";
+import { GLOBAL_UNIVERSITIES } from "../data/globalUniversities";
 import { StudentCVUploader } from "../components/ai/StudentCVUploader";
 import { getRoleBackground } from "../utils/roleBackgrounds";
 
@@ -149,6 +150,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
     countryOfResidence: initialRole === "student" ? "Pakistan" : "",
     agencyName: "",
     universityName: "",
+    partnerUniversityId: "",
     position: "",
     office: "London HQ",
     password: "",
@@ -198,7 +200,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
     } catch (_) {}
   };
 
-  // Synchronize default country and nationality when student role is chosen
+  // Synchronize default country and nationality/university when role is chosen
   React.useEffect(() => {
     if (selectedRole === "student") {
       setFormData((prev) => ({
@@ -206,6 +208,17 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         countryOfResidence: prev.countryOfResidence || "Pakistan",
         nationality: prev.nationality || prev.countryOfResidence || "Pakistan",
       }));
+    } else if (selectedRole === "university_partner") {
+      setFormData((prev) => {
+        if (prev.universityName && prev.partnerUniversityId) return prev;
+        const defaultUni = GLOBAL_UNIVERSITIES[0];
+        return {
+          ...prev,
+          universityName: prev.universityName || defaultUni?.name || "University of Oxford",
+          partnerUniversityId: prev.partnerUniversityId || defaultUni?.id || "univ_oxf",
+          countryOfResidence: prev.countryOfResidence || defaultUni?.country || "United Kingdom",
+        };
+      });
     }
   }, [selectedRole]);
 
@@ -300,6 +313,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         phone: formData.phone ? formData.phone.trim() : undefined,
         agencyName: selectedRole === "external_agent" ? formData.agencyName : undefined,
         universityName: selectedRole === "university_partner" ? formData.universityName : undefined,
+        partnerUniversityId: selectedRole === "university_partner" ? (formData.partnerUniversityId || GLOBAL_UNIVERSITIES.find(u => u.name === formData.universityName)?.id || "univ_oxf") : undefined,
+        universityId: selectedRole === "university_partner" ? (formData.partnerUniversityId || GLOBAL_UNIVERSITIES.find(u => u.name === formData.universityName)?.id || "univ_oxf") : undefined,
       });
       await setDoc(doc(db, "users", uid), userPayload);
 
@@ -379,6 +394,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         });
         await setDoc(doc(db, "agents", uid), agentPayload);
       } else if (selectedRole === "university_partner") {
+        const partnerUniId = formData.partnerUniversityId || GLOBAL_UNIVERSITIES.find(u => u.name === formData.universityName)?.id || "univ_oxf";
         const partnerPayload = sanitizeFirestoreData({
           id: uid,
           firstName: finalFirstName,
@@ -386,6 +402,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           fullName: finalFullName,
           email: cleanEmail,
           universityName: formData.universityName,
+          partnerUniversityId: partnerUniId,
+          universityId: partnerUniId,
           position: formData.position,
           countryOfResidence: formData.countryOfResidence,
           totalApplicationsReceived: 0,
@@ -801,25 +819,42 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">University Name *</label>
+                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
+                    Partner University *
+                  </label>
                   <div className="relative">
-                    <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-                    <input
-                      type="text" required value={formData.universityName}
-                      onChange={(e) => updateField("universityName", e.target.value)}
-                      placeholder="e.g. University of Oxford"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-                    />
+                    <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500 pointer-events-none" />
+                    <select
+                      required
+                      value={formData.universityName}
+                      onChange={(e) => {
+                        const selectedUni = GLOBAL_UNIVERSITIES.find((u) => u.name === e.target.value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          universityName: e.target.value,
+                          partnerUniversityId: selectedUni?.id || "",
+                          countryOfResidence: selectedUni?.country || prev.countryOfResidence,
+                        }));
+                      }}
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 cursor-pointer"
+                    >
+                      <option value="" disabled>-- Select Your Partner University --</option>
+                      {GLOBAL_UNIVERSITIES.map((u) => (
+                        <option key={u.id} value={u.name}>
+                          {u.name} ({u.country})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Your Position *</label>
                   <div className="relative">
-                    <Briefcase className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                    <Briefcase className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500 pointer-events-none" />
                     <input
                       type="text" required value={formData.position}
                       onChange={(e) => updateField("position", e.target.value)}
-                      placeholder="e.g. Admissions Manager"
+                      placeholder="e.g. Admissions Manager / Director"
                       className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
                     />
                   </div>
@@ -828,7 +863,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country *</label>
                 <div className="relative">
-                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500 pointer-events-none" />
                   <select
                     required
                     value={formData.countryOfResidence || "United Kingdom"}

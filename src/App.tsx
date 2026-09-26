@@ -57,6 +57,7 @@ import { SuperAdminRoute } from "./components/layout/SuperAdminRoute";
 import { RoleRoute } from "./components/layout/RoleRoute";
 import { RolePortal } from "./components/portal/RolePortal";
 import { VisaWorkspace } from "./components/visa/VisaWorkspace";
+import { VisaDocumentsHub } from "./components/visa/VisaDocumentsHub";
 // Support Module Imports
 import { SupportDashboard } from "./pages/support/Dashboard";
 import { SupportTicketsPage } from "./pages/support/Tickets";
@@ -305,7 +306,7 @@ export const App: React.FC = () => {
                   <Route path="dashboard" element={<VisaWorkspace page="dashboard" />} />
                   <Route path="cases" element={<VisaWorkspace page="cases" />} />
                   <Route path="messages" element={<CounsellorMessages />} />
-                  <Route path="documents" element={<RolePortal role="visa" page="documents" />} />
+                  <Route path="documents" element={<VisaDocumentsHub />} />
                   <Route path="tasks" element={<RolePortal role="visa" page="tasks" />} />
                   <Route path="notifications" element={<RolePortal role="visa" page="notifications" />} />
                 </Route>
