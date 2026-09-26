@@ -11,22 +11,14 @@ import {
   Upload,
   ShieldCheck,
   User,
-  Building2,
-  Plane,
-  ChevronDown,
-  ChevronUp,
   ChevronRight,
   Filter,
   Sparkles,
   RefreshCw,
   FileCheck,
   AlertTriangle,
-  ExternalLink,
   X,
-  Share2,
   FileQuestion,
-  UserCheck,
-  Award,
 } from "lucide-react";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -36,7 +28,6 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  setDoc,
   addDoc,
 } from "firebase/firestore";
 import { Application, ApplicationStage } from "../../types/application";
@@ -110,7 +101,6 @@ export const VisaDocumentsHub: React.FC = () => {
     applications: contextApplications,
     students: contextStudents,
     documents: contextDocuments,
-    updateApplication,
   } = useGlobalData();
 
   // Live Firestore subscriptions
@@ -275,7 +265,7 @@ export const VisaDocumentsHub: React.FC = () => {
           agentReferred: isAgent,
           agentName: isAgent ? agentDisplayName : undefined,
           agentEmail: app.agentEmail,
-          agencyName: isAgent ? (app.agencyName || "Education Partner Agency") : undefined,
+          agencyName: isAgent ? ((app as any).agencyName || "Education Partner Agency") : undefined,
           documents: [],
           totalDocs: 0,
           verifiedCount: 0,
@@ -462,13 +452,13 @@ export const VisaDocumentsHub: React.FC = () => {
     dossiersMap.forEach((dossier) => {
       // If a student has no documents at all, synthesize placeholder compliance checklist items
       if (dossier.documents.length === 0) {
-        const syntheticSlots = [
-          { type: "International Passport", origin: "student" as const, uploader: dossier.studentName, status: "Verified" as const },
-          { type: "Academic Transcripts", origin: (dossier.agentReferred ? "agent" : "student") as const, uploader: dossier.agentReferred ? (dossier.agentName || "Agent") : dossier.studentName, status: "Verified" as const },
-          { type: "English Proficiency (IELTS / PTE)", origin: "student" as const, uploader: dossier.studentName, status: "Verified" as const },
-          { type: "Bank Statement & Financial Proof", origin: (dossier.agentReferred ? "agent" : "student") as const, uploader: dossier.agentReferred ? (dossier.agentName || "Agent") : dossier.studentName, status: "Pending" as const },
-          { type: "CAS Confirmation Statement", origin: "staff" as const, uploader: "University Admissions", status: "Verified" as const },
-          { type: "Tuberculosis (TB) Screening Certificate", origin: "student" as const, uploader: dossier.studentName, status: "Pending" as const },
+        const syntheticSlots: { type: string; origin: "student" | "agent" | "staff"; uploader: string; status: "Verified" | "Pending" }[] = [
+          { type: "International Passport", origin: "student", uploader: dossier.studentName, status: "Verified" },
+          { type: "Academic Transcripts", origin: dossier.agentReferred ? "agent" : "student", uploader: dossier.agentReferred ? (dossier.agentName || "Agent") : dossier.studentName, status: "Verified" },
+          { type: "English Proficiency (IELTS / PTE)", origin: "student", uploader: dossier.studentName, status: "Verified" },
+          { type: "Bank Statement & Financial Proof", origin: dossier.agentReferred ? "agent" : "student", uploader: dossier.agentReferred ? (dossier.agentName || "Agent") : dossier.studentName, status: "Pending" },
+          { type: "CAS Confirmation Statement", origin: "staff", uploader: "University Admissions", status: "Verified" },
+          { type: "Tuberculosis (TB) Screening Certificate", origin: "student", uploader: dossier.studentName, status: "Pending" },
         ];
 
         syntheticSlots.forEach((slot, i) => {
@@ -1215,7 +1205,6 @@ export const VisaDocumentsHub: React.FC = () => {
                     activeDossier.documents.map((docItem) => {
                       const isVerified = docItem.status === "Verified";
                       const isRejected = docItem.status === "Rejected";
-                      const isPending = docItem.status === "Pending" || docItem.status === "Received";
 
                       return (
                         <div
