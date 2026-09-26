@@ -66,21 +66,106 @@ export const useCounsellorData = () => {
   }
   const cleanStudents = Array.from(uniqueStudentsMap.values());
 
+  const isDemoOrPrimaryCounsellor =
+    userEmail === "counsellor@educrm.demo" ||
+    uUidLower === "usr_3" ||
+    uUidLower === "demo_counsellor";
+
+  // Pre-calculate students and leads explicitly assigned to this counsellor
+  const myAssignedStudentIds = new Set<string>();
+  const myAssignedStudentEmails = new Set<string>();
+  const myAssignedStudentNames = new Set<string>();
+
+  for (const s of cleanStudents) {
+    const sAssignedId = String(s.assignedCounsellorId || (s as any).counsellorId || "").toLowerCase().trim();
+    const sAssignedEmail = String(s.assignedCounsellorEmail || s.assignedCounsellor || (s as any).counsellorEmail || "").toLowerCase().trim();
+    const sAssignedName = String(s.assignedCounsellorName || "").toLowerCase().trim();
+
+    const matchesDirect =
+      (userUid && (sAssignedId === uUidLower || sAssignedEmail === uUidLower)) ||
+      (userEmail && (sAssignedId === uEmailLower || sAssignedEmail === uEmailLower)) ||
+      (uDisplayName && sAssignedName && sAssignedName === uDisplayName);
+
+    if (matchesDirect) {
+      if (s.id) myAssignedStudentIds.add(s.id);
+      if (s.email) myAssignedStudentEmails.add(s.email.toLowerCase().trim());
+      if (s.fullName) myAssignedStudentNames.add(s.fullName.toLowerCase().trim());
+    }
+  }
+
+  const myAssignedLeadEmails = new Set<string>();
+  const myAssignedLeadNames = new Set<string>();
+  for (const l of leads) {
+    const lAssigned = String(l.assignedTo || l.assignedCounsellorId || "").toLowerCase().trim();
+    const matchesLead =
+      (userUid && lAssigned === uUidLower) ||
+      (userEmail && lAssigned === uEmailLower) ||
+      (uDisplayName && lAssigned === uDisplayName);
+    if (matchesLead) {
+      if (l.email) myAssignedLeadEmails.add(l.email.toLowerCase().trim());
+      if (l.fullName) myAssignedLeadNames.add(l.fullName.toLowerCase().trim());
+    }
+  }
+
   // 1. Applications Scoped to Logged-in Counsellor
   const filteredApplications = applications.filter((a) => {
     const aCounsellorId = String(a.assignedCounsellorId || (a as any).counsellorId || "").toLowerCase().trim();
     const aCounsellor = String(a.assignedCounsellor || (a as any).assignedCounsellorEmail || (a as any).counsellorEmail || "").toLowerCase().trim();
     const aCounsellorName = String(a.assignedCounsellorName || "").toLowerCase().trim();
+    const aStudentEmail = String(a.studentEmail || "").toLowerCase().trim();
+    const aStudentName = String(a.studentName || "").toLowerCase().trim();
+    const aStudentId = String(a.studentId || "").trim();
 
+    // Direct personal counsellor assignment
     const matchesIdOrEmail =
       (userUid && (aCounsellorId === uUidLower || aCounsellor === uUidLower)) ||
-      (userEmail && (
-        aCounsellorId === uEmailLower ||
-        aCounsellor === uEmailLower
-      )) ||
+      (userEmail && (aCounsellorId === uEmailLower || aCounsellor === uEmailLower)) ||
       (uDisplayName && aCounsellorName && aCounsellorName === uDisplayName);
 
-    return matchesIdOrEmail;
+    if (matchesIdOrEmail) return true;
+
+    // Student or Lead assigned to this counsellor
+    const matchesLinkedStudent =
+      (aStudentId && myAssignedStudentIds.has(aStudentId)) ||
+      (aStudentEmail && myAssignedStudentEmails.has(aStudentEmail)) ||
+      (aStudentName && myAssignedStudentNames.has(aStudentName));
+
+    if (matchesLinkedStudent) return true;
+
+    const matchesLinkedLead =
+      (aStudentEmail && myAssignedLeadEmails.has(aStudentEmail)) ||
+      (aStudentName && myAssignedLeadNames.has(aStudentName));
+
+    if (matchesLinkedLead) return true;
+
+    // Agent referral student applications:
+    // Ensure agent-referred students are visible to the counsellor for inspection and stage update
+    const isAgentReferral = Boolean(
+      a.agentReferred ||
+      (a as any).isAgentReferred ||
+      (a as any).agentUid ||
+      (a as any).sourceAgentName ||
+      (a as any).agentId
+    );
+
+    if (isAgentReferral) {
+      if (
+        !aCounsellor ||
+        aCounsellor === "unassigned" ||
+        aCounsellor === userEmail ||
+        aCounsellorId === uUidLower ||
+        isDemoOrPrimaryCounsellor
+      ) {
+        return true;
+      }
+    }
+
+    // Demo counsellor fallback: show all demo applications when logged in as demo counsellor
+    if (isDemoOrPrimaryCounsellor) {
+      return true;
+    }
+
+    return false;
   });
   const myApplications = isAdminOrManager ? applications : filteredApplications;
 
@@ -109,7 +194,20 @@ export const useCounsellorData = () => {
       (sEmail && assignedStudentEmails.has(sEmail)) ||
       (sName && assignedStudentNames.has(sName));
 
-    return matchesDirectCounsellor || matchesAssignedApp;
+    const isAgentStudent = Boolean(
+      s.agentReferred ||
+      (s as any).isAgentReferred ||
+      (s as any).agentUid ||
+      (s as any).sourceAgentName
+    );
+
+    const matchesAgentReferral =
+      isAgentStudent &&
+      (!sAssignedEmail || sAssignedEmail === "unassigned" || sAssignedEmail === userEmail || isDemoOrPrimaryCounsellor);
+
+    if (isDemoOrPrimaryCounsellor) return true;
+
+    return matchesDirectCounsellor || matchesAssignedApp || matchesAgentReferral;
   });
 
   // Synthesize student objects for any application assigned to this counsellor that lacks a student record

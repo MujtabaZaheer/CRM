@@ -12,11 +12,12 @@ import { isApplicationLocked, toggleApplicationLock, canUnlockApplication } from
 import { triggerApplicationCommission } from "../utils/commissionEngine";
 import { executeWorkflowRules } from "../utils/workflowEngine";
 import { canUserSetStage, getStageOwnerLabel, getStageSelectOptionLabel } from "../utils/stageAuthorization";
-import { Plus, Search, FileText, GraduationCap, AlertCircle, X, Copy, Lock, Unlock, CheckCircle2, ChevronDown, ChevronRight, FileCheck, ArrowRightLeft, Building2, UserCheck, ShieldCheck } from "lucide-react";
+import { Plus, Search, FileText, GraduationCap, AlertCircle, X, Copy, Lock, Unlock, CheckCircle2, ChevronDown, ChevronRight, FileCheck, ArrowRightLeft, Building2, UserCheck, ShieldCheck, Eye } from "lucide-react";
 import { ReassignmentModal } from "../components/applications/ReassignmentModal";
 import { TENANT_DEFINITIONS, getTenantById, resolveUserTenantId } from "../utils/tenantScoping";
 import { canReassignApplications } from "../utils/applicationReassignment";
 import { filterForAdmissionsDesk } from "../utils/agentTriage";
+import { ApplicationDossierModal } from "../components/counsellor/ApplicationDossierModal";
 
 
 const STAGES: ApplicationStage[] = [
@@ -45,11 +46,12 @@ const STAGES: ApplicationStage[] = [
 export const Applications: React.FC = () => {
   const location = useLocation();
   const { appUser } = useAuth();
-  const { applications, students, users, activeTenantId, setActiveTenantId, addApplication, updateApplication, initialLoading: loading } = useGlobalData();
+  const { applications, students, users, activeTenantId, setActiveTenantId, addApplication, updateApplication, updateStudent, initialLoading: loading } = useGlobalData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStage, setSelectedStage] = useState<string>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [expandedDocAppId, setExpandedDocAppId] = useState<string | null>(null);
+  const [selectedDossierApp, setSelectedDossierApp] = useState<Application | null>(null);
 
   // Selection & Reassignment State
   const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
@@ -148,7 +150,7 @@ export const Applications: React.FC = () => {
     }
   };
 
-  const handleStageChange = async (app: Application, newStage: ApplicationStage) => {
+  const handleStageChange = async (app: Application, newStage: ApplicationStage, note?: string) => {
     if (isApplicationLocked(app.lockedAt) && !canUnlockApplication(appUser)) {
       alert("This application is locked from editing. Contact an Administrator to modify it.");
       return;
@@ -166,24 +168,39 @@ export const Applications: React.FC = () => {
         stage: newStage,
         updatedBy: appUser?.email || "System",
         timestamp: Date.now(),
-        note: `Stage changed to ${newStage}`,
+        note: note || `Stage changed to ${newStage}`,
       },
     ];
 
-    // Optimistic update
-    updateApplication(app.id, {
+    const updates: Partial<Application> = {
       stage: newStage,
       history: updatedHistory,
       updatedAt: Date.now(),
-    });
+    };
+
+    if (newStage === "Ready for Submission" || newStage === "Submitted") {
+      updates.admissionsVisibility = true;
+      updates.assignedDepartment = "Admissions";
+      updates.vettingStatus = "submitted_to_admissions";
+      if (app.studentId) {
+        updateStudent(app.studentId, {
+          admissionsVisibility: true,
+          vettingStatus: "submitted_to_admissions",
+        });
+        updateDoc(doc(db, "students", app.studentId), {
+          admissionsVisibility: true,
+          vettingStatus: "submitted_to_admissions",
+          updatedAt: Date.now(),
+        }).catch(() => {});
+      }
+    }
+
+    // Optimistic update
+    updateApplication(app.id, updates);
 
     try {
       const appRef = doc(db, "applications", app.id);
-      await updateDoc(appRef, {
-        stage: newStage,
-        history: updatedHistory,
-        updatedAt: Date.now(),
-      });
+      await updateDoc(appRef, updates);
 
       await logAuditEvent(
         "APPLICATION_STAGE_UPDATED",
@@ -470,7 +487,13 @@ export const Applications: React.FC = () => {
                           <td className="px-4 py-3 font-semibold text-[var(--text-primary)]">
                             <div className="flex items-center space-x-2">
                               <GraduationCap className="w-4 h-4 text-teal-400" />
-                              <span>{app.studentName}</span>
+                              <button
+                                onClick={() => setSelectedDossierApp(app)}
+                                className="text-left font-semibold text-[var(--text-primary)] hover:text-sky-400 hover:underline transition-colors"
+                                title="Inspect Full Application Dossier & Academic Credentials"
+                              >
+                                {app.studentName}
+                              </button>
                             </div>
                             <div className="flex items-center space-x-1.5 text-[10px] text-[var(--text-muted)] mt-1 font-normal">
                               <UserCheck className="w-3 h-3 text-teal-400" />
@@ -514,6 +537,15 @@ export const Applications: React.FC = () => {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end space-x-2">
+                              {/* Inspect Dossier Modal Button */}
+                              <button
+                                onClick={() => setSelectedDossierApp(app)}
+                                className="p-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 rounded-lg text-xs font-semibold flex items-center space-x-1 border border-sky-500/30 transition-colors"
+                                title="Inspect Application Dossier, Profile & Academic Credentials"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline text-[10px]">Inspect</span>
+                              </button>
                               {/* Reassign Button */}
                               {canReassignApplications(appUser) && (
                                 <button
@@ -816,6 +848,18 @@ export const Applications: React.FC = () => {
           currentActor={appUser}
           onSuccess={handleReassignmentSuccess}
         />
+
+        {/* Application Dossier Inspection Modal */}
+        {selectedDossierApp && (
+          <ApplicationDossierModal
+            application={selectedDossierApp}
+            onClose={() => setSelectedDossierApp(null)}
+            onAdvanceStage={async (app, newStage, note) => {
+              await handleStageChange(app, newStage, note);
+              setSelectedDossierApp((prev) => (prev ? { ...prev, stage: newStage } : null));
+            }}
+          />
+        )}
       </div>
     </RoleGate>
   );

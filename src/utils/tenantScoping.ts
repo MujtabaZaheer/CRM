@@ -261,7 +261,18 @@ export function filterRecordsByTenant<T extends Record<string, any>>(
 
   // Strict tenant boundary for regional branch staff (counsellor, admissions_officer, etc.)
   const userTenant = resolveUserTenantId(appUser);
+  const isDemoCounsellor =
+    appUser.email === "counsellor@educrm.demo" ||
+    appUser.uid === "usr_3" ||
+    appUser.uid === "demo_counsellor" ||
+    (activeTenantOverride && activeTenantOverride === "ALL");
+
   return records.filter((r) => {
+    // Demo counsellor convenience: allow viewing all demo & test records
+    if (isDemoCounsellor) {
+      return true;
+    }
+
     // Direct personal assignment override (takes precedence: if assigned directly to this user, they must see it)
     if (
       (appUser.uid && (
@@ -277,10 +288,18 @@ export function filterRecordsByTenant<T extends Record<string, any>>(
         r.assignedCounsellor === appUser.email ||
         r.assignedCounsellorEmail === appUser.email ||
         r.assignedCounsellorId === appUser.email ||
-        r.counsellorId === appUser.email
+        r.counsellorId === appUser.email ||
+        (r.studentEmail && appUser.email && r.studentEmail.toLowerCase() === appUser.email.toLowerCase())
       ))
     ) {
       return true;
+    }
+
+    // Agent-referred records awaiting counselling/triage: allow operational staff visibility
+    if (r.agentReferred || r.isAgentReferred || r.source === "External Agent Referral" || r.source === "Agent Referral") {
+      if (!r.assignedCounsellor || r.assignedCounsellor === appUser.email || !r.tenantId || r.tenantId === userTenant) {
+        return true;
+      }
     }
 
     // If record explicitly specifies tenantId

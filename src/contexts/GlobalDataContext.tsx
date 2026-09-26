@@ -210,13 +210,13 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Lead[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Lead));
-        setLeads(
-          showDemoData
-            ? list.length > 0
-              ? [...list, ...DEMO_LEADS.filter((dl) => !list.some((l) => l.id === dl.id))]
-              : DEMO_LEADS
-            : list
-        );
+        setLeads((prev) => {
+          const localOnly = prev.filter((p) => !list.some((l) => l.id === p.id) && !DEMO_LEADS.some((dl) => dl.id === p.id));
+          const base = [...list, ...localOnly];
+          return showDemoData
+            ? [...base, ...DEMO_LEADS.filter((dl) => !base.some((l) => l.id === dl.id))]
+            : base;
+        });
         markSourceLoaded("leads");
       },
       (err) => {
@@ -231,13 +231,13 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Student[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Student));
-        setStudents(
-          showDemoData
-            ? list.length > 0
-              ? [...list, ...DEMO_STUDENTS.filter((ds) => !list.some((s) => s.id === ds.id))]
-              : DEMO_STUDENTS
-            : list
-        );
+        setStudents((prev) => {
+          const localOnly = prev.filter((p) => !list.some((l) => l.id === p.id) && !DEMO_STUDENTS.some((ds) => ds.id === p.id));
+          const base = [...list, ...localOnly];
+          return showDemoData
+            ? [...base, ...DEMO_STUDENTS.filter((ds) => !base.some((s) => s.id === ds.id))]
+            : base;
+        });
         markSourceLoaded("students");
       },
       (err) => {
@@ -252,13 +252,13 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (snap) => {
         const list: Application[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as Application));
-        setApplications(
-          showDemoData
-            ? list.length > 0
-              ? [...list, ...DEMO_APPLICATIONS.filter((da) => !list.some((a) => a.id === da.id))]
-              : DEMO_APPLICATIONS
-            : list
-        );
+        setApplications((prev) => {
+          const localOnly = prev.filter((p) => !list.some((l) => l.id === p.id) && !DEMO_APPLICATIONS.some((da) => da.id === p.id));
+          const base = [...list, ...localOnly];
+          return showDemoData
+            ? [...base, ...DEMO_APPLICATIONS.filter((da) => !base.some((a) => a.id === da.id))]
+            : base;
+        });
         markSourceLoaded("applications");
       },
       (err) => {

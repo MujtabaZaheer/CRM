@@ -64,7 +64,7 @@ service cloud.firestore {
       return !isExternalAgent() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admissionsVisibility', 'vettedBy', 'vettedAt', 'vettingStatus', 'vettingNotes']);
     }
     function canAssignStudentCounsellor() {
-      return isPlatformAdmin() || isOrgAdmin() || hasRole('office_manager');
+      return isPlatformAdmin() || isOrgAdmin() || hasRole('office_manager') || hasRole('team_leader') || isOperationalStaff();
     }
     function isImmutableStudentCounsellorUpdate() {
       return canAssignStudentCounsellor() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['assignedCounsellorId', 'assignedCounsellor', 'assignedCounsellorEmail']);
@@ -100,11 +100,12 @@ service cloud.firestore {
     match /leads/{leadId} {
       allow read: if signedIn() && (
         isPlatformAdmin() ||
+        isOperationalStaff() ||
         (isExternalAgent() && agentOwns(resource.data) && matchesTenant(resource.data)) ||
         (!isExternalAgent() && matchesTenant(resource.data))
       );
       allow create: if signedIn() && (isPlatformAdmin() || (!('tenantId' in request.resource.data) || request.resource.data.tenantId == userTenant()));
-      allow update: if signedIn() && (isPlatformAdmin() || (matchesTenant(resource.data) && isImmutableTenantUpdate()));
+      allow update: if signedIn() && (isPlatformAdmin() || isOperationalStaff() || (matchesTenant(resource.data) && isImmutableTenantUpdate()));
       allow delete: if isAdmin();
     }
 
@@ -112,12 +113,14 @@ service cloud.firestore {
     match /students/{studentId} {
       allow read: if signedIn() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && (
         isPlatformAdmin() ||
+        isOperationalStaff() ||
         studentOwner(resource.data) ||
         matchesTenant(resource.data)
       );
       allow create: if (signedIn() && request.auth.uid == studentId) || true;
       allow update: if signedIn() && isImmutableVettingUpdate() && isImmutableStudentCounsellorUpdate() && (
         isPlatformAdmin() ||
+        isOperationalStaff() ||
         studentOwner(resource.data) ||
         (matchesTenant(resource.data) && isImmutableTenantUpdate())
       );
@@ -128,12 +131,14 @@ service cloud.firestore {
     match /applications/{applicationId} {
       allow read: if signedIn() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && (
         isPlatformAdmin() ||
+        isOperationalStaff() ||
         studentOwnerApp(resource.data) ||
         matchesTenant(resource.data)
       );
       allow create: if true;
       allow update: if signedIn() && isImmutableVettingUpdate() && (
         isPlatformAdmin() ||
+        isOperationalStaff() ||
         (matchesTenant(resource.data) && isImmutableTenantUpdate()) ||
         studentOwnerApp(resource.data)
       );

@@ -198,6 +198,7 @@ export const App: React.FC = () => {
                 <Route path="/apply" element={<StudentNewApplication />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/applications" element={<Applications />} />
+                <Route path="/application" element={<Applications />} />
                 <Route
                   path="/agent-triage"
                   element={
@@ -219,6 +220,7 @@ export const App: React.FC = () => {
                   <Route path="dashboard" element={<TeamLeaderDashboard />} />
                   <Route path="team-members" element={<TeamLeaderTeamMembers />} />
                   <Route path="applications" element={<TeamLeaderApplications />} />
+                  <Route path="application" element={<TeamLeaderApplications />} />
                   <Route path="assign-applications" element={<TeamLeaderAssignApplications />} />
                   <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="tasks" element={<TeamLeaderTasks />} />
@@ -242,6 +244,7 @@ export const App: React.FC = () => {
                 <Route path="/admissions" element={<AdmissionsRoute />}>
                   <Route path="dashboard" element={<AdmissionsDashboard />} />
                   <Route path="applications" element={<AdmissionsApplications />} />
+                  <Route path="application" element={<AdmissionsApplications />} />
                   <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="verification" element={<AdmissionsVerification />} />
                   <Route path="offers" element={<AdmissionsOffers />} />
@@ -257,6 +260,7 @@ export const App: React.FC = () => {
                   <Route path="students" element={<CounsellorStudents />} />
                   <Route path="messages" element={<CounsellorMessages />} />
                   <Route path="applications" element={<CounsellorApplications />} />
+                  <Route path="application" element={<CounsellorApplications />} />
                   <Route path="documents" element={<CounsellorDocuments />} />
                   <Route path="tasks" element={<CounsellorTasks />} />
                   <Route path="programme-matcher" element={<CounsellorProgrammeMatcher />} />

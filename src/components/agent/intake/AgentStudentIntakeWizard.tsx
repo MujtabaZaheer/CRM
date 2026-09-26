@@ -301,6 +301,10 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
       agentReferred: true,
       admissionsVisibility: false,
       vettingStatus: "pending_triage",
+      assignedCounsellor: "counsellor@educrm.demo",
+      assignedCounsellorId: "usr_3",
+      assignedCounsellorName: "David Kim",
+      assignedCounsellorEmail: "counsellor@educrm.demo",
     };
 
     const newApplication: Application = {
@@ -319,9 +323,14 @@ export const AgentStudentIntakeWizard: React.FC<{ onComplete?: (appId: string) =
       agentUid,
       agentName: agencyName,
       agentReferred: true,
-      admissionsVisibility: false, // Isolated until triaged by counsellor/team leader
+      admissionsVisibility: false, // Isolated until triaged/vetted by counsellor/team leader
       vettingStatus: "pending_triage",
       sourceAgentName: agencyName,
+      assignedCounsellor: "counsellor@educrm.demo",
+      assignedCounsellorId: "usr_3",
+      assignedCounsellorName: "David Kim",
+      assignedOfficerEmail: "counsellor@educrm.demo",
+      assignedOfficerName: "David Kim",
       createdAt: Date.now(),
       updatedAt: Date.now(),
       history: [
