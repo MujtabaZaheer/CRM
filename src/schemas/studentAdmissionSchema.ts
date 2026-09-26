@@ -19,7 +19,7 @@ export const personalInfoSchema = z.object({
   dateOfBirth: z
     .string()
     .min(1, "Date of birth is required")
-    .refine((dob) => {
+    .refine((dob: string) => {
       const birthDate = new Date(dob);
       const minAgeDate = new Date();
       minAgeDate.setFullYear(minAgeDate.getFullYear() - 15);
@@ -35,7 +35,7 @@ export const personalInfoSchema = z.object({
   passportExpiryDate: z
     .string()
     .min(1, "Passport expiry date is required")
-    .refine((exp) => new Date(exp) > new Date(), "Passport expiry date must be in the future"),
+    .refine((exp: string) => new Date(exp) > new Date(), "Passport expiry date must be in the future"),
   passportIssuingAuthority: z.string().trim().min(2, "Issuing authority is required"),
   email: z.string().trim().email("Please provide a valid email address"),
   phone: z.string().trim().min(6, "Valid contact telephone number is required"),

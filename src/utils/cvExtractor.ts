@@ -29,6 +29,7 @@ export interface ExtractedStudentCVData {
   city?: string;
   dob?: string;
   gender?: "Male" | "Female" | "Other" | "Prefer not to say";
+  passportNumber?: string;
   desiredStudyLevel?: string;
   academicRecords?: AcademicRecord[];
   englishProficiency?: {
@@ -583,7 +584,14 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
   // 9. Academic Records (real extraction without fake universities)
   const academicRecords = extractAcademicRecordsFromText(fullText, countryOfResidence);
 
-  // 10. English Proficiency
+  // 10. Passport Number
+  let passportNumber: string | undefined = undefined;
+  const passportMatch = fullText.match(/\b(?:passport(?:\s*no|\s*number)?)\s*[:\-]?\s*([A-Za-z][0-9]{7,8}|[0-9]{9})\b/i);
+  if (passportMatch && passportMatch[1]) {
+    passportNumber = passportMatch[1].trim().toUpperCase();
+  }
+
+  // 11. English Proficiency
   let englishProficiency: ExtractedStudentCVData["englishProficiency"] | undefined;
   const ieltsMatch = fullText.match(/\b(?:IELTS|PTE|TOEFL|Duolingo)\b[^\n\r]*?\b(?:overall|score|band)?\s*[:\-]?\s*([1-9](?:\.[05])?|[5-9][0-9]|[1][0-2][0-9])\b/i);
   if (ieltsMatch) {
@@ -603,13 +611,14 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
     fullName,
     firstName,
     lastName,
-    email: email || "student.applicant@example.com",
-    phone: phone || "+92 300 1234567",
+    email: email || "",
+    phone: phone || "",
     nationality,
     countryOfResidence,
     city: city || undefined,
     dob: dob || undefined,
     gender,
+    passportNumber,
     desiredStudyLevel,
     academicRecords,
     englishProficiency,
@@ -1013,20 +1022,7 @@ export function extractAcademicRecordsFromText(
   // Sort: latest completion year first
   uniqueRecords.sort((a, b) => (b.completionYear ?? 0) - (a.completionYear ?? 0));
 
-  if (uniqueRecords.length > 0) {
-    return uniqueRecords;
-  }
-
-  return [
-    {
-      institution: "",
-      qualification: "Bachelor's Degree",
-      degreeTitle: "Bachelor's Degree",
-      country: countryOfResidence,
-      completionYear: 2024,
-      gradeGpa: "",
-    },
-  ];
+  return uniqueRecords;
 }
 
 /**
@@ -1161,6 +1157,8 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
   "countryOfResidence": "Country of residence (e.g. Pakistan, United Kingdom, etc.)",
   "city": "Current city or empty string",
   "dob": "YYYY-MM-DD or empty string",
+  "gender": "Male" | "Female" | "Other" | "Prefer not to say",
+  "passportNumber": "Passport number or empty string",
   "desiredStudyLevel": "Bachelor's" | "Master's" | "PhD",
   "academicRecords": [
     {
@@ -1171,7 +1169,11 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
       "completionYear": number year,
       "gradeGpa": "GPA / Grade / Percentage"
     }
-  ]
+  ],
+  "englishProficiency": {
+    "testType": "IELTS" | "PTE" | "TOEFL" | "Duolingo" | "MOI Evidence",
+    "overallScore": "string score e.g. 7.5 or 65"
+  }
 }`;
 
       const aiResponse = await callGeminiApi(prompt, inlineData);
@@ -1196,6 +1198,17 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
           parsed.phone = "";
         }
 
+        // Validate passport number
+        if (parsed.passportNumber) {
+          const cleanPass = parsed.passportNumber.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+          parsed.passportNumber = cleanPass.length >= 6 && cleanPass.length <= 15 ? cleanPass : undefined;
+        }
+
+        // Validate English proficiency
+        if (parsed.englishProficiency && (!parsed.englishProficiency.overallScore || !parsed.englishProficiency.testType)) {
+          parsed.englishProficiency = undefined;
+        }
+
         // Normalize and clean all academic records from AI
         if (parsed.academicRecords && parsed.academicRecords.length > 0) {
           parsed.academicRecords = parsed.academicRecords.map((rec) => ({
@@ -1209,6 +1222,17 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
         } else {
           // If Gemini didn't return academicRecords, run heuristic parser to extract them!
           parsed.academicRecords = extractAcademicRecordsFromText(sourceText, parsed.countryOfResidence || "Pakistan");
+        }
+
+        // If English proficiency is missing from AI, attempt heuristic fallback
+        if (!parsed.englishProficiency) {
+          const fallback = heuristicExtractFromText(sourceText, name);
+          if (fallback.englishProficiency) {
+            parsed.englishProficiency = fallback.englishProficiency;
+          }
+          if (!parsed.passportNumber && fallback.passportNumber) {
+            parsed.passportNumber = fallback.passportNumber;
+          }
         }
 
         parsed.sourceFileName = name;

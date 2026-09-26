@@ -19,7 +19,7 @@ import { auth, db } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { AcademicRecord, QualificationLevel, Student } from "../../../types/student";
 import { calculateProfileCompleteness } from "../../../utils/profileCompleteness";
-import { toCountryName, ExtractedStudentCVData } from "../../../utils/cvExtractor";
+import { toCountryName, ExtractedStudentCVData, COMMON_COUNTRIES } from "../../../utils/cvExtractor";
 import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
 import { getRoleBackground } from "../../../utils/roleBackgrounds";
 import { getRoleDashboardPath } from "../../../types/registrationConfig";
@@ -42,11 +42,7 @@ const QUALIFICATIONS: QualificationLevel[] = [
   "Doctorate / PhD",
 ];
 
-const COUNTRIES = [
-  "Pakistan", "United Kingdom", "Canada", "Australia", "United States", "Germany",
-  "Ireland", "Malaysia", "Turkey", "United Arab Emirates", "Saudi Arabia", "India",
-  "China", "France", "Netherlands", "Sweden", "New Zealand", "Singapore"
-];
+const COUNTRIES = COMMON_COUNTRIES;
 
 export const StudentOnboardingStage1: React.FC = () => {
   const { appUser, firebaseUser } = useAuth();
@@ -218,6 +214,11 @@ export const StudentOnboardingStage1: React.FC = () => {
             const parsed = JSON.parse(cachedCV);
             if (!loadedFirst && parsed.firstName) loadedFirst = parsed.firstName;
             if (!loadedLast && parsed.lastName) loadedLast = parsed.lastName;
+            if ((!loadedFirst || !loadedLast) && parsed.fullName) {
+              const parts = parsed.fullName.trim().split(/\s+/);
+              if (!loadedFirst) loadedFirst = parts[0] || "";
+              if (!loadedLast) loadedLast = parts.slice(1).join(" ") || "";
+            }
             if (!loadedPhone && parsed.phone) loadedPhone = parsed.phone;
             if (!loadedNationality && parsed.nationality) loadedNationality = parsed.nationality;
             if (!loadedResidence && parsed.countryOfResidence) loadedResidence = parsed.countryOfResidence;
@@ -263,29 +264,34 @@ export const StudentOnboardingStage1: React.FC = () => {
 
   const handleCVExtracted = (extracted: ExtractedStudentCVData) => {
     setError(null);
-    if (extracted.firstName) setFirstName(extracted.firstName.trim());
-    if (extracted.lastName) setLastName(extracted.lastName.trim());
+    let extractedFirst = extracted.firstName?.trim() || "";
+    let extractedLast = extracted.lastName?.trim() || "";
+    if ((!extractedFirst || !extractedLast) && extracted.fullName) {
+      const parts = extracted.fullName.trim().split(/\s+/);
+      if (!extractedFirst) extractedFirst = parts[0] || "";
+      if (!extractedLast) extractedLast = parts.slice(1).join(" ") || "";
+    }
+
+    if (extractedFirst) setFirstName(extractedFirst);
+    if (extractedLast) setLastName(extractedLast);
     if (extracted.phone) setPhone(extracted.phone.trim());
     if (extracted.dob) setDob(extracted.dob.trim());
     if (extracted.gender) setGender(extracted.gender);
     if (extracted.city) setCity(extracted.city.trim());
     if (extracted.desiredStudyLevel) setDesiredStudyLevel(extracted.desiredStudyLevel);
 
-    if (extracted.nationality) {
-      const nat = toCountryName(extracted.nationality) || extracted.nationality;
-      if (COUNTRIES.includes(nat)) setNationality(nat);
-    }
-    if (extracted.countryOfResidence) {
-      const c = toCountryName(extracted.countryOfResidence) || extracted.countryOfResidence;
-      if (COUNTRIES.includes(c)) setCountryOfResidence(c);
-    }
+    const mappedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || countryOfResidence || "Pakistan";
+    const mappedNat = toCountryName(extracted.nationality) || nationality || mappedCountry;
+
+    setCountryOfResidence(mappedCountry);
+    setNationality(mappedNat);
 
     if (Array.isArray(extracted.academicRecords) && extracted.academicRecords.length > 0) {
       const mappedRecords: AcademicRecord[] = extracted.academicRecords.map((r) => ({
         institution: r.institution || "",
         qualification: (QUALIFICATIONS.includes(r.qualification as any) ? r.qualification : "Bachelor's Degree") as QualificationLevel,
         degreeTitle: r.degreeTitle || "",
-        country: r.country || countryOfResidence || "Pakistan",
+        country: r.country || mappedCountry,
         completionYear: Number(r.completionYear) || new Date().getFullYear(),
         gradeGpa: r.gradeGpa || "",
       }));

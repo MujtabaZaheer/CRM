@@ -211,6 +211,9 @@ export const StudentApplicationWizard: React.FC = () => {
       if (extracted.dob) studentUpdate.dob = extracted.dob;
       if (extracted.gender) studentUpdate.gender = extracted.gender;
       if (extracted.city) studentUpdate.city = extracted.city;
+      if (extracted.passportNumber || (extracted as any).passportNumber) {
+        studentUpdate.passportNumber = extracted.passportNumber || (extracted as any).passportNumber;
+      }
       if (extracted.academicRecords && extracted.academicRecords.length > 0) {
         studentUpdate.academicHistory = extracted.academicRecords;
       }
@@ -233,6 +236,7 @@ export const StudentApplicationWizard: React.FC = () => {
             dob: extracted.dob,
             gender: extracted.gender,
             city: extracted.city,
+            passportNumber: extracted.passportNumber || (extracted as any).passportNumber || personalOverrides.passportNumber,
           },
           updatedAt: Date.now(),
         }, { merge: true });
@@ -1404,6 +1408,17 @@ export const StudentApplicationWizard: React.FC = () => {
                   value={personalOverrides.city}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, city: e.target.value })}
                   className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-secondary mb-1">Passport Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. AB1234567"
+                  value={personalOverrides.passportNumber}
+                  onChange={(e) => setPersonalOverrides({ ...personalOverrides, passportNumber: e.target.value })}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 font-mono uppercase"
                 />
               </div>
             </div>
