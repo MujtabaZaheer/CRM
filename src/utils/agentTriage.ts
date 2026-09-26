@@ -76,7 +76,7 @@ export async function submitStudentToAdmissions(
   actor: AppUser,
   studentName?: string
 ): Promise<TriageSubmissionResult> {
-  if (!canAccessAgentTriage(actor)) {
+  if (!canAccessAgentTriage(actor) && actor.role !== "counsellor") {
     return {
       success: false,
       studentId,

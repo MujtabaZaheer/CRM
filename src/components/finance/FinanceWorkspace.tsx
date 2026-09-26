@@ -7,6 +7,7 @@ import { useGlobalData } from "../../contexts/GlobalDataContext";
 import { Application, ApplicationStage } from "../../types/application";
 import { db } from "../../firebase/config";
 import { updateDoc, doc, addDoc, collection } from "firebase/firestore";
+import { triggerApplicationCommission } from "../../utils/commissionEngine";
 type FinancePage = "dashboard" | "invoices" | "payments" | "refunds" | "commissions" | "reports" | "notifications";
 const currency = (amount: number, code = "USD") => new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount || 0);
 const today = new Date().toISOString().slice(0, 10);
@@ -65,7 +66,11 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
         const studentId = selectedApp.studentId || studentObj?.id || "";
         const studentEmail = selectedApp.studentEmail || studentObj?.email || "";
 
-        const invNumber = `INV-DEP-${Date.now().toString().slice(-4)}`;
+        const invNumber = `CHALLAN-${Date.now().toString().slice(-4)}`;
+        const challanAmount = Number(form.get("amount")) || 2500;
+        const challanCurrency = String(form.get("currency")) || "USD";
+        const challanDueDate = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+
         await finance.createInvoice({
           invoiceNumber: invNumber,
           studentId,
@@ -73,17 +78,28 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
           studentEmail,
           applicationId: selectedApp.id,
           type: "Deposit",
-          amount: Number(form.get("amount")),
-          currency: String(form.get("currency")),
-          dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+          amount: challanAmount,
+          currency: challanCurrency,
+          dueDate: challanDueDate,
           status: "Pending",
           notes: `Tuition deposit challan for ${selectedApp.universityName} - ${selectedApp.applicationNumber}`
         });
         
-        // Update application stage to Deposit Pending
+        // Update application stage to Deposit Pending and persist challan metadata
         const newStage: ApplicationStage = "Deposit Pending";
-        updateApplication(selectedApp.id, { stage: newStage, updatedAt: Date.now() });
-        await updateDoc(doc(db, "applications", selectedApp.id), { stage: newStage, updatedAt: Date.now() });
+        const challanUpdates: Partial<Application> = {
+          stage: newStage,
+          challanGenerated: true,
+          challanNumber: invNumber,
+          challanAmount,
+          challanCurrency,
+          challanDueDate,
+          depositAmount: challanAmount,
+          updatedAt: Date.now(),
+        };
+
+        updateApplication(selectedApp.id, challanUpdates);
+        await updateDoc(doc(db, "applications", selectedApp.id), challanUpdates);
 
         // Dispatch in-app notification to student
         if (studentId) {
@@ -92,7 +108,7 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
               targetUser: studentId,
               type: "challan_issued",
               title: "Fee Challan Generated",
-              message: `Official tuition deposit challan of ${form.get("currency")} ${form.get("amount")} has been issued for ${selectedApp.universityName}. View and submit payment proof now.`,
+              message: `Official tuition deposit challan of ${challanCurrency} ${challanAmount} has been issued for ${selectedApp.universityName}. View and submit payment proof now.`,
               read: false,
               relatedApplicationId: selectedApp.id,
               createdAt: Date.now(),
@@ -101,10 +117,25 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
             console.warn("Could not dispatch notification to student:", notifErr);
           }
         }
+
+        // Dispatch in-app notification to Agent if agent-referred
+        if (selectedApp.agentUid || selectedApp.agentEmail) {
+          try {
+            await addDoc(collection(db, "notifications"), {
+              targetUser: selectedApp.agentUid || "external_agent",
+              type: "challan_issued",
+              title: "Fee Challan Ready for Referred Student",
+              message: `Official tuition deposit challan of ${challanCurrency} ${challanAmount} has been generated for ${selectedApp.studentName} (${selectedApp.universityName}). Please download and give to student to submit payment proof.`,
+              read: false,
+              relatedApplicationId: selectedApp.id,
+              createdAt: Date.now(),
+            });
+          } catch (_) {}
+        }
         
         setShowChallanForm(false);
         setSelectedApp(null);
-        setNotice(`Challan generated and application stage updated to Deposit Pending.`);
+        setNotice(`Challan ${invNumber} generated! Stage updated to Deposit Pending.`);
       }
     } catch { setNotice(`Unable to generate challan.`); }
   };
@@ -112,8 +143,24 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
   const handleApprovePaymentAndAdvance = async (app: Application) => {
     try {
       const newStage: ApplicationStage = "Deposit Paid";
-      updateApplication(app.id, { stage: newStage, updatedAt: Date.now() });
-      await updateDoc(doc(db, "applications", app.id), { stage: newStage, updatedAt: Date.now() });
+      const paymentUpdates: Partial<Application> = {
+        stage: newStage,
+        depositPaid: true,
+        depositPaidAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      updateApplication(app.id, paymentUpdates);
+      await updateDoc(doc(db, "applications", app.id), paymentUpdates);
+
+      // Automatically trigger agent commission calculation if agent-referred
+      if (app.agentUid || app.agentName || app.agentReferred) {
+        await triggerApplicationCommission(
+          app,
+          Number(app.depositAmount || 15000),
+          app.agentName || "Partner Agency",
+          app.assignedCounsellor
+        );
+      }
 
       // Dispatch notification to student
       if (app.studentId) {
@@ -164,7 +211,14 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
         title="Applications Awaiting Challan & Deposit Clearance"
         headers={["App #", "Student", "University", "Stage", "Action"]}
         rows={applications
-          .filter((a) => a.stage === "Unconditional Offer" || a.stage === "Conditional Offer" || a.stage === "Deposit Pending")
+          .filter((a) =>
+            a.stage === "Unconditional Offer" ||
+            a.stage === "Conditional Offer" ||
+            a.stage === "Deposit Pending" ||
+            a.challanGenerated === true ||
+            a.admissionsVerificationCompleted === true ||
+            a.stage === "Submitted"
+          )
           .map((app) => [
             app.applicationNumber,
             app.studentName,
@@ -207,7 +261,7 @@ export const FinanceWorkspace: React.FC<{ page: FinancePage }> = ({ page }) => {
           <form onSubmit={handleGenerateChallan} className="w-full max-w-lg p-6 space-y-3 bg-[var(--bg-card)] border border-[var(--border-default)] sq-modal">
             <h2 className="font-bold text-base capitalize">Generate Challan for {selectedApp.studentName}</h2>
             <div className="grid grid-cols-2 gap-3">
-              <Input name="amount" label="Fee Amount" type="number" required />
+              <Input name="amount" label="Fee Amount" type="number" defaultValue="2500" required />
               <Input name="currency" label="Currency" defaultValue="USD" required />
             </div>
             <div className="flex justify-end gap-2 pt-3">

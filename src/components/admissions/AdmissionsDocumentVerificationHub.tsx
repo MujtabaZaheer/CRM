@@ -46,7 +46,7 @@ interface FlagIssueModalState {
 
 export const AdmissionsDocumentVerificationHub: React.FC = () => {
   const { appUser } = useAuth();
-  const { applications, students, documents } = useGlobalData();
+  const { applications, students, documents, updateApplication } = useGlobalData();
   const { updateStage, verifyDocument } = useAdmissionsData();
 
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
@@ -347,6 +347,40 @@ export const AdmissionsDocumentVerificationHub: React.FC = () => {
     }
   };
 
+  // Complete Verification & Route to Finance for Challan Generation
+  const handleRouteToFinance = async () => {
+    if (!selectedItem) return;
+    if (!allMandatoryVerified) {
+      alert("Cannot route to Finance: All mandatory documents must be marked 'Verified' first.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await updateStage(
+        selectedItem.application,
+        "Unconditional Offer",
+        "Admissions document verification completed. Official offer issued and routed to Finance Desk for Tuition Deposit Challan Generation."
+      );
+
+      const verificationUpdates: Partial<Application> = {
+        admissionsVerificationCompleted: true,
+        vettingStatus: "documents_verified",
+        admissionsVisibility: true,
+        assignedDepartment: "Finance",
+        updatedAt: Date.now(),
+      };
+      updateApplication(selectedItem.application.id, verificationUpdates);
+
+      showToast(`Verification complete! Application ${selectedItem.application.applicationNumber} routed to Finance for Challan Generation & Deposit Clearance.`);
+    } catch (err) {
+      console.error("Failed to route to Finance:", err);
+      alert("Failed to route application to Finance.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Alert */}
@@ -563,6 +597,24 @@ export const AdmissionsDocumentVerificationHub: React.FC = () => {
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Advance to Submitted</span>
+                  </button>
+
+                  <button
+                    onClick={handleRouteToFinance}
+                    disabled={!allMandatoryVerified || isProcessing}
+                    title={
+                      !allMandatoryVerified
+                        ? "Verify all mandatory documents before routing to Finance"
+                        : "Approve application documents and send to Finance Desk for Challan generation"
+                    }
+                    className={`px-3 py-1.5 sq-btn text-xs font-bold inline-flex items-center space-x-1.5 ${
+                      allMandatoryVerified
+                        ? "bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-sm shadow-emerald-500/20 cursor-pointer"
+                        : "bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-60"
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Approve & Route to Finance (Challan)</span>
                   </button>
                 </div>
               </div>

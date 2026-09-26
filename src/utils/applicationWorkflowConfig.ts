@@ -162,8 +162,8 @@ export const WORKFLOW_STAGE_MATRIX: Record<ApplicationStage, StageWorkflowRule> 
   "Deposit Paid": {
     stage: "Deposit Paid",
     label: "Deposit Paid",
-    whoUpdates: ["finance_officer", "platform_super_admin", "org_admin"],
-    whoSees: ["finance_officer", "admissions_officer", "compliance_officer", "counsellor", "student", "team_leader", "platform_super_admin", "org_admin"],
+    whoUpdates: ["finance_officer", "external_agent", "platform_super_admin", "org_admin"],
+    whoSees: ["finance_officer", "admissions_officer", "compliance_officer", "counsellor", "student", "external_agent", "team_leader", "platform_super_admin", "org_admin"],
     inboxVisibility: ["finance_officer", "admissions_officer", "compliance_officer"],
     fieldLockMode: "student_locked",
     systemBehavior: "Finance reconciles payment ledger. Automatically unlocks the CAS / COE generation pipeline.",

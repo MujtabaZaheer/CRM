@@ -12,6 +12,7 @@ export type LeadStage =
 export type LeadSource =
   | "Website"
   | "Referral"
+  | "Agent Referral"
   | "Walk-in"
   | "Social Media"
   | "Agent"
@@ -27,6 +28,7 @@ export interface LeadInteraction {
 
 export interface Lead {
   id: string;
+  studentId?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -42,6 +44,7 @@ export interface Lead {
   notes?: string;
   assignedTo?: string; // uid or email
   assignedCounsellor?: string;
+  assignedCounsellorId?: string;
   assignedAt?: number;
   leadScore?: number; // 0-100
   interactionLog?: LeadInteraction[];

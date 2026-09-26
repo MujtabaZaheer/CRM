@@ -52,9 +52,13 @@ export const AgentReferralTriageDesk: React.FC = () => {
   const {
     applications,
     students,
+    leads,
     users,
     updateApplication,
     updateStudent,
+    addStudent,
+    updateLead,
+    addLead,
     addTask,
   } = useGlobalData();
 
@@ -250,8 +254,53 @@ export const AgentReferralTriageDesk: React.FC = () => {
 
       // Update local React global context state immediately
       updateApplication(app.id, result.applicationUpdate);
-      if (app.studentId || student?.id) {
-        updateStudent(app.studentId || student!.id, result.studentUpdate);
+      const effectiveStudentId = app.studentId || student?.id || `stu_${app.id}`;
+      if (student?.id || app.studentId) {
+        updateStudent(effectiveStudentId, result.studentUpdate);
+      } else {
+        addStudent({
+          id: effectiveStudentId,
+          fullName: app.studentName,
+          email: app.studentEmail || "",
+          countryOfResidence: app.targetCountry || "International",
+          nationality: "International",
+          preferredDestination: app.targetCountry,
+          profileCompleteness: 85,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          ...result.studentUpdate,
+        } as any);
+      }
+
+      // Sync with Leads roster so Counsellor sees referral under 'My Assigned Leads'
+      const existingLead = leads.find(
+        (l) =>
+          l.id === app.studentId ||
+          (l.email && app.studentEmail && l.email.toLowerCase().trim() === app.studentEmail.toLowerCase().trim()) ||
+          (l.fullName && l.fullName.toLowerCase().trim() === app.studentName.toLowerCase().trim())
+      );
+      if (existingLead) {
+        updateLead(existingLead.id, result.leadUpdate);
+      } else {
+        addLead({
+          id: `lead_${app.id}`,
+          fullName: app.studentName,
+          email: app.studentEmail || "",
+          phone: (app as any).studentPhone || "",
+          destinationCountry: app.targetCountry || "United Kingdom",
+          programInterest: app.programmeName || "Degree Programme",
+          stage: "Counselling",
+          source: "Agent Referral",
+          assignedTo: chosenCounsellorEmail,
+          assignedCounsellorId: counsellorUser?.uid,
+          tenantId: counsellorTenant,
+          office: counsellorOffice,
+          agentUid: app.agentUid,
+          agentName: app.agentName,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          ...result.leadUpdate,
+        } as any);
       }
 
       // Add task to local global context for Counsellor Task Center

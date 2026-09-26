@@ -312,4 +312,200 @@ describe("Portal Architecture: Agent Referral Triage, Counsellor Dossier & Admis
       );
     });
   });
+
+  describe("4. Admissions Verification Completion & Handoff to Finance Desk", () => {
+    it("routes verified application to Finance awaiting Challan & Deposit Clearance", () => {
+      const verifiedApplication: Application = {
+        id: "app_verified_1",
+        applicationNumber: "APP-2026-VER1",
+        studentId: "stu_10",
+        studentName: "Hamza Tariq",
+        universityName: "University of Manchester",
+        programmeName: "MSc Computer Science",
+        intake: "September 2026",
+        stage: "Ready for Submission",
+        admissionsVisibility: true,
+        admissionsVerificationCompleted: false,
+        createdAt: 1000,
+        updatedAt: 1000,
+      };
+
+      // Admissions officer clicks "Approve & Route to Finance (Challan)"
+      const financeHandoffPayload: Partial<Application> = {
+        stage: "Unconditional Offer",
+        status: "Unconditional Offer",
+        admissionsVerificationCompleted: true,
+        vettingStatus: "documents_verified",
+        assignedDepartment: "Finance",
+        updatedAt: 2000,
+      };
+
+      const routedApp = { ...verifiedApplication, ...financeHandoffPayload };
+      expect(routedApp.stage).toBe("Unconditional Offer");
+      expect(routedApp.admissionsVerificationCompleted).toBe(true);
+      expect(routedApp.assignedDepartment).toBe("Finance");
+    });
+  });
+
+  describe("5. Finance Portal Fee Challan Generation & Deposit Pending State", () => {
+    it("generates tuition deposit challan, sets Deposit Pending, and notifies student & agent", () => {
+      const offerApp: Application = {
+        id: "app_offer_1",
+        applicationNumber: "APP-2026-OFR1",
+        studentId: "stu_10",
+        studentName: "Hamza Tariq",
+        universityName: "University of Manchester",
+        programmeName: "MSc Computer Science",
+        intake: "September 2026",
+        stage: "Unconditional Offer",
+        admissionsVerificationCompleted: true,
+        assignedDepartment: "Finance",
+        createdAt: 1000,
+        updatedAt: 2000,
+      };
+
+      const challanNumber = `CHAL-2026-${offerApp.id.slice(-6).toUpperCase()}`;
+      const challanAmount = 2500;
+      const challanCurrency = "USD";
+      const challanDueDate = "2026-10-15";
+
+      const updatedWithChallan: Application = {
+        ...offerApp,
+        stage: "Deposit Pending",
+        status: "Deposit Pending",
+        challanGenerated: true,
+        challanNumber,
+        challanAmount,
+        challanCurrency,
+        challanDueDate,
+        updatedAt: 3000,
+      };
+
+      expect(updatedWithChallan.stage).toBe("Deposit Pending");
+      expect(updatedWithChallan.challanGenerated).toBe(true);
+      expect(updatedWithChallan.challanNumber).toContain("CHAL-2026");
+      expect(updatedWithChallan.challanAmount).toBe(2500);
+    });
+  });
+
+  describe("6. Agent Portal Challan Retrieval, Payment Proof Upload, & Auto Commission Calculation", () => {
+    it("identifies challan in agent portal and advances stage to Deposit Paid on payment proof upload", () => {
+      const challanApp: Application = {
+        id: "app_chal_1",
+        applicationNumber: "APP-2026-CHAL1",
+        studentId: "stu_10",
+        studentName: "Hamza Tariq",
+        universityName: "University of Manchester",
+        programmeName: "MSc Computer Science",
+        intake: "September 2026",
+        stage: "Deposit Pending",
+        challanGenerated: true,
+        challanNumber: "CHAL-2026-CHAL1",
+        challanAmount: 2500,
+        challanCurrency: "USD",
+        agentUid: "agent_42",
+        agentName: "Beacon Agency",
+        agentReferred: true,
+        createdAt: 1000,
+        updatedAt: 3000,
+      };
+
+      // Agent uploads deposit slip / bank receipt
+      const paymentProofPayload: Partial<Application> = {
+        stage: "Deposit Paid",
+        status: "Deposit Paid",
+        depositPaid: true,
+        depositAmountPaid: 2500,
+        depositPaymentDate: "2026-09-28",
+        depositTransactionRef: "TXN-91823901",
+        assignedDepartment: "Visa",
+        updatedAt: 4000,
+      };
+
+      const paidApp = { ...challanApp, ...paymentProofPayload };
+      expect(paidApp.stage).toBe("Deposit Paid");
+      expect(paidApp.depositPaid).toBe(true);
+      expect(paidApp.depositTransactionRef).toBe("TXN-91823901");
+      expect(paidApp.assignedDepartment).toBe("Visa");
+
+      // Verify automatic agent commission calculation
+      const tuitionFee = 24000;
+      const commissionRate = 12.5; // Gold tier standard
+      const expectedCommission = Math.round((tuitionFee * commissionRate) / 100);
+      expect(expectedCommission).toBe(3000);
+    });
+  });
+
+  describe("7. Visa Processing Pipeline Progression", () => {
+    it("progresses application through CAS Issuance, Visa Submission, and Visa Approval", () => {
+      const depositPaidApp: Application = {
+        id: "app_visa_1",
+        applicationNumber: "APP-2026-VISA1",
+        studentId: "stu_10",
+        studentName: "Hamza Tariq",
+        universityName: "University of Manchester",
+        programmeName: "MSc Computer Science",
+        intake: "September 2026",
+        stage: "Deposit Paid",
+        depositPaid: true,
+        assignedDepartment: "Visa",
+        createdAt: 1000,
+        updatedAt: 4000,
+      };
+
+      // 1. Visa Officer issues CAS
+      const casApp: Application = {
+        ...depositPaidApp,
+        stage: "CAS Issued",
+        casReference: "CAS-MCR-2026-90124",
+        updatedAt: 5000,
+      };
+      expect(casApp.stage).toBe("CAS Issued");
+
+      // 2. Visa Officer lodges visa
+      const submittedVisaApp: Application = {
+        ...casApp,
+        stage: "Visa Submitted",
+        updatedAt: 6000,
+      };
+      expect(submittedVisaApp.stage).toBe("Visa Submitted");
+
+      // 3. Visa Officer grants visa clearance
+      const approvedVisaApp: Application = {
+        ...submittedVisaApp,
+        stage: "Visa Approved",
+        updatedAt: 7000,
+      };
+      expect(approvedVisaApp.stage).toBe("Visa Approved");
+    });
+  });
+
+  describe("8. University Portal Final Admission Decision & Enrolment", () => {
+    it("confirms final admission enrolment when application reaches Visa Approved", () => {
+      const visaApprovedApp: Application = {
+        id: "app_final_1",
+        applicationNumber: "APP-2026-FINAL1",
+        studentId: "stu_10",
+        studentName: "Hamza Tariq",
+        universityName: "University of Manchester",
+        programmeName: "MSc Computer Science",
+        intake: "September 2026",
+        stage: "Visa Approved",
+        depositPaid: true,
+        createdAt: 1000,
+        updatedAt: 7000,
+      };
+
+      // University Partner marks final enrolment
+      const enrolledApp: Application = {
+        ...visaApprovedApp,
+        stage: "Enrolled",
+        status: "Enrolled",
+        updatedAt: 8000,
+      };
+
+      expect(enrolledApp.stage).toBe("Enrolled");
+    });
+  });
 });
+

@@ -40,62 +40,169 @@ export const useCounsellorData = () => {
   // Filter Data scoped to logged-in Counsellor (or all items for Admins)
   const userUid = appUser?.uid;
   const userEmail = appUser?.email;
+  const uEmailLower = (userEmail || "").toLowerCase().trim();
+  const uUidLower = (userUid || "").toLowerCase().trim();
+  const uDisplayName = (appUser?.displayName || "").toLowerCase().trim();
   const isAdminOrManager =
     appUser?.role === "platform_super_admin" ||
     appUser?.role === "org_admin" ||
     appUser?.role === "office_manager";
 
-  // Deduplicate students by email/ID, preserving both registered account students and agent-referred students
+  // Deduplicate students by email/ID, prioritizing student records with active counsellor assignment
   const uniqueStudentsMap = new Map<string, Student>();
   for (const s of students) {
     const key = (s.email || "").toLowerCase().trim() || s.id;
-    if (!uniqueStudentsMap.has(key)) {
+    const existing = uniqueStudentsMap.get(key);
+    if (!existing) {
       uniqueStudentsMap.set(key, s);
+    } else {
+      const existingAssigned = existing.assignedCounsellor || existing.assignedCounsellorId || existing.assignedCounsellorEmail;
+      const sAssigned = s.assignedCounsellor || s.assignedCounsellorId || s.assignedCounsellorEmail;
+      if (!existingAssigned && sAssigned) {
+        uniqueStudentsMap.set(key, s);
+      }
     }
   }
   const cleanStudents = Array.from(uniqueStudentsMap.values());
 
-  const filteredLeads = leads.filter((l) => l.assignedTo === userUid || l.assignedTo === userEmail);
-  const myLeads = isAdminOrManager ? leads : filteredLeads;
+  // 1. Applications Scoped to Logged-in Counsellor
+  const filteredApplications = applications.filter((a) => {
+    const aCounsellorId = String(a.assignedCounsellorId || (a as any).counsellorId || "").toLowerCase().trim();
+    const aCounsellor = String(a.assignedCounsellor || (a as any).assignedCounsellorEmail || (a as any).counsellorEmail || "").toLowerCase().trim();
+    const aCounsellorName = String(a.assignedCounsellorName || "").toLowerCase().trim();
 
-  const filteredStudents = cleanStudents.filter((s) => {
-    const sAssignedId = s.assignedCounsellorId || (s as any).counsellorId;
-    const sAssignedEmail = s.assignedCounsellorEmail || s.assignedCounsellor || (s as any).counsellorEmail;
-    return (
-      (userUid && (sAssignedId === userUid || sAssignedEmail === userUid)) ||
+    const matchesIdOrEmail =
+      (userUid && (aCounsellorId === uUidLower || aCounsellor === uUidLower)) ||
       (userEmail && (
-        sAssignedId === userEmail ||
-        sAssignedEmail === userEmail ||
-        (typeof sAssignedEmail === "string" && sAssignedEmail.toLowerCase().trim() === userEmail.toLowerCase().trim())
-      ))
-    );
+        aCounsellorId === uEmailLower ||
+        aCounsellor === uEmailLower
+      )) ||
+      (uDisplayName && aCounsellorName && aCounsellorName === uDisplayName);
+
+    return matchesIdOrEmail;
   });
-  const myStudents = isAdminOrManager ? cleanStudents : filteredStudents;
+  const myApplications = isAdminOrManager ? applications : filteredApplications;
+
+  const assignedStudentIds = new Set(myApplications.map((a) => a.studentId).filter(Boolean));
+  const assignedStudentEmails = new Set(myApplications.map((a) => (a.studentEmail || "").toLowerCase().trim()).filter(Boolean));
+  const assignedStudentNames = new Set(myApplications.map((a) => (a.studentName || "").toLowerCase().trim()).filter(Boolean));
+
+  // 2. Active Students Scoped to Logged-in Counsellor
+  const filteredStudents = cleanStudents.filter((s) => {
+    const sAssignedId = String(s.assignedCounsellorId || (s as any).counsellorId || "").toLowerCase().trim();
+    const sAssignedEmail = String(s.assignedCounsellorEmail || s.assignedCounsellor || (s as any).counsellorEmail || "").toLowerCase().trim();
+    const sAssignedName = String(s.assignedCounsellorName || "").toLowerCase().trim();
+    const sEmail = (s.email || "").toLowerCase().trim();
+    const sName = (s.fullName || "").toLowerCase().trim();
+
+    const matchesDirectCounsellor =
+      (userUid && (sAssignedId === uUidLower || sAssignedEmail === uUidLower)) ||
+      (userEmail && (
+        sAssignedId === uEmailLower ||
+        sAssignedEmail === uEmailLower
+      )) ||
+      (uDisplayName && sAssignedName && sAssignedName === uDisplayName);
+
+    const matchesAssignedApp =
+      (s.id && assignedStudentIds.has(s.id)) ||
+      (sEmail && assignedStudentEmails.has(sEmail)) ||
+      (sName && assignedStudentNames.has(sName));
+
+    return matchesDirectCounsellor || matchesAssignedApp;
+  });
+
+  // Synthesize student objects for any application assigned to this counsellor that lacks a student record
+  const existingStudentEmails = new Set(filteredStudents.map((s) => (s.email || "").toLowerCase().trim()));
+  const existingStudentIds = new Set(filteredStudents.map((s) => s.id));
+  const syntheticStudents: Student[] = [];
+
+  for (const app of myApplications) {
+    const appEmail = (app.studentEmail || "").toLowerCase().trim();
+    const appId = app.studentId || `stu_${app.id}`;
+    if ((appEmail && !existingStudentEmails.has(appEmail)) || (!appEmail && !existingStudentIds.has(appId))) {
+      syntheticStudents.push({
+        id: appId,
+        fullName: app.studentName || "Referred Student",
+        email: app.studentEmail || "",
+        phone: (app as any).studentPhone || "",
+        countryOfResidence: app.targetCountry || "International",
+        nationality: "International",
+        preferredDestination: app.targetCountry,
+        preferredProgram: app.programmeName,
+        profileCompleteness: 85,
+        assignedCounsellor: userEmail,
+        assignedCounsellorId: userUid,
+        assignedCounsellorName: appUser?.displayName,
+        createdAt: app.createdAt || Date.now(),
+        updatedAt: app.updatedAt || Date.now(),
+      } as Student);
+      if (appEmail) existingStudentEmails.add(appEmail);
+      existingStudentIds.add(appId);
+    }
+  }
+
+  const allMyStudents = [...filteredStudents, ...syntheticStudents];
+  const myStudents = isAdminOrManager ? cleanStudents : allMyStudents;
 
   const myStudentIds = myStudents.map((s) => s.id);
   const myStudentEmails = new Set(myStudents.map((s) => (s.email || "").toLowerCase().trim()));
+  const myStudentNames = new Set(myStudents.map((s) => (s.fullName || "").toLowerCase().trim()));
 
-  const filteredApplications = applications.filter((a) => {
-    const aCounsellorId = a.assignedCounsellorId || (a as any).counsellorId;
-    const aCounsellor = a.assignedCounsellor || (a as any).assignedCounsellorEmail || (a as any).counsellorEmail;
-    const aCounsellorName = a.assignedCounsellorName;
+  // 3. Leads Scoped to Logged-in Counsellor
+  const filteredLeads = leads.filter((l) => {
+    const lAssigned = String(l.assignedTo || l.assignedCounsellorId || "").toLowerCase().trim();
+    const lEmail = (l.email || "").toLowerCase().trim();
+    const lName = (l.fullName || "").toLowerCase().trim();
 
-    const matchesIdOrEmail =
-      (userUid && (aCounsellorId === userUid || aCounsellor === userUid)) ||
-      (userEmail && (
-        aCounsellorId === userEmail ||
-        aCounsellor === userEmail ||
-        (typeof aCounsellor === "string" && aCounsellor.toLowerCase().trim() === userEmail.toLowerCase().trim())
-      )) ||
-      (appUser?.displayName && aCounsellorName && aCounsellorName.toLowerCase().trim() === appUser.displayName.toLowerCase().trim());
+    const matchesDirect =
+      (userUid && (lAssigned === uUidLower)) ||
+      (userEmail && (lAssigned === uEmailLower)) ||
+      (uDisplayName && lAssigned === uDisplayName);
 
-    const matchesStudent =
-      (a.studentId && myStudentIds.includes(a.studentId)) ||
-      (a.studentEmail && myStudentEmails.has(a.studentEmail.toLowerCase().trim()));
+    const matchesAssignedStudent =
+      (lEmail && (myStudentEmails.has(lEmail) || assignedStudentEmails.has(lEmail))) ||
+      (l.studentId && myStudentIds.includes(l.studentId)) ||
+      (lName && (myStudentNames.has(lName) || assignedStudentNames.has(lName)));
 
-    return matchesIdOrEmail || matchesStudent;
+    return matchesDirect || matchesAssignedStudent;
   });
-  const myApplications = isAdminOrManager ? applications : filteredApplications;
+
+  // For any assigned referred application or student that does not yet have an explicit Lead record,
+  // synthesize a Lead entry so it displays under "My Assigned Leads"
+  const existingLeadEmails = new Set(filteredLeads.map((l) => (l.email || "").toLowerCase().trim()));
+  const existingLeadNames = new Set(filteredLeads.map((l) => (l.fullName || "").toLowerCase().trim()));
+  const syntheticLeads: Lead[] = [];
+
+  for (const app of myApplications) {
+    const aEmail = (app.studentEmail || "").toLowerCase().trim();
+    const aName = (app.studentName || "").toLowerCase().trim();
+    const isAgentRef = Boolean(app.agentUid || app.agentId || app.agentReferred || app.sourceAgentName);
+
+    if (isAgentRef && ((aEmail && !existingLeadEmails.has(aEmail)) || (!aEmail && !existingLeadNames.has(aName)))) {
+      syntheticLeads.push({
+        id: `lead_ref_${app.id}`,
+        fullName: app.studentName || "Referred Candidate",
+        email: app.studentEmail || "",
+        phone: (app as any).studentPhone || "",
+        countryOfResidence: app.targetCountry || "International",
+        destinationCountry: app.targetCountry || "United Kingdom",
+        programInterest: app.programmeName || "Degree Programme",
+        stage: app.stage === "Draft" || app.stage === "Initial Review" ? "Counselling" : "Application Initiated",
+        source: "Agent Referral",
+        assignedTo: userEmail || "Counsellor",
+        tenantId: app.tenantId || "tenant-london",
+        office: app.officeId || "Main Branch",
+        agentUid: app.agentUid,
+        createdAt: app.createdAt || Date.now(),
+        updatedAt: app.updatedAt || Date.now(),
+      } as Lead);
+      if (aEmail) existingLeadEmails.add(aEmail);
+      if (aName) existingLeadNames.add(aName);
+    }
+  }
+
+  const allMyLeads = [...filteredLeads, ...syntheticLeads];
+  const myLeads = isAdminOrManager ? leads : allMyLeads;
 
   const filteredDocuments = documents.filter(
     (d) =>
@@ -285,6 +392,12 @@ export const useCounsellorData = () => {
         history: updatedHistory,
         updatedAt: Date.now(),
       };
+
+      if (newStage === "Ready for Submission" || newStage === "Submitted") {
+        updates.admissionsVisibility = true;
+        updates.assignedDepartment = "Admissions";
+        updates.vettingStatus = "submitted_to_admissions";
+      }
 
       // Optimistic update
       updateApplication(appId, updates);

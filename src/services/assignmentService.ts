@@ -13,6 +13,7 @@ import {
 import { db } from "../firebase/config";
 import { Application } from "../types/application";
 import { Student } from "../types/student";
+import { Lead } from "../types/lead";
 import { AppUser } from "../types/role";
 import {
   SUPPORTED_BRANCH_CITIES,
@@ -23,6 +24,8 @@ import {
 export interface AssignReferralParams {
   applicationId: string;
   studentId: string;
+  leadId?: string;
+  studentEmail?: string;
   counsellorId: string;
   counsellorName: string;
   counsellorEmail?: string;
@@ -271,6 +274,7 @@ export async function assignReferralToCounsellor(params: AssignReferralParams): 
   success: boolean;
   applicationUpdate: Partial<Application>;
   studentUpdate: Partial<Student>;
+  leadUpdate: Partial<Lead>;
   error?: string;
 }> {
   const now = Date.now();
@@ -317,6 +321,17 @@ export async function assignReferralToCounsellor(params: AssignReferralParams): 
     updatedAt: now,
   };
 
+  // Standardized update payload for Lead (to appear in Counsellor's My Assigned Leads)
+  const leadUpdate: Partial<Lead> = {
+    assignedTo: counsellorEmail,
+    assignedCounsellorId: params.counsellorId,
+    stage: "Counselling",
+    source: "Agent Referral",
+    office: params.officeId,
+    tenantId: resolvedTenant,
+    updatedAt: now,
+  };
+
   try {
     const batch = writeBatch(db);
 
@@ -334,6 +349,22 @@ export async function assignReferralToCounsellor(params: AssignReferralParams): 
         ...studentUpdate,
         updatedAt: serverTimestamp(),
       });
+    }
+
+    // 2b. Update or initialize Lead document if leadId or studentId exists
+    const targetLeadId = params.leadId || params.studentId;
+    if (targetLeadId) {
+      const leadRef = doc(db, "leads", targetLeadId);
+      batch.set(
+        leadRef,
+        {
+          ...leadUpdate,
+          fullName: studentName,
+          email: params.studentEmail || "",
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
 
     // 3. Create In-App Notification for Counsellor
@@ -397,7 +428,7 @@ export async function assignReferralToCounsellor(params: AssignReferralParams): 
     });
 
     await batch.commit();
-    return { success: true, applicationUpdate, studentUpdate };
+    return { success: true, applicationUpdate, studentUpdate, leadUpdate };
   } catch (err: any) {
     console.warn("Firestore batch assignment notice (proceeding with local optimistic state):", err);
     // Return success: true with payload so local React state continues seamlessly
@@ -405,6 +436,7 @@ export async function assignReferralToCounsellor(params: AssignReferralParams): 
       success: true,
       applicationUpdate,
       studentUpdate,
+      leadUpdate,
       error: err?.message,
     };
   }

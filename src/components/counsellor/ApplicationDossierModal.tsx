@@ -338,11 +338,17 @@ export const ApplicationDossierModal: React.FC<ApplicationDossierModalProps> = (
         timestamp: Date.now(),
         note: stageNote || `Stage progressed to ${targetStage}`,
       };
-      updateApplication(application.id, {
+      const updates: Partial<Application> = {
         stage: targetStage,
         history: [...(application.history || []), historyItem],
         updatedAt: Date.now(),
-      });
+      };
+      if (targetStage === "Ready for Submission" || targetStage === "Submitted") {
+        updates.admissionsVisibility = true;
+        updates.assignedDepartment = "Admissions";
+        updates.vettingStatus = "submitted_to_admissions";
+      }
+      updateApplication(application.id, updates);
     }
     setIsAdvancing(false);
     setShowAdvanceModal(false);

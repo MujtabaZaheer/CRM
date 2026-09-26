@@ -227,6 +227,21 @@ export interface Application {
   wizardStepCompleted?: number;
   intakeToken?: string;
 
+  // Verification & Challan Clearance Lifecycle
+  admissionsVerificationCompleted?: boolean;
+  challanGenerated?: boolean;
+  challanNumber?: string;
+  challanAmount?: number;
+  challanCurrency?: string;
+  challanDueDate?: string;
+  depositPaid?: boolean;
+  depositPaidAt?: number;
+  depositAmountPaid?: number;
+  depositPaymentDate?: string;
+  depositTransactionRef?: string;
+  paymentReference?: string;
+  status?: string;
+
   createdAt: number;
   updatedAt: number;
 }

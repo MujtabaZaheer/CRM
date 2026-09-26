@@ -18,10 +18,17 @@ import {
   BookOpen,
   ShieldCheck,
   ChevronRight,
+  Printer,
+  CheckCircle2,
+  UploadCloud,
+  Receipt,
+  X,
 } from "lucide-react";
-import { collection, addDoc, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { Commission } from "../../types/finance";
+import { ApplicationStage } from "../../types/application";
+import { triggerApplicationCommission } from "../../utils/commissionEngine";
 import { DEMO_COMMISSIONS } from "../../data/demoData";
 import { GLOBAL_UNIVERSITIES } from "../../data/globalUniversities";
 import { University, Programme } from "../../types/university";
@@ -33,11 +40,21 @@ import { AgentApplicationsTable } from "../agent/dashboard/AgentApplicationsTabl
 export type AgentSubPage = "dashboard" | "universities" | "referrals" | "refer-lead" | "commissions" | "notifications";
 
 export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page }) => {
-  const { leads, applications, universities, documents } = useGlobalData();
+  const { leads, applications, universities, documents, updateApplication, addDocument } = useGlobalData();
   const { appUser } = useAuth();
   const navigate = useNavigate();
   const [referralMode, setReferralMode] = useState<"wizard" | "express">("wizard");
-  const [referralsTab, setReferralsTab] = useState<"dossiers" | "leads">("dossiers");
+  const [referralsTab, setReferralsTab] = useState<"dossiers" | "leads" | "challans">("dossiers");
+
+  // Challan Inspection & Payment Proof Modal State
+  const [selectedChallanApp, setSelectedChallanApp] = useState<any | null>(null);
+  const [uploadingProofApp, setUploadingProofApp] = useState<any | null>(null);
+  const [proofTxRef, setProofTxRef] = useState("");
+  const [proofAmount, setProofAmount] = useState<number>(2500);
+  const [proofDate, setProofDate] = useState(new Date().toISOString().slice(0, 10));
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofNotes, setProofNotes] = useState("");
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
 
   // Active Universities list (prefer global universities catalogue with full programmes)
   const allUniversities: University[] = useMemo(() => {
@@ -195,10 +212,33 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
         app.agentId === agentUid ||
         app.referredBy === agentUid ||
         app.agentEmail === agentEmail ||
-        app.agentReferredBy === agentUid
+        app.agentReferredBy === agentUid ||
+        (app.agentReferred && (app.agentName === appUser?.displayName || !app.agentUid))
       );
     });
   }, [liveApplications, applications, appUser]);
+
+  // Fee Challans & Deposit Clearance Applications
+  const challanApplications = useMemo(() => {
+    return effectiveApplications.filter((app: any) => {
+      return (
+        app.challanGenerated ||
+        app.challanNumber ||
+        [
+          "Deposit Pending",
+          "Deposit Paid",
+          "Unconditional Offer",
+          "Conditional Offer",
+          "CAS / COE Pending",
+          "CAS Issued",
+          "Visa Preparation",
+          "Visa Submitted",
+          "Visa Approved",
+          "Enrolled",
+        ].includes(app.stage)
+      );
+    });
+  }, [effectiveApplications]);
 
   // Effective Commissions strictly isolated to the authenticated agent
   const effectiveCommissions = useMemo(() => {
@@ -211,7 +251,9 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
       return (
         comm.agentUid === agentUid ||
         comm.agentId === agentUid ||
-        comm.agentEmail === agentEmail
+        comm.agentEmail === agentEmail ||
+        comm.agentName === appUser?.displayName ||
+        comm.agentName?.includes(appUser?.displayName || "")
       );
     });
   }, [liveCommissions, appUser]);
@@ -478,6 +520,107 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
       setShowPayoutModal(false);
     } finally {
       setSubmittingClaim(false);
+    }
+  };
+
+  // Submit Proof of Paid Challan
+  const handleSubmitProofOfChallan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadingProofApp) return;
+    setIsSubmittingProof(true);
+
+    try {
+      const receiptNo = proofTxRef.trim() || `REC-${Date.now().toString().slice(-6)}`;
+      const paidDate = proofDate || new Date().toISOString().slice(0, 10);
+      const paidAmount = Number(proofAmount) || Number(uploadingProofApp.challanAmount) || 2500;
+      const currency = uploadingProofApp.challanCurrency || "USD";
+
+      // 1. Add document record to documents collection
+      const docPayload = cleanPayload({
+        studentId: uploadingProofApp.studentId || uploadingProofApp.id,
+        applicationId: uploadingProofApp.id,
+        documentType: "Tuition Deposit Challan / Payment Proof",
+        docType: "Deposit Challan Payment Proof",
+        fileName: proofFile?.name || `Challan_${uploadingProofApp.challanNumber || "Payment"}_Proof.pdf`,
+        fileUrl: proofFile ? URL.createObjectURL(proofFile) : "#",
+        status: "Verified",
+        verified: true,
+        verificationStatus: "verified",
+        notes: `Agent uploaded paid challan slip: Tx Ref ${receiptNo}, Amount ${currency} ${paidAmount}. ${proofNotes || ""}`,
+        uploadedBy: appUser?.displayName || "External Agent",
+        uploadedAt: Date.now(),
+        createdAt: Date.now(),
+      });
+
+      try {
+        await addDoc(collection(db, "student_documents"), docPayload);
+        await addDoc(collection(db, "documents"), docPayload);
+      } catch (err) {
+        console.warn("Firestore document insert warning:", err);
+      }
+      if (addDocument) {
+        try {
+          addDocument(docPayload as any);
+        } catch (e) {}
+      }
+
+      // 2. Advance Application Stage to 'Deposit Paid' and route to Visa
+      const appUpdate = cleanPayload({
+        stage: "Deposit Paid" as ApplicationStage,
+        status: "Deposit Paid",
+        depositPaid: true,
+        depositAmountPaid: paidAmount,
+        depositPaymentDate: paidDate,
+        depositTransactionRef: receiptNo,
+        assignedDepartment: "Visa",
+        updatedAt: Date.now(),
+      });
+
+      updateApplication(uploadingProofApp.id, appUpdate);
+
+      try {
+        await updateDoc(doc(db, "applications", uploadingProofApp.id), appUpdate);
+      } catch (err) {
+        console.warn("Firestore application update warning:", err);
+      }
+
+      // 3. Automatically calculate and record Agent Commission in commission ledger!
+      try {
+        const tuitionFee = uploadingProofApp.tuitionFee || uploadingProofApp.tuitionFeeUSD || 22000;
+        await triggerApplicationCommission(
+          { ...uploadingProofApp, ...appUpdate },
+          tuitionFee,
+          appUser?.displayName || uploadingProofApp.agentName || "Referral Agent Partner",
+          uploadingProofApp.assignedCounsellor
+        );
+      } catch (err) {
+        console.warn("Commission auto-calculation warning:", err);
+      }
+
+      // 4. Send notification to Visa & Finance teams
+      try {
+        await addDoc(collection(db, "notifications"), {
+          title: "Deposit Paid & Challan Proof Uploaded",
+          message: `Agent submitted paid challan proof (${receiptNo}) for ${uploadingProofApp.studentName}. Application forwarded to Visa Desk.`,
+          type: "deposit_paid",
+          applicationId: uploadingProofApp.id,
+          targetRole: "visa_officer",
+          read: false,
+          createdAt: Date.now(),
+        });
+      } catch (e) {}
+
+      setFormSuccess(
+        `Proof of payment for ${uploadingProofApp.studentName} uploaded! Application updated to 'Deposit Paid' and forwarded to Visa Desk. Agent commission accrued successfully!`
+      );
+      setUploadingProofApp(null);
+      setProofTxRef("");
+      setProofFile(null);
+      setProofNotes("");
+    } catch (err: any) {
+      setFormSuccess(`Error submitting proof: ${err?.message || "Failed to process"}`);
+    } finally {
+      setIsSubmittingProof(false);
     }
   };
 
@@ -1038,6 +1181,18 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
               >
                 Quick Leads Roster ({effectiveLeads.length})
               </button>
+              <button
+                type="button"
+                onClick={() => setReferralsTab("challans")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  referralsTab === "challans"
+                    ? "bg-emerald-500 text-zinc-950 shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>Fee Challans & Deposit Clearance ({challanApplications.length})</span>
+              </button>
             </div>
           </div>
 
@@ -1063,7 +1218,7 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
               documents={documents}
               onOpenWizard={() => navigate("/agent/refer-lead")}
             />
-          ) : (
+          ) : referralsTab === "leads" ? (
             <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-sm">
               <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
                 <span className="font-bold text-xs text-[var(--text-primary)]">
@@ -1146,6 +1301,146 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
                           </td>
                         </tr>
                       ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* Fee Challans & Deposit Clearance Tab */
+            <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-emerald-400" />
+                    University Fee Challans & Deposit Clearance
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-secondary)]">
+                    Download and provide official tuition deposit challans to students. Upload proof of paid challans to automatically advance stage to &quot;Deposit Paid&quot; and calculate agency commissions.
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0 self-start sm:self-auto">
+                  {challanApplications.length} Actionable Challans
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-[var(--bg-elevated)] text-[var(--text-muted)] uppercase text-[10px]">
+                    <tr>
+                      <th className="p-3.5">Student & App #</th>
+                      <th className="p-3.5">University & Programme</th>
+                      <th className="p-3.5">Challan Reference</th>
+                      <th className="p-3.5">Deposit Amount</th>
+                      <th className="p-3.5">Clearance Status</th>
+                      <th className="p-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-default)] text-xs">
+                    {challanApplications.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-[var(--text-muted)]">
+                          No fee challans generated yet. When admissions verification completes and Finance issues a challan, it will appear here for student payment and proof upload.
+                        </td>
+                      </tr>
+                    ) : (
+                      challanApplications.map((app: any, idx: number) => {
+                        const isPaid =
+                          app.stage === "Deposit Paid" ||
+                          app.depositPaid ||
+                          [
+                            "CAS / COE Pending",
+                            "CAS Issued",
+                            "Visa Preparation",
+                            "Visa Submitted",
+                            "Visa Approved",
+                            "Enrolled",
+                          ].includes(app.stage);
+                        const challanRef =
+                          app.challanNumber || `CHAL-2026-${app.id.slice(-6).toUpperCase()}`;
+                        const amount = app.challanAmount || 2500;
+                        const currency = app.challanCurrency || "USD";
+
+                        return (
+                          <tr key={app.id || idx} className="hover:bg-[var(--bg-hover)] transition-colors">
+                            <td className="p-3.5">
+                              <div className="font-bold text-sm text-[var(--text-primary)]">
+                                {app.studentName}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)] font-mono">
+                                {app.applicationNumber || app.id}
+                              </div>
+                            </td>
+                            <td className="p-3.5">
+                              <div className="font-semibold text-[var(--text-primary)]">
+                                {app.universityName}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)] truncate max-w-xs">
+                                {app.programName || app.programmeName || "Academic Degree"}
+                              </div>
+                            </td>
+                            <td className="p-3.5">
+                              <div className="font-mono font-bold text-emerald-400">
+                                {challanRef}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)]">
+                                Due: {app.challanDueDate || "14 days from issue"}
+                              </div>
+                            </td>
+                            <td className="p-3.5">
+                              <div className="font-mono font-bold text-sm text-[var(--text-primary)]">
+                                {currency} {amount.toLocaleString()}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)]">Tuition Deposit</div>
+                            </td>
+                            <td className="p-3.5">
+                              {isPaid ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Deposit Paid & Verified
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  Deposit Pending Clearance
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3.5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedChallanApp(app)}
+                                  className="px-2.5 py-1.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-[var(--text-primary)] font-bold rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                  title="View and print official fee challan voucher"
+                                >
+                                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Print Challan</span>
+                                </button>
+
+                                {!isPaid ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setUploadingProofApp(app);
+                                      setProofAmount(amount);
+                                    }}
+                                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-emerald-500/10"
+                                    title="Upload receipt / bank deposit slip"
+                                  >
+                                    <UploadCloud className="w-3.5 h-3.5" />
+                                    <span>Upload Proof</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-emerald-400 font-bold px-2 py-1 bg-emerald-500/10 rounded-md border border-emerald-500/20">
+                                    Commission Accrued
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1594,6 +1889,328 @@ export const AgentPortalWorkspace: React.FC<{ page: AgentSubPage }> = ({ page })
                 className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
               >
                 {submittingClaim ? "Submitting..." : "Submit Claim"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL 2: PRINTABLE FEE CHALLAN VOUCHER */}
+      {selectedChallanApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)] overflow-y-auto">
+          <div className="w-full max-w-3xl my-8 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl overflow-hidden flex flex-col text-xs text-[var(--text-primary)]">
+            {/* Modal Header */}
+            <div className="p-4 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--text-primary)]">
+                    Official Tuition Deposit Payment Challan Voucher
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] font-mono">
+                    Ref: {selectedChallanApp.challanNumber || `CHAL-2026-${selectedChallanApp.id.slice(-6).toUpperCase()}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Voucher</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedChallanApp(null)}
+                  className="p-1.5 hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Voucher Body (3 Parts: Bank Copy, Student Copy, Agency Copy) */}
+            <div className="p-6 space-y-6 overflow-y-auto max-h-[75vh]">
+              {/* Institution & Invoice Summary */}
+              <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
+                    Institutional Depository Voucher
+                  </div>
+                  <h2 className="text-lg font-bold font-heading text-[var(--text-primary)]">
+                    {selectedChallanApp.universityName}
+                  </h2>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Programme: {selectedChallanApp.programName || selectedChallanApp.programmeName || "Undergraduate / Master Intake"}
+                  </p>
+                </div>
+                <div className="text-right sm:border-l sm:border-[var(--border-default)] sm:pl-4">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Deposit Payable</div>
+                  <div className="text-2xl font-bold font-mono text-emerald-400">
+                    {selectedChallanApp.challanCurrency || "USD"} {(selectedChallanApp.challanAmount || 2500).toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-amber-400 font-semibold mt-0.5">
+                    Due: {selectedChallanApp.challanDueDate || "14 Days From Issuance"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Candidate & Payment Metadata */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3.5 bg-[var(--bg-input)] rounded-xl border border-[var(--border-default)] space-y-2">
+                  <h4 className="font-bold text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
+                    Candidate Particulars
+                  </h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Student Name:</span>
+                      <span className="font-bold text-[var(--text-primary)]">{selectedChallanApp.studentName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Student Email:</span>
+                      <span className="font-mono text-[var(--text-primary)]">{selectedChallanApp.studentEmail || "n/a"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Application Number:</span>
+                      <span className="font-mono font-bold text-emerald-400">{selectedChallanApp.applicationNumber || selectedChallanApp.id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Assigned Agency:</span>
+                      <span className="text-[var(--text-primary)]">{selectedChallanApp.agentName || appUser?.displayName || "Verified Partner Agency"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-[var(--bg-input)] rounded-xl border border-[var(--border-default)] space-y-2">
+                  <h4 className="font-bold text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
+                    Bank Clearance & Escrow Account
+                  </h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Beneficiary Title:</span>
+                      <span className="font-bold text-[var(--text-primary)]">Global Education Clearing Escrow</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Bank Name:</span>
+                      <span className="text-[var(--text-primary)]">Barclays Bank International</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">IBAN:</span>
+                      <span className="font-mono font-bold text-emerald-400">GB29BARC20201538492019</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">SWIFT / BIC:</span>
+                      <span className="font-mono text-[var(--text-primary)]">BARCGB22</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Copy Vouchers (Student / Bank / Agency) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-elevated)] space-y-2">
+                  <div className="text-[10px] font-bold uppercase text-emerald-400">1. Student Copy</div>
+                  <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                    Retained by student as permanent proof of tuition deposit payment. Required during visa biometric interview.
+                  </p>
+                  <div className="pt-4 border-t border-[var(--border-default)] text-[9px] text-[var(--text-muted)]">
+                    Bank Officer Sign & Stamp: ____________
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-elevated)] space-y-2">
+                  <div className="text-[10px] font-bold uppercase text-sky-400">2. Bank Depository Copy</div>
+                  <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                    Retained by collecting bank branch for end-of-day wire clearing and institutional reconciliation.
+                  </p>
+                  <div className="pt-4 border-t border-[var(--border-default)] text-[9px] text-[var(--text-muted)]">
+                    Clearing Stamp: ____________
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-elevated)] space-y-2">
+                  <div className="text-[10px] font-bold uppercase text-amber-400">3. Agency Copy</div>
+                  <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                    Retained by referral agency. Agent must upload a scanned copy of this stamped voucher to the CRM Agent Portal.
+                  </p>
+                  <div className="pt-4 border-t border-[var(--border-default)] text-[9px] text-[var(--text-muted)]">
+                    Branch Verification: ____________
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-[11px] leading-relaxed">
+                <strong>Important Instructions:</strong> Please ensure the Student Name and Application Number are quoted as the payment reference. Once paid, the agent must upload the deposit proof through the Agent Portal to advance the application to <em>Deposit Paid</em>, trigger agency commission calculation, and initiate the Visa & CAS issuance process.
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-[var(--bg-elevated)] border-t border-[var(--border-default)] flex items-center justify-between">
+              <span className="text-[11px] text-[var(--text-muted)]">
+                System-generated institutional payment challan voucher
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const app = selectedChallanApp;
+                    setSelectedChallanApp(null);
+                    setUploadingProofApp(app);
+                    setProofAmount(app.challanAmount || 2500);
+                  }}
+                  className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-emerald-500/10"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>Upload Paid Challan Proof</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedChallanApp(null)}
+                  className="px-4 py-2 bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: UPLOAD PROOF OF PAID CHALLAN */}
+      {uploadingProofApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)]">
+          <form
+            onSubmit={handleSubmitProofOfChallan}
+            className="w-full max-w-lg p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl space-y-4 shadow-2xl text-xs text-[var(--text-primary)]"
+          >
+            <div>
+              <h2 className="font-bold text-base text-[var(--text-primary)] flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-emerald-400" />
+                Upload Proof of Paid Challan
+              </h2>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                Submit the student&apos;s verified bank deposit slip or wire receipt. This will automatically update the application stage to &quot;Deposit Paid&quot; and calculate your agency commission.
+              </p>
+            </div>
+
+            {/* Student & Institution Context */}
+            <div className="p-3 bg-[var(--bg-elevated)] rounded-xl border border-[var(--border-default)] grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">Student Name:</span>
+                <span className="font-bold text-[var(--text-primary)]">{uploadingProofApp.studentName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">University:</span>
+                <span className="font-bold text-[var(--text-primary)]">{uploadingProofApp.universityName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">Challan Reference:</span>
+                <span className="font-mono text-emerald-400">{uploadingProofApp.challanNumber || "CHAL-2026"}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">App Ref:</span>
+                <span className="font-mono text-[var(--text-secondary)]">{uploadingProofApp.applicationNumber || uploadingProofApp.id}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                  Transaction / Slip Reference *
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={proofTxRef}
+                  onChange={(e) => setProofTxRef(e.target.value)}
+                  placeholder="e.g. TXN-8941092 / Slip #491"
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-mono text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                  Amount Deposited ({uploadingProofApp.challanCurrency || "USD"}) *
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="100"
+                  step="50"
+                  value={proofAmount}
+                  onChange={(e) => setProofAmount(Number(e.target.value))}
+                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs font-mono text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                Payment Date *
+              </label>
+              <input
+                required
+                type="date"
+                value={proofDate}
+                onChange={(e) => setProofDate(e.target.value)}
+                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                Upload Scanned Deposit Slip / Bank Receipt
+              </label>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-secondary)] cursor-pointer file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20"
+              />
+              <span className="text-[10px] text-[var(--text-muted)] block mt-1">
+                Accepted formats: PDF, JPG, PNG (Max 10MB)
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
+                Agent Verification Notes
+              </label>
+              <textarea
+                rows={2}
+                value={proofNotes}
+                onChange={(e) => setProofNotes(e.target.value)}
+                placeholder="e.g. Verified stamped bank copy from Standard Chartered branch. Funds confirmed cleared."
+                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Workflow Notice */}
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-[11px] flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>
+                Submitting this proof will advance stage to <strong>Deposit Paid</strong>, queue application for the Visa Officer, and accrue agency commission automatically.
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+              <button
+                type="button"
+                onClick={() => setUploadingProofApp(null)}
+                className="px-4 py-2 bg-[var(--bg-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingProof}
+                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isSubmittingProof ? "Submitting Proof..." : "Confirm & Advance to Deposit Paid"}</span>
               </button>
             </div>
           </form>
