@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduCRM — Master Instructor Hands-On Walkthrough & System Evaluation Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --card-border: rgba(31, 41, 61, 0.9);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.2);
+      --teal: #14b8a6;
+      --cyan: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --code-bg: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.65;
+      padding: 2.5rem 1.5rem;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .guide-h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 40%, var(--emerald) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .guide-h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--emerald);
+      letter-spacing: -0.02em;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .guide-h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #38bdf8;
+      margin-top: 1.8rem;
+      margin-bottom: 0.6rem;
+    }
+    .guide-p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+    .guide-blockquote {
+      background: rgba(16, 185, 129, 0.08);
+      border-left: 4px solid var(--emerald);
+      padding: 1rem 1.25rem;
+      border-radius: 0.5rem;
+      color: #e2e8f0;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    .guide-divider {
+      border: 0;
+      height: 1px;
+      background: var(--card-border);
+      margin: 2.5rem 0;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border-radius: 0.75rem;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+    }
+    .guide-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      text-align: left;
+    }
+    .guide-table th {
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--emerald);
+      font-weight: 700;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+    }
+    .guide-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #e2e8f0;
+    }
+    .guide-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .guide-list {
+      margin: 0.8rem 0 1.2rem 1.8rem;
+      color: var(--text-muted);
+    }
+    .guide-list li {
+      margin-bottom: 0.4rem;
+    }
+    .guide-code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      color: #38bdf8;
+      padding: 0.2rem 0.45rem;
+      border-radius: 0.35rem;
+      font-size: 0.88em;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .guide-link {
+      color: var(--emerald);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .guide-link:hover {
+      text-decoration: underline;
+      color: #34d399;
+    }
+    .figure-container {
+      margin: 1.75rem 0 2.25rem 0;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.85rem;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+    .guide-screenshot {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .figure-caption {
+      padding: 0.75rem 1.2rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      background: rgba(10, 15, 26, 0.95);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .caption-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      background: var(--emerald-glow);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    @media print {
+      body { background: #fff; color: #000; padding: 0; }
+      .figure-container { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+      .guide-h1 { -webkit-text-fill-color: #000; }
+      .guide-h2, .guide-h3 { color: #000; }
+      .table-wrapper { border: 1px solid #ccc; }
+      .guide-table th { background: #eee; color: #000; }
+      .guide-table td { color: #000; border-bottom: 1px solid #eee; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="guide-h1">EduCRM — Master Instructor Hands-On Walkthrough &amp; Complete System Evaluation Manual</h1>
+<blockquote class="guide-blockquote"><strong>Platform</strong>: EduCRM Cloud-Native Higher Education Admissions & International Student Recruitment Platform  </blockquote>
+<blockquote class="guide-blockquote"><strong>Production Instance</strong>: <a href="https://education-crm-9fee2.web.app" target="_blank" class="guide-link">https://education-crm-9fee2.web.app</a>  </blockquote>
+<blockquote class="guide-blockquote"><strong>Local Evaluation Server</strong>: <a href="http://localhost:5173" target="_blank" class="guide-link">http://localhost:5173</a>  </blockquote>
+<blockquote class="guide-blockquote"><strong>Audience</strong>: Course Instructors, External Evaluators, Admissions Directors, System Auditors  </blockquote>
+<blockquote class="guide-blockquote"><strong>Coverage</strong>: 13 Distinct User Roles • 12 Validated End-to-End Workflows • 51 High-Resolution Screenshots</blockquote>
+<hr class="guide-divider" />
+<h2 class="guide-h2">1. Executive Evaluation Blueprint &amp; Quick-Access System</h2>
+<p class="guide-p">EduCRM is an enterprise-grade higher-education CRM designed for end-to-end international student recruitment, institutional admissions, compliance verification, and financial settlement.</p>
+<h3 class="guide-h3">The 1-Click Fast-Access Role Drawer</h3>
+<p class="guide-p">To evaluate any role without tedious password entry or account creation, navigate to <a href="http://localhost:5173/login" target="_blank" class="guide-link"><code class="guide-code">/login</code></a> and open the <strong>Demo Accounts (13)</strong> drawer at the bottom-right of the screen:</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/01_login_and_demo_access.png" alt="Login Screen with One-Click Demo Accounts Drawer" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Login Screen with One-Click Demo Accounts Drawer</div>
+        </div>
+      
+<h3 class="guide-h3">Master Credentials &amp; Role Routing Matrix</h3>
+<div class="table-wrapper"><table class="guide-table"><thead><tr>
+<th>#</th>
+<th>User Role</th>
+<th>Demo Drawer Button</th>
+<th>Default Test Email</th>
+<th>Direct Route</th>
+<th>Primary Evaluated Responsibility</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Student (New Onboarding)</strong></td>
+<td><code class="guide-code">Student (New)</code></td>
+<td><em>Dynamic Session</em></td>
+<td><a href="http://localhost:5173/student/onboarding/step-1" target="_blank" class="guide-link"><code class="guide-code">/student/onboarding/step-1</code></a></td>
+<td>AI CV intake, Zero-Redundancy 4-stage onboarding wizard.</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Student (Registered / Complete)</strong></td>
+<td><code class="guide-code">Student (Reg)</code></td>
+<td><code class="guide-code">aarav.patel@gmail.com</code></td>
+<td><a href="http://localhost:5173/student/dashboard" target="_blank" class="guide-link"><code class="guide-code">/student/dashboard</code></a></td>
+<td>11-step application wizard, course search, documents, invoices.</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Education Counsellor</strong></td>
+<td><code class="guide-code">Counsellor</code></td>
+<td><code class="guide-code">counsellor@educrm.demo</code></td>
+<td><a href="http://localhost:5173/counsellor/dashboard" target="_blank" class="guide-link"><code class="guide-code">/counsellor/dashboard</code></a></td>
+<td>Lead deduplication, 360° student dossier, AI program matcher.</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>Admissions Officer</strong></td>
+<td><code class="guide-code">Admissions</code></td>
+<td><code class="guide-code">admissions@educrm.demo</code></td>
+<td><a href="http://localhost:5173/admissions/dashboard" target="_blank" class="guide-link"><code class="guide-code">/admissions/dashboard</code></a></td>
+<td>Document Verification Hub, academic threshold audit, offers.</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>Admissions Team Leader</strong></td>
+<td><code class="guide-code">Team Leader</code></td>
+<td><code class="guide-code">teamleader@educrm.demo</code></td>
+<td><a href="http://localhost:5173/team-leader/dashboard" target="_blank" class="guide-link"><code class="guide-code">/team-leader/dashboard</code></a></td>
+<td>Caseload allocation, counsellor reassignment, SLA monitoring.</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Visa & Immigration Officer</strong></td>
+<td><code class="guide-code">Visa Officer</code></td>
+<td><code class="guide-code">visa@educrm.demo</code></td>
+<td><a href="http://localhost:5173/visa-officer/dashboard" target="_blank" class="guide-link"><code class="guide-code">/visa-officer/dashboard</code></a></td>
+<td>28-day proof of funds, mock interview, CAS clearance.</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Finance & Accounts Officer</strong></td>
+<td><code class="guide-code">Finance</code></td>
+<td><code class="guide-code">finance@educrm.demo</code></td>
+<td><a href="http://localhost:5173/finance/dashboard" target="_blank" class="guide-link"><code class="guide-code">/finance/dashboard</code></a></td>
+<td>Tuition invoices, fee challans, agent commission ledger.</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>External Recruitment Agent</strong></td>
+<td><code class="guide-code">Agent</code></td>
+<td><code class="guide-code">agent@educrm.demo</code></td>
+<td><a href="http://localhost:5173/agent/dashboard" target="_blank" class="guide-link"><code class="guide-code">/agent/dashboard</code></a></td>
+<td>Lead referral ingestion, pipeline tracking, commission tracking.</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>University Partner Rep</strong></td>
+<td><code class="guide-code">University</code></td>
+<td><code class="guide-code">university@educrm.demo</code></td>
+<td><a href="http://localhost:5173/university/dashboard" target="_blank" class="guide-link"><code class="guide-code">/university/dashboard</code></a></td>
+<td>Institutional application review, program setup, direct CAS upload.</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>Support Specialist</strong></td>
+<td><code class="guide-code">Support</code></td>
+<td><code class="guide-code">support@educrm.demo</code></td>
+<td><a href="http://localhost:5173/support/dashboard" target="_blank" class="guide-link"><code class="guide-code">/support/dashboard</code></a></td>
+<td>Ticketing desk, priority resolution, knowledge base curation.</td>
+</tr>
+<tr>
+<td><strong>11</strong></td>
+<td><strong>Compliance & Auditor</strong></td>
+<td><code class="guide-code">Auditor</code></td>
+<td><code class="guide-code">auditor@educrm.demo</code></td>
+<td><a href="http://localhost:5173/auditor/dashboard" target="_blank" class="guide-link"><code class="guide-code">/auditor/dashboard</code></a></td>
+<td>Immutable audit trail, GDPR consent inspect, system log forensics.</td>
+</tr>
+<tr>
+<td><strong>12</strong></td>
+<td><strong>Platform Super Admin</strong></td>
+<td><code class="guide-code">Super Admin</code></td>
+<td><code class="guide-code">superadmin@educrm.demo</code></td>
+<td><a href="http://localhost:5173/super-admin/dashboard" target="_blank" class="guide-link"><code class="guide-code">/super-admin/dashboard</code></a></td>
+<td>Multi-tenant branch oversight, 13-tier RBAC provisioning.</td>
+</tr>
+<tr>
+<td><strong>13</strong></td>
+<td><strong>Organization Admin / Manager</strong></td>
+<td><code class="guide-code">Org Admin</code></td>
+<td><code class="guide-code">orgadmin@educrm.demo</code></td>
+<td><a href="http://localhost:5173/" target="_blank" class="guide-link"><code class="guide-code">/</code></a></td>
+<td>Branch operational rules, lead scoring, commission manager.</td>
+</tr>
+</tbody></table></div>
+<hr class="guide-divider" />
+<h2 class="guide-h2">2. Table of End-to-End Evaluated Workflows</h2>
+<ul class="guide-list">
+<li><strong>[ROLE 1 & 2: STUDENT]</strong></li>
+<li><a href="#flow-1-student---ai-cv-extraction--zero-redundancy-onboarding" target="_blank" class="guide-link">Flow 1: AI CV Extraction & 4-Stage Zero-Redundancy Onboarding</a></li>
+<li><a href="#flow-2-student---course-discovery--11-step-application-wizard" target="_blank" class="guide-link">Flow 2: Student Experience — Course Discovery & 11-Step Application Wizard</a></li>
+<li><a href="#flow-3-student---document-vault-invoices-chat--profile" target="_blank" class="guide-link">Flow 3: Student Self-Management — Document Vault, Invoices, Chat & Profile</a></li>
+<li><strong>[ROLE 3: EDUCATION COUNSELLOR]</strong></li>
+<li><a href="#flow-4-counsellor---lead-intake-360-dossier--ai-programme-matcher" target="_blank" class="guide-link">Flow 4: Lead Intake, Deduplication, 360° Dossier & AI Programme Matcher</a></li>
+<li><strong>[ROLE 4: ADMISSIONS OFFICER]</strong></li>
+<li><a href="#flow-5-admissions-officer---verification-hub-academic-threshold--offers" target="_blank" class="guide-link">Flow 5: Admissions Document Verification Hub, Academic Threshold Audit & Offers</a></li>
+<li><strong>[ROLE 5: ADMISSIONS TEAM LEADER]</strong></li>
+<li><a href="#flow-6-team-leader---caseload-balancing-reassignment--performance-slas" target="_blank" class="guide-link">Flow 6: Caseload Balancing, Reassignment & Operational Performance SLAs</a></li>
+<li><strong>[ROLE 6: VISA & IMMIGRATION OFFICER]</strong></li>
+<li><a href="#flow-7-visa-officer---proof-of-funds-medical-clearance--mock-interview" target="_blank" class="guide-link">Flow 7: Visa Compliance — 28-Day Proof of Funds, Medical Screening & Mock Interview</a></li>
+<li><strong>[ROLE 7: FINANCE & ACCOUNTS OFFICER]</strong></li>
+<li><a href="#flow-8-finance---tuition-invoicing-wire-reconciliation--commissions" target="_blank" class="guide-link">Flow 8: Tuition Fee Invoicing, Challan Management & Agent Commission Settlement</a></li>
+<li><strong>[ROLE 8: EXTERNAL RECRUITMENT AGENT]</strong></li>
+<li><a href="#flow-9-external-agent---referral-ingestion-pipeline--commissions" target="_blank" class="guide-link">Flow 9: Agent Referral Ingestion, Privacy-Preserving Pipeline & Commission Ledger</a></li>
+<li><strong>[ROLE 9: UNIVERSITY PARTNER REPRESENTATIVE]</strong></li>
+<li><a href="#flow-10-university-partner---application-assessment--direct-cas-issuance" target="_blank" class="guide-link">Flow 10: Institutional Application Assessment & Direct CAS / I-20 Issuance</a></li>
+<li><strong>[ROLE 10: SUPPORT SPECIALIST]</strong></li>
+<li><a href="#flow-11-support-specialist---ticketing-desk--knowledge-base" target="_blank" class="guide-link">Flow 11: Support Ticketing Desk, SLA Resolution & Knowledge Base</a></li>
+<li><strong>[ROLES 11, 12 & 13: GOVERNANCE, COMPLIANCE & SUPER ADMIN]</strong></li>
+<li><a href="#flow-12-super-admin-org-admin--auditor---governance--forensics" target="_blank" class="guide-link">Flow 12: Super Admin Provisioning, Master Configuration & Immutable Audit Forensics</a></li>
+</ul>
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 1: STUDENT — AI CV Extraction &amp; Zero-Redundancy Onboarding</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">student</code> (Prospective Student)</p>
+<h3 class="guide-h3">Key Architectural Principle:</h3>
+<p class="guide-p"><strong>Zero-Redundancy</strong>: No data extracted from the CV or entered during registration is ever requested again in subsequent onboarding stages or application wizards.</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 1.1: Registration with Google Gemini 3.8 Flash CV Scanner</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/register?role=student" target="_blank" class="guide-link"><code class="guide-code">/register?role=student</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Open the registration page.</p>
+<p class="guide-p">  2. Locate the <strong>AI CV / Resume Scanner</strong> card with the Google Gemini badge.</p>
+<p class="guide-p">  3. Drag and drop any sample CV (<code class="guide-code">.pdf</code> or <code class="guide-code">.docx</code>), or enter details manually.</p>
+<p class="guide-p">  4. Notice the real-time AI extractor parses First Name, Last Name, Email, Phone, Country, Nationality, Degree Level, and Language scores without dummy defaults.</p>
+<p class="guide-p">  5. Click <strong>Create Student Account</strong>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/02_student_registration_cv_upload.png" alt="Student Registration with AI CV Scanner" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Registration with AI CV Scanner</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 1.2: Onboarding Step 1 — Identity Confirmation &amp; Degree Level</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/onboarding/step-1" target="_blank" class="guide-link"><code class="guide-code">/student/onboarding/step-1</code></a></li>
+<li><strong>Zero-Redundancy Verification</strong>:</li>
+</ul>
+<p class="guide-p">  1. Personal Identity fields (First Name, Last Name, Email, Phone, Country, Nationality) are <strong>100% pre-hydrated</strong> from registration!</p>
+<p class="guide-p">  2. Select <strong>Desired Study Level</strong>: <code class="guide-code">Postgraduate (Master's / MSc / MA)</code>.</p>
+<p class="guide-p">  3. Verify or add prior educational qualifications (e.g. Bachelor of Science in Computer Science, GPA 3.65).</p>
+<p class="guide-p">  4. Click <strong>Save & Continue</strong>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/03_student_onboarding_step1.png" alt="Student Onboarding Step 1" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Onboarding Step 1</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 1.3: Onboarding Step 2 — Study Destinations &amp; Intake</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/onboarding/step-2" target="_blank" class="guide-link"><code class="guide-code">/student/onboarding/step-2</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Select primary target destination countries: <code class="guide-code">United Kingdom</code>, <code class="guide-code">United States</code>, <code class="guide-code">Canada</code>.</p>
+<p class="guide-p">  2. Select target intake session: <code class="guide-code">Autumn / Fall 2026</code>.</p>
+<p class="guide-p">  3. Choose annual tuition budget: <code class="guide-code">£15,000 - £25,000</code>.</p>
+<p class="guide-p">  4. Select preferred discipline: <code class="guide-code">Computer Science & Artificial Intelligence</code>.</p>
+<p class="guide-p">  5. Click <strong>Proceed to Documents</strong>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/04_student_onboarding_step2.png" alt="Student Onboarding Step 2" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Onboarding Step 2</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 1.4: Onboarding Step 3 — Mandatory KYC Document Uploads</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/onboarding/step-3" target="_blank" class="guide-link"><code class="guide-code">/student/onboarding/step-3</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Upload or inspect required verification slots:</p>
+<ul class="guide-list">
+<li>International Passport photo page.</li>
+<li>Bachelor Degree Transcript & Graduation Certificate.</li>
+<li>English Language Test Certificate (IELTS / PTE / TOEFL).</li>
+</ul>
+<p class="guide-p">  2. Notice the client-side validation for file format (<code class="guide-code">.pdf</code>, <code class="guide-code">.png</code>, <code class="guide-code">.jpg</code>) and max size (10MB).</p>
+<p class="guide-p">  3. Click <strong>Proceed to Readiness Review</strong>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/05_student_onboarding_step3.png" alt="Student Onboarding Step 3" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Onboarding Step 3</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 1.5: Onboarding Step 4 — Profile Completeness &amp; Legal Declaration</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/onboarding/step-4" target="_blank" class="guide-link"><code class="guide-code">/student/onboarding/step-4</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Observe the <strong>Profile Completeness Score</strong> calculated dynamically by <code class="guide-code">profileCompleteness.ts</code>.</p>
+<p class="guide-p">  2. Verify all extracted and entered credentials summarized in the review card.</p>
+<p class="guide-p">  3. Check the confirmation box: <em>"I confirm that all submitted educational and identity documents are authentic."</em></p>
+<p class="guide-p">  4. Click <strong>Complete Onboarding & Enter Portal</strong>.</p>
+<p class="guide-p">  5. System unlocks full student portal access and transitions status to <code class="guide-code">completed</code>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/06_student_onboarding_step4.png" alt="Student Onboarding Step 4" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Onboarding Step 4</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 2: STUDENT — Course Discovery &amp; 11-Step Application Wizard</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">student</code> (Registered Student — Aarav Patel)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 2.1: Student Command Center Overview</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Student (Reg)</strong> in the Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/dashboard" target="_blank" class="guide-link"><code class="guide-code">/student/dashboard</code></a></li>
+<li><strong>Key Elements</strong>:</li>
+<li>Live Application Tracker (shows current stage: <code class="guide-code">Draft</code>, <code class="guide-code">Initial Review</code>, <code class="guide-code">Conditional Offer</code>).</li>
+<li>Assigned Counsellor Card with instant messaging link.</li>
+<li>Document Readiness & KYC verification status chips.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/07_student_dashboard.png" alt="Student Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 2.2: Programme Catalog &amp; Eligibility Filter</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/programs" target="_blank" class="guide-link"><code class="guide-code">/student/programs</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Filter courses by Country (<code class="guide-code">United Kingdom</code>), Study Level (<code class="guide-code">Postgraduate</code>), and Field (<code class="guide-code">Computer Science</code>).</p>
+<p class="guide-p">  2. Select <strong>MSc Advanced Computer Science</strong> at Oxford University.</p>
+<p class="guide-p">  3. Inspect entry criteria: Minimum GPA 3.5, Minimum IELTS 7.0.</p>
+<p class="guide-p">  4. Click <strong>Apply Now</strong> to initiate the application wizard.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/08_student_programme_catalog.png" alt="Student Programme Catalog" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Programme Catalog</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 2.3: Complete 11-Step Student Application Wizard</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/new-application" target="_blank" class="guide-link"><code class="guide-code">/student/new-application</code></a></li>
+<li><strong>Step-by-Step Validation</strong>:</li>
+<li><strong>Step 1 (Overview)</strong>: Program, university, campus, intake term, and tuition fee confirmed.</li>
+<li><strong>Step 2 (Personal Info)</strong>: Full name, DOB, nationality, and passport number <strong>100% pre-filled</strong> from master profile.</li>
+<li><strong>Step 3 (Academic Records)</strong>: Bachelor degree, university name, and GPA pre-filled.</li>
+<li><strong>Step 4 (English Proficiency)</strong>: IELTS 7.5 automatically benchmarked against program minimum (7.0) — flagged as <em>Eligible</em>.</li>
+<li><strong>Step 5 (Statement of Purpose)</strong>: Input academic rationale and career goals.</li>
+<li><strong>Step 6 (Work Experience)</strong>: Optional professional history and internships.</li>
+<li><strong>Step 7 (Referees)</strong>: Academic referee contact information.</li>
+<li><strong>Step 8 (University Questions)</strong>: Visa history, previous refusals, and funding source declarations.</li>
+<li><strong>Step 9 (Documents)</strong>: Pre-verified KYC passport and transcript attached automatically.</li>
+<li><strong>Step 10 (Declarations)</strong>: Statutory compliance and accuracy declaration.</li>
+<li><strong>Step 11 (Submit)</strong>: Click <strong>Submit Application</strong>. Application record is created in Firestore with status <code class="guide-code">Submitted</code> and stage <code class="guide-code">Initial Review</code>.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/09_student_application_wizard.png" alt="Student Application Wizard" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Application Wizard</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 3: STUDENT — Document Vault, Invoices, Chat &amp; Profile</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">student</code></p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 3.1: Secure Digital Document Vault</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/documents" target="_blank" class="guide-link"><code class="guide-code">/student/documents</code></a></li>
+<li><strong>Features</strong>:</li>
+<li>Categorized file repository (Identity, Academic, Language, Financial).</li>
+<li>Status badges: <code class="guide-code">Verified</code>, <code class="guide-code">Pending Verification</code>, <code class="guide-code">Resubmission Required</code>.</li>
+<li>Download or replace expired documents with full audit trail.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/10_student_document_vault.png" alt="Student Document Vault" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Document Vault</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 3.2: Tuition Invoices &amp; Bank Fee Challans</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/invoices" target="_blank" class="guide-link"><code class="guide-code">/student/invoices</code></a></li>
+<li><strong>Features</strong>:</li>
+<li>Download official fee challan and university invoice PDF.</li>
+<li>View payable amounts, currency conversion, and bank wire details.</li>
+<li>Real-time payment reconciliation badges (<code class="guide-code">Pending</code>, <code class="guide-code">Paid</code>).</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/11_student_invoices.png" alt="Student Invoices & Challans" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Invoices & Challans</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 3.3: Direct Messaging with Assigned Counsellor</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/messages" target="_blank" class="guide-link"><code class="guide-code">/student/messages</code></a></li>
+<li><strong>Features</strong>:</li>
+<li>Real-time chat channel between the student and assigned counsellor.</li>
+<li>File attachments, application status updates, and interview prep notifications.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/50_student_chat_messages.png" alt="Student Messaging Channel" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Messaging Channel</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 3.4: Student Profile Self-Edit</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/student/profile" target="_blank" class="guide-link"><code class="guide-code">/student/profile</code></a></li>
+<li><strong>Features</strong>:</li>
+<li>Update address, emergency contact, passport expiry date.</li>
+<li>Automated two-way sync between student profile and active applications.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/51_student_profile_edit.png" alt="Student Profile Self-Edit" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Student Profile Self-Edit</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 4: COUNSELLOR — Lead Intake, 360° Dossier &amp; AI Programme Matcher</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">counsellor</code> (Education Counsellor)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 4.1: Counsellor Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Counsellor</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/counsellor/dashboard" target="_blank" class="guide-link"><code class="guide-code">/counsellor/dashboard</code></a></li>
+<li><strong>Key Metrics</strong>:</li>
+<li>Assigned Active Leads count.</li>
+<li>Applications in Pipeline.</li>
+<li>Follow-up callbacks scheduled for today.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/12_counsellor_dashboard.png" alt="Counsellor Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Counsellor Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 4.2: Lead Lifecycle &amp; Automated Deduplication</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/leads" target="_blank" class="guide-link"><code class="guide-code">/leads</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Filter leads by status: <code class="guide-code">New</code>, <code class="guide-code">Contacted</code>, <code class="guide-code">Qualified</code>, <code class="guide-code">Converted</code>.</p>
+<p class="guide-p">  2. Notice the <strong>AI Lead Scoring Badges</strong> (<code class="guide-code">Hot</code>, <code class="guide-code">Warm</code>, <code class="guide-code">Cold</code>).</p>
+<p class="guide-p">  3. Click <strong>Add Lead</strong> and test deduplication: Input an existing phone number or email.</p>
+<p class="guide-p">  4. System prevents duplicate fragmentation and alerts the counsellor.</p>
+<p class="guide-p">  5. Click <strong>Convert to Student</strong> to provision a student account with 1-click.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/13_leads_management.png" alt="Leads Management & Deduplication" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Leads Management & Deduplication</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 4.3: 360° Student Application Dossier</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/counsellor/students" target="_blank" class="guide-link"><code class="guide-code">/counsellor/students</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Select student <strong>Aarav Patel</strong> to open the comprehensive <strong>Application Dossier Modal</strong>.</p>
+<p class="guide-p">  2. Review consolidated academic history, GPA, language test scores, verified documents, and counsellor interaction logs in a single unified view.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/14_counsellor_students.png" alt="Counsellor Students Directory & Dossier" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Counsellor Students Directory & Dossier</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 4.4: Algorithmic Programme Matcher</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/counsellor/programme-matcher" target="_blank" class="guide-link"><code class="guide-code">/counsellor/programme-matcher</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Load student academic profile: GPA 3.65, IELTS 7.5, Target UK.</p>
+<p class="guide-p">  2. Run the algorithmic matcher.</p>
+<p class="guide-p">  3. System classifies results into:</p>
+<ul class="guide-list">
+<li><strong>Direct High Match</strong>: Fully meets both academic and language thresholds.</li>
+<li><strong>Conditional Pathway</strong>: Requires pre-sessional English or pathway credit.</li>
+<li><strong>Stretch Target</strong>: Requirements exceed current qualifications.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/15_counsellor_programme_matcher.png" alt="Algorithmic Programme Matcher" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Algorithmic Programme Matcher</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 4.5: Application Pipeline Management</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/applications" target="_blank" class="guide-link"><code class="guide-code">/applications</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Review applications across workflow stages: <code class="guide-code">Draft</code> ➔ <code class="guide-code">Initial Review</code> ➔ <code class="guide-code">Submitted to University</code>.</p>
+<p class="guide-p">  2. Advance ready applications to Admissions Officer triage.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/16_applications_pipeline.png" alt="Applications Pipeline" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Applications Pipeline</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 5: ADMISSIONS OFFICER — Verification Hub, Academic Threshold &amp; Offers</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">admissions_officer</code> (Admissions Officer)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 5.1: Admissions Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Admissions</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/admissions/dashboard" target="_blank" class="guide-link"><code class="guide-code">/admissions/dashboard</code></a></li>
+<li><strong>Key Metrics</strong>:</li>
+<li>Applications pending verification.</li>
+<li>University partner turnaround deadlines.</li>
+<li>Today's verified document count.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/17_admissions_dashboard.png" alt="Admissions Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Admissions Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 5.2: Admissions Document Verification Hub</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/admissions/verification" target="_blank" class="guide-link"><code class="guide-code">/admissions/verification</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Open an application in <code class="guide-code">Initial Review</code>.</p>
+<p class="guide-p">  2. Perform side-by-side document inspection:</p>
+<ul class="guide-list">
+<li>International Passport: Verify validity, MRZ strip, clarity.</li>
+<li>Academic Transcripts: Verify grading scale, accreditation, GPA threshold.</li>
+<li>IELTS Scorecard: Verify TRF number against testing database.</li>
+</ul>
+<p class="guide-p">  3. Click <strong>Approve Document</strong> (stamps document as verified) or <strong>Request Resubmission</strong> with mandatory notes.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/18_admissions_verification_hub.png" alt="Admissions Document Verification Hub" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Admissions Document Verification Hub</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 5.3: Dispatch Conditional &amp; Unconditional Offer Letters</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/admissions/offers" target="_blank" class="guide-link"><code class="guide-code">/admissions/offers</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Click <strong>Generate Offer Letter</strong>.</p>
+<p class="guide-p">  2. Choose <strong>Offer Type</strong>:</p>
+<ul class="guide-list">
+<li><code class="guide-code">Conditional Offer</code>: Stipulate conditions (e.g. £2,000 deposit, final degree transcript).</li>
+<li><code class="guide-code">Unconditional Offer</code>: All entry conditions satisfied.</li>
+</ul>
+<p class="guide-p">  3. Click <strong>Issue Offer Letter</strong>.</p>
+<p class="guide-p">  4. System updates application state to <code class="guide-code">Conditional Offer</code> / <code class="guide-code">Unconditional Offer</code> and dispatches notification.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/19_admissions_offers.png" alt="Admissions Offer Letters Management" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Admissions Offer Letters Management</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 6: TEAM LEADER — Caseload Balancing, Reassignment &amp; Performance SLAs</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">team_leader</code> (Admissions Team Leader)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 6.1: Team Leader Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Team Leader</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/team-leader/dashboard" target="_blank" class="guide-link"><code class="guide-code">/team-leader/dashboard</code></a></li>
+<li><strong>Metrics</strong>: Branch throughput, unassigned application backlog, counsellor response times.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/20_team_leader_dashboard.png" alt="Team Leader Dashboard" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Team Leader Dashboard</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 6.2: Workload Balancing &amp; Application Reassignment</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/team-leader/assign-applications" target="_blank" class="guide-link"><code class="guide-code">/team-leader/assign-applications</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Inspect the table of unassigned or high-priority applications.</p>
+<p class="guide-p">  2. Compare counsellor caseloads.</p>
+<p class="guide-p">  3. Reassign application from an overloaded counsellor to an available counsellor.</p>
+<p class="guide-p">  4. Confirm that assignment updates immediately across both counsellors' queues.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/21_team_leader_assign_applications.png" alt="Team Leader Assign Applications" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Team Leader Assign Applications</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 6.3: Counsellor Team Members &amp; Capacity Roster</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/team-leader/team-members" target="_blank" class="guide-link"><code class="guide-code">/team-leader/team-members</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. View full roster of branch counsellors.</p>
+<p class="guide-p">  2. Inspect individual active student counts, conversion rates, and language specializations.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/43_team_leader_team_members.png" alt="Team Leader Team Members" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Team Leader Team Members</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 6.4: Operational Performance &amp; SLA Analytics</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/team-leader/performance" target="_blank" class="guide-link"><code class="guide-code">/team-leader/performance</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Monitor average lead-to-offer turnaround times.</p>
+<p class="guide-p">  2. Identify bottleneck stages across the admissions lifecycle.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/44_team_leader_performance.png" alt="Team Leader Performance Analytics" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Team Leader Performance Analytics</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 7: VISA OFFICER — Proof of Funds, Medical Clearance &amp; Mock Interview</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">visa_officer</code> (Visa & Immigration Officer)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 7.1: Visa Officer Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Visa Officer</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/visa-officer/dashboard" target="_blank" class="guide-link"><code class="guide-code">/visa-officer/dashboard</code></a></li>
+<li><strong>Overview</strong>: Caseload categorized by immigration jurisdiction (UKVI Student Route, US F-1, Canada Study Permit, Australia Subclass 500).</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/22_visa_officer_dashboard.png" alt="Visa Officer Dashboard" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Visa Officer Dashboard</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 7.2: Active Visa Cases Management</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/visa-officer/cases" target="_blank" class="guide-link"><code class="guide-code">/visa-officer/cases</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Review students currently in <code class="guide-code">CAS / Visa Stage</code>.</p>
+<p class="guide-p">  2. Filter by visa category, priority, and CAS deadline.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/36_visa_cases.png" alt="Visa Cases Management" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Visa Cases Management</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 7.3: Visa Documents Hub &amp; Financial Proof of Funds</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/visa-officer/documents" target="_blank" class="guide-link"><code class="guide-code">/visa-officer/documents</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Open the student visa dossier.</p>
+<p class="guide-p">  2. Audit mandatory immigration prerequisites:</p>
+<ul class="guide-list">
+<li>28-day consecutive bank balance rule validation.</li>
+<li>Sponsor affidavit and relationship documentation.</li>
+<li>Tuberculosis (TB) medical screening certificate.</li>
+<li>Police clearance / criminal record check.</li>
+</ul>
+<p class="guide-p">  3. Schedule and record a <strong>Mock Visa Interview</strong> with question scores.</p>
+<p class="guide-p">  4. Issue <strong>Visa Filing Clearance</strong>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/23_visa_documents_hub.png" alt="Visa Documents Hub" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Visa Documents Hub</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 8: FINANCE — Tuition Invoicing, Wire Reconciliation &amp; Commissions</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">finance_officer</code> (Finance & Accounts Officer)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 8.1: Finance Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Finance</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/finance/dashboard" target="_blank" class="guide-link"><code class="guide-code">/finance/dashboard</code></a></li>
+<li><strong>Metrics</strong>: Total tuition invoiced, pending university receivables, approved recruitment agent commission liabilities.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/24_finance_dashboard.png" alt="Finance Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Finance Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 8.2: Invoicing &amp; Fee Challan Generation</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/finance/invoices" target="_blank" class="guide-link"><code class="guide-code">/finance/invoices</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Click <strong>Create Invoice / Challan</strong>.</p>
+<p class="guide-p">  2. Select student: <code class="guide-code">Aarav Patel</code>.</p>
+<p class="guide-p">  3. Specify line item: <code class="guide-code">First Year Tuition Deposit</code> — Amount: <code class="guide-code">£2,000</code>.</p>
+<p class="guide-p">  4. Issue invoice: Status becomes <code class="guide-code">Pending Payment</code>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/25_finance_invoices.png" alt="Finance Invoices & Billing" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Finance Invoices & Billing</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 8.3: Wire Payment Reconciliation &amp; Receipts</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/finance/payments" target="_blank" class="guide-link"><code class="guide-code">/finance/payments</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Record incoming bank wire transfer.</p>
+<p class="guide-p">  2. Input transaction reference <code class="guide-code">WIRE-2026-98124</code>, select <code class="guide-code">Full Payment Received</code>.</p>
+<p class="guide-p">  3. System stamps invoice as <code class="guide-code">Paid</code> and updates student portal status.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/37_finance_payments.png" alt="Finance Payment Reconciliation" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Finance Payment Reconciliation</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 8.4: External Agent Commission Settlement</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/finance/commissions" target="_blank" class="guide-link"><code class="guide-code">/finance/commissions</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Review verified student enrollments tagged to external recruitment agents.</p>
+<p class="guide-p">  2. Calculate tier commission (e.g. 10% - 15% of first-year tuition).</p>
+<p class="guide-p">  3. Click <strong>Approve Commission</strong> and record payout settlement.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/38_finance_commissions.png" alt="Finance Commission Settlement" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Finance Commission Settlement</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 9: EXTERNAL AGENT — Referral Ingestion, Pipeline &amp; Commissions</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">external_agent</code> (External Recruitment Partner)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 9.1: Agent Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Agent</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/agent/dashboard" target="_blank" class="guide-link"><code class="guide-code">/agent/dashboard</code></a></li>
+<li><strong>Metrics</strong>: Unique Referral Code (<code class="guide-code">EDU-AGENT-778</code>), total student leads, enrolled students, cumulative earned commissions.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/26_agent_dashboard.png" alt="Agent Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Agent Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 9.2: Submit Candidate Referral</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/agent/refer-lead" target="_blank" class="guide-link"><code class="guide-code">/agent/refer-lead</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Fill out prospective student referral:</p>
+<ul class="guide-list">
+<li>Name: <code class="guide-code">Zainab Malik</code></li>
+<li>Email: <code class="guide-code">zainab.malik@example.com</code></li>
+<li>Phone: <code class="guide-code">+44 7911 123456</code></li>
+<li>Target Country: <code class="guide-code">United Kingdom</code></li>
+</ul>
+<p class="guide-p">  2. Click <strong>Submit Referral</strong>.</p>
+<p class="guide-p">  3. The lead is tagged with the agent's ID and ingested into the central admissions queue.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/27_agent_refer_lead.png" alt="Agent Refer Lead Form" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Agent Refer Lead Form</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 9.3: Referral Pipeline Tracking (Privacy-Preserving)</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/agent/referrals" target="_blank" class="guide-link"><code class="guide-code">/agent/referrals</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Track application milestones (Lead ➔ Applied ➔ Offer ➔ Enrolled).</p>
+<p class="guide-p">  2. Protects sensitive student details while providing transparent progress tracking.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/41_agent_referrals.png" alt="Agent Referrals Pipeline" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Agent Referrals Pipeline</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 9.4: Agent Commission Statement</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/agent/commissions" target="_blank" class="guide-link"><code class="guide-code">/agent/commissions</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Inspect earned commission breakdown per enrolled student.</p>
+<p class="guide-p">  2. View payout schedule and bank disbursement confirmations.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/42_agent_commissions.png" alt="Agent Commission Statement" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Agent Commission Statement</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 10: UNIVERSITY PARTNER — Application Assessment &amp; Direct CAS Issuance</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">university_partner</code> (Partner University Representative)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 10.1: Institutional Partner Dashboard</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>University</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/university/dashboard" target="_blank" class="guide-link"><code class="guide-code">/university/dashboard</code></a></li>
+<li><strong>Overview</strong>: Applications received from the EduCRM agency network, categorized by campus and department.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/28_university_partner_dashboard.png" alt="University Partner Dashboard" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> University Partner Dashboard</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 10.2: Review Candidate Applications &amp; Dossiers</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/university/applications" target="_blank" class="guide-link"><code class="guide-code">/university/applications</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Open student application dossier.</p>
+<p class="guide-p">  2. Download verified document package (transcripts, IELTS scorecard, passport).</p>
+<p class="guide-p">  3. Issue official institutional acceptance.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/39_university_applications.png" alt="University Applications Review" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> University Applications Review</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 10.3: Direct CAS / I-20 Document Issuance</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/university/cas-issuance" target="_blank" class="guide-link"><code class="guide-code">/university/cas-issuance</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Locate student in <code class="guide-code">Unconditional Offer</code> stage.</p>
+<p class="guide-p">  2. Upload official CAS statement / I-20 certificate.</p>
+<p class="guide-p">  3. System pushes CAS clearance to student and visa officer desks.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/40_university_cas_issuance.png" alt="University CAS Issuance" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> University CAS Issuance</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 11: SUPPORT SPECIALIST — Ticketing Desk &amp; Knowledge Base</h2>
+<h3 class="guide-h3">Target Role:</h3>
+<p class="guide-p"><code class="guide-code">support_user</code> (Support Specialist)</p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 11.1: Support Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Support</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/support/dashboard" target="_blank" class="guide-link"><code class="guide-code">/support/dashboard</code></a></li>
+<li><strong>Metrics</strong>: Open support tickets, average resolution time, unresolved priority escalation queues.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/31_support_dashboard.png" alt="Support Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Support Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 11.2: Ticket Management &amp; SLA Resolution</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/support/tickets" target="_blank" class="guide-link"><code class="guide-code">/support/tickets</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Filter tickets by priority: <code class="guide-code">Critical</code>, <code class="guide-code">High</code>, <code class="guide-code">Medium</code>, <code class="guide-code">Low</code>.</p>
+<p class="guide-p">  2. Open ticket, reply to user inquiry, and transition status to <code class="guide-code">Resolved</code>.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/32_support_tickets.png" alt="Support Tickets Management" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Support Tickets Management</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 11.3: Knowledge Base &amp; FAQ Curation</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/support/knowledge-base" target="_blank" class="guide-link"><code class="guide-code">/support/knowledge-base</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Search articles on visa proof of funds, IELTS score requirements, and application submission checklists.</p>
+<p class="guide-p">  2. Curate and publish self-service support documentation.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/33_support_knowledge_base.png" alt="Support Knowledge Base" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Support Knowledge Base</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">FLOW 12: SUPER ADMIN, ORG ADMIN &amp; AUDITOR — Governance &amp; Forensics</h2>
+<h3 class="guide-h3">Target Roles:</h3>
+<p class="guide-p"><code class="guide-code">platform_super_admin</code>, <code class="guide-code">org_admin</code>, <code class="guide-code">auditor</code>, <code class="guide-code">compliance_officer</code></p>
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.1: Platform Super Admin Global Command Center</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Super Admin</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/super-admin/dashboard" target="_blank" class="guide-link"><code class="guide-code">/super-admin/dashboard</code></a></li>
+<li><strong>Overview</strong>: System health, active tenant branches, and multi-tenant database status.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/29_super_admin_dashboard.png" alt="Super Admin Command Center" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Super Admin Command Center</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.2: Multi-Tenant Branch Management</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/super-admin/tenants" target="_blank" class="guide-link"><code class="guide-code">/super-admin/tenants</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Inspect tenant branch offices (London HQ, Delhi Hub, Lahore Regional Desk).</p>
+<p class="guide-p">  2. Manage subscription tiers and tenant isolation boundaries.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/45_super_admin_tenants.png" alt="Super Admin Tenants Management" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Super Admin Tenants Management</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.3: User Provisioning Across 13 RBAC Tiers</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/super-admin/users" target="_blank" class="guide-link"><code class="guide-code">/super-admin/users</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. View list of system users.</p>
+<p class="guide-p">  2. Assign or modify roles across the 13 supported RBAC categories with instant route gating.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/46_super_admin_users.png" alt="Super Admin User Provisioning" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Super Admin User Provisioning</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.4: Commission Tier Management (Org Admin)</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Org Admin</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/commission-manager" target="_blank" class="guide-link"><code class="guide-code">/commission-manager</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Set agent commission rules by country, intake season, and university tier.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/47_org_admin_commission_manager.png" alt="Commission Rules Manager" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Commission Rules Manager</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.5: AI Lead Scoring Configuration</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/lead-scoring" target="_blank" class="guide-link"><code class="guide-code">/lead-scoring</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Configure lead score weighting based on student response time, target degree, and budget completeness.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/48_org_admin_lead_scoring.png" alt="AI Lead Scoring Engine" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> AI Lead Scoring Engine</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.6: Data Quality &amp; Deduplication Dashboard</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/data-quality" target="_blank" class="guide-link"><code class="guide-code">/data-quality</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Audit incomplete student profiles, missing phone numbers, and duplicate inquiry flags.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/49_org_admin_data_quality.png" alt="Data Quality Dashboard" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Data Quality Dashboard</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.7: Immutable Audit Trail &amp; Regulatory Compliance</h3>
+<ul class="guide-list">
+<li><strong>Fast Login</strong>: Select <strong>Auditor</strong> in Demo Accounts drawer.</li>
+<li><strong>URL</strong>: <a href="http://localhost:5173/auditor/audit-trail" target="_blank" class="guide-link"><code class="guide-code">/auditor/audit-trail</code></a></li>
+<li><strong>Forensic Verification</strong>:</li>
+<li>Filter events by: <code class="guide-code">APPLICATION_STAGE_CHANGED</code>, <code class="guide-code">DOCUMENT_VERIFIED</code>, <code class="guide-code">OFFER_ISSUED</code>.</li>
+<li>Every entry captures: Actor ID, User Role, Previous Value, New Value, IP Address, and Cryptographic Timestamp.</li>
+</ul>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/30_auditor_trail.png" alt="Auditor Immutable Audit Trail" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Auditor Immutable Audit Trail</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.8: GDPR Compliance &amp; Right-to-be-Forgotten Inspection</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/auditor/compliance-inspect" target="_blank" class="guide-link"><code class="guide-code">/auditor/compliance-inspect</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Inspect GDPR consent logs, privacy consent revocation requests, and data retention schedules.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/34_auditor_compliance_inspect.png" alt="Auditor Compliance Inspection" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Auditor Compliance Inspection</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h3 class="guide-h3">Step 12.9: Forensic System Logs</h3>
+<ul class="guide-list">
+<li><strong>URL</strong>: <a href="http://localhost:5173/auditor/system-logs" target="_blank" class="guide-link"><code class="guide-code">/auditor/system-logs</code></a></li>
+<li><strong>Action</strong>:</li>
+</ul>
+<p class="guide-p">  1. Inspect server, authentication, and API exception logs for security auditing.</p>
+
+        <div class="figure-container">
+          <img src="../crm_screenshots/35_auditor_system_logs.png" alt="Auditor System Logs" class="guide-screenshot" loading="lazy" />
+          <div class="figure-caption"><span class="caption-tag">Screen Capture</span> Auditor System Logs</div>
+        </div>
+      
+<hr class="guide-divider" />
+<h2 class="guide-h2">3. Master Instructor Evaluation Rubric</h2>
+<div class="table-wrapper"><table class="guide-table"><thead><tr>
+<th>Flow #</th>
+<th>Role Evaluated</th>
+<th>Core Verification Milestones</th>
+<th>Evaluator Sign-Off</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Student (New)</strong></td>
+<td>Google Gemini 3.8 Flash CV extractor, Zero-Redundancy 4-Stage Onboarding</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Student (Reg)</strong></td>
+<td>Program Search, Entry Eligibility Check, 11-Step Application Wizard Submission</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Student (Vault)</strong></td>
+<td>Digital Document Vault, Tuition Invoices & Fee Challans, Counsellor Chat</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>Counsellor</strong></td>
+<td>Lead Deduplication, 360° Dossier (<code class="guide-code">ApplicationDossierModal</code>), AI Course Matcher</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>Admissions</strong></td>
+<td>Admissions Verification Hub, Academic Threshold Audit, Conditional & Unconditional Offers</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Team Leader</strong></td>
+<td>Team Workload Balancing, Application Reassignment, Counsellor SLAs</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Visa Officer</strong></td>
+<td>28-Day Proof of Funds, Medical Screening, Mock Visa Interview Scheduling</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>Finance</strong></td>
+<td>Tuition Invoices, Fee Challan Generation, Wire Reconciliation, Agent Commission Ledger</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>Agent</strong></td>
+<td>Candidate Lead Ingestion, Real-Time Pipeline Tracking, Commission Statement</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>University</strong></td>
+<td>Agency Network Applications Review, Document Package Download, Direct CAS Issuance</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>11</strong></td>
+<td><strong>Support</strong></td>
+<td>Ticket Triage, Priority Escalation Desk, Knowledge Base Article Curation</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+<tr>
+<td><strong>12</strong></td>
+<td><strong>Admin & Auditor</strong></td>
+<td>13-Role RBAC Provisioning, Immutable Audit Trail, GDPR Compliance Forensics</td>
+<td>[x] <strong>PASSED</strong></td>
+</tr>
+</tbody></table></div>
+<hr class="guide-divider" />
+<p class="guide-p"><em>EduCRM Master Instructor Hands-On Walkthrough & System Evaluation Manual — Complete & Verified.</em></p>
+  </div>
+</body>
+</html>
