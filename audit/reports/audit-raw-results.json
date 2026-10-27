@@ -1,0 +1,221 @@
+{
+  "url": "https://education-crm-9fee2.web.app",
+  "timestamp": "2026-10-27T11:16:51.086Z",
+  "tests": [
+    {
+      "test": "Landing page render (desktop)",
+      "viewport": "desktop",
+      "passed": true,
+      "details": {
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "hasBrand": true,
+        "hasHero": true,
+        "hasMatcher": true,
+        "consoleErrors": 0
+      }
+    },
+    {
+      "test": "Landing page render (tablet)",
+      "viewport": "tablet",
+      "passed": true,
+      "details": {
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "hasBrand": true,
+        "hasHero": true,
+        "hasMatcher": true,
+        "consoleErrors": 0
+      }
+    },
+    {
+      "test": "Landing page render (mobile)",
+      "viewport": "mobile",
+      "passed": true,
+      "details": {
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "hasBrand": true,
+        "hasHero": true,
+        "hasMatcher": true,
+        "consoleErrors": 0
+      }
+    },
+    {
+      "test": "Course search filtering",
+      "passed": true,
+      "details": {
+        "keyword": "Computer Science",
+        "matchesFiltered": true
+      }
+    },
+    {
+      "test": "AI Matchmaker calculation & recommendation output",
+      "passed": true,
+      "details": {
+        "hasAiScores": true
+      }
+    },
+    {
+      "test": "Student registration page",
+      "passed": true,
+      "details": {
+        "hasCvScanner": true
+      }
+    },
+    {
+      "test": "Login page role tabs (Student vs Staff EduCRM)",
+      "passed": true,
+      "details": {
+        "hasTabs": true
+      }
+    },
+    {
+      "test": "Student dashboard view & metrics for registered student",
+      "passed": true,
+      "details": {
+        "isStudentDashLoaded": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Education Counsellor",
+      "role": "counsellor",
+      "route": "/counsellor/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Visa Officer",
+      "role": "visa_officer",
+      "route": "/visa-officer/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Admissions Officer",
+      "role": "admissions_officer",
+      "route": "/admissions/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Organization Admin",
+      "role": "org_admin",
+      "route": "/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Super Admin",
+      "role": "platform_super_admin",
+      "route": "/super-admin/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Finance Officer",
+      "role": "finance_officer",
+      "route": "/finance/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Staff EduCRM workspace access: Team Leader",
+      "role": "team_leader",
+      "route": "/team-leader/dashboard",
+      "passed": true,
+      "details": {
+        "hasSidebar": true,
+        "hasPublicPortalLink": true
+      }
+    },
+    {
+      "test": "Direct route load & refresh: /",
+      "route": "/",
+      "passed": true,
+      "details": {
+        "pageTitle": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform"
+      }
+    },
+    {
+      "test": "Direct route load & refresh: /explore",
+      "route": "/explore",
+      "passed": true,
+      "details": {
+        "pageTitle": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform"
+      }
+    },
+    {
+      "test": "Direct route load & refresh: /programmes",
+      "route": "/programmes",
+      "passed": true,
+      "details": {
+        "pageTitle": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform"
+      }
+    },
+    {
+      "test": "Direct route load & refresh: /scholarships",
+      "route": "/scholarships",
+      "passed": true,
+      "details": {
+        "pageTitle": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform"
+      }
+    },
+    {
+      "test": "Direct route load & refresh: /login",
+      "route": "/login",
+      "passed": true,
+      "details": {
+        "pageTitle": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform"
+      }
+    },
+    {
+      "test": "Direct route load & refresh: /student-register",
+      "route": "/student-register",
+      "passed": true,
+      "details": {
+        "pageTitle": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform"
+      }
+    },
+    {
+      "test": "Guest access to /leads is blocked and redirected to /login",
+      "passed": true,
+      "details": {
+        "finalUrl": "https://education-crm-9fee2.web.app/login"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "page": "landing",
+      "viewport": "desktop",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\screenshots\\landing-page\\landing_desktop.png"
+    },
+    {
+      "page": "landing",
+      "viewport": "tablet",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\screenshots\\landing-page\\landing_tablet.png"
+    },
+    {
+      "page": "landing",
+      "viewport": "mobile",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\screenshots\\landing-page\\landing_mobile.png"
+    }
+  ],
+  "errors": []
+}
