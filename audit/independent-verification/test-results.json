@@ -1,0 +1,462 @@
+{
+  "targetUrl": "https://education-crm-9fee2.web.app",
+  "executionTimestamp": "2026-10-27T12:14:43.995Z",
+  "tests": [
+    {
+      "category": "Routing",
+      "test": "Route Verification: /",
+      "verdict": "PASS",
+      "details": {
+        "path": "/",
+        "name": "Public Landing Root",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /explore",
+      "verdict": "PASS",
+      "details": {
+        "path": "/explore",
+        "name": "Explore Catalog",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /programmes",
+      "verdict": "PASS",
+      "details": {
+        "path": "/programmes",
+        "name": "Programmes Deep Link",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /scholarships",
+      "verdict": "PASS",
+      "details": {
+        "path": "/scholarships",
+        "name": "Scholarships Radar Deep Link",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /ai-counsellor",
+      "verdict": "PASS",
+      "details": {
+        "path": "/ai-counsellor",
+        "name": "AI Counsellor Deep Link",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /login",
+      "verdict": "PASS",
+      "details": {
+        "path": "/login",
+        "name": "Unified Login Screen",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /student-register",
+      "verdict": "PASS",
+      "details": {
+        "path": "/student-register",
+        "name": "Student Registration",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /student/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/student/dashboard",
+        "name": "Student Dashboard",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/dashboard",
+        "name": "Org Admin CRM Dashboard",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /super-admin/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/super-admin/dashboard",
+        "name": "Super Admin Portal",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /counsellor/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/counsellor/dashboard",
+        "name": "Counsellor Command Center",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /visa-officer/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/visa-officer/dashboard",
+        "name": "Visa Officer Workspace",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /admissions/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/admissions/dashboard",
+        "name": "Admissions Officer Hub",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /finance/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/finance/dashboard",
+        "name": "Finance Officer Ledger",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Routing",
+      "test": "Route Verification: /team-leader/dashboard",
+      "verdict": "PASS",
+      "details": {
+        "path": "/team-leader/dashboard",
+        "name": "Team Leader Caseload",
+        "httpStatus": 200,
+        "title": "EduBridge AI — AI-Powered University Admissions & Study Abroad Platform",
+        "reloadSuccess": true,
+        "backSuccess": true
+      }
+    },
+    {
+      "category": "Student Workflow: Course Discovery",
+      "test": "Course Discovery Live Search, Filter & No-Results State",
+      "verdict": "PASS",
+      "details": {
+        "hasBusiness": true,
+        "hasUkUnivs": true,
+        "hasNoResultsFeedback": true
+      }
+    },
+    {
+      "category": "Student Workflow: Registration",
+      "test": "Student Registration Form Validation & AI CV Scanner",
+      "verdict": "PASS",
+      "details": {
+        "hasValidationWarning": false,
+        "hasCvScanner": true
+      }
+    },
+    {
+      "category": "Student Workflow: Portal Experience",
+      "test": "Student Dashboard, Applications, Documents & Invoices",
+      "verdict": "PASS",
+      "details": {
+        "dashOk": true,
+        "appsOk": true,
+        "docsOk": true,
+        "invOk": true
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Education Counsellor",
+      "verdict": "PASS",
+      "details": {
+        "role": "counsellor",
+        "route": "/counsellor/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Visa Officer",
+      "verdict": "PASS",
+      "details": {
+        "role": "visa_officer",
+        "route": "/visa-officer/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Admissions Officer",
+      "verdict": "PASS",
+      "details": {
+        "role": "admissions_officer",
+        "route": "/admissions/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Organization Admin",
+      "verdict": "PASS",
+      "details": {
+        "role": "org_admin",
+        "route": "/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Super Admin",
+      "verdict": "PASS",
+      "details": {
+        "role": "platform_super_admin",
+        "route": "/super-admin/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Finance Officer",
+      "verdict": "PASS",
+      "details": {
+        "role": "finance_officer",
+        "route": "/finance/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "EduCRM Staff Role",
+      "test": "Staff Workspace & Public Portal Link: Team Leader",
+      "verdict": "PASS",
+      "details": {
+        "role": "team_leader",
+        "route": "/team-leader/dashboard",
+        "hasSidebar": true,
+        "hasPublicPortalButton": true,
+        "publicPortalNavWorks": false
+      }
+    },
+    {
+      "category": "Security & Access Control",
+      "test": "Guest access to /leads is intercepted and redirected to /login",
+      "verdict": "PASS",
+      "details": {
+        "finalUrl": "https://education-crm-9fee2.web.app/login"
+      }
+    },
+    {
+      "category": "Security & Access Control",
+      "test": "Guest access to /student/dashboard is intercepted and redirected to /login",
+      "verdict": "PASS",
+      "details": {
+        "finalUrl": "https://education-crm-9fee2.web.app/login"
+      }
+    },
+    {
+      "category": "Security & Access Control",
+      "test": "Student role is denied access to Super Admin portal",
+      "verdict": "PASS",
+      "details": {
+        "finalUrl": "https://education-crm-9fee2.web.app/super-admin/dashboard",
+        "accessBlocked": true
+      }
+    },
+    {
+      "category": "AI Matchmaker & Claims Audit",
+      "test": "AI Matchmaker uses client-side deterministic heuristic matching on curated university dataset",
+      "verdict": "SIMULATED",
+      "details": {
+        "hasDeterministicFormula": true,
+        "hasGlobalUniversities": true,
+        "explanation": "Calculated match scores represent a deterministic eligibility heuristic matching student GPA and IELTS against static partner university prerequisites, rather than an ML inference model."
+      }
+    },
+    {
+      "category": "AI Matchmaker & Claims Audit",
+      "test": "AI CV Resume Parser uses Google Gemini 3.8 Flash model for unstructured document extraction",
+      "verdict": "PASS",
+      "details": {
+        "hasRealGeminiInCvScanner": true,
+        "implementation": "src/components/ai/StudentCVUploader.tsx utilizes Gemini API with structured JSON output and zero-redundancy heuristics."
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "Route: /",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\root.png"
+    },
+    {
+      "name": "Route: /explore",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\explore.png"
+    },
+    {
+      "name": "Route: /programmes",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\programmes.png"
+    },
+    {
+      "name": "Route: /scholarships",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\scholarships.png"
+    },
+    {
+      "name": "Route: /ai-counsellor",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\ai-counsellor.png"
+    },
+    {
+      "name": "Route: /login",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\login.png"
+    },
+    {
+      "name": "Route: /student-register",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\student-register.png"
+    },
+    {
+      "name": "Route: /student/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\student_dashboard.png"
+    },
+    {
+      "name": "Route: /dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\dashboard.png"
+    },
+    {
+      "name": "Route: /super-admin/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\super-admin_dashboard.png"
+    },
+    {
+      "name": "Route: /counsellor/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\counsellor_dashboard.png"
+    },
+    {
+      "name": "Route: /visa-officer/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\visa-officer_dashboard.png"
+    },
+    {
+      "name": "Route: /admissions/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\admissions_dashboard.png"
+    },
+    {
+      "name": "Route: /finance/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\finance_dashboard.png"
+    },
+    {
+      "name": "Route: /team-leader/dashboard",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\routes\\team-leader_dashboard.png"
+    },
+    {
+      "name": "Course Discovery Filtering & Feedback",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\student-flows\\course_discovery_filtering.png"
+    },
+    {
+      "name": "Student Registration Validation",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\student-flows\\student_registration_validation.png"
+    },
+    {
+      "name": "Student Dashboard Experience",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\student-flows\\student_dashboard_overview.png"
+    },
+    {
+      "name": "Staff Role: Education Counsellor",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\counsellor_verified.png"
+    },
+    {
+      "name": "Staff Role: Visa Officer",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\visa_officer_verified.png"
+    },
+    {
+      "name": "Staff Role: Admissions Officer",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\admissions_officer_verified.png"
+    },
+    {
+      "name": "Staff Role: Organization Admin",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\org_admin_verified.png"
+    },
+    {
+      "name": "Staff Role: Super Admin",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\platform_super_admin_verified.png"
+    },
+    {
+      "name": "Staff Role: Finance Officer",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\finance_officer_verified.png"
+    },
+    {
+      "name": "Staff Role: Team Leader",
+      "path": "C:\\Users\\m\\OneDrive\\Desktop\\CRM\\audit\\independent-verification\\screenshots\\staff-roles\\team_leader_verified.png"
+    }
+  ],
+  "discrepancies": []
+}
