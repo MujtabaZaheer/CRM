@@ -222,21 +222,72 @@ export const Login: React.FC = () => {
     }
   };
 
+  const [loginTab, setLoginTab] = useState<"student" | "staff">("student");
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-login">
       {/* Background Subtle Gradient Glow */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-lg bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-5 sm:p-8 space-y-6 relative z-10 backdrop-blur-md">
-        <div className="text-center space-y-2">
+      <div className="w-full max-w-lg bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-5 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
+        {/* Return to Public Front-End */}
+        <div className="flex items-center justify-between pb-1">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 font-semibold transition-colors"
+          >
+            <span>&larr; Return to Public Portal</span>
+          </Link>
+          <span className="text-[10px] text-zinc-500 font-mono">EduBridge AI</span>
+        </div>
+
+        <div className="text-center space-y-1.5">
           <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-zinc-950 font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
             E
           </div>
           <h1 className="font-heading text-2xl font-bold text-white tracking-tight">
-            Sign in to EduCRM
+            {loginTab === "student" ? "International Student Portal" : "EduCRM Operations Desk"}
           </h1>
-          <p className="text-zinc-400 text-sm">Enterprise Education Management Platform</p>
+          <p className="text-zinc-400 text-xs">
+            {loginTab === "student"
+              ? "Track university applications, document vault & AI matching"
+              : "Operations access for Counsellors, Visa Officers & Admins"}
+          </p>
+        </div>
+
+        {/* Tab Switcher: Student vs Staff */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-950/80 border border-zinc-800 rounded-xl">
+          <button
+            type="button"
+            onClick={() => {
+              setLoginTab("student");
+              setError(null);
+            }}
+            className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+              loginTab === "student"
+                ? "bg-teal-500/20 text-teal-300 border border-teal-500/30 shadow"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Student Portal</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setLoginTab("staff");
+              setError(null);
+            }}
+            className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+              loginTab === "staff"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Staff / EduCRM</span>
+          </button>
         </div>
 
         {error && (

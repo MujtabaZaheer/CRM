@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Menu, LogOut, Sun, Moon, Shield, Sparkles, ShieldCheck, FileText, Database, LifeBuoy } from "lucide-react";
+import { Menu, LogOut, Sun, Moon, Shield, Sparkles, ShieldCheck, FileText, Database, LifeBuoy, Globe } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useGlobalData } from "../../contexts/GlobalDataContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import { GlobalSearch } from "../common/GlobalSearch";
 import { NotificationBell } from "../common/NotificationBell";
@@ -90,6 +90,16 @@ export const Topbar: React.FC<TopbarProps> = ({ setMobileOpen }) => {
       </div>
 
       <div className="flex items-center space-x-3">
+        {/* Public Portal Front-End View Button */}
+        <Link
+          to="/"
+          className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 sq-btn text-xs font-bold transition-all shadow-sm shadow-indigo-500/10 cursor-pointer"
+          title="View Public StudyPortal / Student Admissions Front-End"
+        >
+          <Globe className="w-3.5 h-3.5 text-indigo-400" />
+          <span className="hidden lg:inline">Public Portal</span>
+        </Link>
+
         {/* Support Chat Quick Button */}
         <button
           onClick={handleOpenSupportChat}

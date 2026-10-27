@@ -184,10 +184,10 @@ export function getRoleDashboardPath(role: UserRole): string {
     case "visa_officer":
       return "/visa-officer/dashboard";
     case "org_admin":
-      return "/";
+      return "/dashboard";
     case "office_manager":
       return "/users";
     default:
-      return "/";
+      return "/dashboard";
   }
 }

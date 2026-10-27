@@ -27,7 +27,7 @@ export const Dashboard: React.FC = () => {
       return <Navigate to="/student/dashboard" replace />;
     }
     const destination = getRoleDashboardPath(appUser.role);
-    if (destination && destination !== "/") {
+    if (destination && destination !== "/" && destination !== "/dashboard" && destination !== "/crm") {
       return <Navigate to={destination} replace />;
     }
   }

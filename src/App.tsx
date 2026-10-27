@@ -138,10 +138,40 @@ import { CounsellorTasks } from "./pages/counsellor/Tasks";
 import { CounsellorProgrammeMatcher } from "./pages/counsellor/ProgrammeMatcher";
 import { CounsellorMessages } from "./pages/counsellor/CounsellorMessages";
 import { AgentTriageDesk } from "./pages/counsellor/AgentTriageDesk";
+import { PublicPortalLanding } from "./pages/public/PublicPortalLanding";
+import { useAuth } from "./contexts/AuthContext";
+import { getRoleDashboardPath } from "./types/registrationConfig";
+import { Loader2 } from "lucide-react";
 
 import { GlobalDataProvider } from "./contexts/GlobalDataContext";
 import { NotificationProvider } from "./contexts/NotificationProvider";
 import { RoleGate } from "./components/layout/RoleGate";
+
+/**
+ * Intelligent Root Portal:
+ * - If guest or student -> renders public StudyPortal.ai / EduBridge Network discovery platform.
+ * - If staff member logs in (counsellor, admin, visa officer, admissions, finance, etc.) -> redirects directly to their EduCRM module.
+ */
+const RootPortal: React.FC = () => {
+  const { appUser, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0B1120] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+      </div>
+    );
+  }
+
+  // If staff is logged in, redirect them directly into their eduCRM module!
+  if (appUser && appUser.role !== "student") {
+    const dest = getRoleDashboardPath(appUser.role);
+    return <Navigate to={dest === "/" ? "/dashboard" : (dest || "/dashboard")} replace />;
+  }
+
+  // Guests and students see the public StudyPortal / EduBridge front-end!
+  return <PublicPortalLanding />;
+};
 
 export const App: React.FC = () => {
   return (
@@ -151,6 +181,15 @@ export const App: React.FC = () => {
           <NotificationProvider>
             <BrowserRouter>
             <Routes>
+              {/* Public Discovery & Front-End Routes (StudyPortal.ai & EduBridge Network) */}
+              <Route path="/" element={<RootPortal />} />
+              <Route path="/portal" element={<PublicPortalLanding />} />
+              <Route path="/explore" element={<PublicPortalLanding />} />
+              <Route path="/programmes" element={<PublicPortalLanding />} />
+              <Route path="/courses" element={<PublicPortalLanding />} />
+              <Route path="/scholarships" element={<PublicPortalLanding />} />
+              <Route path="/ai-counsellor" element={<PublicPortalLanding />} />
+
               {/* Public Authentication Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -184,9 +223,10 @@ export const App: React.FC = () => {
                 <Route path="apply" element={<StudentNewApplication />} />
               </Route>
 
-              {/* Protected Application Routes */}
+              {/* Protected Application Routes (Internal eduCRM for Staff, Admins, Counsellors, Visa Officers) */}
               <Route element={<ProtectedLayout />}>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/crm" element={<Dashboard />} />
                 <Route
                   path="/leads"
                   element={
