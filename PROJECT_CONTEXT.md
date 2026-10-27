@@ -20,18 +20,19 @@ The system supports **10+ distinct user roles** with strict tenant isolation and
 
 | Role Identifier | Role Name | Primary Responsibility | Default Landing Route |
 | :--- | :--- | :--- | :--- |
-| `platform_super_admin` | Platform Super Admin | Global multi-tenant administration, system logs, branch oversight | `/` (Dashboard) |
-| `org_admin` | Organization Admin | Branch management, staff provisioning, commission tiers | `/` (Dashboard) |
-| `counsellor` | Education Counsellor | Student lead advisory, university matching, application reviews | `/counsellor/leads` |
-| `office_manager` | Regional Office Manager | Regional hub performance, counsellor assignment | `/counsellor/dashboard` |
-| `team_leader` | Admissions Team Leader | Workload balancing, application triage, lead reassignment | `/team-leader` |
-| `admissions_officer` | Admissions Officer | Document validation, academic threshold audit, university submission | `/admissions` |
-| `finance_officer` | Finance & Accounts Officer | University commission invoicing, agent payouts | `/finance` |
-| `visa_officer` | Visa & Immigration Officer | Proof of funds, CAS/I-20 clearance, mock visa interviews | `/visa` |
-| `compliance_officer` | Compliance & Auditor | GDPR consent records audit, fraud prevention | `/compliance` |
-| `support_user` | Support Specialist | User issue tickets, platform assistance | `/support` |
+| *(Guest / Unauthenticated)* | Prospective Student / Visitor | Public study abroad discovery, degree search, AI course matcher | `/` (Public StudyPortal / EduBridge) |
+| `platform_super_admin` | Platform Super Admin | Global multi-tenant administration, system logs, branch oversight | `/super-admin/dashboard` |
+| `org_admin` | Organization Admin | Branch management, staff provisioning, commission tiers | `/dashboard` (Executive CRM) |
+| `counsellor` | Education Counsellor | Student lead advisory, university matching, application reviews | `/counsellor/dashboard` |
+| `office_manager` | Regional Office Manager | Regional hub performance, counsellor assignment | `/users` |
+| `team_leader` | Admissions Team Leader | Workload balancing, application triage, lead reassignment | `/team-leader/dashboard` |
+| `admissions_officer` | Admissions Officer | Document validation, academic threshold audit, university submission | `/admissions/dashboard` |
+| `finance_officer` | Finance & Accounts Officer | University commission invoicing, agent payouts | `/finance/dashboard` |
+| `visa_officer` | Visa & Immigration Officer | Proof of funds, CAS/I-20 clearance, mock visa interviews | `/visa-officer/dashboard` |
+| `compliance_officer` | Compliance & Auditor | GDPR consent records audit, fraud prevention | `/auditor/dashboard` |
+| `support_user` | Support Specialist | User issue tickets, platform assistance | `/support/dashboard` |
 | `external_agent` | External Recruitment Agent | Student referrals, referral code tracking, commission tier | `/agent/dashboard` |
-| `university_partner` | University Partner Rep | Partner institution application reviews, offer letters | `/partner/dashboard` |
+| `university_partner` | University Partner Rep | Partner institution application reviews, offer letters | `/university/dashboard` |
 | `student` | International Student | Master profile, AI CV parsing, application wizard | `/student/dashboard` |
 
 ---
