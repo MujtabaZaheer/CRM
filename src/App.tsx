@@ -33,7 +33,13 @@ import { CommissionManagerPage } from "./pages/CommissionManager";
 import { StudentProfileSelfEdit } from "./pages/portal/StudentProfileSelfEdit";
 import { StudentNewApplication } from "./pages/portal/StudentNewApplication";
 import { StudentApplicationDetail, StudentApplications } from "./pages/portal/StudentApplications";
-import { StudentDashboard, StudentProgramDetail, StudentProgrammes, StudentUniversities, StudentUniversityDetail } from "./pages/portal/StudentExperience";
+import { StudentProgramDetail, StudentProgrammes, StudentUniversities, StudentUniversityDetail } from "./pages/portal/StudentExperience";
+import { ModernStudentDashboard } from "./pages/portal/ModernStudentDashboard";
+import { StudentAiMatchPage } from "./pages/portal/StudentAiMatchPage";
+import { StudentScholarshipsPage } from "./pages/portal/StudentScholarshipsPage";
+import { StudentAppointmentsPage } from "./pages/portal/StudentAppointmentsPage";
+import { StudentSettingsPage } from "./pages/portal/StudentSettingsPage";
+import { StudentPortalLayout } from "./components/layout/StudentPortalLayout";
 import { StudentDocumentVault } from "./pages/portal/StudentDocumentVault";
 import { StudentInvoices } from "./pages/portal/StudentInvoices";
 import { StudentChat } from "./pages/portal/StudentChat";
@@ -210,17 +216,43 @@ export const App: React.FC = () => {
                 <Route path="/apply" element={<StudentNewApplication />} />
               </Route>
 
-              {/* Full-Screen Student Onboarding Wizard & Application (Outside ProtectedLayout) */}
+              {/* Dedicated Student Experience & Portal (StudyPortal.ai & EduBridge Network Inspired) */}
               <Route path="/student" element={<RoleRoute role="student" />}>
+                {/* Full-Screen Onboarding Wizard */}
                 <Route path="onboarding" element={<Navigate to="/student/onboarding/step-1" replace />} />
                 <Route path="onboarding/profile" element={<Navigate to="/student/onboarding/step-1" replace />} />
                 <Route path="onboarding/step-1" element={<StudentOnboardingStage1 />} />
                 <Route path="onboarding/step-2" element={<StudentOnboardingStage2 />} />
                 <Route path="onboarding/step-3" element={<StudentOnboardingStage3 />} />
                 <Route path="onboarding/step-4" element={<StudentOnboardingStage4 />} />
-                <Route path="new-application" element={<StudentNewApplication />} />
-                <Route path="apply/:programmeId" element={<StudentNewApplication />} />
-                <Route path="apply" element={<StudentNewApplication />} />
+
+                {/* Authenticated Modern Student Portal Shell */}
+                <Route element={<StudentOnboardingGuard />}>
+                  <Route element={<StudentPortalLayout />}>
+                    <Route index element={<Navigate to="/student/dashboard" replace />} />
+                    <Route path="dashboard" element={<ModernStudentDashboard />} />
+                    <Route path="universities" element={<StudentUniversities />} />
+                    <Route path="universities/:universityId" element={<StudentUniversityDetail />} />
+                    <Route path="programs" element={<StudentProgrammes />} />
+                    <Route path="programs/:programId" element={<StudentProgramDetail />} />
+                    <Route path="ai-match" element={<StudentAiMatchPage />} />
+                    <Route path="applications" element={<StudentApplications />} />
+                    <Route path="applications/:applicationId" element={<StudentApplicationDetail />} />
+                    <Route path="documents" element={<StudentDocumentVault />} />
+                    <Route path="scholarships" element={<StudentScholarshipsPage />} />
+                    <Route path="tasks" element={<StudentTasks />} />
+                    <Route path="messages" element={<StudentChat />} />
+                    <Route path="appointments" element={<StudentAppointmentsPage />} />
+                    <Route path="invoices" element={<StudentInvoices />} />
+                    <Route path="challans" element={<StudentInvoices />} />
+                    <Route path="profile" element={<StudentProfileSelfEdit />} />
+                    <Route path="settings" element={<StudentSettingsPage />} />
+                    <Route path="requests" element={<RolePortal role="student" page="requests" />} />
+                    <Route path="new-application" element={<StudentNewApplication />} />
+                    <Route path="apply/:programmeId" element={<StudentNewApplication />} />
+                    <Route path="apply" element={<StudentNewApplication />} />
+                  </Route>
+                </Route>
               </Route>
 
               {/* Protected Application Routes (Internal eduCRM for Staff, Admins, Counsellors, Visa Officers) */}
@@ -351,28 +383,7 @@ export const App: React.FC = () => {
                   <Route path="notifications" element={<RolePortal role="visa" page="notifications" />} />
                 </Route>
 
-                {/* Student Portal Routes (Added by Saad) */}
-                <Route path="/student" element={<RoleRoute role="student" />}>
-                  <Route element={<StudentOnboardingGuard />}>
-                    <Route path="dashboard" element={<StudentDashboard />} />
-                    <Route path="profile" element={<StudentProfileSelfEdit />} />
-                    <Route path="universities" element={<StudentUniversities />} />
-                    <Route path="universities/:universityId" element={<StudentUniversityDetail />} />
-                    <Route path="programs" element={<StudentProgrammes />} />
-                    <Route path="programs/:programId" element={<StudentProgramDetail />} />
-                    <Route path="applications" element={<StudentApplications />} />
-                    <Route path="applications/:applicationId" element={<StudentApplicationDetail />} />
-                    <Route path="invoices" element={<StudentInvoices />} />
-                    <Route path="challans" element={<StudentInvoices />} />
-                    <Route path="documents" element={<StudentDocumentVault />} />
-                    <Route path="messages" element={<StudentChat />} />
-                    <Route path="requests" element={<RolePortal role="student" page="requests" />} />
-                    <Route path="tasks" element={<StudentTasks />} />
-                    <Route path="new-application" element={<StudentNewApplication />} />
-                    <Route path="apply/:programmeId" element={<StudentNewApplication />} />
-                    <Route path="apply" element={<StudentNewApplication />} />
-                  </Route>
-                </Route>
+
 
                 {/* External Agent Portal Routes */}
                 <Route path="/agent" element={<RoleRoute role="external_agent" />}>

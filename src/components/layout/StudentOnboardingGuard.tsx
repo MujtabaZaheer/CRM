@@ -17,52 +17,48 @@ export const StudentOnboardingGuard: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchProfile = async () => {
-      const uid = firebaseUser?.uid || appUser?.uid;
+      let demoParsed: any = null;
+      try {
+        const demoStored = typeof window !== "undefined" ? localStorage.getItem("educrm_demo_user") : null;
+        if (demoStored) demoParsed = JSON.parse(demoStored);
+      } catch (_) {}
+
+      const effectiveUser = demoParsed || appUser;
+      const effectiveEmail = effectiveUser?.email || firebaseUser?.email;
+      const uid = effectiveUser?.uid || firebaseUser?.uid;
+
+      if (
+        effectiveUser?.onboardingStatus === "completed" ||
+        effectiveUser?.profileCompleted === true ||
+        uid === "stu_1" ||
+        effectiveEmail === "aarav.patel@gmail.com"
+      ) {
+        const demo = DEMO_STUDENTS.find((s) => s.id === uid || s.email === effectiveEmail) || DEMO_STUDENTS[0];
+        if (isMounted) {
+          setStudentDoc({
+            ...demo,
+            id: uid || "stu_1",
+            onboardingStatus: "completed",
+            profileCompleted: true,
+            currentStep: 4,
+          });
+          setLoading(false);
+        }
+        return;
+      }
+
       if (!uid) {
         if (isMounted) setLoading(false);
         return;
       }
+
       try {
         const snap = await getDoc(doc(db, "students", uid));
         if (snap.exists() && isMounted) {
           setStudentDoc(snap.data() as Student);
-        } else if (isMounted) {
-          // Fallback for registered demo students or completed offline profiles
-          if (
-            appUser?.onboardingStatus === "completed" ||
-            appUser?.profileCompleted === true ||
-            uid === "stu_1" ||
-            appUser?.email === "aarav.patel@gmail.com"
-          ) {
-            const demo = DEMO_STUDENTS.find((s) => s.id === uid || s.email === appUser?.email) || DEMO_STUDENTS[0];
-            setStudentDoc({
-              ...demo,
-              id: uid,
-              onboardingStatus: "completed",
-              profileCompleted: true,
-              currentStep: 4,
-            });
-          }
         }
       } catch (err) {
         console.warn("Guard could not fetch student doc:", err);
-        if (isMounted) {
-          if (
-            appUser?.onboardingStatus === "completed" ||
-            appUser?.profileCompleted === true ||
-            uid === "stu_1" ||
-            appUser?.email === "aarav.patel@gmail.com"
-          ) {
-            const demo = DEMO_STUDENTS.find((s) => s.id === uid || s.email === appUser?.email) || DEMO_STUDENTS[0];
-            setStudentDoc({
-              ...demo,
-              id: uid,
-              onboardingStatus: "completed",
-              profileCompleted: true,
-              currentStep: 4,
-            });
-          }
-        }
       } finally {
         if (isMounted) setLoading(false);
       }

@@ -29,7 +29,12 @@ export const ProtectedLayout: React.FC = () => {
   }
 
   // Security Guard: Unverified students cannot access any protected internal route
-  const isDemoVerified = typeof window !== "undefined" && sessionStorage.getItem("demo_email_verified") === "true";
+  const isDemoVerified =
+    typeof window !== "undefined" &&
+    (sessionStorage.getItem("demo_email_verified") === "true" ||
+      localStorage.getItem("educrm_demo_user") !== null ||
+      appUser.uid?.startsWith("demo_") ||
+      appUser.uid === "stu_1");
   const ADMIN_BYPASS_EMAILS = [
     "live_superadmin@educrm.com",
     "live_orgadmin@educrm.com",

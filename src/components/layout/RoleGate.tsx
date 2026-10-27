@@ -14,7 +14,12 @@ export const RoleGate = ({ children, allowedRoles }: RoleGateProps): React.React
   const { appUser, firebaseUser, loading } = useAuth();
   const location = useLocation();
   if (loading) return <div className="min-h-[50vh] grid place-items-center text-sm text-[var(--text-muted)]">Checking access…</div>;
-  const isDemoVerified = typeof window !== "undefined" && sessionStorage.getItem("demo_email_verified") === "true";
+  const isDemoVerified =
+    typeof window !== "undefined" &&
+    (sessionStorage.getItem("demo_email_verified") === "true" ||
+      localStorage.getItem("educrm_demo_user") !== null ||
+      appUser?.uid?.startsWith("demo_") ||
+      appUser?.uid === "stu_1");
   const ADMIN_BYPASS_EMAILS = [
     "live_superadmin@educrm.com",
     "live_orgadmin@educrm.com",

@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       localStorage.setItem("educrm_demo_user", JSON.stringify(demoUser));
+      sessionStorage.setItem("demo_email_verified", "true");
     } catch (e) {
       console.warn("Failed to persist demo user:", e);
     }

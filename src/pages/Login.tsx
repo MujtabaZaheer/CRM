@@ -26,6 +26,9 @@ export const Login: React.FC = () => {
   }, []);
 
   const handleQuickDemoLogin = (role: UserRole, options?: { isRegisteredStudent?: boolean }) => {
+    try {
+      sessionStorage.setItem("demo_email_verified", "true");
+    } catch (_) {}
     loginAsDemoRole(role, options);
     if (role === "student") {
       if (options?.isRegisteredStudent) {
@@ -148,6 +151,15 @@ export const Login: React.FC = () => {
             sessionStorage.setItem("demo_email_verified", "true");
           } catch (_) {}
           navigate(getRoleDashboardPath(userRole), { replace: true });
+          return;
+        }
+
+        // Student role routes directly to student dashboard
+        if (userRole === "student") {
+          try {
+            sessionStorage.setItem("demo_email_verified", "true");
+          } catch (_) {}
+          navigate("/student/dashboard", { replace: true });
           return;
         }
 
