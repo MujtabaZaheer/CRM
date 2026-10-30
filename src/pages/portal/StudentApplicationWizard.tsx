@@ -497,7 +497,7 @@ export const StudentApplicationWizard: React.FC = () => {
         if (directApp) {
           foundUniv = allUnivs.find(u => u.id === directApp?.universityId || u.name.toLowerCase() === (directApp?.universityName || "").toLowerCase()) || null;
           if (foundUniv) {
-            foundProg = foundUniv.programmes?.find(p => p.id === directApp?.programmeId || p.title.toLowerCase() === (directApp?.programmeName || "").toLowerCase()) || foundUniv.programmes?.[0] || null;
+            foundProg = foundUniv.programmes?.find(p => p.id === directApp?.programmeId || p.title.toLowerCase() === (directApp?.programmeName || "").toLowerCase()) || null;
           }
         }
 
@@ -513,19 +513,12 @@ export const StudentApplicationWizard: React.FC = () => {
           }
         }
 
-        // Secondary check by universityIdParam
+        // A university-only link is incomplete. The coordinator must validate a programme before the wizard opens.
         if (!foundUniv && universityIdParam) {
           const u = allUnivs.find((item) => item.id === universityIdParam);
           if (u) {
             foundUniv = u;
-            foundProg = u.programmes?.[0] || null;
           }
-        }
-
-        // Fallback to first available if not found
-        if (!foundUniv && allUnivs.length > 0) {
-          foundUniv = allUnivs[0];
-          foundProg = allUnivs[0].programmes?.[0] || null;
         }
 
         setUniversity(foundUniv);

@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Normalize student application entry around /student/new-application while preserving compatibility aliases, valid programme/application deep links, selector-first behavior, direct Apply links, and query parameters.",
+  "status": "completed",
+  "steps": [
+    "Update App.tsx and StudentNewApplication.tsx so the canonical route and compatibility aliases share one coordinator, missing/invalid IDs render the selector, and only validated deep links render StudentApplicationWizard.",
+    "Update StudentApplications.tsx and all inspected student Apply/Continue links to use the canonical path without losing universityId, programmeId, applicationId, or intake; preserve public intake behavior.",
+    "Add route/query unit coverage if a helper is introduced and extend tests/e2e/student-workflow.spec.ts for selector, aliases, valid/invalid deep links, and direct Apply behavior."
+  ],
+  "acceptance_criteria": [
+    "Navigating to /student/new-application without IDs shows the country → university → campus → programme → intake selector.",
+    "Valid programme/application IDs open the wizard; invalid or absent IDs do not silently fall back to the first programme.",
+    "Compatibility aliases and Continue Draft links preserve their intended destination and query parameters."
+  ],
+  "verification": [
+    "npm run test:unit -- src/utils/studentApplicationRoutes.test.ts (when the helper exists)",
+    "npm run test:e2e -- tests/e2e/student-workflow.spec.ts",
+    "npm run typecheck",
+    "npm run build",
+    "npx firebase-tools deploy --only hosting followed by live route checks"
+  ],
+  "blocked_reason": "The required student workflow E2E command was blocked before browser execution because Playwright could not find /home/mujtaba/.cache/ms-playwright/ffmpeg-1011/ffmpeg-linux. Firebase hosting deployment and live HTTP route checks succeeded.",
+  "findings": "Implemented canonical /student/new-application coordination with selector-first compatibility aliases, catalogue/application validation, query-preserving draft links, and removal of silent first-programme wizard fallback. Evidence: focused route unit tests passed; full unit suite passed 258/258; typecheck and production build passed; npx firebase-tools deploy --only hosting succeeded for education-crm-9fee2; live canonical, alias, and public intake checks returned HTTP 200. The required E2E command ran 11 tests but all were blocked at browserContext.newPage by the missing Playwright ffmpeg binary."
+}

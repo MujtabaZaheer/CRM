@@ -42,6 +42,7 @@ import type { Application } from "../../../types/application";
 import { assessEligibility } from "../../../utils/eligibility";
 import { DEMO_UNIVERSITIES } from "../../../data/demoData";
 import { getRoleDashboardPath } from "../../../types/registrationConfig";
+import { buildStudentApplicationPath } from "../../../utils/studentApplicationRoutes";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -440,7 +441,14 @@ export const StudentOnboardingStage4: React.FC = () => {
                               await setDoc(doc(db, "students", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
                               await setDoc(doc(db, "users", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
                             }
-                            navigate(`/student/applications/${app.id}`);
+                            navigate(app.stage === "Draft"
+                              ? buildStudentApplicationPath({
+                                  universityId: app.universityId,
+                                  programmeId: app.programmeId,
+                                  applicationId: app.id,
+                                  intake: app.intake,
+                                })
+                              : `/student/applications/${app.id}`);
                           } catch (e) {}
                         }}
                         className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"

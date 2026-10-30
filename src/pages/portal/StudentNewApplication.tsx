@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Loader2, ArrowRight, BookOpen, MapPin, Building2, Calendar, Sparkles } from "lucide-react";
 import { db } from "../../firebase/config";
 import { University } from "../../types/university";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 import { StudentApplicationWizard } from "./StudentApplicationWizard";
+import {
+  getStudentApplicationRouteValues,
+  resolveStudentApplicationTarget,
+  buildStudentApplicationPath,
+} from "../../utils/studentApplicationRoutes";
 
 export const StudentNewApplication: React.FC = () => {
   const [searchParams] = useSearchParams();
   const params = useParams();
   const navigate = useNavigate();
 
-  const urlProgId = searchParams.get("programmeId") || params.programmeId || params.id;
-  const urlUnivId = searchParams.get("universityId");
-  const urlAppId = searchParams.get("applicationId") || (params as any)?.applicationId;
+  const routeValues = getStudentApplicationRouteValues(searchParams, params);
 
   const [loading, setLoading] = useState(true);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [validDeepLink, setValidDeepLink] = useState(false);
   
   // Selector state
   const [selectedCountry, setSelectedCountry] = useState<string>("");
@@ -27,57 +31,71 @@ export const StudentNewApplication: React.FC = () => {
   const [selectedIntake, setSelectedIntake] = useState<string>("");
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUnivs = async () => {
+      setLoading(true);
+      setValidDeepLink(false);
       try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 3500)
-        );
-        const snap = await Promise.race([
-          getDocs(collection(db, "universities")),
-          timeoutPromise,
-        ]);
-        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as University));
-        DEMO_UNIVERSITIES.forEach(demo => {
-          if (!data.some(u => u.id === demo.id || u.name.toLowerCase() === demo.name.toLowerCase())) {
+        let data: University[] = [];
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), 3500)
+          );
+          const snap = await Promise.race([
+            getDocs(collection(db, "universities")),
+            timeoutPromise,
+          ]);
+          data = snap.docs.map((univDoc) => ({ id: univDoc.id, ...univDoc.data() } as University));
+        } catch (err) {
+          console.warn("Error or timeout fetching universities, falling back to catalog:", err);
+        }
+
+        DEMO_UNIVERSITIES.forEach((demo) => {
+          if (!data.some((univ) => univ.id === demo.id || univ.name.toLowerCase() === demo.name.toLowerCase())) {
             data.push(demo);
           }
         });
+
+        if (cancelled) return;
         setUniversities(data);
-        
-        // If we came from the matcher with URL params, try to autofill the selector
-        if (urlProgId) {
-          const u = data.find(univ => (urlUnivId && univ.id === urlUnivId) || univ.programmes?.some(p => p.id === urlProgId));
-          if (u) {
-            setSelectedCountry(u.country);
-            setSelectedUnivId(u.id);
-            const p = u.programmes?.find(prog => prog.id === urlProgId);
-            if (p) {
-              setSelectedProgId(p.id);
-              if (p.intakes?.[0]) setSelectedIntake(p.intakes[0]);
+
+        let application: { universityId?: string; programmeId?: string; universityName?: string; programmeName?: string } | null = null;
+        if (routeValues.applicationId) {
+          try {
+            const applicationTimeout = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Application validation timeout")), 3500)
+            );
+            const applicationSnap = await Promise.race([
+              getDoc(doc(db, "applications", routeValues.applicationId)),
+              applicationTimeout,
+            ]);
+            if (applicationSnap.exists()) {
+              application = applicationSnap.data();
             }
+          } catch (err) {
+            console.warn("Could not validate application deep link:", err);
           }
         }
-      } catch (err) {
-        console.warn("Error or timeout fetching universities, falling back to catalog:", err);
-        setUniversities(DEMO_UNIVERSITIES);
-        if (urlProgId) {
-          const u = DEMO_UNIVERSITIES.find(univ => (urlUnivId && univ.id === urlUnivId) || univ.programmes?.some(p => p.id === urlProgId));
-          if (u) {
-            setSelectedCountry(u.country);
-            setSelectedUnivId(u.id);
-            const p = u.programmes?.find(prog => prog.id === urlProgId);
-            if (p) {
-              setSelectedProgId(p.id);
-              if (p.intakes?.[0]) setSelectedIntake(p.intakes[0]);
-            }
-          }
+
+        const target = routeValues.applicationId && !application
+          ? null
+          : resolveStudentApplicationTarget(data, routeValues, routeValues.applicationId ? application : null);
+        if (target) {
+          setSelectedCountry(target.university.country);
+          setSelectedUnivId(target.university.id);
+          setSelectedProgId(target.programme.id);
+          setSelectedIntake(routeValues.intake || target.programme.intakes?.[0] || "");
+          setValidDeepLink(true);
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
+
     fetchUnivs();
-  }, [urlUnivId, urlProgId]);
+    return () => { cancelled = true; };
+  }, [routeValues.applicationId, routeValues.intake, routeValues.programmeId, routeValues.universityId]);
 
   // Derived options based on cascading selections
   const availableCountries = Array.from(new Set(universities.map(u => u.country))).filter(Boolean).sort();
@@ -115,12 +133,16 @@ export const StudentNewApplication: React.FC = () => {
 
   const proceedToApplication = () => {
     if (selectedUnivId && selectedProgId) {
-      navigate(`/student/new-application?universityId=${selectedUnivId}&programmeId=${selectedProgId}&intake=${encodeURIComponent(selectedIntake)}`);
+      navigate(buildStudentApplicationPath({
+        universityId: selectedUnivId,
+        programmeId: selectedProgId,
+        intake: selectedIntake,
+      }));
     }
   };
 
-  // If programmeId or applicationId is in URL, render the Wizard
-  if (urlProgId || (urlUnivId && urlProgId) || urlAppId) {
+  // Only validated deep links may open the wizard. Missing or invalid IDs stay in the selector.
+  if (validDeepLink) {
     return <StudentApplicationWizard />;
   }
 

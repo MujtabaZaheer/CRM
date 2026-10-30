@@ -17,6 +17,7 @@ import {
 import { usePortalData } from "../../hooks/usePortalData";
 import { REQUIRED_STANDARD_DOCS } from "./StudentDocumentVault";
 import { isDocumentMatch } from "../../utils/applicationReadiness";
+import { buildStudentApplicationPath } from "../../utils/studentApplicationRoutes";
 import {
   StudentMetricCard,
   StudentEmptyState,
@@ -142,7 +143,12 @@ export const StudentTasks: React.FC = () => {
           category: "application",
           priority: "medium",
           dueDate: "Upcoming Intake",
-          link: `/student/new-application?universityId=${app.universityId}&programmeId=${app.programmeId}&applicationId=${app.id}`,
+          link: buildStudentApplicationPath({
+            universityId: app.universityId,
+            programmeId: app.programmeId,
+            applicationId: app.id,
+            intake: app.intake,
+          }),
           linkText: "Continue Draft",
           completed: completedTaskIds.has(`app-draft-${app.id}`),
         });

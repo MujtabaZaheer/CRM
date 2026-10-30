@@ -68,7 +68,35 @@ test.describe('Student End-to-End Workflow', () => {
     await expect(page.locator('text=/Overview|Personal Info|Academic History|Submit/i').first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('STUD-FLOW-006: Student Document Vault displays document requirements and upload triggers', async ({ page }) => {
+  test('STUD-FLOW-006: New application aliases remain selector-first and reject invalid deep links', async ({ page }) => {
+    for (const path of ['/student/new-application', '/student/applications/new', '/student/applications/wizard', '/student/apply']) {
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(path.replaceAll('/', '\\/')));
+      await expect(page.locator('text=Start a New Application')).toBeVisible({ timeout: 15000 });
+    }
+
+    await page.goto('/student/new-application?universityId=univ_oxf&programmeId=missing-programme');
+    await expect(page.locator('text=Start a New Application')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Overview')).not.toBeVisible();
+  });
+
+  test('STUD-FLOW-007: Valid programme deep links open the wizard and public intake remains public', async ({ page }) => {
+    await page.goto('/student/new-application?universityId=univ_oxf&programmeId=prog_ox_cs&intake=September%202026');
+    await expect(page.locator('text=/Overview|Personal Info|Academic History/i').first()).toBeVisible({ timeout: 20000 });
+
+    await page.goto('/apply/public-intake-token');
+    await expect(page.locator('text=/EduBridge Network|Secure Intake/i').first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('STUD-FLOW-008: Continue draft links retain canonical application context', async ({ page }) => {
+    await page.goto('/student/applications');
+    const continueLink = page.getByRole('link', { name: /Continue Draft/i }).first();
+    if (await continueLink.count()) {
+      await expect(continueLink).toHaveAttribute('href', /\/student\/new-application\?.*applicationId=.*programmeId=.*intake=/);
+    }
+  });
+
+  test('STUD-FLOW-009: Student Document Vault displays document requirements and upload triggers', async ({ page }) => {
     await page.goto('/student/documents');
     await expect(page).toHaveURL(/\/student\/documents/);
 
@@ -76,7 +104,7 @@ test.describe('Student End-to-End Workflow', () => {
     await expect(page.locator('text=/Document Vault|Upload Document|Required Documents/i').first()).toBeVisible();
   });
 
-  test('STUD-FLOW-007: Counsellor Chat channel connects student with assigned counsellor', async ({ page }) => {
+  test('STUD-FLOW-010: Counsellor Chat channel connects student with assigned counsellor', async ({ page }) => {
     await page.goto('/student/messages');
     await expect(page).toHaveURL(/\/student\/messages/);
 
@@ -84,7 +112,7 @@ test.describe('Student End-to-End Workflow', () => {
     await expect(page.locator('text=/Messages|Conversation|Chat|Counsellor/i').first()).toBeVisible();
   });
 
-  test('STUD-FLOW-008: Student Onboarding Guard redirects incomplete profiles to wizard', async ({ page }) => {
+  test('STUD-FLOW-011: Student Onboarding Guard redirects incomplete profiles to wizard', async ({ page }) => {
     // Set uncompleted onboarding student
     await page.evaluate(() => {
       const incompleteStudent = {

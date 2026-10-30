@@ -210,9 +210,8 @@ export const App: React.FC = () => {
               {/* Public Application Intake Wizard (EduBridge Compliance Parity) */}
               <Route path="/apply/:token" element={<ApplicationWizard />} />
 
-              {/* Direct Apply Routes */}
+              {/* Student compatibility alias. Parameterized /apply/:token remains the public intake route above. */}
               <Route element={<RoleRoute role="student" />}>
-                <Route path="/apply/:programmeId" element={<StudentNewApplication />} />
                 <Route path="/apply" element={<StudentNewApplication />} />
               </Route>
 
@@ -270,8 +269,6 @@ export const App: React.FC = () => {
                     </RoleGate>
                   }
                 />
-                <Route path="/apply/:programmeId" element={<StudentNewApplication />} />
-                <Route path="/apply" element={<StudentNewApplication />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/applications" element={<Applications />} />
                 <Route path="/application" element={<Applications />} />

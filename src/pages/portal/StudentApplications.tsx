@@ -36,6 +36,7 @@ import {
   ApplicationLifecycleTimeline,
   StudentEmptyState,
 } from "../../components/portal/common";
+import { buildStudentApplicationPath } from "../../utils/studentApplicationRoutes";
 
 export const getStageGuidance = (stage: string): string => {
   switch (stage) {
@@ -325,7 +326,14 @@ export const StudentApplications: React.FC = () => {
                     )}
 
                     <Link
-                      to={`/student/applications/${app.id}`}
+                      to={isDraft
+                        ? buildStudentApplicationPath({
+                            universityId: app.universityId,
+                            programmeId: app.programmeId,
+                            applicationId: app.id,
+                            intake: app.intake,
+                          })
+                        : `/student/applications/${app.id}`}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
                     >
                       {isDraft ? "Continue Draft →" : "View Details & Timeline →"}
@@ -581,7 +589,12 @@ export const StudentApplicationDetail: React.FC = () => {
                   <span>Delete Draft</span>
                 </button>
                 <Link
-                  to={`/student/new-application?universityId=${app.universityId}&programmeId=${app.programmeId}&applicationId=${app.id}`}
+                  to={buildStudentApplicationPath({
+                    universityId: app.universityId,
+                    programmeId: app.programmeId,
+                    applicationId: app.id,
+                    intake: app.intake,
+                  })}
                   className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 transition-colors flex items-center gap-1"
                 >
                   <span>Continue</span>

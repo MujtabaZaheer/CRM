@@ -74,7 +74,8 @@ describe("Student Onboarding & Navigation Flow Audit", () => {
     const filePath = path.resolve(process.cwd(), "src/pages/portal/StudentApplications.tsx");
     const content = fs.readFileSync(filePath, "utf8");
 
-    expect(content).toContain("applicationId=${app.id}");
+    expect(content).toContain("buildStudentApplicationPath");
+    expect(content).toContain("applicationId: app.id");
   });
 
   it("verifies StudentApplicationWizard supports direct draft loading by applicationIdParam", () => {

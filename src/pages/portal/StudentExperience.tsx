@@ -22,6 +22,7 @@ import { Programme, University } from "../../types/university";
 import { assessEligibility } from "../../utils/eligibility";
 import { UniversityExplorerMatcher } from "../../components/portal/UniversityExplorerMatcher";
 import { getUniversityCampusImage, getUniversityLandmark } from "../../utils/universityImages";
+import { buildStudentApplicationPath } from "../../utils/studentApplicationRoutes";
 import {
   StudentStatusBadge,
   StudentMetricCard,
@@ -200,7 +201,12 @@ export const StudentDashboard: React.FC = () => {
         title: `Resume Application: ${draftApp.universityName}`,
         text: `You have an unsubmitted draft for ${draftApp.programmeName}. Complete remaining statements and submit your application.`,
         actionText: "Continue Application",
-        href: `/student/new-application?universityId=${draftApp.universityId}&programmeId=${draftApp.programmeId}&applicationId=${draftApp.id}`,
+        href: buildStudentApplicationPath({
+          universityId: draftApp.universityId,
+          programmeId: draftApp.programmeId,
+          applicationId: draftApp.id,
+          intake: draftApp.intake,
+        }),
         universityName: draftApp.universityName,
         universityId: draftApp.universityId,
         programmeName: draftApp.programmeName,
@@ -580,7 +586,12 @@ export const StudentDashboard: React.FC = () => {
                     : 50;
 
                 const href = isDraft
-                  ? `/student/new-application?universityId=${application.universityId}&programmeId=${application.programmeId}&applicationId=${application.id}`
+                  ? buildStudentApplicationPath({
+                      universityId: application.universityId,
+                      programmeId: application.programmeId,
+                      applicationId: application.id,
+                      intake: application.intake,
+                    })
                   : `/student/applications/${application.id}`;
 
                 return (
