@@ -70,21 +70,9 @@ export const StudentOnboardingStage1: React.FC = () => {
     }
   });
   const [dob, setDob] = useState("");
-  const [gender, setGender] = useState<Student["gender"]>("Prefer not to say");
-  const [nationality, setNationality] = useState(() => {
-    try {
-      return sessionStorage.getItem("student_registration_nationality") || "Pakistan";
-    } catch {
-      return "Pakistan";
-    }
-  });
-  const [countryOfResidence, setCountryOfResidence] = useState(() => {
-    try {
-      return sessionStorage.getItem("student_registration_country") || "Pakistan";
-    } catch {
-      return "Pakistan";
-    }
-  });
+  const [gender, setGender] = useState<Student["gender"] | "">("");
+  const [nationality, setNationality] = useState("");
+  const [countryOfResidence, setCountryOfResidence] = useState("");
   const [city, setCity] = useState("");
   const [phone, setPhone] = useState(() => {
     try {
@@ -96,16 +84,7 @@ export const StudentOnboardingStage1: React.FC = () => {
   const email = firebaseUser?.email || appUser?.email || "";
 
   // Academic History
-  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([
-    {
-      institution: "",
-      qualification: "Bachelor's Degree",
-      degreeTitle: "",
-      country: "Pakistan",
-      completionYear: 2024,
-      gradeGpa: "",
-    },
-  ]);
+  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([]);
 
   // Study Level Goal (initially empty so not automatically pre-selected)
   const [desiredStudyLevel, setDesiredStudyLevel] = useState("");
@@ -241,12 +220,12 @@ export const StudentOnboardingStage1: React.FC = () => {
         if (loadedCity) setCity(loadedCity);
         if (loadedStudyLevel) setDesiredStudyLevel(loadedStudyLevel);
 
-        const normalizedNat = loadedNationality ? (toCountryName(loadedNationality) || loadedNationality) : "Pakistan";
-        const finalNat = COUNTRIES.includes(normalizedNat) ? normalizedNat : (COUNTRIES.includes(loadedNationality) ? loadedNationality : "Pakistan");
+        const normalizedNat = loadedNationality ? (toCountryName(loadedNationality) || loadedNationality) : "";
+        const finalNat = COUNTRIES.includes(normalizedNat) ? normalizedNat : (COUNTRIES.includes(loadedNationality) ? loadedNationality : normalizedNat);
         setNationality(finalNat);
 
-        const normalizedCountry = loadedResidence ? (toCountryName(loadedResidence) || loadedResidence) : "Pakistan";
-        const finalCountry = COUNTRIES.includes(normalizedCountry) ? normalizedCountry : (COUNTRIES.includes(loadedResidence) ? loadedResidence : "Pakistan");
+        const normalizedCountry = loadedResidence ? (toCountryName(loadedResidence) || loadedResidence) : "";
+        const finalCountry = COUNTRIES.includes(normalizedCountry) ? normalizedCountry : (COUNTRIES.includes(loadedResidence) ? loadedResidence : normalizedCountry);
         setCountryOfResidence(finalCountry);
 
         if (loadedAcademic && loadedAcademic.length > 0) {
@@ -280,8 +259,8 @@ export const StudentOnboardingStage1: React.FC = () => {
     if (extracted.city) setCity(extracted.city.trim());
     if (extracted.desiredStudyLevel) setDesiredStudyLevel(extracted.desiredStudyLevel);
 
-    const mappedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || countryOfResidence || "Pakistan";
-    const mappedNat = toCountryName(extracted.nationality) || nationality || mappedCountry;
+    const mappedCountry = toCountryName(extracted.countryOfResidence || "") || countryOfResidence;
+    const mappedNat = toCountryName(extracted.nationality || "") || nationality;
 
     setCountryOfResidence(mappedCountry);
     setNationality(mappedNat);
@@ -289,10 +268,10 @@ export const StudentOnboardingStage1: React.FC = () => {
     if (Array.isArray(extracted.academicRecords) && extracted.academicRecords.length > 0) {
       const mappedRecords: AcademicRecord[] = extracted.academicRecords.map((r) => ({
         institution: r.institution || "",
-        qualification: (QUALIFICATIONS.includes(r.qualification as any) ? r.qualification : "Bachelor's Degree") as QualificationLevel,
+        qualification: (QUALIFICATIONS.includes(r.qualification as any) ? r.qualification : "") as QualificationLevel,
         degreeTitle: r.degreeTitle || "",
-        country: r.country || mappedCountry,
-        completionYear: Number(r.completionYear) || new Date().getFullYear(),
+        country: r.country || mappedCountry || "",
+        ...(Number(r.completionYear) ? { completionYear: Number(r.completionYear) } : {}),
         gradeGpa: r.gradeGpa || "",
       }));
       setAcademicRecords(mappedRecords);
@@ -344,10 +323,9 @@ export const StudentOnboardingStage1: React.FC = () => {
       ...prev,
       {
         institution: "",
-        qualification: "Bachelor's Degree",
+        qualification: "",
         degreeTitle: "",
-        country: countryOfResidence || "Pakistan",
-        completionYear: new Date().getFullYear(),
+        country: countryOfResidence || "",
         gradeGpa: "",
       },
     ]);
@@ -373,7 +351,7 @@ export const StudentOnboardingStage1: React.FC = () => {
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
-    const fullName = `${trimmedFirst} ${trimmedLast}`.trim() || appUser?.displayName || firebaseUser?.displayName || "Student";
+    const fullName = `${trimmedFirst} ${trimmedLast}`.trim() || appUser?.displayName || firebaseUser?.displayName || "";
 
     // Immediate sync to session storage for instant UI persistence
     try {
@@ -610,6 +588,7 @@ export const StudentOnboardingStage1: React.FC = () => {
                 onChange={(e) => setGender(e.target.value as any)}
                 className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
+                <option value="">-- Select gender --</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
@@ -624,6 +603,7 @@ export const StudentOnboardingStage1: React.FC = () => {
                 onChange={(e) => setNationality(e.target.value)}
                 className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
+                <option value="">-- Select nationality --</option>
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -643,6 +623,7 @@ export const StudentOnboardingStage1: React.FC = () => {
                 }}
                 className="w-full bg-main relative overflow-hidden border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
               >
+                <option value="">-- Select country --</option>
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -718,6 +699,7 @@ export const StudentOnboardingStage1: React.FC = () => {
                       onChange={(e) => updateAcademicRecord(index, "qualification", e.target.value)}
                       className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     >
+                      <option value="">-- Select qualification --</option>
                       {QUALIFICATIONS.map((q) => (
                         <option key={q} value={q}>{q}</option>
                       ))}
@@ -741,7 +723,7 @@ export const StudentOnboardingStage1: React.FC = () => {
                       type="text"
                       value={record.country}
                       onChange={(e) => updateAcademicRecord(index, "country", e.target.value)}
-                      placeholder="Pakistan"
+                      placeholder="Country of study"
                       className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -750,7 +732,7 @@ export const StudentOnboardingStage1: React.FC = () => {
                     <label className="block text-xs font-semibold text-secondary mb-1.5">Completion Year</label>
                     <input
                       type="number"
-                      value={record.completionYear}
+                      value={record.completionYear ?? ""}
                       onChange={(e) => updateAcademicRecord(index, "completionYear", Number(e.target.value))}
                       className="w-full bg-surface border border-default rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     />

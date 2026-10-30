@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Sparkles,
@@ -14,13 +14,19 @@ import { usePortalData } from "../../hooks/usePortalData";
 export const StudentAiMatchPage: React.FC = () => {
   const { ownStudent } = usePortalData();
 
-  // Match inputs initialized with student's profile values
-  const [gpa, setGpa] = useState<number>((ownStudent as any)?.academicRecord?.gpa || 3.5);
-  const [ielts, setIelts] = useState<number>((ownStudent as any)?.testScores?.ielts?.overall || 7.0);
+  const profileGpa = Number.parseFloat((ownStudent as any)?.academicHistory?.[0]?.gradeGpa || "");
+  const profileIelts = Number.parseFloat((ownStudent as any)?.englishProficiency?.overallScore || "");
+  const [gpa, setGpa] = useState<number | null>(Number.isFinite(profileGpa) ? profileGpa : null);
+  const [ielts, setIelts] = useState<number | null>(Number.isFinite(profileIelts) ? profileIelts : null);
   const [destination, setDestination] = useState<string>("United Kingdom");
   const [level, setLevel] = useState<string>("Master's");
   const [subject, setSubject] = useState<string>("All");
   const [maxBudget, setMaxBudget] = useState<number>(45000);
+
+  useEffect(() => {
+    if (gpa === null && Number.isFinite(profileGpa)) setGpa(profileGpa);
+    if (ielts === null && Number.isFinite(profileIelts)) setIelts(profileIelts);
+  }, [gpa, ielts, profileGpa, profileIelts]);
 
   // Flatten all degree programmes
   const allProgrammes = useMemo(() => {
@@ -35,6 +41,8 @@ export const StudentAiMatchPage: React.FC = () => {
 
   // Compute matched degree recommendations
   const matchedResults = useMemo(() => {
+    if (gpa === null || ielts === null) return [];
+
     return allProgrammes
       .filter(({ university, programme }) => {
         if (destination !== "All" && university.country.toLowerCase() !== destination.toLowerCase()) {
@@ -106,14 +114,14 @@ export const StudentAiMatchPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your CGPA / Grade</span>
-              <span className="text-sm font-black text-teal-400 font-mono">{gpa.toFixed(1)} / 4.0</span>
+              <span className="text-sm font-black text-teal-400 font-mono">{gpa === null ? "Not provided" : `${gpa.toFixed(1)} / 4.0`}</span>
             </div>
             <input
               type="range"
               min="2.0"
               max="4.0"
               step="0.1"
-              value={gpa}
+              value={gpa ?? ""}
               onChange={(e) => setGpa(parseFloat(e.target.value))}
               className="w-full accent-teal-400 cursor-pointer"
             />
@@ -123,14 +131,14 @@ export const StudentAiMatchPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">IELTS Overall Band</span>
-              <span className="text-sm font-black text-teal-400 font-mono">{ielts.toFixed(1)}</span>
+              <span className="text-sm font-black text-teal-400 font-mono">{ielts === null ? "Not provided" : ielts.toFixed(1)}</span>
             </div>
             <input
               type="range"
               min="5.0"
               max="9.0"
               step="0.5"
-              value={ielts}
+              value={ielts ?? ""}
               onChange={(e) => setIelts(parseFloat(e.target.value))}
               className="w-full accent-teal-400 cursor-pointer"
             />

@@ -24,8 +24,11 @@ export const ModernStudentDashboard: React.FC = () => {
   const { ownStudent, ownApplications, ownDocuments, ownTasks, ownInvoices } = usePortalData();
   const navigate = useNavigate();
 
-  const studentName = ownStudent?.fullName?.split(" ")[0] || appUser?.displayName?.split(" ")[0] || "Aarav";
-  const completeness = ownStudent?.profileCompleteness ?? 100;
+  const studentName = ownStudent?.fullName?.split(" ")[0] || appUser?.displayName?.split(" ")[0] || "";
+  const completeness = ownStudent?.profileCompleteness ?? 0;
+  const profileGpa = Number.parseFloat((ownStudent as any)?.academicHistory?.[0]?.gradeGpa || "");
+  const profileEnglish = Number.parseFloat((ownStudent as any)?.englishProficiency?.overallScore || "");
+  const profileTarget = [ownStudent?.preferredDestination, ownStudent?.desiredStudyLevel].filter(Boolean).join(" / ") || "Not provided";
 
   // Dynamic time-based greeting
   const timeGreeting = useMemo(() => {
@@ -72,8 +75,10 @@ export const ModernStudentDashboard: React.FC = () => {
 
   // AI-Matched Recommended Programmes from curated partner catalog
   const aiRecommendations = useMemo(() => {
-    const studentGpa = (ownStudent as any)?.academicRecord?.gpa || 3.6;
-    const studentIelts = (ownStudent as any)?.testScores?.ielts?.overall || 7.0;
+    const studentGpa = Number.parseFloat((ownStudent as any)?.academicHistory?.[0]?.gradeGpa || "");
+    const studentIelts = Number.parseFloat((ownStudent as any)?.englishProficiency?.overallScore || "");
+
+    if (!Number.isFinite(studentGpa) || !Number.isFinite(studentIelts)) return [];
 
     const matches: any[] = [];
     GLOBAL_UNIVERSITIES.forEach((univ) => {
@@ -415,9 +420,9 @@ export const ModernStudentDashboard: React.FC = () => {
             <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
               <span className="text-slate-400 font-medium">Your Credentials:</span>
               <div className="flex items-center gap-3">
-                <span className="text-white font-bold">GPA: <span className="text-teal-400">3.6 / 4.0</span></span>
-                <span className="text-white font-bold">IELTS: <span className="text-teal-400">7.0 Band</span></span>
-                <span className="text-white font-bold">Target: <span className="text-teal-400">UK / Master's</span></span>
+                <span className="text-white font-bold">GPA: <span className="text-teal-400">{Number.isFinite(profileGpa) ? `${profileGpa} / 4.0` : "Not provided"}</span></span>
+                <span className="text-white font-bold">IELTS: <span className="text-teal-400">{Number.isFinite(profileEnglish) ? `${profileEnglish} Band` : "Not provided"}</span></span>
+                <span className="text-white font-bold">Target: <span className="text-teal-400">{profileTarget}</span></span>
               </div>
             </div>
 

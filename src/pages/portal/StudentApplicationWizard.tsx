@@ -42,6 +42,10 @@ import { DEMO_UNIVERSITIES } from "../../data/demoData";
 import { StudentCVUploader } from "../../components/ai/StudentCVUploader";
 import { ExtractedStudentCVData, toCountryName, COMMON_COUNTRIES } from "../../utils/cvExtractor";
 import { sanitizeFirestoreData } from "../../utils/firestoreSanitizer";
+import {
+  hydrateStudentProfile,
+  readStudentProfileSessionCache,
+} from "../../utils/studentProfileHydration";
 
 const STEPS = [
   { num: 1, title: "Overview" },
@@ -85,7 +89,7 @@ export const StudentApplicationWizard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Step 1 & 2: Application Details & Overrides
-  const [selectedIntake, setSelectedIntake] = useState<string>("September 2027");
+  const [selectedIntake, setSelectedIntake] = useState<string>("");
   const [personalStatement, setPersonalStatement] = useState("");
   const [personalOverrides, setPersonalOverrides] = useState({
     fullName: "",
@@ -105,7 +109,7 @@ export const StudentApplicationWizard: React.FC = () => {
     testDate: string;
     expiryDate: string;
   }>({
-    testType: "IELTS",
+    testType: "",
     overallScore: "",
     testDate: "",
     expiryDate: "",
@@ -133,8 +137,10 @@ export const StudentApplicationWizard: React.FC = () => {
     const uid = firebaseUser?.uid || appUser?.uid;
     if (!uid) return;
 
-    const matchedCountry = toCountryName(extracted.countryOfResidence || extracted.nationality) || personalOverrides.countryOfResidence || "Pakistan";
-    const matchedNat = toCountryName(extracted.nationality) || personalOverrides.nationality || matchedCountry;
+    const extractedCountry = toCountryName(extracted.countryOfResidence || "");
+    const extractedNationality = toCountryName(extracted.nationality || "");
+    const matchedCountry = extractedCountry || personalOverrides.countryOfResidence;
+    const matchedNat = extractedNationality || personalOverrides.nationality;
 
     // 1. Update personalOverrides state
     const newOverrides = {
@@ -163,15 +169,15 @@ export const StudentApplicationWizard: React.FC = () => {
     setStudent((prev) => {
       const base: Student = prev || ({
         id: uid,
-        fullName: extracted.fullName || personalOverrides.fullName || appUser?.displayName || "Student",
+        fullName: extracted.fullName || personalOverrides.fullName || appUser?.displayName || "",
         email: appUser?.email || firebaseUser?.email || "",
         phone: extracted.phone || personalOverrides.phone || "",
         nationality: matchedNat,
         countryOfResidence: matchedCountry,
         dob: extracted.dob || "",
-        gender: extracted.gender || "Other",
+        gender: extracted.gender || "",
         city: extracted.city || "",
-        profileCompleteness: 40,
+        profileCompleteness: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         academicHistory: [],
@@ -255,7 +261,7 @@ export const StudentApplicationWizard: React.FC = () => {
     if (!uid) return;
 
     try {
-      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || "Student";
+      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || "";
       const profileUpdate: Record<string, any> = {
         fullName: userName,
         phone: personalOverrides.phone || student?.phone || "",
@@ -371,18 +377,6 @@ export const StudentApplicationWizard: React.FC = () => {
             if (userSnap.exists()) userData = userSnap.data();
             if (studentSnap.exists()) {
               studentData = studentSnap.data() as Student;
-            } else if (userData) {
-              studentData = {
-                id: uid,
-                fullName: userData.displayName || "",
-                email: userData.email || "",
-                phone: userData.phone || "",
-                countryOfResidence: userData.countryOfResidence || "",
-                nationality: userData.nationality || "",
-                profileCompleteness: 30,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-              } as Student;
             }
           } catch (profileErr: any) {
             console.warn("Could not load Firestore profile, falling back to local session:", profileErr);
@@ -391,62 +385,62 @@ export const StudentApplicationWizard: React.FC = () => {
 
         if (isCancelled) return;
 
-        const resolvedName =
-          studentData?.fullName ||
-          userData?.displayName ||
-          appUser?.displayName ||
-          firebaseUser?.displayName ||
-          "Student";
-        const resolvedPhone = studentData?.phone || userData?.phone || "";
-        const resolvedCountry =
-          studentData?.countryOfResidence ||
-          userData?.countryOfResidence ||
-          studentData?.nationality ||
-          userData?.nationality ||
-          "";
-
-        const resolvedNat = studentData?.nationality || userData?.nationality || resolvedCountry;
-        const resolvedCity = (studentData as any)?.city || userData?.city || "";
-        const resolvedDob = studentData?.dob || userData?.dob || "";
-        const resolvedGender = studentData?.gender || userData?.gender || "";
-
-        // Fallback to session cache from registration if fields are missing in Firestore
-        let cachedFirst = "";
-        let cachedLast = "";
-        let cachedPhone = "";
-        let cachedCountry = "";
-        let cachedNat = "";
+        let registrationCache: Record<string, unknown> = {};
         try {
-          cachedFirst = sessionStorage.getItem("student_registration_first_name") || "";
-          cachedLast = sessionStorage.getItem("student_registration_last_name") || "";
-          cachedPhone = sessionStorage.getItem("student_registration_phone") || "";
-          cachedCountry = sessionStorage.getItem("student_registration_country") || "";
-          cachedNat = sessionStorage.getItem("student_registration_nationality") || "";
+          registrationCache = readStudentProfileSessionCache((key) => sessionStorage.getItem(key));
         } catch (_) {}
 
-        const cachedFullName = `${cachedFirst} ${cachedLast}`.trim();
-        const finalResolvedName = resolvedName !== "Student" ? resolvedName : (cachedFullName || "Student");
-        const finalResolvedPhone = resolvedPhone || cachedPhone;
-        const finalResolvedCountry = resolvedCountry || cachedCountry || "Pakistan";
-        const finalResolvedNat = resolvedNat || cachedNat || finalResolvedCountry;
+        const hydratedProfile = hydrateStudentProfile({
+          students: studentData,
+          users: userData,
+          registrationCache,
+        });
+        const resolvedName = hydratedProfile.fullName;
+        const resolvedPhone = hydratedProfile.phone;
+        const resolvedCountry = hydratedProfile.countryOfResidence;
+        const resolvedNat = hydratedProfile.nationality;
+        const resolvedCity = hydratedProfile.city;
+        const resolvedDob = hydratedProfile.dob;
+        const resolvedGender = hydratedProfile.gender;
+        const resolvedEmail = hydratedProfile.email || firebaseUser?.email || appUser?.email || "";
+
+        if (studentData || userData || resolvedName || resolvedPhone || hydratedProfile.academicHistory.length > 0) {
+          studentData = {
+            ...(studentData || {}),
+            id: studentData?.id || uid || "",
+            fullName: resolvedName,
+            email: resolvedEmail,
+            phone: resolvedPhone,
+            countryOfResidence: resolvedCountry,
+            nationality: resolvedNat,
+            ...(resolvedCity ? { city: resolvedCity } : {}),
+            ...(resolvedDob ? { dob: resolvedDob } : {}),
+            ...(resolvedGender ? { gender: resolvedGender } : {}),
+            ...(hydratedProfile.passportNumber ? { passportNumber: hydratedProfile.passportNumber } : {}),
+            academicHistory: hydratedProfile.academicHistory,
+            ...(hydratedProfile.englishProficiency ? { englishProficiency: hydratedProfile.englishProficiency } : {}),
+            profileCompleteness: studentData?.profileCompleteness || 0,
+            createdAt: studentData?.createdAt || Date.now(),
+            updatedAt: studentData?.updatedAt || Date.now(),
+          } as Student;
+        }
 
         setStudent(studentData);
         setPersonalOverrides({
-          fullName: finalResolvedName,
-          phone: finalResolvedPhone,
-          countryOfResidence: finalResolvedCountry,
-          nationality: finalResolvedNat,
+          fullName: resolvedName,
+          phone: resolvedPhone,
+          countryOfResidence: resolvedCountry,
+          nationality: resolvedNat,
           city: resolvedCity,
           dob: resolvedDob,
           gender: resolvedGender,
-          passportNumber: studentData?.passportNumber || "",
+          passportNumber: hydratedProfile.passportNumber,
         });
 
-        // Populate englishTest state from student profile
-        if (studentData?.englishProficiency) {
-          const ep = studentData.englishProficiency as any;
+        if (hydratedProfile.englishProficiency) {
+          const ep = hydratedProfile.englishProficiency;
           setEnglishTest({
-            testType: ep.testType || "IELTS",
+            testType: ep.testType || "",
             overallScore: ep.overallScore || "",
             testDate: ep.testDate || "",
             expiryDate: ep.expiryDate || "",
@@ -586,7 +580,7 @@ export const StudentApplicationWizard: React.FC = () => {
                 universityName: foundUniv.name,
                 programmeId: foundProg.id,
                 programmeName: foundProg.title,
-                intake: foundProg.intakes?.[0] || "September 2027",
+                intake: foundProg.intakes?.[0] || "",
                 targetCountry: foundUniv.country,
                 stage: "Draft",
                 applicationStatus: "Draft",
@@ -596,7 +590,7 @@ export const StudentApplicationWizard: React.FC = () => {
                 history: [
                   {
                     stage: "Draft",
-                    updatedBy: studentData?.email || "Student",
+                    updatedBy: studentData?.email || "",
                     timestamp: Date.now(),
                     note: "Application draft started by student.",
                   },
@@ -822,7 +816,7 @@ export const StudentApplicationWizard: React.FC = () => {
 
     try {
       const userEmail = firebaseUser?.email || appUser?.email || student?.email || "";
-      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || firebaseUser?.displayName || "Student";
+      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || firebaseUser?.displayName || "";
       const payload: Partial<Application> & Record<string, any> = {
         studentId: uid,
         studentName: userName,
@@ -873,7 +867,7 @@ export const StudentApplicationWizard: React.FC = () => {
           history: [
             {
               stage: "Draft",
-              updatedBy: userEmail || "Student",
+              updatedBy: userEmail || "",
               timestamp: Date.now(),
               note: "Application draft started by student.",
             },
@@ -916,7 +910,7 @@ export const StudentApplicationWizard: React.FC = () => {
     try {
       const now = Date.now();
       const userEmail = firebaseUser?.email || appUser?.email || student?.email || "";
-      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || firebaseUser?.displayName || "Student";
+      const userName = personalOverrides.fullName || student?.fullName || appUser?.displayName || firebaseUser?.displayName || "";
       const payload: Partial<Application> & Record<string, any> = {
         studentId: uid,
         studentName: userName,
@@ -969,7 +963,7 @@ export const StudentApplicationWizard: React.FC = () => {
           ...sanitizedPayload,
           history: arrayUnion({
             stage: "Initial Review",
-            updatedBy: userEmail || "Student",
+            updatedBy: userEmail || "",
             timestamp: now,
             note: "Application officially submitted by student and entered Initial Review for counsellor inspection.",
           }),
@@ -983,7 +977,7 @@ export const StudentApplicationWizard: React.FC = () => {
           history: [
             {
               stage: "Initial Review",
-              updatedBy: userEmail || "Student",
+              updatedBy: userEmail || "",
               timestamp: now,
               note: "Application officially submitted by student and entered Initial Review for counsellor inspection.",
             },
@@ -1363,10 +1357,11 @@ export const StudentApplicationWizard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-secondary mb-1">Country of Residence *</label>
                 <select
-                  value={personalOverrides.countryOfResidence || "Pakistan"}
+                  value={personalOverrides.countryOfResidence}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, countryOfResidence: e.target.value })}
                   className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
+                  <option value="">-- Select country --</option>
                   {COMMON_COUNTRIES.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -1378,10 +1373,11 @@ export const StudentApplicationWizard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-secondary mb-1">Nationality *</label>
                 <select
-                  value={personalOverrides.nationality || personalOverrides.countryOfResidence || "Pakistan"}
+                  value={personalOverrides.nationality}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, nationality: e.target.value })}
                   className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
+                  <option value="">-- Select nationality --</option>
                   {COMMON_COUNTRIES.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -1403,10 +1399,11 @@ export const StudentApplicationWizard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-secondary mb-1">Gender</label>
                 <select
-                  value={personalOverrides.gender || "Male"}
+                  value={personalOverrides.gender}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, gender: e.target.value })}
                   className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
+                  <option value="">-- Select gender --</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -1479,21 +1476,20 @@ export const StudentApplicationWizard: React.FC = () => {
                 onClick={() => {
                   const newRec = {
                     institution: "",
-                    qualification: "Bachelor's Degree",
+                    qualification: "",
                     degreeTitle: "",
-                    country: personalOverrides.countryOfResidence || "Pakistan",
-                    completionYear: new Date().getFullYear(),
+                    country: "",
                     gradeGpa: "",
                   };
                   setStudent((prev) => {
                     const base = prev || {
                       id: firebaseUser?.uid || appUser?.uid || "",
-                      fullName: personalOverrides.fullName || "Student",
+                      fullName: personalOverrides.fullName || "",
                       email: appUser?.email || firebaseUser?.email || "",
                       phone: personalOverrides.phone || "",
-                      nationality: personalOverrides.nationality || "Pakistan",
-                      countryOfResidence: personalOverrides.countryOfResidence || "Pakistan",
-                      profileCompleteness: 50,
+                      nationality: personalOverrides.nationality || "",
+                      countryOfResidence: personalOverrides.countryOfResidence || "",
+                      profileCompleteness: 0,
                       createdAt: Date.now(),
                       updatedAt: Date.now(),
                       academicHistory: [],
@@ -1539,7 +1535,7 @@ export const StudentApplicationWizard: React.FC = () => {
                       <div>
                         <label className="block text-[11px] font-semibold text-secondary mb-1">Level / Type *</label>
                         <select
-                          value={rec.qualification || "Bachelor's Degree"}
+                          value={rec.qualification || ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setStudent((prev) => {
@@ -1551,6 +1547,7 @@ export const StudentApplicationWizard: React.FC = () => {
                           }}
                           className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500"
                         >
+                          <option value="">-- Select qualification --</option>
                           <option value="High School / A-Levels">High School / Secondary / A-Levels</option>
                           <option value="Bachelor's Degree">Bachelor's Degree</option>
                           <option value="Master's Degree">Master's Degree</option>
@@ -1600,7 +1597,7 @@ export const StudentApplicationWizard: React.FC = () => {
                       <div>
                         <label className="block text-[11px] font-semibold text-secondary mb-1">Country *</label>
                         <select
-                          value={rec.country || personalOverrides.countryOfResidence || "Pakistan"}
+                          value={rec.country || ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setStudent((prev) => {
@@ -1612,6 +1609,7 @@ export const StudentApplicationWizard: React.FC = () => {
                           }}
                           className="w-full bg-input border border-subtle rounded-lg px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
                         >
+                          <option value="">-- Select country --</option>
                           {COMMON_COUNTRIES.map((c) => (
                             <option key={c} value={c}>
                               {c}
@@ -1624,7 +1622,7 @@ export const StudentApplicationWizard: React.FC = () => {
                         <label className="block text-[11px] font-semibold text-secondary mb-1">Completion Year *</label>
                         <input
                           type="number"
-                          value={rec.completionYear || new Date().getFullYear()}
+                          value={rec.completionYear ?? ""}
                           onChange={(e) => {
                             const val = Number(e.target.value);
                             setStudent((prev) => {
@@ -1710,6 +1708,7 @@ export const StudentApplicationWizard: React.FC = () => {
                   }}
                   className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
+                  <option value="">-- Select test type --</option>
                   <option value="IELTS">IELTS Academic</option>
                   <option value="PTE">PTE Academic (Pearson)</option>
                   <option value="TOEFL">TOEFL iBT</option>

@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Remove invented student profile and application defaults and hydrate wizard data from students, users, and registration/session cache in that order.",
+  "status": "completed",
+  "steps": [
+    "Create and test a pure profile hydration helper covering identity/contact/location/DOB/gender/passport/academic/English fields and source precedence.",
+    "Use the helper in StudentApplicationWizard and remove Pakistan, September 2027, Student, Other, placeholder academic, and 2024 defaults from wizard/onboarding/profile payload paths while preserving eligibility, documents, declarations, sync, retry, timeout, and empty behavior.",
+    "Remove any dashboard/matcher fallbacks that present fake GPA/English scores as the current student's profile, then run focused unit and student-flow checks."
+  ],
+  "acceptance_criteria": [
+    "Each hydrated field uses students first, users second, and registration/session cache third.",
+    "Missing fields remain blank and no placeholder country, intake, academic record, or test score is persisted.",
+    "Existing eligibility, readiness, document/declaration, submit sync, and recovery behavior remains intact."
+  ],
+  "verification": [
+    "npm run test:unit -- src/utils/studentProfileHydration.test.ts src/utils/applicationReadiness.test.ts",
+    "npm run test:e2e -- tests/e2e/student-workflow.spec.ts",
+    "npm run typecheck",
+    "npm run build",
+    "npx firebase-tools deploy --only hosting followed by live profile/wizard checks"
+  ],
+  "blocked_reason": null,
+  "findings": "Implemented pure students > users > registration/session profile hydration for identity, contact, location, DOB, gender, passport, academic history, and English proficiency. Removed invented intake, country, identity, gender, academic, completion-year, and test defaults from the application wizard and onboarding; dashboard and matcher now show missing scores as not provided and do not calculate recommendations without real scores. Focused unit hydration/readiness tests passed; direct Vitest, TypeScript typecheck, Vite build, and Playwright student workflow verification passed. The npm wrapper returned exit 2 for npm run build without diagnostics in this environment, while direct tsc -b and vite build completed successfully. Firebase hosting deploy command returned status 0 without a deployment transcript; no separate live profile/wizard check was available from this environment. No push was attempted per step scope.",
+  "evidence": {
+    "unit": "npm run test:unit -- src/utils/studentProfileHydration.test.ts src/utils/applicationReadiness.test.ts passed; direct Vitest focused run passed.",
+    "e2e": "npm run test:e2e -- tests/e2e/student-workflow.spec.ts completed with status 0 on the diagnostic rerun.",
+    "typecheck": "npm run typecheck passed.",
+    "build": "npm run build returned exit 2 without diagnostics; direct tsc -b --pretty false and vite build both completed successfully.",
+    "deploy": "npx firebase-tools deploy --only hosting --debug returned status 0 but emitted no transcript; live verification was unavailable."
+  }}
