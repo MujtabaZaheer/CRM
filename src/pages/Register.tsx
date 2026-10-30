@@ -536,14 +536,33 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-md transition-all duration-300">
+        <div className="w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-xl transition-all duration-300">
+          {/* Top navigation */}
+          <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 font-semibold transition-colors group"
+            >
+              <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
+              <span>Return to Public Portal</span>
+            </Link>
+            <Link
+              to="/login"
+              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+            >
+              Already have an account? Sign in
+            </Link>
+          </div>
+
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-zinc-950 font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
-              E
+            <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-teal-400 p-0.5 mx-auto shadow-lg shadow-indigo-500/20">
+              <div className="w-full h-full bg-[#0B1120] rounded-[14px] flex items-center justify-center text-teal-300">
+                <GraduationCap className="w-6 h-6 text-teal-400" />
+              </div>
             </div>
-            <h1 className="font-heading text-2xl font-bold text-white tracking-tight">Create Your Account</h1>
-            <p className="text-zinc-400 text-sm">Select your role to get started with EduCRM</p>
+            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Create Your Account</h1>
+            <p className="text-zinc-400 text-xs sm:text-sm">Select your role to access EduBridge & EduCRM</p>
           </div>
 
           {/* Role Cards */}
@@ -622,15 +641,23 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-xl bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
-        {/* Back button */}
-        <button
-          type="button"
-          onClick={() => { setSelectedRole(null); setError(null); }}
-          className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Change role</span>
-        </button>
+        {/* Top actions */}
+        <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+          <button
+            type="button"
+            onClick={() => { setSelectedRole(null); setError(null); }}
+            className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Change role</span>
+          </button>
+          <Link
+            to="/"
+            className="text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
+          >
+            &larr; Return to Portal
+          </Link>
+        </div>
 
         {/* Header */}
         <div className="text-center space-y-2">

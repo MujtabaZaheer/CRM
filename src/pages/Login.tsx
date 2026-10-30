@@ -6,7 +6,7 @@ import { auth, db, isDemoMode, requiresVerifiedEmail } from "../firebase/config"
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
 import { getRoleDashboardPath } from "../types/registrationConfig";
-import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Users2, Shield, UserPlus, ChevronUp, ChevronDown, X } from "lucide-react";
+import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Shield, UserPlus, ChevronUp, ChevronDown, X } from "lucide-react";
 import { bootstrapAdminAccounts } from "../utils/bootstrapAdmins";
 
 export const Login: React.FC = () => {
@@ -237,52 +237,59 @@ export const Login: React.FC = () => {
   const [loginTab, setLoginTab] = useState<"student" | "staff">("student");
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-login">
-      {/* Background Subtle Gradient Glow */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#0B1120] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-teal-500 selection:text-slate-950">
+      {/* Background Subtle Gradient Lighting Orbs */}
+      <div className="fixed -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed -bottom-40 -right-40 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[160px] pointer-events-none z-0" />
 
-      <div className="w-full max-w-lg bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-5 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
-        {/* Return to Public Front-End */}
+      <div className="w-full max-w-lg bg-slate-900/85 border border-slate-800/90 rounded-3xl shadow-2xl shadow-black/60 p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-xl">
+        {/* Top bar: Return to Public Front-End */}
         <div className="flex items-center justify-between pb-1">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-400 font-semibold transition-colors group"
           >
-            <span>&larr; Return to Public Portal</span>
+            <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
+            <span>Return to Public Portal</span>
           </Link>
-          <span className="text-[10px] text-zinc-500 font-mono">EduBridge AI</span>
+          <span className="text-[10px] text-teal-400/90 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
+            EduBridge.AI
+          </span>
         </div>
 
-        <div className="text-center space-y-1.5">
-          <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-zinc-950 font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
-            E
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-teal-400 p-0.5 mx-auto shadow-xl shadow-indigo-500/25">
+            <div className="w-full h-full bg-[#0B1120] rounded-[14px] flex items-center justify-center text-teal-300">
+              <GraduationCap className="w-7 h-7 text-teal-400" />
+            </div>
           </div>
-          <h1 className="font-heading text-2xl font-bold text-white tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {loginTab === "student" ? "International Student Portal" : "EduCRM Operations Desk"}
           </h1>
-          <p className="text-zinc-400 text-xs">
+          <p className="text-slate-400 text-xs sm:text-sm">
             {loginTab === "student"
-              ? "Track university applications, document vault & AI matching"
-              : "Operations access for Counsellors, Visa Officers & Admins"}
+              ? "Track university applications, document vault & real-time AI admissions"
+              : "Operations access for Counsellors, Visa Officers, Admissions & Admins"}
           </p>
         </div>
 
         {/* Tab Switcher: Student vs Staff */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-950/80 border border-zinc-800 rounded-xl">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/70 border border-slate-800/80 rounded-2xl">
           <button
             type="button"
             onClick={() => {
               setLoginTab("student");
               setError(null);
             }}
-            className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               loginTab === "student"
-                ? "bg-teal-500/20 text-teal-300 border border-teal-500/30 shadow"
-                : "text-zinc-400 hover:text-white"
+                ? "bg-gradient-to-r from-teal-500/20 to-emerald-500/20 text-teal-300 border border-teal-500/40 shadow-sm"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            <GraduationCap className="w-3.5 h-3.5" />
+            <GraduationCap className="w-4 h-4 text-teal-400" />
             <span>Student Portal</span>
           </button>
           <button
@@ -291,13 +298,13 @@ export const Login: React.FC = () => {
               setLoginTab("staff");
               setError(null);
             }}
-            className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               loginTab === "staff"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow"
-                : "text-zinc-400 hover:text-white"
+                ? "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            <Shield className="w-3.5 h-3.5" />
+            <Shield className="w-4 h-4 text-indigo-400" />
             <span>Staff / EduCRM</span>
           </button>
         </div>
@@ -317,198 +324,242 @@ export const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@organization.com"
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                placeholder={loginTab === "student" ? "student@example.com" : "officer@educrm.com"}
+                className="w-full pl-10 pr-3.5 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
               />
             </div>
           </div>
 
-          {!resetMode && <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
-              />
+          {!resetMode && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-3.5 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                />
+              </div>
             </div>
-          </div>}
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
           >
             <LogIn className="w-4 h-4" />
-            <span>{loading ? "Please wait..." : resetMode ? "Send Reset Link" : "Sign In"}</span>
+            <span>{loading ? "Signing in..." : resetMode ? "Send Reset Link" : "Sign In to Account"}</span>
           </button>
         </form>
 
-        <div className="text-center text-xs text-zinc-400 border-t border-zinc-800/80 pt-4 space-y-3">
-          {resetMode ? <button type="button" onClick={() => { setResetMode(false); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Back to sign in</button> : <>
-            <div className="flex items-center justify-between">
-              <button type="button" onClick={() => { setResetMode(true); setError(null); setNotice(null); }} className="font-semibold text-emerald-400 hover:text-emerald-300">Forgot password?</button>
-              <Link to="/accept-invitation" className="font-semibold text-zinc-500 hover:text-zinc-300 text-[11px]">Have an invitation?</Link>
-            </div>
-            <Link
-              to="/register"
-              className="w-full py-2.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
+        <div className="text-center text-xs text-slate-400 border-t border-slate-800/80 pt-4 space-y-3">
+          {resetMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setResetMode(false);
+                setError(null);
+                setNotice(null);
+              }}
+              className="font-semibold text-teal-400 hover:text-teal-300 cursor-pointer"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>Create New Account</span>
-            </Link>
-          </>}
+              Back to sign in
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMode(true);
+                    setError(null);
+                    setNotice(null);
+                  }}
+                  className="font-semibold text-teal-400 hover:text-teal-300 cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+                <Link to="/accept-invitation" className="font-semibold text-slate-500 hover:text-slate-300 text-[11px]">
+                  Have an invitation?
+                </Link>
+              </div>
+              <Link
+                to="/register"
+                className="w-full py-2.5 px-4 bg-slate-800/60 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
+              >
+                <UserPlus className="w-4 h-4 text-teal-400" />
+                <span>Create New Student Account</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Collapsible Floating Demo Accounts Trigger & Panel at Bottom-Right */}
+      {/* Floating Collapsible Demo Accounts Trigger & Panel at Bottom-Right */}
       <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
         {demoOpen && (
-          <div className="mb-3 w-80 sm:w-96 max-h-[75vh] overflow-y-auto bg-zinc-950/95 border border-zinc-800 rounded-2xl shadow-2xl p-4 backdrop-blur-xl space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
-            <div className="text-xs font-semibold text-emerald-400 flex items-center justify-between pb-1 border-b border-zinc-800/80">
+          <div className="mb-3 w-84 sm:w-96 max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-slate-800 rounded-3xl shadow-2xl p-4 backdrop-blur-2xl space-y-3.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <div className="text-xs font-semibold text-teal-400 flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center space-x-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>One-Click Demo Access</span>
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <span className="font-bold">One-Click Instant Role Demo</span>
               </div>
               <button
                 type="button"
                 onClick={() => setDemoOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300 p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
                 aria-label="Close demo panel"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("counsellor")}
-                className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>Counsellor</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("team_leader")}
-                className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <Users2 className="w-3.5 h-3.5" />
-                <span>Team Leader</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("org_admin")}
-                className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Org Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("admissions_officer")}
-                className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>Admissions</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("finance_officer")}
-                className="px-2.5 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>Finance</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("platform_super_admin")}
-                className="px-2.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Super Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("support_user")}
-                className="px-2.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>Support</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("auditor")}
-                className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>Auditor</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("visa_officer")}
-                className="px-2.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>Visa Officer</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: true })}
-                className="px-2.5 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] ring-1 ring-emerald-500/20"
-                title="Aarav Patel (Already Registered: Dashboard, Applications & Documents)"
-              >
-                <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Student (Reg)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: false })}
-                className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-                title="New Student (Test Onboarding Wizard from Step 1)"
-              >
-                <span>Student (New)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("external_agent")}
-                className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>Agent</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("university_partner")}
-                className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98]"
-              >
-                <span>University</span>
-              </button>
+
+            {/* Group 1: Students */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <GraduationCap className="w-3 h-3 text-teal-400" />
+                <span>Student Portals</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: true })}
+                  className="px-2.5 py-2 bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] cursor-pointer"
+                  title="Aarav Patel (Already Registered: Dashboard, Applications & Documents)"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-teal-400" />
+                  <span>Student (Reg)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("student", { isRegisteredStudent: false })}
+                  className="px-2.5 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-[0.98] cursor-pointer"
+                  title="New Student (Test Onboarding Wizard from Step 1)"
+                >
+                  <span>Student (New)</span>
+                </button>
+              </div>
             </div>
 
-            {/* Demo Registered Student Fast Access Callout */}
-            <div className="p-2.5 bg-emerald-950/30 border border-emerald-500/30 rounded-xl space-y-1 text-xs">
-              <div className="flex items-center justify-between text-zinc-300 font-semibold text-[10px]">
-                <span className="flex items-center gap-1.5 text-emerald-400">
-                  <Sparkles className="w-3 h-3 text-emerald-400" />
-                  Registered Student: Aarav Patel
+            {/* Group 2: Admissions & Operations */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="w-3 h-3 text-indigo-400" />
+                <span>EduCRM Desk & Counsellors</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("counsellor")}
+                  className="px-2.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl font-bold flex items-center justify-center space-x-1 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Counsellor</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("team_leader")}
+                  className="px-2.5 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-xl font-bold flex items-center justify-center space-x-1 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Team Leader</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("admissions_officer")}
+                  className="px-2.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl font-bold flex items-center justify-center space-x-1 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Admissions</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("visa_officer")}
+                  className="px-2.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl font-bold flex items-center justify-center space-x-1 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Visa Officer</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("finance_officer")}
+                  className="px-2.5 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-xl font-bold flex items-center justify-center space-x-1 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Finance</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("support_user")}
+                  className="px-2.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl font-bold flex items-center justify-center space-x-1 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Support</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Group 3: Leadership & Compliance */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Leadership & Partners
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("org_admin")}
+                  className="px-2 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-lg font-bold flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <span>Org Admin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("platform_super_admin")}
+                  className="px-2 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-lg font-bold flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <span>Super Admin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("auditor")}
+                  className="px-2 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-lg font-bold flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <span>Auditor</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("external_agent")}
+                  className="px-2 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg font-bold flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <span>Agent</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Demo Student Fast Info */}
+            <div className="p-2.5 bg-teal-950/40 border border-teal-500/20 rounded-xl space-y-1 text-xs">
+              <div className="flex items-center justify-between text-slate-300 font-semibold text-[10px]">
+                <span className="flex items-center gap-1.5 text-teal-400">
+                  <Sparkles className="w-3 h-3 text-teal-400" />
+                  Pre-configured Demo Student: Aarav Patel
                 </span>
-                <span className="text-[9px] text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/20 font-mono">
-                  100%
+                <span className="text-[9px] text-teal-400 bg-teal-500/10 px-1.5 py-0.2 rounded-full border border-teal-500/20 font-mono">
+                  Active
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400">
-                Sign in with <code className="text-emerald-300 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">aarav.patel@gmail.com</code> (any password).
+              <p className="text-[10px] text-slate-400">
+                Or enter email <code className="text-teal-300 bg-slate-950 px-1 py-0.5 rounded border border-slate-800">aarav.patel@gmail.com</code> with any password.
               </p>
             </div>
           </div>
@@ -517,15 +568,15 @@ export const Login: React.FC = () => {
         <button
           type="button"
           onClick={() => setDemoOpen(!demoOpen)}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-zinc-900/95 hover:bg-zinc-850 text-zinc-200 hover:text-white border border-zinc-700/80 rounded-full shadow-2xl shadow-black/60 backdrop-blur-xl transition-all active:scale-95 group hover:border-emerald-500/60 text-xs font-semibold"
+          className="flex items-center space-x-2 px-4 py-2.5 bg-slate-900/95 hover:bg-slate-850 text-slate-200 hover:text-white border border-slate-700/80 rounded-full shadow-2xl shadow-black/60 backdrop-blur-xl transition-all active:scale-95 group hover:border-teal-500/60 text-xs font-semibold cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400 group-hover:rotate-12 transition-transform" />
+          <Sparkles className="w-3.5 h-3.5 text-teal-400 group-hover:rotate-12 transition-transform" />
           <span>Demo Accounts</span>
-          <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-full text-[10px] font-mono">13</span>
+          <span className="px-1.5 py-0.2 bg-teal-500/20 text-teal-300 rounded-full text-[10px] font-mono">13</span>
           {demoOpen ? (
-            <ChevronDown className="w-4 h-4 text-zinc-400 group-hover:text-emerald-400" />
+            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-teal-400" />
           ) : (
-            <ChevronUp className="w-4 h-4 text-zinc-400 group-hover:text-emerald-400" />
+            <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-teal-400" />
           )}
         </button>
       </div>

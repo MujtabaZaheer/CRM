@@ -49,15 +49,11 @@ export interface ApplicationReadinessReport {
   recommendations: string[];
 }
 
-export const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || "gemini-3.8-flash";
+export const GEMINI_MODEL = "gemini-3.8-flash";
 
 function getApiKey(): string {
-  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (envKey && envKey.trim() !== "") return envKey.trim();
-
   const storedKey = localStorage.getItem("EDUC_CRM_GEMINI_API_KEY");
   if (storedKey && storedKey.trim() !== "") return storedKey.trim();
-
   return "";
 }
 
@@ -106,12 +102,11 @@ export function cleanAndParseJson<T = any>(text: string): T {
 export async function callGeminiApi(prompt: string, inlineImageData?: { mimeType: string; dataBase64: string }): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error("Gemini API key not configured. Please set VITE_GEMINI_API_KEY in .env or enter your Google Gemini API Key.");
+    throw new Error("Gemini API key not configured. Please enter your Google Gemini API Key.");
   }
 
   const candidateModels = [
     GEMINI_MODEL,
-    "gemini-3.8-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash"

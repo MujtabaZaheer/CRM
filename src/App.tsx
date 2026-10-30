@@ -249,6 +249,9 @@ export const App: React.FC = () => {
                     <Route path="settings" element={<StudentSettingsPage />} />
                     <Route path="requests" element={<RolePortal role="student" page="requests" />} />
                     <Route path="new-application" element={<StudentNewApplication />} />
+                    <Route path="applications/new" element={<StudentNewApplication />} />
+                    <Route path="applications/wizard" element={<StudentNewApplication />} />
+                    <Route path="applications/wizard/:applicationId" element={<StudentNewApplication />} />
                     <Route path="apply/:programmeId" element={<StudentNewApplication />} />
                     <Route path="apply" element={<StudentNewApplication />} />
                   </Route>

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { PublicNavbar } from "../../components/public/PublicNavbar";
 import { useAuth } from "../../contexts/AuthContext";
 import { GLOBAL_UNIVERSITIES } from "../../data/globalUniversities";
@@ -29,6 +29,45 @@ import {
 export const PublicPortalLanding: React.FC = () => {
   const { appUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Auto-scroll handler for anchor hashes and path-based section navigation
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace("#", "");
+      const elem = document.getElementById(targetId);
+      if (elem) {
+        setTimeout(() => {
+          elem.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+        return;
+      }
+    }
+
+    const path = location.pathname.toLowerCase();
+    if (path === "/explore" || path === "/programmes" || path === "/courses") {
+      const elem = document.getElementById("programmes");
+      if (elem) {
+        setTimeout(() => {
+          elem.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    } else if (path === "/scholarships") {
+      const elem = document.getElementById("scholarships");
+      if (elem) {
+        setTimeout(() => {
+          elem.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    } else if (path === "/ai-counsellor") {
+      const elem = document.getElementById("ai-counsellor");
+      if (elem) {
+        setTimeout(() => {
+          elem.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    }
+  }, [location.pathname, location.hash]);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");

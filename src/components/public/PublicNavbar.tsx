@@ -60,7 +60,7 @@ export const PublicNavbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0B1120]/90 dark:bg-[#0B1120]/90 light:bg-white/90 backdrop-blur-xl border-b border-slate-800/80 dark:border-slate-800/80 light:border-slate-200 transition-colors">
+    <header className="sticky top-0 z-50 bg-[#0B1120]/90 backdrop-blur-xl border-b border-slate-800/80 transition-colors">
       {/* Top micro announcement bar */}
       <div className="bg-gradient-to-r from-indigo-900/60 via-blue-900/40 to-teal-900/60 text-slate-200 text-[11px] py-1.5 px-4 text-center border-b border-indigo-500/20 flex items-center justify-center gap-2">
         <span className="inline-flex items-center gap-1 font-semibold text-emerald-400">
@@ -68,7 +68,7 @@ export const PublicNavbar: React.FC = () => {
           <span>Fall 2026 Admissions Open:</span>
         </span>
         <span>Over £15M in international student scholarships & fast-track offer letters now available.</span>
-        <a href="#scholarships" className="underline hover:text-white font-medium ml-1 hidden sm:inline">
+        <a href="/#scholarships" className="underline hover:text-white font-medium ml-1 hidden sm:inline">
           View Scholarships &rarr;
         </a>
       </div>
@@ -100,35 +100,35 @@ export const PublicNavbar: React.FC = () => {
           {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center space-x-1">
             <a
-              href="#programmes"
+              href="/#programmes"
               className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5"
             >
               <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
               <span>Programmes</span>
             </a>
             <a
-              href="#universities"
+              href="/#universities"
               className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5"
             >
               <Building2 className="w-3.5 h-3.5 text-teal-400" />
               <span>Universities</span>
             </a>
             <a
-              href="#ai-counsellor"
+              href="/#ai-counsellor"
               className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>AI Matchmaker</span>
             </a>
             <a
-              href="#scholarships"
+              href="/#scholarships"
               className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5"
             >
               <Award className="w-3.5 h-3.5 text-emerald-400" />
               <span>Scholarships</span>
             </a>
             <a
-              href="#how-it-works"
+              href="/#how-it-works"
               className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5"
             >
               <Compass className="w-3.5 h-3.5 text-sky-400" />
@@ -245,35 +245,35 @@ export const PublicNavbar: React.FC = () => {
         <div className="sm:hidden bg-[#0F172A] border-b border-slate-800 px-4 pt-3 pb-5 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col space-y-1">
             <a
-              href="#programmes"
+              href="/#programmes"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/60"
             >
               Programmes Directory
             </a>
             <a
-              href="#universities"
+              href="/#universities"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/60"
             >
               Partner Universities
             </a>
             <a
-              href="#ai-counsellor"
+              href="/#ai-counsellor"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/60"
             >
               AI Admission Matchmaker
             </a>
             <a
-              href="#scholarships"
+              href="/#scholarships"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/60"
             >
               Scholarships
             </a>
             <a
-              href="#how-it-works"
+              href="/#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/60"
             >

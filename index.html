@@ -2,11 +2,70 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B1120" />
+
+    <!-- Primary SEO Meta Tags -->
     <title>EduBridge AI — AI-Powered University Admissions & Study Abroad Platform</title>
+    <meta name="title" content="EduBridge AI — AI-Powered University Admissions & Study Abroad Platform" />
     <meta name="description" content="Find UK, USA, Australia, and Canadian university degrees with an AI counsellor. Tailored shortlists, real-time IELTS & GPA eligibility check, scholarship alerts, and direct admissions processing." />
     <meta name="keywords" content="UK university admissions, AI counsellor, study in UK, study abroad, EduBridge Network, StudyPortal, university search, international student scholarships, education CRM" />
+    <link rel="canonical" href="https://education-crm-9fee2.web.app" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://education-crm-9fee2.web.app" />
+    <meta property="og:site_name" content="EduBridge AI" />
+    <meta property="og:title" content="EduBridge AI — AI-Powered University Admissions & Study Abroad Platform" />
+    <meta property="og:description" content="Find UK, USA, Australia, and Canadian university degrees with an AI counsellor. Tailored shortlists, real-time IELTS & GPA eligibility check, scholarship alerts, and direct admissions processing." />
+    <meta property="og:image" content="https://education-crm-9fee2.web.app/images/student_campus_hero.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://education-crm-9fee2.web.app" />
+    <meta property="twitter:title" content="EduBridge AI — AI-Powered University Admissions & Study Abroad Platform" />
+    <meta property="twitter:description" content="Find UK, USA, Australia, and Canadian university degrees with an AI counsellor. Tailored shortlists, real-time IELTS & GPA eligibility check, scholarship alerts, and direct admissions processing." />
+    <meta property="twitter:image" content="https://education-crm-9fee2.web.app/images/student_campus_hero.jpg" />
+
+    <!-- JSON-LD Structured Data: EducationalOrganization & WebSite -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "EducationalOrganization",
+            "@id": "https://education-crm-9fee2.web.app/#organization",
+            "name": "EduBridge AI",
+            "url": "https://education-crm-9fee2.web.app",
+            "logo": "https://education-crm-9fee2.web.app/favicon.svg",
+            "description": "Next-generation AI admissions platform connecting international students with higher education universities in the UK, USA, Australia, and Canada.",
+            "sameAs": [
+              "https://studyportal.ai",
+              "https://edubridgenetwork.com"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://education-crm-9fee2.web.app/#website",
+            "url": "https://education-crm-9fee2.web.app",
+            "name": "EduBridge AI",
+            "publisher": {
+              "@id": "https://education-crm-9fee2.web.app/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://education-crm-9fee2.web.app/explore?search={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -26,7 +85,7 @@
       })();
     </script>
   </head>
-  <body class="font-sans antialiased selection:bg-emerald-500 selection:text-zinc-950">
+  <body class="font-sans antialiased selection:bg-teal-500 selection:text-slate-950">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

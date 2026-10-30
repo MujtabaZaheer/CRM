@@ -80,7 +80,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "674bd42526c9374e",
@@ -182,7 +183,7 @@
       "bases:Create new base": false
     }
   },
-  "active": "6ce64d1263ef60cc",
+  "active": "aed7ee5876f425ea",
   "lastOpenFiles": [
     "UML Sequence Diagrams & System Flow.md",
     "Core Architecture.md",

@@ -109,7 +109,7 @@ export const CourseRecommendationModal: React.FC<CourseRecommendationModalProps>
                 <span>Google Gemini API Key Required (Free Tier)</span>
               </div>
               <p className="text-xs text-[var(--text-secondary)]">
-                Get a free key at <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="underline text-emerald-400">aistudio.google.com</a> and enter it below or set <code className="text-xs bg-black/30 px-1 py-0.5 rounded text-emerald-400">VITE_GEMINI_API_KEY</code> in .env.
+                Get a free key at <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="underline text-emerald-400">aistudio.google.com</a> and enter it below.
               </p>
               <div className="flex items-center space-x-2">
                 <input
