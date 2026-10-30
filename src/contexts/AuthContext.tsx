@@ -1,17 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, setDoc, collection, query, where, getDocs, getDoc } from "firebase/firestore";
 import { auth, db, isDemoMode } from "../firebase/config";
 import { AppUser, UserRole } from "../types/role";
 import { DEMO_STUDENTS } from "../data/demoData";
+import { DEMO_STUDENT_REGISTERED_EMAIL, isKnownDemoEmail } from "../utils/demoAccounts";
 
 interface AuthContextType {
   firebaseUser: User | null;
   appUser: AppUser | null;
   loading: boolean;
   isDemoMode: boolean;
-  loginAsDemoRole: (role: UserRole, options?: { isRegisteredStudent?: boolean }) => void;
-  logout: () => void;
+  loginAsDemoRole: (role: UserRole, options?: { isRegisteredStudent?: boolean }) => Promise<void>;
+  logout: () => Promise<void>;
   refreshFirebaseUser: () => Promise<User | null>;
 }
 
@@ -20,17 +21,19 @@ const AuthContext = createContext<AuthContextType>({
   appUser: null,
   loading: true,
   isDemoMode: false,
-  loginAsDemoRole: () => {},
-  logout: () => {},
+  loginAsDemoRole: async () => {},
+  logout: async () => {},
   refreshFirebaseUser: async () => null,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(() => {
+    if (!isDemoMode) return null;
     try {
       const stored = localStorage.getItem("educrm_demo_user");
-      if (stored) return JSON.parse(stored) as AppUser;
+      const parsed = stored ? JSON.parse(stored) as AppUser : null;
+      return parsed && isKnownDemoEmail(parsed.email) ? parsed : null;
     } catch (e) {
       console.warn("Failed to load stored demo user:", e);
     }
@@ -39,12 +42,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   const loginAsDemoRole = async (role: UserRole, options?: { isRegisteredStudent?: boolean }) => {
+    if (!isDemoMode) return;
+
     let demoUser: AppUser;
 
     if (role === "student" && options?.isRegisteredStudent) {
       demoUser = {
         uid: "stu_1",
-        email: "aarav.patel@gmail.com",
+        email: DEMO_STUDENT_REGISTERED_EMAIL,
         displayName: "Aarav Patel",
         role: "student",
         createdAt: Date.now() - 86400000 * 10,
@@ -73,22 +78,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
+    if (!isKnownDemoEmail(demoUser.email)) return;
+
     try {
       localStorage.setItem("educrm_demo_user", JSON.stringify(demoUser));
-      sessionStorage.setItem("demo_email_verified", "true");
     } catch (e) {
       console.warn("Failed to persist demo user:", e);
     }
     setAppUser(demoUser);
     setLoading(false);
 
-    // Synchronize authoritative Firebase Auth session for demo role
-    try {
-      await signInWithEmailAndPassword(auth, demoUser.email, "EduCrmDemo2026!");
-    } catch (authErr) {
-      console.warn("Demo Firebase Auth session notice:", authErr);
-    }
-
+    // Demo access stays local. Firestore synchronization is best-effort and must not
+    // turn a working local demo session into a Firebase credential error.
     try {
       await setDoc(doc(db, "users", demoUser.uid), {
         uid: demoUser.uid,
@@ -121,14 +122,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     try {
       localStorage.removeItem("educrm_demo_user");
+      sessionStorage.removeItem("demo_email_verified");
+      sessionStorage.removeItem("pending_verification_email");
     } catch (error) {
       console.warn("Failed to clear demo session:", error);
     }
     setAppUser(null);
-    auth.signOut();
+    await auth.signOut();
   };
 
   const refreshFirebaseUser = async () => {
@@ -468,15 +471,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         );
       } else {
-        // If not logged in via Firebase Auth, check if demo user is stored
-        const storedDemo = localStorage.getItem("educrm_demo_user");
+        // Local sessions are accepted only for the explicit demo identities and only
+        // when the build opted into demo mode. Production ignores this storage.
+        const storedDemo = isDemoMode ? localStorage.getItem("educrm_demo_user") : null;
         if (storedDemo) {
           try {
-            setAppUser(JSON.parse(storedDemo) as AppUser);
+            const parsed = JSON.parse(storedDemo) as AppUser;
+            setAppUser(isKnownDemoEmail(parsed.email) ? parsed : null);
           } catch (error) {
             console.warn("Failed to restore demo session:", error);
             setAppUser(null);
           }
+        } else if (!isDemoMode) {
+          setAppUser(null);
         }
         setLoading(false);
       }

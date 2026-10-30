@@ -22,15 +22,24 @@ test.describe('Authentication and Account Flows', () => {
     expect(page.url()).toContain('/login');
   });
 
-  test('AUTH-003: Login with invalid credentials displays error notification without crashing', async ({ page }) => {
+  test('AUTH-003: Login with invalid credentials displays a safe error without crashing', async ({ page }) => {
     await page.locator('input[type="email"]').fill('nonexistent.qa.user@example.test');
     await page.locator('input[type="password"]').fill('WrongPassword999!');
     await page.getByRole('button', { name: /Sign In|Sign in/i }).click();
 
-    // Application should display error alert / message
-    const errorNotice = page.locator('.text-rose-400, .bg-rose-500\\/10').or(page.getByText(/invalid|failed|error|user-not-found/i)).first();
+    const errorNotice = page.locator('.text-rose-400, .bg-rose-500\\/10').or(page.getByText(/email or password|failed|error|user-not-found/i)).first();
     await expect(errorNotice).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/auth\//i)).not.toBeVisible();
     expect(page.url()).toContain('/login');
+  });
+
+  test('AUTH-003A: Unknown demo-looking identities never receive local demo access', async ({ page }) => {
+    await page.locator('input[type="email"]').fill('unknown.qa@educrm.demo');
+    await page.locator('input[type="password"]').fill('WrongPassword999!');
+    await page.getByRole('button', { name: /Sign In|Sign in/i }).click();
+
+    await expect(page.getByText(/email or password|couldn't sign you in/i)).toBeVisible({ timeout: 10000 });
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test('AUTH-004: Quick Demo Login transitions smoothly to role dashboard', async ({ page }) => {
@@ -45,12 +54,12 @@ test.describe('Authentication and Account Flows', () => {
   });
 
   test('AUTH-005: Demo Student Fast-Login navigates to Student Experience', async ({ page }) => {
-    const studentDemoBtn = page.locator('button:has-text("Student"), button:has-text("Demo Student")').first();
-    if (await studentDemoBtn.isVisible()) {
-      await studentDemoBtn.click();
-      await page.waitForURL((url) => url.pathname.includes('/student'), { timeout: 15000 });
-      expect(page.url()).toContain('/student');
-    }
+    await page.getByRole('button', { name: /Demo Accounts/i }).click();
+    const studentDemoBtn = page.getByRole('button', { name: /Student \(Reg\)/i });
+    await expect(studentDemoBtn).toBeVisible();
+    await studentDemoBtn.click();
+    await page.waitForURL((url) => url.pathname.includes('/student'), { timeout: 15000 });
+    expect(page.url()).toContain('/student');
   });
 
   test('AUTH-006: Session persistence maintains user after browser reload', async ({ page }) => {
@@ -133,5 +142,31 @@ test.describe('Authentication and Account Flows', () => {
       await page.waitForURL(/\/login/, { timeout: 10000 });
       expect(page.url()).toContain('/login');
     }
+  });
+
+  test('AUTH-REAL-001: Environment-gated registration, logout, and login path', async ({ page }) => {
+    const realEmail = process.env.E2E_REAL_REGISTRATION_EMAIL;
+    const realPassword = process.env.E2E_REAL_REGISTRATION_PASSWORD;
+    test.skip(!realEmail || !realPassword, 'Set E2E_REAL_REGISTRATION_EMAIL and E2E_REAL_REGISTRATION_PASSWORD for controlled Firebase Auth validation.');
+
+    await page.goto('/register?role=student');
+    const textInputs = page.locator('input[type="text"]');
+    await textInputs.nth(0).fill('QA');
+    await textInputs.nth(1).fill('Student');
+    await page.locator('input[type="email"]').fill(realEmail!);
+    await page.locator('input[type="tel"]').fill('+1 555 010 0199');
+    const passwordInputs = page.locator('input[type="password"]');
+    await passwordInputs.nth(0).fill(realPassword!);
+    await passwordInputs.nth(1).fill(realPassword!);
+    await page.locator('#registration-consent').check();
+    await page.getByRole('button', { name: /Create Account|Register/i }).click();
+    await expect(page).toHaveURL(/\/verify-email/, { timeout: 30000 });
+
+    await page.getByRole('button', { name: /Sign Out|Log Out/i }).click();
+    await expect(page).toHaveURL(/\/login/);
+    await page.locator('input[type="email"]').fill(realEmail!);
+    await page.locator('input[type="password"]').fill(realPassword!);
+    await page.getByRole('button', { name: /Sign In|Sign in/i }).click();
+    await expect(page).toHaveURL(/\/verify-email|\/student\//, { timeout: 30000 });
   });
 });

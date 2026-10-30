@@ -7,7 +7,7 @@ test.describe('Student End-to-End Workflow', () => {
     await page.evaluate(() => {
       const studentUser = {
         uid: "stu_1",
-        email: "aarav.patel@gmail.com",
+        email: "student.registered@educrm.demo",
         displayName: "Aarav Patel",
         role: "student",
         createdAt: Date.now() - 86400000 * 10,

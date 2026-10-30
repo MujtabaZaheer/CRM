@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase/config";
+import { db, isDemoMode } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { Student } from "../../types/student";
 import { DEMO_STUDENTS } from "../../data/demoData";
 import { getRoleDashboardPath } from "../../types/registrationConfig";
+import { isKnownDemoEmail } from "../../utils/demoAccounts";
 
 export const StudentOnboardingGuard: React.FC = () => {
   const { appUser, firebaseUser, loading: authLoading } = useAuth();
@@ -17,21 +18,16 @@ export const StudentOnboardingGuard: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchProfile = async () => {
-      let demoParsed: any = null;
-      try {
-        const demoStored = typeof window !== "undefined" ? localStorage.getItem("educrm_demo_user") : null;
-        if (demoStored) demoParsed = JSON.parse(demoStored);
-      } catch (_) {}
-
-      const effectiveUser = demoParsed || appUser;
+      const effectiveUser = appUser;
       const effectiveEmail = effectiveUser?.email || firebaseUser?.email;
       const uid = effectiveUser?.uid || firebaseUser?.uid;
+      const isKnownDemoSession = isDemoMode && isKnownDemoEmail(effectiveUser?.email);
 
       if (
-        effectiveUser?.onboardingStatus === "completed" ||
-        effectiveUser?.profileCompleted === true ||
-        uid === "stu_1" ||
-        effectiveEmail === "aarav.patel@gmail.com"
+        isKnownDemoSession &&
+        (effectiveUser?.onboardingStatus === "completed" ||
+          effectiveUser?.profileCompleted === true ||
+          uid === "stu_1")
       ) {
         const demo = DEMO_STUDENTS.find((s) => s.id === uid || s.email === effectiveEmail) || DEMO_STUDENTS[0];
         if (isMounted) {

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { requiresVerifiedEmail } from "../../firebase/config";
+import { requiresVerifiedEmail, isDemoMode } from "../../firebase/config";
+import { isKnownDemoEmail } from "../../utils/demoAccounts";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Loader2 } from "lucide-react";
@@ -29,12 +30,7 @@ export const ProtectedLayout: React.FC = () => {
   }
 
   // Security Guard: Unverified students cannot access any protected internal route
-  const isDemoVerified =
-    typeof window !== "undefined" &&
-    (sessionStorage.getItem("demo_email_verified") === "true" ||
-      localStorage.getItem("educrm_demo_user") !== null ||
-      appUser.uid?.startsWith("demo_") ||
-      appUser.uid === "stu_1");
+  const isDemoVerified = isDemoMode && isKnownDemoEmail(appUser.email);
   const ADMIN_BYPASS_EMAILS = [
     "live_superadmin@educrm.com",
     "live_orgadmin@educrm.com",

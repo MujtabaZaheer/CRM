@@ -433,8 +433,8 @@ export const StudentApplicationWizard: React.FC = () => {
           nationality: resolvedNat,
           city: resolvedCity,
           dob: resolvedDob,
-          gender: resolvedGender,
-          passportNumber: hydratedProfile.passportNumber,
+          gender: resolvedGender || "",
+          passportNumber: hydratedProfile.passportNumber || "",
         });
 
         if (hydratedProfile.englishProficiency) {
@@ -1357,7 +1357,7 @@ export const StudentApplicationWizard: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-secondary mb-1">Country of Residence *</label>
                 <select
-                  value={personalOverrides.countryOfResidence}
+                  value={personalOverrides.countryOfResidence || "Pakistan"}
                   onChange={(e) => setPersonalOverrides({ ...personalOverrides, countryOfResidence: e.target.value })}
                   className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >

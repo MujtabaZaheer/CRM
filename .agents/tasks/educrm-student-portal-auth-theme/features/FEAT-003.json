@@ -1,0 +1,51 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Make production Firebase Auth primary, constrain local demos to explicit @educrm.demo accounts, map auth errors safely, and verify real registration/login behavior.",
+  "status": "completed",
+  "steps": [
+    "Set the local/production demo flags deliberately and update firebase/config.ts/AuthContext/StudentOnboardingGuard/Login/Register so production ignores demo sessions while local explicit demo sessions remain non-fatal when Firebase sync fails.",
+    "Add a centralized Firebase auth error mapper and replace raw Login/Register error rendering/logging with safe user-facing messages, especially auth/invalid-credential.",
+    "Add unit and E2E coverage for error mapping, explicit demos, verification routing, logout/session behavior, and a credential-gated real registration → logout → login runtime path. Document provider/domain checks that require Firebase Console access."
+  ],
+  "acceptance_criteria": [
+    "Production builds use VITE_DEMO_MODE=false and real email/password Firebase Auth for normal accounts.",
+    "Only known explicit @educrm.demo identities use local demo access, and demo sync failures never show as credential errors.",
+    "auth/invalid-credential is mapped to a clear message without exposing raw Firebase text, passwords, tokens, or credential objects.",
+    "Real student registration creates an Auth user, preserves email verification, and supports logout then login when Firebase configuration is valid."
+  ],
+  "verification": [
+    "PASS: npm run test:unit -- src/utils/firebaseAuthErrors.test.ts src/utils/demoAccounts.test.ts (2 files, 4 tests)",
+    "PASS: npm run test:unit (33 existing test files, 264 tests)",
+    "PASS: npm run test:e2e -- tests/e2e/auth.spec.ts (11 tests)",
+    "PASS: npm run typecheck",
+    "PASS: npm run build, with existing Vite dependency/chunk-size warnings only",
+    "BLOCKED: Controlled real Firebase registration/logout/login check was not run because no E2E_REAL_REGISTRATION_EMAIL or E2E_REAL_REGISTRATION_PASSWORD credentials were provided.",
+    "BLOCKED: Firebase Console provider and authorized-domain checks require Console access and were not verifiable from this repository.",
+    "INCOMPLETE: Full npm run test:e2e reached 41 passed before the 300-second workflow timeout; two pre-existing empty-state/application-wizard assertions failed and one dependent test was interrupted. The focused auth suite passed."
+  ],
+  "findings": {
+    "implemented": [
+      "VITE_DEMO_MODE is now parsed strictly as true; the local .env remains true for explicit demos and .env.production is false for hosted production Firebase Auth.",
+      "Demo identities are centralized in src/utils/demoAccounts.ts. Unknown @educrm.demo addresses now use Firebase Auth and cannot fall back to a local role.",
+      "Demo login no longer attempts fake Firebase credentials. Best-effort Firestore profile sync remains non-fatal to the local session.",
+      "AuthContext, StudentOnboardingGuard, ProtectedLayout, and RoleGate ignore stored demo sessions when demo mode is disabled and accept only known demo identities when enabled.",
+      "Login and Register now use src/utils/firebaseAuthErrors.ts. auth/invalid-credential and unknown Firebase errors render safe messages without raw Firebase error text."
+    ],
+    "consoleFollowUps": [
+      "In Firebase Console, confirm Authentication > Sign-in method has Email/Password enabled for the production project.",
+      "In Firebase Console, confirm education-crm-9fee2.web.app and the actual production host are authorized domains; add localhost only for local testing.",
+      "Verify the production email verification template/action URL returns to /verify-email and inspect provider email delivery limits.",
+      "Run the gated real registration → verification → logout → login path with a disposable environment-provided account after the provider/domain checks pass."
+    ],
+    "evidence": [
+      "src/firebase/config.ts uses import.meta.env.VITE_DEMO_MODE === \"true\".",
+      "src/utils/firebaseAuthErrors.test.ts covers invalid credentials, registration/network errors, and unknown-error fallback.",
+      "src/utils/demoAccounts.test.ts and tests/e2e/auth.spec.ts cover explicit demo identities, rejected unknown demo-looking identities, safe auth errors, session persistence, logout, and the credential-gated real path.",
+      "tests/e2e/student-workflow.spec.ts now uses the explicit registered demo identity instead of a non-demo email fixture."
+    ]
+  },
+  "blocked_reason": "Real credential-gated verification and Firebase Console provider/domain checks remain pending environment/Console access. Full E2E also has unrelated pre-existing failures noted in verification.",
+  "completedAt": "2026-02-14",
+  "notes": "No secrets, passwords, tokens, or credential objects were added to tests, logs, feature evidence, or user-facing auth errors. No hosting deployment or push was performed from this step."
+}

@@ -371,7 +371,7 @@ export const StudentOnboardingStage1: React.FC = () => {
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
       dob,
-      gender,
+      gender: gender || undefined,
       nationality,
       countryOfResidence,
       city: city.trim(),

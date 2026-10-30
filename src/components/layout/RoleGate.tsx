@@ -3,7 +3,8 @@ import { ShieldAlert } from "lucide-react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { UserRole } from "../../types/role";
-import { requiresVerifiedEmail } from "../../firebase/config";
+import { requiresVerifiedEmail, isDemoMode } from "../../firebase/config";
+import { isKnownDemoEmail } from "../../utils/demoAccounts";
 
 interface RoleGateProps {
   children: React.ReactNode;
@@ -14,12 +15,7 @@ export const RoleGate = ({ children, allowedRoles }: RoleGateProps): React.React
   const { appUser, firebaseUser, loading } = useAuth();
   const location = useLocation();
   if (loading) return <div className="min-h-[50vh] grid place-items-center text-sm text-[var(--text-muted)]">Checking access…</div>;
-  const isDemoVerified =
-    typeof window !== "undefined" &&
-    (sessionStorage.getItem("demo_email_verified") === "true" ||
-      localStorage.getItem("educrm_demo_user") !== null ||
-      appUser?.uid?.startsWith("demo_") ||
-      appUser?.uid === "stu_1");
+  const isDemoVerified = isDemoMode && isKnownDemoEmail(appUser?.email);
   const ADMIN_BYPASS_EMAILS = [
     "live_superadmin@educrm.com",
     "live_orgadmin@educrm.com",

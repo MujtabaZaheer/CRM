@@ -5,6 +5,8 @@ import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase
 import { auth, db, isDemoMode, requiresVerifiedEmail } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole } from "../types/role";
+import { EXACT_DEMO_ROLE_MAP, isKnownDemoEmail } from "../utils/demoAccounts";
+import { mapFirebaseAuthError } from "../utils/firebaseAuthErrors";
 import { getRoleDashboardPath } from "../types/registrationConfig";
 import { LogIn, AlertCircle, Sparkles, Lock, Mail, GraduationCap, Shield, UserPlus, ChevronUp, ChevronDown, X } from "lucide-react";
 import { bootstrapAdminAccounts } from "../utils/bootstrapAdmins";
@@ -26,6 +28,7 @@ export const Login: React.FC = () => {
   }, []);
 
   const handleQuickDemoLogin = (role: UserRole, options?: { isRegisteredStudent?: boolean }) => {
+    if (!isDemoMode) return;
     try {
       sessionStorage.setItem("demo_email_verified", "true");
     } catch (_) {}
@@ -53,8 +56,8 @@ export const Login: React.FC = () => {
           await sendPasswordResetEmail(auth, email);
           setNotice("If an account exists for this email address, a password-reset link has been sent.");
         } catch (resetErr: any) {
-          if (isDemoMode) {
-            setNotice(`Demo Mode: Password reset email simulated for ${email}`);
+          if (isDemoMode && isKnownDemoEmail(email)) {
+            setNotice(`Demo Mode: Password reset email simulated for ${email.trim()}`);
           } else {
             throw resetErr;
           }
@@ -62,7 +65,16 @@ export const Login: React.FC = () => {
         return;
       }
 
-      // 1. Attempt real Firebase Auth
+      const lowerEmail = email.toLowerCase().trim();
+      const demoRole = isDemoMode ? EXACT_DEMO_ROLE_MAP[lowerEmail] || null : null;
+      if (demoRole) {
+        handleQuickDemoLogin(demoRole, {
+          isRegisteredStudent: demoRole === "student" && lowerEmail !== "student@educrm.demo",
+        });
+        return;
+      }
+
+      // Production and normal local accounts always use Firebase Auth.
       try {
         const credential = await signInWithEmailAndPassword(auth, email, password);
         const normalizedEmail = (credential.user.email || email).toLowerCase().trim();
@@ -167,68 +179,10 @@ export const Login: React.FC = () => {
         navigate("/");
         return;
       } catch (firebaseErr: any) {
-        const lowerEmail = email.toLowerCase().trim();
-        const isDemoEmail = lowerEmail.endsWith("@educrm.demo");
-
-        if (isDemoMode && isDemoEmail) {
-
-          // Strict mapping of predefined demo accounts: No substring wildcard inference
-          const EXACT_DEMO_ROLE_MAP: Record<string, UserRole> = {
-            "platform_super_admin@educrm.demo": "platform_super_admin",
-            "superadmin@educrm.demo": "platform_super_admin",
-            "admin@educrm.demo": "platform_super_admin",
-            "orgadmin@educrm.demo": "org_admin",
-            "org_admin@educrm.demo": "org_admin",
-            "counsellor@educrm.demo": "counsellor",
-            "team_leader@educrm.demo": "team_leader",
-            "teamleader@educrm.demo": "team_leader",
-            "admissions@educrm.demo": "admissions_officer",
-            "admissions_officer@educrm.demo": "admissions_officer",
-            "finance@educrm.demo": "finance_officer",
-            "finance_officer@educrm.demo": "finance_officer",
-            "support@educrm.demo": "support_user",
-            "support_user@educrm.demo": "support_user",
-            "auditor@educrm.demo": "auditor",
-            "visa@educrm.demo": "visa_officer",
-            "visa_officer@educrm.demo": "visa_officer",
-            "external_agent@educrm.demo": "external_agent",
-            "agent@educrm.demo": "external_agent",
-            "university_partner@educrm.demo": "university_partner",
-            "university@educrm.demo": "university_partner",
-            "student@educrm.demo": "student",
-          };
-
-          const targetRole: UserRole = EXACT_DEMO_ROLE_MAP[lowerEmail] || "student";
-
-          if (targetRole === "student") {
-            const isRegistered =
-              lowerEmail.includes("registered") ||
-              lowerEmail.includes("aarav") ||
-              lowerEmail.includes("patel") ||
-              lowerEmail === "student@educrm.demo";
-            handleQuickDemoLogin("student", { isRegisteredStudent: isRegistered });
-            return;
-          }
-
-          // Custom demo account login
-          const customUser = {
-            uid: `user_${Date.now()}`,
-            email: email,
-            displayName: email.split("@")[0] || "Custom User",
-            role: targetRole,
-            createdAt: Date.now(),
-            office: "Main HQ",
-          };
-          localStorage.setItem("educrm_demo_user", JSON.stringify(customUser));
-          loginAsDemoRole(targetRole);
-          return;
-        }
-
         throw firebaseErr;
       }
     } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Failed to sign in. Please check your credentials.");
+      setError(mapFirebaseAuthError(err, resetMode ? "password-reset" : "sign-in"));
     } finally {
       setLoading(false);
     }
@@ -405,7 +359,7 @@ export const Login: React.FC = () => {
                 className="w-full py-2.5 px-4 bg-slate-800/60 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
               >
                 <UserPlus className="w-4 h-4 text-teal-400" />
-                <span>Create New Student Account</span>
+                <span>Create New Account</span>
               </Link>
             </>
           )}
@@ -413,7 +367,8 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Floating Collapsible Demo Accounts Trigger & Panel at Bottom-Right */}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+      {isDemoMode && (
+        <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
         {demoOpen && (
           <div className="mb-3 w-84 sm:w-96 max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-slate-800 rounded-3xl shadow-2xl p-4 backdrop-blur-2xl space-y-3.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
             <div className="text-xs font-semibold text-teal-400 flex items-center justify-between pb-2 border-b border-slate-800">
@@ -559,7 +514,7 @@ export const Login: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10px] text-slate-400">
-                Or enter email <code className="text-teal-300 bg-slate-950 px-1 py-0.5 rounded border border-slate-800">aarav.patel@gmail.com</code> with any password.
+                Or enter email <code className="text-teal-300 bg-slate-950 px-1 py-0.5 rounded border border-slate-800">student.registered@educrm.demo</code> with any password.
               </p>
             </div>
           </div>
@@ -579,7 +534,8 @@ export const Login: React.FC = () => {
             <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-teal-400" />
           )}
         </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

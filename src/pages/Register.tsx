@@ -14,6 +14,7 @@ import { COMMON_COUNTRIES, ExtractedStudentCVData, toCountryName } from "../util
 import { GLOBAL_UNIVERSITIES } from "../data/globalUniversities";
 import { StudentCVUploader } from "../components/ai/StudentCVUploader";
 import { getRoleBackground } from "../utils/roleBackgrounds";
+import { mapFirebaseAuthError } from "../utils/firebaseAuthErrors";
 
 // Recursive sanitizer to ensure Firestore never throws on undefined values
 function sanitizeFirestoreData<T extends Record<string, any>>(data: T): T {
@@ -446,12 +447,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         await sendEmailVerification(userCredential.user, getEmailActionSettings());
         emailSendSuccess = true;
       } catch (sendErr: any) {
-        console.error("Firebase sendEmailVerification error during registration:", sendErr);
-        if (sendErr.code === "auth/too-many-requests") {
-          emailSendError = "Too many requests. Please try resending the verification link later.";
-        } else {
-          emailSendError = sendErr.message || "Failed to send verification link.";
-        }
+        emailSendError = mapFirebaseAuthError(sendErr, "verification");
       }
 
       // Save pending email to session storage so /verify-email always knows who registered
@@ -470,16 +466,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         },
       });
     } catch (err: any) {
-      console.error("Registration error:", err);
-      if (err.code === "auth/email-already-in-use") {
-        setError("An account with this email already exists. Please sign in instead.");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("Too many registration attempts. Please wait a moment and try again.");
-      } else if (err.code === "auth/network-request-failed") {
-        setError("Network error. Please check your internet connection and try again.");
-      } else {
-        setError(err.message || "Failed to create account. Please try again.");
-      }
+      setError(mapFirebaseAuthError(err, "registration"));
     } finally {
       setLoading(false);
     }
