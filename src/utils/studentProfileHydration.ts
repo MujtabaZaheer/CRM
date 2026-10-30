@@ -66,6 +66,28 @@ const asEnglish = (source: Record<string, unknown> | null | undefined): EnglishT
   };
 };
 
+const mergeEnglish = (
+  student: Record<string, unknown> | null | undefined,
+  user: Record<string, unknown> | null | undefined,
+  cache: Record<string, unknown>,
+): EnglishTestScore | undefined => {
+  const studentEnglish = asEnglish(student);
+  const userEnglish = asEnglish(user);
+  const cacheEnglish = asEnglish(cache);
+  const testType = studentEnglish?.testType || userEnglish?.testType || cacheEnglish?.testType || "";
+  const overallScore = studentEnglish?.overallScore || userEnglish?.overallScore || cacheEnglish?.overallScore || "";
+  if (!testType && !overallScore) return undefined;
+
+  const testDate = studentEnglish?.testDate || userEnglish?.testDate || cacheEnglish?.testDate;
+  const expiryDate = studentEnglish?.expiryDate || userEnglish?.expiryDate || cacheEnglish?.expiryDate;
+  return {
+    testType: testType as EnglishTestScore["testType"],
+    overallScore,
+    ...(testDate ? { testDate } : {}),
+    ...(expiryDate ? { expiryDate } : {}),
+  };
+};
+
 const mergeCacheObjects = (cache: Record<string, unknown> | null | undefined): Record<string, unknown> => {
   if (!cache) return {};
   const profileCache = cache.student_profile_cache as Record<string, unknown> | undefined;
@@ -131,7 +153,7 @@ export const hydrateStudentProfile = ({
     || asRecords(valueFrom(cache, ["academicHistory", "academicRecords"]))
     || [];
 
-  const englishProficiency = asEnglish(student) || asEnglish(user) || asEnglish(cache);
+  const englishProficiency = mergeEnglish(student, user, cache);
 
   return {
     firstName: resolvedFirstName,

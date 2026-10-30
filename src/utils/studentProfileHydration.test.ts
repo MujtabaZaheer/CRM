@@ -36,6 +36,13 @@ describe("hydrateStudentProfile", () => {
     expect(profile.passportNumber).toBe("USER123");
     expect(profile.academicHistory[0].institution).toBe("Student University");
     expect(profile.englishProficiency).toMatchObject({ testType: "PTE", overallScore: "70" });
+
+    const partialProfile = hydrateStudentProfile({
+      students: { englishProficiency: { testType: "PTE" } },
+      users: { englishProficiency: { overallScore: "70" } },
+      registrationCache: { englishProficiency: { testType: "IELTS", overallScore: "6.5" } },
+    });
+    expect(partialProfile.englishProficiency).toMatchObject({ testType: "PTE", overallScore: "70" });
   });
 
   it("hydrates all supported fields from cache and leaves absent values blank", () => {

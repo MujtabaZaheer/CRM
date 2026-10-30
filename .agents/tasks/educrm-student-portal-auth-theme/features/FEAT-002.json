@@ -20,12 +20,12 @@
     "npm run build",
     "npx firebase-tools deploy --only hosting followed by live profile/wizard checks"
   ],
-  "blocked_reason": null,
-  "findings": "Implemented pure students > users > registration/session profile hydration for identity, contact, location, DOB, gender, passport, academic history, and English proficiency. Removed invented intake, country, identity, gender, academic, completion-year, and test defaults from the application wizard and onboarding; dashboard and matcher now show missing scores as not provided and do not calculate recommendations without real scores. Focused unit hydration/readiness tests passed; direct Vitest, TypeScript typecheck, Vite build, and Playwright student workflow verification passed. The npm wrapper returned exit 2 for npm run build without diagnostics in this environment, while direct tsc -b and vite build completed successfully. Firebase hosting deploy command returned status 0 without a deployment transcript; no separate live profile/wizard check was available from this environment. No push was attempted per step scope.",
+  "blocked_reason": "npm run build exited 2 without compiler diagnostics even though npm run typecheck and vite build passed. Firebase deploy returned status 0 without a transcript, so live profile/wizard verification could not be confirmed in this environment.",
+  "findings": "Implemented pure students > users > registration/session profile hydration for identity, contact, location, DOB, gender, passport, academic history, and English proficiency. Removed invented intake, country, identity, gender, academic, completion-year, and test defaults from the application wizard and onboarding; dashboard and matcher now show missing scores as not provided and do not calculate recommendations without real scores. Focused unit hydration/readiness tests passed; npm run typecheck and direct Vite build passed. npm run build returned exit 2 without diagnostics; the direct project-reference tsc -b invocation also returned exit 2, so this build result is recorded as blocked. Firebase hosting deploy returned status 0 without a deployment transcript; no separate live profile/wizard check was available from this environment. No push was attempted per step scope.",
   "evidence": {
     "unit": "npm run test:unit -- src/utils/studentProfileHydration.test.ts src/utils/applicationReadiness.test.ts passed; direct Vitest focused run passed.",
     "e2e": "npm run test:e2e -- tests/e2e/student-workflow.spec.ts completed with status 0 on the diagnostic rerun.",
     "typecheck": "npm run typecheck passed.",
-    "build": "npm run build returned exit 2 without diagnostics; direct tsc -b --pretty false and vite build both completed successfully.",
+    "build": "npm run build returned exit 2 without diagnostics; direct vite build passed, while direct tsc -b also returned exit 2.",
     "deploy": "npx firebase-tools deploy --only hosting --debug returned status 0 but emitted no transcript; live verification was unavailable."
   }}
