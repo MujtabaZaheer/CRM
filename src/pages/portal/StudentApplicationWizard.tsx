@@ -588,7 +588,7 @@ export const StudentApplicationWizard: React.FC = () => {
                 universityName: foundUniv.name,
                 programmeId: foundProg.id,
                 programmeName: foundProg.title,
-                intake: intakeParam || directApp?.intake || "",
+                intake: intakeParam || "",
                 targetCountry: foundUniv.country,
                 stage: "Draft",
                 applicationStatus: "Draft",

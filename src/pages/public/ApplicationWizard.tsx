@@ -108,6 +108,7 @@ export const ApplicationWizard: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<boolean>(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);

@@ -20,7 +20,7 @@
     "npm run qa when the environment supports the full gate",
     "npx firebase-tools deploy --only hosting followed by live URL verification"
   ],
-  "blocked_reason": "Controlled Firebase registration, Firebase Console checks, and live authenticated journey verification remain unavailable without disposable credentials and Console access. npm run build still exits 1/2 in this environment from tsc -b without compiler diagnostics while npm run typecheck, npm run test:unit, full npm run test:e2e, and direct vite build pass. The requested local-commit-only scope prohibits push.",
+  "blocked_reason": "Controlled Firebase registration, Firebase Console checks, and live authenticated journey verification remain unavailable without disposable credentials and Console access. Repository gates now pass: npm run typecheck, npm run test:unit, npm run test:e2e, npm run build, and direct Vite build. The requested local-commit-only scope prohibits push.",
   "findings": {
     "implemented": [
       "Removed invented Pakistan, Master's, IELTS, gender, completion-year, grade, and intake fallbacks from student registration, CV extraction, onboarding, wizard draft creation, and selector persistence. Added regression coverage for empty CV values.",
@@ -61,7 +61,7 @@
       "PASS: npm run test:unit",
       "PASS: npm run test:e2e, 59 passed and one environment-gated AUTH-REAL-001 skipped; invalid public intake tokens now exit loading and show the approved error",
       "PASS: npx vite build",
-      "BLOCKED: npm run build exits 1/2 from tsc -b without diagnostics; direct Vite build passes",
+      "PASS: npm run build, with existing Vite dependency/chunk-size warnings only",
       "BLOCKED: controlled Firebase credentials, Firebase Console access, live authenticated journey verification, and GitHub push remain unavailable or prohibited by this step"
     ]
   }
