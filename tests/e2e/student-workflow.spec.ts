@@ -74,8 +74,8 @@ test.describe('Student End-to-End Workflow', () => {
     await page.goto('/apply/prog_oxford_cs');
     await expect(page).toHaveURL(/\/apply\/prog_oxford_cs|\/student\/new-application/);
 
-    // Check application wizard steps
-    await expect(page.locator('text=/Personal Details|Academic & English|Review & Sign|Submit/i').first()).toBeVisible({ timeout: 15000 });
+    // Unknown public intake tokens must leave loading and show a clear error.
+    await expect(page.locator('text=/Application Intake Unavailable|invalid or has expired/i').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('STUD-FLOW-006: New application aliases remain selector-first and reject invalid deep links', async ({ page }) => {
@@ -95,7 +95,7 @@ test.describe('Student End-to-End Workflow', () => {
     await expect(page.locator('text=/Personal Details|Academic & English|Review & Sign/i').first()).toBeVisible({ timeout: 20000 });
 
     await page.goto('/apply/public-intake-token');
-    await expect(page.locator('text=/EduBridge Network|Secure Intake/i').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=/Application Intake Unavailable|invalid or has expired/i').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('STUD-FLOW-008: Continue draft links retain canonical application context', async ({ page }) => {

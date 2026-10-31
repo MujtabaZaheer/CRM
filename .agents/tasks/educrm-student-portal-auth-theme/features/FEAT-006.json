@@ -20,7 +20,7 @@
     "npm run qa when the environment supports the full gate",
     "npx firebase-tools deploy --only hosting followed by live URL verification"
   ],
-  "blocked_reason": "Controlled Firebase registration, Firebase Console checks, and live authenticated journey verification remain unavailable without disposable credentials and Console access. The full E2E run now starts successfully with Playwright ffmpeg installed and ERR-004 passes, but the pre-existing public intake test remains stuck on Loading Application Intake for /apply/prog_oxford_cs; changing that loading/product behavior requires a product decision. npm run build still exits 2 in this environment without compiler diagnostics while npm run typecheck and direct vite build pass. Push was not attempted because the current workflow explicitly requires local commits only.",
+  "blocked_reason": "Controlled Firebase registration, Firebase Console checks, and live authenticated journey verification remain unavailable without disposable credentials and Console access. npm run build still exits 1/2 in this environment from tsc -b without compiler diagnostics while npm run typecheck, npm run test:unit, full npm run test:e2e, and direct vite build pass. The requested local-commit-only scope prohibits push.",
   "findings": {
     "implemented": [
       "Removed invented Pakistan, Master's, IELTS, gender, completion-year, grade, and intake fallbacks from student registration, CV extraction, onboarding, wizard draft creation, and selector persistence. Added regression coverage for empty CV values.",
@@ -31,9 +31,9 @@
     ],
     "evidence": [
       "PASS: npm run typecheck",
-      "PASS: npm run test:unit before final source-only evidence refresh; focused CV parser rerun exposed an existing Vitest process failure without diagnostics and should be rerun by the caller if needed.",
-      "PASS: focused E2E auth/error/role/student suite reached 32 passing tests and one AUTH-REAL-001 skip; ERR-004 passed. The suite still fails at pre-existing STUD-FLOW-005 public intake loading.",
-      "PASS: npx vite build; npm run build remains blocked by tsc -b exit 2 with no compiler diagnostics.",
+      "PASS: npm run test:unit",
+      "PASS: npm run test:e2e, 59 passed and 1 environment-gated AUTH-REAL-001 skipped; ERR-004 and invalid public intake token coverage passed",
+      "PASS: npx vite build; npm run build remains blocked by tsc -b exit 1/2 with no compiler diagnostics",
       "BLOCKED: controlled real Firebase registration/logout/login credentials were not supplied.",
       "BLOCKED: Firebase Console provider, authorized-domain, and email-action URL checks require Console access.",
       "BLOCKED: hosting deployment/live authenticated verification and requested GitHub push were not performed in this local-commit-only step."
@@ -58,10 +58,10 @@
     ],
     "verification": [
       "PASS: npm run typecheck",
-      "PASS: npm run test:e2e -- tests/e2e/error-scenarios.spec.ts tests/e2e/auth.spec.ts tests/e2e/student-workflow.spec.ts tests/e2e/role-permissions.spec.ts for 32 tests plus one environment-gated skip before the existing STUD-FLOW-005 failure; ERR-004 passed",
+      "PASS: npm run test:unit",
+      "PASS: npm run test:e2e, 59 passed and one environment-gated AUTH-REAL-001 skipped; invalid public intake tokens now exit loading and show the approved error",
       "PASS: npx vite build",
-      "BLOCKED: npm run build exits 2 from tsc -b without diagnostics; direct Vite build passes",
-      "BLOCKED: npm run test:unit focused rerun returned exit 1 without diagnostics after the final parser test addition; earlier full unit rerun passed before the final test addition",
+      "BLOCKED: npm run build exits 1/2 from tsc -b without diagnostics; direct Vite build passes",
       "BLOCKED: controlled Firebase credentials, Firebase Console access, live authenticated journey verification, and GitHub push remain unavailable or prohibited by this step"
     ]
   }

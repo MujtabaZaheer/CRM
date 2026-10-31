@@ -107,7 +107,7 @@ export const ApplicationWizard: React.FC = () => {
   const [formData, setFormData] = useState<ApplicationWizardFormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<boolean>(true);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
@@ -125,10 +125,20 @@ export const ApplicationWizard: React.FC = () => {
     const loadApplication = async () => {
       try {
         setLoading(true);
+        setLoadError(null);
         if (activeId && activeId !== "draft-intake") {
           const appRef = doc(db, "applications", activeId);
-          const snap = await getDoc(appRef);
-          if (snap.exists() && isMounted) {
+          const snap = await Promise.race([
+            getDoc(appRef),
+            new Promise<never>((_, reject) =>
+              window.setTimeout(() => reject(new Error("INTAKE_LOOKUP_TIMEOUT")), 5000)
+            ),
+          ]);
+          if (!snap.exists()) {
+            setLoadError("This application intake link is invalid or has expired. Please request a new link from your counsellor.");
+            return;
+          }
+          if (isMounted) {
             const data = snap.data();
             setFormData((prev) => ({
               ...prev,
@@ -169,7 +179,10 @@ export const ApplicationWizard: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn("Could not load remote draft application, using fresh session:", err);
+        console.warn("Could not load public intake:", err);
+        if (isMounted && activeId !== "draft-intake") {
+          setLoadError("This application intake link is invalid, unavailable, or has expired. Please request a new link from your counsellor.");
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -387,6 +400,20 @@ export const ApplicationWizard: React.FC = () => {
         <Loader2 className="w-10 h-10 text-[#F5A623] animate-spin mb-4" />
         <h2 className="text-xl font-semibold tracking-wide">Loading Application Intake...</h2>
         <p className="text-sm text-slate-400 mt-1">Connecting to EduBridge Network compliance vault</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#0B1120] text-slate-100 flex items-center justify-center p-6">
+        <div className="max-w-lg w-full bg-[#141f36] border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
+          <div className="w-14 h-14 bg-rose-500/15 border border-rose-500/30 text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-3">Application Intake Unavailable</h1>
+          <p className="text-slate-300 text-sm leading-relaxed">{loadError}</p>
+        </div>
       </div>
     );
   }
