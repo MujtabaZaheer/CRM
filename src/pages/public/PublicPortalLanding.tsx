@@ -207,7 +207,7 @@ export const PublicPortalLanding: React.FC = () => {
 
       {/* Logged in Staff Banner (if staff member visits public home) */}
       {appUser && appUser.role !== "student" && (
-        <div className="bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 border-b border-emerald-500/30 px-4 py-2.5 text-center text-xs text-emerald-300 flex items-center justify-center gap-3 relative z-40">
+        <div className="bg-gradient-to-r from-surface via-elevated to-surface border-b border-emerald-500/30 px-4 py-2.5 text-center text-xs text-secondary flex items-center justify-center gap-3 relative z-40">
           <span className="flex items-center gap-1.5 font-bold">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Currently logged in as {appUser.displayName || appUser.email} ({appUser.role})</span>
@@ -223,7 +223,7 @@ export const PublicPortalLanding: React.FC = () => {
 
       {/* Logged in Student Banner */}
       {appUser && appUser.role === "student" && (
-        <div className="bg-gradient-to-r from-teal-950 via-indigo-950 to-slate-900 border-b border-teal-500/30 px-4 py-2.5 text-center text-xs text-teal-300 flex items-center justify-center gap-3 relative z-40">
+        <div className="bg-gradient-to-r from-surface via-elevated to-surface border-b border-teal-500/30 px-4 py-2.5 text-center text-xs text-secondary flex items-center justify-center gap-3 relative z-40">
           <span className="flex items-center gap-1.5 font-bold">
             <GraduationCap className="w-4 h-4 text-teal-400" />
             <span>Welcome back, {appUser.displayName || "Student"}! You are browsing as an applicant.</span>
@@ -417,7 +417,7 @@ export const PublicPortalLanding: React.FC = () => {
       {/* ========================================================================= */}
       {/* 2. INTERACTIVE AI COUNSELLOR & ELIGIBILITY MATCHMAKER                     */}
       {/* ========================================================================= */}
-      <section id="ai-counsellor" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-b border-default/60 bg-gradient-to-b from-[#0F172A] to-[#0B1120]">
+      <section id="ai-counsellor" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-b border-default/60 bg-gradient-to-b from-main/95 to-main">
         <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-3 mb-12">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-xs font-semibold">
@@ -743,7 +743,7 @@ export const PublicPortalLanding: React.FC = () => {
                             e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80";
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-main via-main/40 to-transparent" />
 
                         {univ.globalRanking && (
                           <div className="absolute top-3 left-3 px-2 py-0.5 bg-indigo-900/80 backdrop-blur-md border border-indigo-500/40 text-indigo-200 text-[11px] font-bold rounded-lg font-mono">
@@ -808,7 +808,7 @@ export const PublicPortalLanding: React.FC = () => {
       {/* ========================================================================= */}
       {/* 4. PROGRAMMES DIRECTORY & EXPLORER                                       */}
       {/* ========================================================================= */}
-      <section id="programmes" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-b border-default/60 bg-gradient-to-b from-[#0B1120] to-[#0F172A]">
+      <section id="programmes" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-b border-default/60 bg-gradient-to-b from-main to-main/95">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
@@ -1027,7 +1027,7 @@ export const PublicPortalLanding: React.FC = () => {
       {/* ========================================================================= */}
       {/* 6. ZERO-REDUNDANCY 6-STEP ADMISSION JOURNEY                              */}
       {/* ========================================================================= */}
-      <section id="how-it-works" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-b border-default/60 bg-gradient-to-b from-[#0F172A] to-[#0B1120]">
+      <section id="how-it-works" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-b border-default/60 bg-gradient-to-b from-main/95 to-main">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs font-semibold">
@@ -1110,7 +1110,7 @@ export const PublicPortalLanding: React.FC = () => {
       <section className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-default/60">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card 1: Student Portal */}
-          <div className="bg-gradient-to-br from-teal-950/60 via-slate-900 to-slate-950 border border-teal-500/30 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-teal-500/10 via-surface to-surface-alt border border-teal-500/30 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl flex flex-col justify-between">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400">
                 <GraduationCap className="w-6 h-6" />
@@ -1148,7 +1148,7 @@ export const PublicPortalLanding: React.FC = () => {
           </div>
 
           {/* Card 2: EduCRM Staff & Partner Portal */}
-          <div className="bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-indigo-500/10 via-surface to-surface-alt border border-indigo-500/30 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl flex flex-col justify-between">
             <div className="space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
                 <ShieldCheck className="w-6 h-6" />

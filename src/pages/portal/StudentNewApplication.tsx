@@ -176,7 +176,7 @@ export const StudentNewApplication: React.FC = () => {
       </header>
 
       {/* AI Fast-Track Notice */}
-      <div className="rounded-2xl bg-gradient-to-r from-emerald-500/10 via-zinc-900/60 to-teal-500/10 border border-emerald-500/30 p-4 sm:p-5 flex items-center gap-3.5 shadow-sm">
+      <div className="rounded-2xl bg-gradient-to-r from-emerald-500/10 via-surface/60 to-teal-500/10 border border-emerald-500/30 p-4 sm:p-5 flex items-center gap-3.5 shadow-sm">
         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
           <Sparkles className="w-5 h-5 animate-pulse" />
         </div>

@@ -346,15 +346,21 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const list: University[] = [];
         snap.forEach((d) => list.push({ id: d.id, ...d.data() } as University));
         setUniversities(
-          list.length > 0
-            ? [...list, ...DEMO_UNIVERSITIES.filter((du) => !list.some((u) => u.id === du.id))]
-            : DEMO_UNIVERSITIES
+          showDemoData
+            ? list.length > 0
+              ? [...list, ...DEMO_UNIVERSITIES.filter((du) => !list.some((u) => u.id === du.id))]
+              : DEMO_UNIVERSITIES
+            : list
         );
         markSourceLoaded("universities");
       },
       (err) => {
         handleSourceError("universities", err);
-        setUniversities((prev) => (prev.length > 0 ? prev : DEMO_UNIVERSITIES));
+        setUniversities((prev) => (
+          showDemoData
+            ? (prev.length > 0 ? prev : DEMO_UNIVERSITIES)
+            : prev.filter((university) => !DEMO_UNIVERSITIES.some((demo) => demo.id === university.id))
+        ));
       }
     );
 

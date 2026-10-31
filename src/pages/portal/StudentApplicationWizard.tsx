@@ -130,6 +130,8 @@ export const StudentApplicationWizard: React.FC = () => {
   const [declaration2, setDeclaration2] = useState(false);
   const [declaration3, setDeclaration3] = useState(false);
 
+  const availableIntakes = programme?.intakes || [];
+
   const allDeclarationsAccepted = declaration1 && declaration2 && declaration3;
 
   // Handle AI CV Extraction with Gemini 3.8 Flash
@@ -528,11 +530,13 @@ export const StudentApplicationWizard: React.FC = () => {
         setUniversity(foundUniv);
         setProgramme(foundProg);
 
-        if (intakeParam) {
-          setSelectedIntake(intakeParam);
-        } else if (directApp?.intake) {
-          setSelectedIntake(directApp.intake);
-        }
+        const availableProgrammeIntakes = foundProg?.intakes || [];
+        const sourcedIntake = intakeParam && availableProgrammeIntakes.includes(intakeParam)
+          ? intakeParam
+          : directApp?.intake && availableProgrammeIntakes.includes(directApp.intake)
+            ? directApp.intake
+            : availableProgrammeIntakes[0] || "";
+        setSelectedIntake(sourcedIntake);
 
         // If no university or programme could be identified, transition to EMPTY
         if (!foundUniv || !foundProg) {
@@ -553,7 +557,7 @@ export const StudentApplicationWizard: React.FC = () => {
           if (directApp.currentStep) setCurrentStep(directApp.currentStep);
           if (directApp.personalStatement) setPersonalStatement(directApp.personalStatement);
           if (directApp.formResponses) setQuestionResponses(directApp.formResponses);
-          if (directApp.intake) setSelectedIntake(directApp.intake);
+          if (directApp.intake && foundProg.intakes?.includes(directApp.intake)) setSelectedIntake(directApp.intake);
         } else if (uid && foundUniv && foundProg) {
           try {
             const appQ = query(
@@ -575,7 +579,7 @@ export const StudentApplicationWizard: React.FC = () => {
               if (existingApp.currentStep) setCurrentStep(existingApp.currentStep);
               if (existingApp.personalStatement) setPersonalStatement(existingApp.personalStatement);
               if (existingApp.formResponses) setQuestionResponses(existingApp.formResponses);
-              if (existingApp.intake) setSelectedIntake(existingApp.intake);
+              if (existingApp.intake && foundProg.intakes?.includes(existingApp.intake)) setSelectedIntake(existingApp.intake);
             } else {
               // Force create Draft immediately
               const appNumber = `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -588,7 +592,7 @@ export const StudentApplicationWizard: React.FC = () => {
                 universityName: foundUniv.name,
                 programmeId: foundProg.id,
                 programmeName: foundProg.title,
-                intake: intakeParam || "",
+                intake: foundProg.intakes?.includes(intakeParam) ? intakeParam : "",
                 targetCountry: foundUniv.country,
                 stage: "Draft",
                 applicationStatus: "Draft",
@@ -833,7 +837,7 @@ export const StudentApplicationWizard: React.FC = () => {
         universityName: university.name,
         programmeId: programme.id,
         programmeName: programme.title,
-        intake: selectedIntake,
+        intake: availableIntakes.includes(selectedIntake) ? selectedIntake : "",
         targetCountry: university.country,
         personalStatement,
         formResponses: questionResponses,
@@ -907,6 +911,11 @@ export const StudentApplicationWizard: React.FC = () => {
     const uid = firebaseUser?.uid || appUser?.uid;
     if (!uid || !university || !programme) return;
 
+    if (!availableIntakes.includes(selectedIntake)) {
+      setError("This programme does not have a valid intake selected. Please return to the application selector and choose an available intake.");
+      return;
+    }
+
     if (!readiness.ready) {
       setError(`Application is not ready for submission. Please resolve blocking items.`);
       return;
@@ -927,7 +936,7 @@ export const StudentApplicationWizard: React.FC = () => {
         universityName: university.name,
         programmeId: programme.id,
         programmeName: programme.title,
-        intake: selectedIntake,
+        intake: availableIntakes.includes(selectedIntake) ? selectedIntake : "",
         targetCountry: university.country,
         personalStatement,
         formResponses: questionResponses,
@@ -1106,7 +1115,7 @@ export const StudentApplicationWizard: React.FC = () => {
         className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20 dark:opacity-25"
         style={{ backgroundImage: `url('${getUniversityCampusImage(university || universityIdParam)}')` }}
       />
-      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-white/70 via-white/50 to-white/75 dark:from-slate-950/80 dark:via-slate-950/60 dark:to-slate-950/85" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-main/80 via-main/60 to-main/85" />
 
       {/* Top Wizard Navigation Header */}
       <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-subtle px-4 sm:px-8 py-3.5 shadow-md">
@@ -1245,7 +1254,7 @@ export const StudentApplicationWizard: React.FC = () => {
                   </p>
                 </div>
                 {university.globalRanking && (
-                  <span className="text-xs font-bold text-emerald-400 bg-black/70 backdrop-blur-md px-3 py-1 rounded-xl border border-emerald-500/30">
+                  <span className="text-xs font-bold text-emerald-400 bg-backdrop/80 backdrop-blur-md px-3 py-1 rounded-xl border border-emerald-500/30">
                     World Rank #{university.globalRanking}
                   </span>
                 )}
@@ -1275,15 +1284,22 @@ export const StudentApplicationWizard: React.FC = () => {
 
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-secondary">Select Intake Session *</label>
-              <select
-                value={selectedIntake}
-                onChange={(e) => setSelectedIntake(e.target.value)}
-                className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
-              >
-                {(programme.intakes || ["September", "January"]).map((i) => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </select>
+              {availableIntakes.length > 0 ? (
+                <select
+                  value={selectedIntake}
+                  onChange={(e) => setSelectedIntake(e.target.value)}
+                  className="w-full bg-input border border-subtle rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">-- Select Intake Session --</option>
+                  {availableIntakes.map((intake) => (
+                    <option key={intake} value={intake}>{intake}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-secondary">
+                  No intake sessions are currently available for this programme.
+                </p>
+              )}
             </div>
 
             {/* Fast-Track AI CV Option in Step 1 */}

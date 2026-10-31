@@ -50,7 +50,7 @@ describe("CV Extractor & Document Parser", () => {
     expect(result.academicRecords).toEqual([]);
   });
 
-
+  it("should extract full profile including DOB, email, clean name and education from CV text", () => {
     const cvText = `
 Khawaja Tariq Mahmood
 Email: tariq512@yahoo.com
