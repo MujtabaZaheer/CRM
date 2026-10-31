@@ -31,20 +31,10 @@ export const ProtectedLayout: React.FC = () => {
 
   // Security Guard: Unverified students cannot access any protected internal route
   const isDemoVerified = isDemoMode && isKnownDemoEmail(appUser.email);
-  const ADMIN_BYPASS_EMAILS = [
-    "live_superadmin@educrm.com",
-    "live_orgadmin@educrm.com",
-    "superadmin@educrm.com",
-    "orgadmin@educrm.com",
-    "admin@educrm.com",
-  ];
-  const isBypassAdmin = Boolean(firebaseUser?.email && ADMIN_BYPASS_EMAILS.includes(firebaseUser.email.toLowerCase().trim()));
 
   if (
-    appUser.role === "student" &&
     requiresVerifiedEmail &&
     !isDemoVerified &&
-    !isBypassAdmin &&
     firebaseUser &&
     !firebaseUser.emailVerified
   ) {

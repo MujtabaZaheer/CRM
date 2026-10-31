@@ -16,6 +16,7 @@ import { auth, db, isDemoMode, getEmailActionSettings } from "../firebase/config
 import { useAuth } from "../contexts/AuthContext";
 import { UserRole, ROLE_LABELS } from "../types/role";
 import { getRoleDashboardPath } from "../types/registrationConfig";
+import { isKnownDemoEmail } from "../utils/demoAccounts";
 
 const COOLDOWN_SECONDS = 60;
 
@@ -66,18 +67,7 @@ export const VerifyEmail: React.FC = () => {
   // Auto-redirect if admin or non-student lands here
   useEffect(() => {
     const checkBypass = async () => {
-      const email = (firebaseUser?.email || pendingEmail || "").toLowerCase().trim();
-      const ADMIN_BYPASS_EMAILS = [
-        "live_superadmin@educrm.com",
-        "live_orgadmin@educrm.com",
-        "superadmin@educrm.com",
-        "orgadmin@educrm.com",
-        "admin@educrm.com",
-      ];
-      if ((appUser?.role && appUser.role !== "student") || ADMIN_BYPASS_EMAILS.includes(email)) {
-        try {
-          sessionStorage.setItem("demo_email_verified", "true");
-        } catch (_) {}
+      if (isDemoMode && appUser && isKnownDemoEmail(appUser.email)) {
         const dest = await resolveDestination();
         navigate(dest.path, { replace: true });
       }
@@ -151,7 +141,7 @@ export const VerifyEmail: React.FC = () => {
     setVerifying(true);
 
     try {
-      if (forceDemo || isDemoMode) {
+      if (isDemoMode && (forceDemo || !auth.currentUser)) {
         sessionStorage.setItem("demo_email_verified", "true");
         await refreshFirebaseUser();
         const dest = await resolveDestination();
@@ -177,7 +167,7 @@ export const VerifyEmail: React.FC = () => {
           navigate(dest.path, { replace: true });
         }, 800);
       } else {
-        setError("Your email is not verified yet. Please click the link in the email we sent you, or use Demo Instant Verify.");
+        setError("Your email is not verified yet. Please click the link in the email we sent you.");
       }
     } catch (err: any) {
       console.error("Verification check error:", err);
@@ -290,16 +280,17 @@ export const VerifyEmail: React.FC = () => {
         )}
 
         <div className="space-y-3 pt-2">
-          {/* Demo Instant Verification Option */}
-          <button
-            type="button"
-            onClick={handleDemoInstantVerify}
-            disabled={verifying}
-            className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-          >
-            <Sparkles className="w-4 h-4 text-zinc-950" />
-            <span>Instant Verify & Continue (Demo Mode)</span>
-          </button>
+          {isDemoMode && (
+            <button
+              type="button"
+              onClick={handleDemoInstantVerify}
+              disabled={verifying}
+              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              <Sparkles className="w-4 h-4 text-zinc-950" />
+              <span>Instant Verify & Continue (Demo Mode)</span>
+            </button>
+          )}
 
           <button
             onClick={() => handleVerify(false)}

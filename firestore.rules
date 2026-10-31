@@ -127,21 +127,29 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Applications Lifecycle: Multi-tenant partitioning & RLS with agent referral isolation
+    // Applications Lifecycle: Multi-tenant partitioning & ownership isolation
     match /applications/{applicationId} {
-      allow read: if (signedIn() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && (
+      allow read: if signedIn() && (
         isPlatformAdmin() ||
-        isOperationalStaff() ||
-        studentOwnerApp(resource.data) ||
-        matchesTenant(resource.data)
-      )) || true;
-      allow create: if true;
-      allow update: if (signedIn() && isImmutableVettingUpdate() && (
-        isPlatformAdmin() ||
-        isOperationalStaff() ||
-        (matchesTenant(resource.data) && isImmutableTenantUpdate()) ||
+        (isOperationalStaff() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && matchesTenant(resource.data)) ||
+        (isExternalAgent() && agentOwns(resource.data) && matchesTenant(resource.data)) ||
+        (isUniversityPartner() && universityOwns(resource.data)) ||
         studentOwnerApp(resource.data)
-      )) || true;
+      );
+      allow create: if signedIn() && (
+        isPlatformAdmin() ||
+        isOperationalStaff() ||
+        (isExternalAgent() && agentOwns(request.resource.data)) ||
+        (isUniversityPartner() && universityOwns(request.resource.data)) ||
+        (isStudent() && request.resource.data.studentId == request.auth.uid)
+      );
+      allow update: if signedIn() && isImmutableVettingUpdate() && (
+        isPlatformAdmin() ||
+        (isOperationalStaff() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && matchesTenant(resource.data)) ||
+        (isExternalAgent() && agentOwns(resource.data) && matchesTenant(resource.data)) ||
+        (isUniversityPartner() && universityOwns(resource.data)) ||
+        studentOwnerApp(resource.data)
+      );
       allow delete: if isAdmin();
 
       match /documents/{documentId} {

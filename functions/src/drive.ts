@@ -80,6 +80,13 @@ export const uploadToGoogleDrive = onCall({ enforceAppCheck: false, memory: "1Gi
     throw new HttpsError("permission-denied", "You can only upload documents to your own profile.");
   }
 
+  if (applicationId) {
+    const applicationSnap = await db.collection("applications").doc(applicationId).get();
+    if (!applicationSnap.exists || applicationSnap.data()?.studentId !== studentId) {
+      throw new HttpsError("permission-denied", "The application does not belong to this student.");
+    }
+  }
+
   const buffer = Buffer.from(base64Data, "base64");
   if (buffer.length > MAX_DOCUMENT_BYTES) {
     throw new HttpsError("invalid-argument", "File size exceeds 15MB limit.");

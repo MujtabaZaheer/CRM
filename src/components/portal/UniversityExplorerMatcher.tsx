@@ -25,7 +25,7 @@ import {
   Layers,
   LayoutGrid,
 } from "lucide-react";
-import { db } from "../../firebase/config";
+import { db, isDemoMode } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { Student } from "../../types/student";
 import { Programme, University } from "../../types/university";
@@ -186,11 +186,12 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
         // Fetch universities from DB + merge with DEMO_UNIVERSITIES to guarantee global coverage
         const univSnap = await getDocs(collection(db, "universities"));
         let fetched = univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University));
-        if (fetched.length === 0) {
-          fetched = [...DEMO_UNIVERSITIES];
-        } else {
-          const combined = [...fetched];
-          DEMO_UNIVERSITIES.forEach((demo) => {
+        if (isDemoMode) {
+          if (fetched.length === 0) {
+            fetched = [...DEMO_UNIVERSITIES];
+          } else {
+            const combined = [...fetched];
+            DEMO_UNIVERSITIES.forEach((demo) => {
             const existingIdx = combined.findIndex(
               (u) => u.name.toLowerCase() === demo.name.toLowerCase() || (u.id && u.id === demo.id)
             );
@@ -208,6 +209,7 @@ export const UniversityExplorerMatcher: React.FC<UniversityExplorerMatcherProps>
             }
           });
           fetched = combined;
+        }
         }
         setUniversities(fetched);
 

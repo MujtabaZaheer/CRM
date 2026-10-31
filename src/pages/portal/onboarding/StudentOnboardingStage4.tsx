@@ -34,7 +34,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { db } from "../../../firebase/config";
+import { db, isDemoMode } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
@@ -148,11 +148,12 @@ export const StudentOnboardingStage4: React.FC = () => {
       // 3. Load shortlisted matches from universities to allow 1-click apply for unapplied shortlists
       const univSnap = await getDocs(collection(db, "universities"));
       let univs = univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University));
-      if (univs.length === 0) {
-        univs = [...DEMO_UNIVERSITIES];
-      } else {
-        const combined = [...univs];
-        DEMO_UNIVERSITIES.forEach((demo) => {
+      if (isDemoMode) {
+        if (univs.length === 0) {
+          univs = [...DEMO_UNIVERSITIES];
+        } else {
+          const combined = [...univs];
+          DEMO_UNIVERSITIES.forEach((demo) => {
           const existingIdx = combined.findIndex(
             (u) => u.name.toLowerCase() === demo.name.toLowerCase() || (u.id && u.id === demo.id)
           );
@@ -170,6 +171,7 @@ export const StudentOnboardingStage4: React.FC = () => {
           }
         });
         univs = combined;
+        }
       }
 
       const matches: ShortlistedMatch[] = [];

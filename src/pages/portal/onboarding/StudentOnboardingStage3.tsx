@@ -26,7 +26,7 @@ import {
   Layers,
   LayoutGrid,
 } from "lucide-react";
-import { db } from "../../../firebase/config";
+import { db, isDemoMode } from "../../../firebase/config";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
 import { Programme, University } from "../../../types/university";
@@ -121,7 +121,7 @@ export const StudentOnboardingStage3: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<Student | null>(null);
-  const [universities, setUniversities] = useState<University[]>(DEMO_UNIVERSITIES);
+  const [universities, setUniversities] = useState<University[]>([]);
 
   // Search & Filters
   const [searchInput, setSearchInput] = useState("");
@@ -191,11 +191,12 @@ export const StudentOnboardingStage3: React.FC = () => {
         // Fetch universities from DB + merge with DEMO_UNIVERSITIES to guarantee global coverage
         const univSnap = await getDocs(collection(db, "universities"));
         let fetched = univSnap.docs.map((d) => ({ id: d.id, ...d.data() } as University));
-        if (fetched.length === 0) {
-          fetched = [...DEMO_UNIVERSITIES];
-        } else {
-          const combined = [...fetched];
-          DEMO_UNIVERSITIES.forEach((demo) => {
+        if (isDemoMode) {
+          if (fetched.length === 0) {
+            fetched = [...DEMO_UNIVERSITIES];
+          } else {
+            const combined = [...fetched];
+            DEMO_UNIVERSITIES.forEach((demo) => {
             const existingIdx = combined.findIndex(
               (u) => u.name.toLowerCase() === demo.name.toLowerCase() || (u.id && u.id === demo.id)
             );
@@ -213,6 +214,7 @@ export const StudentOnboardingStage3: React.FC = () => {
             }
           });
           fetched = combined;
+          }
         }
         setUniversities(fetched);
 

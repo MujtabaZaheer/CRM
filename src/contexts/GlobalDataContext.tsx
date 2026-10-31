@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
-import { db } from "../firebase/config";
+import { db, isDemoMode } from "../firebase/config";
 import { collection, onSnapshot, query, orderBy, setDoc, doc } from "firebase/firestore";
 import { AppUser } from "../types/role";
 import { Lead } from "../types/lead";
@@ -72,8 +72,9 @@ const GlobalDataContext = createContext<GlobalDataContextType>({
 export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { appUser } = useAuth();
 
-  // Demo data toggle — persisted in localStorage (defaults to true)
+  // Demo data is available only in explicit local demo mode.
   const [showDemoData, setShowDemoData] = useState<boolean>(() => {
+    if (!isDemoMode) return false;
     try {
       const stored = localStorage.getItem("educrm_show_demo_data");
       return stored === null ? true : stored === "true";
@@ -89,7 +90,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [documents, setDocuments] = useState<StudentDocument[]>(() => (showDemoData ? DEMO_DOCUMENTS : []));
   const [tasks, setTasks] = useState<Task[]>(() => (showDemoData ? DEMO_TASKS : []));
   const [universities, setUniversities] = useState<University[]>(() =>
-    DEMO_UNIVERSITIES && DEMO_UNIVERSITIES.length > 0 ? DEMO_UNIVERSITIES : []
+    isDemoMode && DEMO_UNIVERSITIES && DEMO_UNIVERSITIES.length > 0 ? DEMO_UNIVERSITIES : []
   );
   const [activeTenantId, setActiveTenantIdState] = useState<string>("ALL");
 
@@ -110,6 +111,7 @@ export const GlobalDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [initialLoading, setInitialLoading] = useState<boolean>(false);
 
   const toggleDemoData = useCallback(() => {
+    if (!isDemoMode) return;
     setShowDemoData((prev) => {
       const next = !prev;
       try {

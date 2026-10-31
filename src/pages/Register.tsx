@@ -147,8 +147,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
     fullName: "",
     email: "",
     phone: "",
-    nationality: initialRole === "student" ? "Pakistan" : "",
-    countryOfResidence: initialRole === "student" ? "Pakistan" : "",
+    nationality: "",
+    countryOfResidence: "",
     agencyName: "",
     universityName: "",
     partnerUniversityId: "",
@@ -201,15 +201,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
     } catch (_) {}
   };
 
-  // Synchronize default country and nationality/university when role is chosen
+  // Synchronize the selected university partner with a real catalogue institution.
   React.useEffect(() => {
-    if (selectedRole === "student") {
-      setFormData((prev) => ({
-        ...prev,
-        countryOfResidence: prev.countryOfResidence || "Pakistan",
-        nationality: prev.nationality || prev.countryOfResidence || "Pakistan",
-      }));
-    } else if (selectedRole === "university_partner") {
+    if (selectedRole === "university_partner") {
       setFormData((prev) => {
         if (prev.universityName && prev.partnerUniversityId) return prev;
         const defaultUni = GLOBAL_UNIVERSITIES[0];
@@ -323,9 +317,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       if (selectedRole === "student") {
         let extractedAcademicHistory: any[] = [];
         let extractedDob = "";
-        let extractedGender = "Prefer not to say";
+        let extractedGender: string | undefined;
         let extractedCity = "";
-        let extractedStudyLevel = "Master's";
+        let extractedStudyLevel: string | undefined;
         let extractedEnglish: any = undefined;
 
         try {
@@ -341,8 +335,8 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             if (parsed.desiredStudyLevel) extractedStudyLevel = parsed.desiredStudyLevel;
             if (parsed.englishProficiency) {
               extractedEnglish = {
-                testType: parsed.englishProficiency.testType || "IELTS",
-                overallScore: parsed.englishProficiency.overallScore || "",
+                ...(parsed.englishProficiency.testType ? { testType: parsed.englishProficiency.testType } : {}),
+                ...(parsed.englishProficiency.overallScore ? { overallScore: parsed.englishProficiency.overallScore } : {}),
                 ...(parsed.englishProficiency.testDate ? { testDate: parsed.englishProficiency.testDate } : {}),
                 ...(parsed.englishProficiency.expiryDate ? { expiryDate: parsed.englishProficiency.expiryDate } : {}),
               };
@@ -357,13 +351,13 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           fullName: finalFullName,
           email: cleanEmail,
           phone: formData.phone.trim(),
-          nationality: formData.nationality || "Pakistan",
-          countryOfResidence: formData.countryOfResidence || "Pakistan",
-          dob: extractedDob || undefined,
-          gender: extractedGender || undefined,
-          city: extractedCity || undefined,
-          desiredStudyLevel: extractedStudyLevel || undefined,
-          englishProficiency: extractedEnglish || undefined,
+          nationality: formData.nationality,
+          countryOfResidence: formData.countryOfResidence,
+          ...(extractedDob ? { dob: extractedDob } : {}),
+          ...(extractedGender ? { gender: extractedGender } : {}),
+          ...(extractedCity ? { city: extractedCity } : {}),
+          ...(extractedStudyLevel ? { desiredStudyLevel: extractedStudyLevel } : {}),
+          ...(extractedEnglish?.testType || extractedEnglish?.overallScore ? { englishProficiency: extractedEnglish } : {}),
           academicHistory: extractedAcademicHistory,
           profileCompleteness: extractedAcademicHistory.length > 0 ? 55 : 30,
           consentGivenAt: Date.now(),
@@ -758,7 +752,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                   <Globe className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                   <select
                     required
-                    value={formData.countryOfResidence || "Pakistan"}
+                    value={formData.countryOfResidence}
                     onChange={(e) => {
                       const newCountry = e.target.value;
                       setFormData((prev) => ({
@@ -769,6 +763,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                     }}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
+                    <option value="">-- Select country --</option>
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -781,10 +776,11 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                   <Flag className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                   <select
                     required
-                    value={formData.nationality || formData.countryOfResidence || "Pakistan"}
+                    value={formData.nationality}
                     onChange={(e) => updateField("nationality", e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
+                    <option value="">-- Select country --</option>
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -819,6 +815,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                     onChange={(e) => updateField("countryOfResidence", e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
+                    <option value="">-- Select country --</option>
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -884,6 +881,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                     onChange={(e) => updateField("countryOfResidence", e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
+                    <option value="">-- Select country --</option>
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}

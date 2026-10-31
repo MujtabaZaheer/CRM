@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Loader2, ArrowRight, BookOpen, MapPin, Building2, Calendar, Sparkles } from "lucide-react";
-import { db } from "../../firebase/config";
+import { db, isDemoMode } from "../../firebase/config";
+import { useAuth } from "../../contexts/AuthContext";
 import { University } from "../../types/university";
 import { DEMO_UNIVERSITIES } from "../../data/demoData";
 import { StudentApplicationWizard } from "./StudentApplicationWizard";
@@ -16,7 +17,8 @@ export const StudentNewApplication: React.FC = () => {
   const [searchParams] = useSearchParams();
   const params = useParams();
   const navigate = useNavigate();
-
+  const { firebaseUser, appUser } = useAuth();
+  const studentUid = firebaseUser?.uid || appUser?.uid;
   const routeValues = getStudentApplicationRouteValues(searchParams, params);
 
   const [loading, setLoading] = useState(true);
@@ -51,11 +53,13 @@ export const StudentNewApplication: React.FC = () => {
           console.warn("Error or timeout fetching universities, falling back to catalog:", err);
         }
 
-        DEMO_UNIVERSITIES.forEach((demo) => {
-          if (!data.some((univ) => univ.id === demo.id || univ.name.toLowerCase() === demo.name.toLowerCase())) {
-            data.push(demo);
-          }
-        });
+        if (isDemoMode) {
+          DEMO_UNIVERSITIES.forEach((demo) => {
+            if (!data.some((univ) => univ.id === demo.id || univ.name.toLowerCase() === demo.name.toLowerCase())) {
+              data.push(demo);
+            }
+          });
+        }
 
         if (cancelled) return;
         setUniversities(data);
@@ -71,7 +75,10 @@ export const StudentNewApplication: React.FC = () => {
               applicationTimeout,
             ]);
             if (applicationSnap.exists()) {
-              application = applicationSnap.data();
+              const candidate = applicationSnap.data();
+              if (studentUid && candidate.studentId === studentUid) {
+                application = candidate;
+              }
             }
           } catch (err) {
             console.warn("Could not validate application deep link:", err);
@@ -95,7 +102,7 @@ export const StudentNewApplication: React.FC = () => {
 
     fetchUnivs();
     return () => { cancelled = true; };
-  }, [routeValues.applicationId, routeValues.intake, routeValues.programmeId, routeValues.universityId]);
+  }, [routeValues.applicationId, routeValues.intake, routeValues.programmeId, routeValues.universityId, studentUid]);
 
   // Derived options based on cascading selections
   const availableCountries = Array.from(new Set(universities.map(u => u.country))).filter(Boolean).sort();
@@ -125,10 +132,7 @@ export const StudentNewApplication: React.FC = () => {
 
   useEffect(() => {
     setSelectedIntake("");
-    if (availableIntakes.length > 0 && !selectedIntake) {
-      setSelectedIntake(availableIntakes[0]);
-    }
-  }, [selectedProgId, availableIntakes]);
+  }, [selectedProgId]);
 
 
   const proceedToApplication = () => {

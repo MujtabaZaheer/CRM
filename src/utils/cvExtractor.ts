@@ -112,7 +112,7 @@ export const DEMONYM_TO_COUNTRY: Record<string, string> = {
  * Converts a demonym (e.g. "Pakistani") or country code to standard country name (e.g. "Pakistan")
  */
 export function toCountryName(val?: string): string {
-  if (!val) return "Pakistan";
+  if (!val) return "";
   const key = val.trim().toLowerCase();
   if (DEMONYM_TO_COUNTRY[key]) return DEMONYM_TO_COUNTRY[key];
   for (const country of COMMON_COUNTRIES) {
@@ -125,7 +125,7 @@ export function toCountryName(val?: string): string {
  * Converts a country name (e.g. "Pakistan") to standard nationality demonym (e.g. "Pakistani")
  */
 export function toNationalityDemonym(val?: string): string {
-  if (!val) return "Pakistani";
+  if (!val) return "";
   const key = val.trim().toLowerCase();
   if (COUNTRY_TO_DEMONYM[key]) return COUNTRY_TO_DEMONYM[key];
   for (const [dem] of Object.entries(DEMONYM_TO_COUNTRY)) {
@@ -487,7 +487,7 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
   }
 
   // 5. Gender
-  let gender: "Male" | "Female" | "Other" | "Prefer not to say" = "Prefer not to say";
+  let gender: "Male" | "Female" | "Other" | undefined;
   const genderMatch = fullText.match(/\b(?:gender|sex)\s*[:\-]?\s*(male|female|other)\b/i);
   if (genderMatch) {
     const gVal = genderMatch[1].toLowerCase();
@@ -497,8 +497,8 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
   }
 
   // 6. Country & Nationality
-  let countryOfResidence = "Pakistan";
-  let nationality = "Pakistani";
+  let countryOfResidence = "";
+  let nationality = "";
 
   // Check labeled nationality: Nationality: Pakistani (single-line only)
   const labeledNat = fullText.match(/\b(?:nationality)\s*[:\-]?\s*([A-Za-z\- ]{3,30})/i);
@@ -528,7 +528,7 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
         break;
       }
     }
-    if (nationality === "Pakistani") {
+    if (!nationality) {
       for (const country of COMMON_COUNTRIES) {
         if (lowerText.includes(country.toLowerCase())) {
           countryOfResidence = country;
@@ -632,8 +632,8 @@ export function heuristicExtractFromText(text: string, fileName?: string): Extra
 /**
  * Normalizes any qualification string to one of the 5 allowed QualificationLevel union values
  */
-export function normalizeQualificationLevel(raw?: string): QualificationLevel {
-  if (!raw) return "Bachelor's Degree";
+export function normalizeQualificationLevel(raw?: string): QualificationLevel | "" {
+  if (!raw) return "";
   const lower = raw.toLowerCase();
   if (lower.includes("phd") || lower.includes("ph.d") || lower.includes("doctorate") || lower.includes("doctoral")) {
     return "Doctorate / PhD";
@@ -811,7 +811,7 @@ export function extractGpaOrGrade(ctxText: string): string {
   return "";
 }
 
-export function extractCompletionYear(ctxText: string): number {
+export function extractCompletionYear(ctxText: string): number | undefined {
   const rangeMatch = ctxText.match(/\b(19[7-9][0-9]|20[0-2][0-9])\s*[-–to\s]+(19[7-9][0-9]|20[0-3][0-9])\b/);
   if (rangeMatch && rangeMatch[2]) {
     return parseInt(rangeMatch[2], 10);
@@ -828,7 +828,7 @@ export function extractCompletionYear(ctxText: string): number {
     return numYears[0];
   }
 
-  return 2024;
+  return undefined;
 }
 
 export function extractCountryForRecord(ctxText: string, defaultCountry: string): string {
@@ -918,12 +918,12 @@ export function extractAcademicRecordsFromText(
             const gpaCell = cells.find((c) => /(?:[0-4]\.\d|%|\bgrade\b)/i.test(c)) || "";
 
             records.push({
-              institution: cleanInstitutionName(instCell) || "Educational Institution",
+              institution: cleanInstitutionName(instCell),
               qualification: def.level,
-              degreeTitle: cleanDegreeTitle(matchCell) || def.defaultTitle,
+              degreeTitle: cleanDegreeTitle(matchCell),
               country: extractCountryForRecord(line, countryOfResidence),
-              completionYear: extractCompletionYear(yearCell || line),
-              gradeGpa: extractGpaOrGrade(gpaCell || line) || "Completed"
+              ...(extractCompletionYear(yearCell || line) ? { completionYear: extractCompletionYear(yearCell || line) } : {}),
+              ...(extractGpaOrGrade(gpaCell || line) ? { gradeGpa: extractGpaOrGrade(gpaCell || line) } : {})
             });
             break;
           }
@@ -963,9 +963,6 @@ export function extractAcademicRecordsFromText(
         const contextStr = contextSlice.join(" ");
 
         let degreeTitle = cleanDegreeTitle(line);
-        if (!degreeTitle || degreeTitle.length < 3) {
-          degreeTitle = def.defaultTitle;
-        }
 
         // Search institution in order of proximity within this degree's boundary:
         // Current line, next line (i+1), line +2, line +3, and fallback to line above (i-1)
@@ -986,16 +983,16 @@ export function extractAcademicRecordsFromText(
         }
 
         const completionYear = extractCompletionYear(contextStr);
-        const gradeGpa = extractGpaOrGrade(contextStr) || "Completed";
+        const gradeGpa = extractGpaOrGrade(contextStr);
         const country = extractCountryForRecord(contextStr, countryOfResidence);
 
         records.push({
-          institution: institution || "Academic Institution",
+          institution,
           qualification: def.level,
           degreeTitle,
           country,
-          completionYear,
-          gradeGpa
+          ...(completionYear ? { completionYear } : {}),
+          ...(gradeGpa ? { gradeGpa } : {}),
         });
 
         break;
@@ -1212,16 +1209,16 @@ Return ONLY a valid JSON object matching the exact schema below (no explanations
         // Normalize and clean all academic records from AI
         if (parsed.academicRecords && parsed.academicRecords.length > 0) {
           parsed.academicRecords = parsed.academicRecords.map((rec) => ({
-            institution: cleanInstitutionName(rec.institution) || "Academic Institution",
-            qualification: normalizeQualificationLevel(rec.qualification || rec.degreeTitle),
+            institution: cleanInstitutionName(rec.institution),
+            qualification: rec.qualification || rec.degreeTitle ? normalizeQualificationLevel(rec.qualification || rec.degreeTitle) : "",
             degreeTitle: cleanDegreeTitle(rec.degreeTitle || rec.qualification),
-            country: rec.country || parsed.countryOfResidence || "Pakistan",
-            completionYear: Number(rec.completionYear) || 2024,
-            gradeGpa: rec.gradeGpa || "Completed",
+            country: rec.country || parsed.countryOfResidence || "",
+            ...(Number.isFinite(Number(rec.completionYear)) && Number(rec.completionYear) > 0 ? { completionYear: Number(rec.completionYear) } : {}),
+            ...(rec.gradeGpa ? { gradeGpa: rec.gradeGpa } : {}),
           }));
         } else {
           // If Gemini didn't return academicRecords, run heuristic parser to extract them!
-          parsed.academicRecords = extractAcademicRecordsFromText(sourceText, parsed.countryOfResidence || "Pakistan");
+          parsed.academicRecords = extractAcademicRecordsFromText(sourceText, parsed.countryOfResidence || "");
         }
 
         // If English proficiency is missing from AI, attempt heuristic fallback

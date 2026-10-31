@@ -29,7 +29,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { db } from "../../firebase/config";
+import { db, isDemoMode } from "../../firebase/config";
 import { useAuth } from "../../contexts/AuthContext";
 import { Student } from "../../types/student";
 import { Programme, University } from "../../types/university";
@@ -324,8 +324,8 @@ export const StudentApplicationWizard: React.FC = () => {
   };
 
   const handleRecoverWithDemo = () => {
+    if (!isDemoMode) return;
     setWizardState("LOADING");
-    setError(null);
     const demo = DEMO_UNIVERSITIES[0];
     setUniversity(demo);
     setProgramme(demo.programmes?.[0] || null);
@@ -458,18 +458,20 @@ export const StudentApplicationWizard: React.FC = () => {
           console.warn("Firestore universities query delayed or offline, loading catalog:", univErr);
         }
 
-        // Always merge / fallback to demo universities catalog
-        DEMO_UNIVERSITIES.forEach((demo) => {
-          if (
-            !allUnivs.some(
-              (u) =>
-                u.id === demo.id ||
-                u.name.toLowerCase() === demo.name.toLowerCase()
-            )
-          ) {
-            allUnivs.push(demo);
-          }
-        });
+        // Demo catalogue recovery is available only to explicit local demo sessions.
+        if (isDemoMode) {
+          DEMO_UNIVERSITIES.forEach((demo) => {
+            if (
+              !allUnivs.some(
+                (u) =>
+                  u.id === demo.id ||
+                  u.name.toLowerCase() === demo.name.toLowerCase()
+              )
+            ) {
+              allUnivs.push(demo);
+            }
+          });
+        }
 
         if (isCancelled) return;
 
@@ -479,9 +481,17 @@ export const StudentApplicationWizard: React.FC = () => {
           try {
             const dSnap = await withTimeout(getDoc(doc(db, "applications", applicationIdParam)), 3500);
             if (dSnap.exists()) {
-              directApp = { id: dSnap.id, ...dSnap.data() } as Application & Record<string, any>;
+              const candidate = { id: dSnap.id, ...dSnap.data() } as Application & Record<string, any>;
+              if (!uid || candidate.studentId !== uid) {
+                throw new Error("You do not have access to this application draft.");
+              }
+              directApp = candidate;
             }
-          } catch (_) {}
+          } catch (appErr) {
+            if (appErr instanceof Error && appErr.message === "You do not have access to this application draft.") {
+              throw appErr;
+            }
+          }
         }
 
         let foundUniv: University | null = null;
@@ -522,8 +532,6 @@ export const StudentApplicationWizard: React.FC = () => {
           setSelectedIntake(intakeParam);
         } else if (directApp?.intake) {
           setSelectedIntake(directApp.intake);
-        } else if (foundProg?.intakes?.[0]) {
-          setSelectedIntake(foundProg.intakes[0]);
         }
 
         // If no university or programme could be identified, transition to EMPTY
@@ -580,7 +588,7 @@ export const StudentApplicationWizard: React.FC = () => {
                 universityName: foundUniv.name,
                 programmeId: foundProg.id,
                 programmeName: foundProg.title,
-                intake: foundProg.intakes?.[0] || "",
+                intake: intakeParam || directApp?.intake || "",
                 targetCountry: foundUniv.country,
                 stage: "Draft",
                 applicationStatus: "Draft",
@@ -1037,13 +1045,15 @@ export const StudentApplicationWizard: React.FC = () => {
             >
               <RefreshCw className="w-4 h-4" /> Retry
             </button>
-            <button
-              type="button"
-              onClick={handleRecoverWithDemo}
-              className="px-4 py-2 bg-elevated hover:bg-hover text-primary font-semibold text-sm rounded-xl border border-subtle cursor-pointer"
-            >
-              Load Offline Catalog
-            </button>
+            {isDemoMode && (
+              <button
+                type="button"
+                onClick={handleRecoverWithDemo}
+                className="px-4 py-2 bg-elevated hover:bg-hover text-primary font-semibold text-sm rounded-xl border border-subtle cursor-pointer"
+              >
+                Load Offline Catalog
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -37,7 +37,20 @@ describe("CV Extractor & Document Parser", () => {
     expect(toNationalityDemonym("United States")).toBe("American");
   });
 
-  it("should extract full profile including DOB, email, clean name and education from CV text", () => {
+  it("leaves absent profile values empty instead of inventing defaults", () => {
+    const result = heuristicExtractFromText("Candidate Name\nEmail: candidate@example.com");
+
+    expect(toCountryName()).toBe("");
+    expect(toNationalityDemonym()).toBe("");
+    expect(result.countryOfResidence).toBe("");
+    expect(result.nationality).toBe("");
+    expect(result.gender).toBeUndefined();
+    expect(result.desiredStudyLevel).toBeUndefined();
+    expect(result.englishProficiency).toBeUndefined();
+    expect(result.academicRecords).toEqual([]);
+  });
+
+
     const cvText = `
 Khawaja Tariq Mahmood
 Email: tariq512@yahoo.com
