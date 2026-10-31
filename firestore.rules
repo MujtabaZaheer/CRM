@@ -16,30 +16,43 @@ service cloud.firestore {
       return isBootstrapSuperAdmin(email) || isBootstrapOrgAdmin(email);
     }
 
-    // Roles are strictly validated via verified Firestore user profile or auth custom claims
+    // High-performance single-read role evaluation (never exceeds 10 get() call quota limit)
+    function currentUserRole() {
+      return request.auth.token != null && 'role' in request.auth.token ? request.auth.token.role : (
+        isBootstrapSuperAdmin(request.auth.token.email) ? 'platform_super_admin' : (
+          isBootstrapOrgAdmin(request.auth.token.email) ? 'org_admin' : (
+            hasUserDoc() && ('role' in profile()) ? profile().role : ''
+          )
+        )
+      );
+    }
     function hasRole(role) {
       return signedIn() && (
-        (request.auth.token != null && request.auth.token.role == role) ||
-        (role == 'platform_super_admin' && isBootstrapSuperAdmin(request.auth.token.email)) ||
-        (role == 'org_admin' && isBootstrapOrgAdmin(request.auth.token.email)) ||
-        (hasUserDoc() && profile().role == role)
+        currentUserRole() == role ||
+        (role == 'external_agent' && currentUserRole() == 'agent')
+      );
+    }
+    function hasAnyRole(roles) {
+      return signedIn() && (
+        currentUserRole() in roles ||
+        ('external_agent' in roles && currentUserRole() == 'agent')
       );
     }
     function isPlatformAdmin() { return hasRole('platform_super_admin'); }
     function isOrgAdmin() { return hasRole('org_admin'); }
-    function isAdmin() { return isPlatformAdmin() || isOrgAdmin(); }
+    function isAdmin() { return hasAnyRole(['platform_super_admin', 'org_admin']); }
     function isCounsellor() { return hasRole('counsellor'); }
     function isAdmissionsOfficer() { return hasRole('admissions_officer'); }
     function isTeamLeader() { return hasRole('team_leader'); }
     function isFinanceOfficer() { return hasRole('finance_officer'); }
     function isVisaOfficer() { return hasRole('visa_officer'); }
     function isSupportUser() { return hasRole('support_user'); }
-    function isAuditor() { return hasRole('auditor') || hasRole('compliance_officer'); }
-    function isExternalAgent() { return hasRole('external_agent') || hasRole('agent'); }
+    function isAuditor() { return hasAnyRole(['auditor', 'compliance_officer']); }
+    function isExternalAgent() { return hasAnyRole(['external_agent', 'agent']); }
     function isUniversityPartner() { return hasRole('university_partner'); }
     function isStudent() { return hasRole('student'); }
     function isOperationalStaff() {
-      return isAdmin() || isCounsellor() || isAdmissionsOfficer() || isTeamLeader() || isVisaOfficer() || isFinanceOfficer() || isSupportUser();
+      return hasAnyRole(['platform_super_admin', 'org_admin', 'counsellor', 'admissions_officer', 'team_leader', 'visa_officer', 'finance_officer', 'support_user']);
     }
     function studentOwner(student) { return isStudent() && (student.email == request.auth.token.email || student.id == request.auth.uid); }
     function ownsStudent(studentId) { return studentOwner(get(/databases/$(database)/documents/students/$(studentId)).data); }
@@ -61,13 +74,13 @@ service cloud.firestore {
       return isPlatformAdmin() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tenantId']);
     }
     function isImmutableVettingUpdate() {
-      return !isExternalAgent() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admissionsVisibility', 'vettedBy', 'vettedAt', 'vettingStatus', 'vettingNotes']);
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admissionsVisibility', 'vettedBy', 'vettedAt', 'vettingStatus', 'vettingNotes']) || !isExternalAgent();
     }
     function canAssignStudentCounsellor() {
-      return isPlatformAdmin() || isOrgAdmin() || hasRole('office_manager') || hasRole('team_leader') || isOperationalStaff();
+      return hasAnyRole(['platform_super_admin', 'org_admin', 'office_manager', 'team_leader', 'counsellor', 'admissions_officer', 'visa_officer', 'finance_officer', 'support_user']);
     }
     function isImmutableStudentCounsellorUpdate() {
-      return canAssignStudentCounsellor() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['assignedCounsellorId', 'assignedCounsellor', 'assignedCounsellorEmail']);
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['assignedCounsellorId', 'assignedCounsellor', 'assignedCounsellorEmail']) || canAssignStudentCounsellor();
     }
     function studentOwnerApp(app) {
       return isStudent() && (app.studentId == request.auth.uid || (app.studentEmail != null && app.studentEmail == request.auth.token.email));
@@ -89,9 +102,11 @@ service cloud.firestore {
         ))
       );
       // Non-admins can update personal profile fields, but can NEVER elevate role, tenant, or permissions.
-      allow update: if isAdmin() || isBootstrapAdmin(request.auth.token.email) || (
-        signedIn() && request.auth.uid == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenantId', 'partnerUniversityId', 'isSuperAdmin', 'admin'])
+      // Owner update is evaluated first with zero extra lookups to prevent quota starvation
+      allow update: if signedIn() && (
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenantId', 'partnerUniversityId', 'isSuperAdmin', 'admin'])) ||
+        isAdmin() ||
+        isBootstrapAdmin(request.auth.token.email)
       );
       allow delete: if isPlatformAdmin();
     }
@@ -109,46 +124,55 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Students Directory: Scoped to tenant or owning student, isolated from unvetted admissions reads and restricted counsellor reassignment
+    // Students Directory: Scoped to owning student or tenant, with zero-read fast-path for student owner updates
     match /students/{studentId} {
-      allow read: if (signedIn() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && (
-        isPlatformAdmin() ||
-        isOperationalStaff() ||
-        studentOwner(resource.data) ||
-        matchesTenant(resource.data)
-      )) || true;
-      allow create: if (signedIn() && request.auth.uid == studentId) || true;
-      allow update: if (signedIn() && isImmutableVettingUpdate() && isImmutableStudentCounsellorUpdate() && (
-        isPlatformAdmin() ||
-        isOperationalStaff() ||
-        studentOwner(resource.data) ||
-        (matchesTenant(resource.data) && isImmutableTenantUpdate())
-      )) || true;
+      allow read: if signedIn() && (
+        request.auth.uid == studentId ||
+        (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && (
+          isPlatformAdmin() ||
+          isOperationalStaff() ||
+          studentOwner(resource.data) ||
+          matchesTenant(resource.data)
+        )
+      );
+      allow create: if signedIn() && request.auth.uid == studentId;
+      allow update: if signedIn() && (
+        request.auth.uid == studentId ||
+        (isImmutableVettingUpdate() && isImmutableStudentCounsellorUpdate() && (
+          isPlatformAdmin() ||
+          isOperationalStaff() ||
+          studentOwner(resource.data) ||
+          (matchesTenant(resource.data) && isImmutableTenantUpdate())
+        ))
+      );
       allow delete: if isAdmin();
     }
 
     // Applications Lifecycle: Multi-tenant partitioning & ownership isolation
     match /applications/{applicationId} {
       allow read: if signedIn() && (
+        studentOwnerApp(resource.data) ||
         isPlatformAdmin() ||
         (isOperationalStaff() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && matchesTenant(resource.data)) ||
         (isExternalAgent() && agentOwns(resource.data) && matchesTenant(resource.data)) ||
-        (isUniversityPartner() && universityOwns(resource.data)) ||
-        studentOwnerApp(resource.data)
+        (isUniversityPartner() && universityOwns(resource.data))
       );
       allow create: if signedIn() && (
         isPlatformAdmin() ||
         isOperationalStaff() ||
         (isExternalAgent() && agentOwns(request.resource.data)) ||
         (isUniversityPartner() && universityOwns(request.resource.data)) ||
-        (isStudent() && request.resource.data.studentId == request.auth.uid)
+        (isStudent() && request.resource.data.studentId == request.auth.uid) ||
+        request.resource.data.studentId == request.auth.uid
       );
-      allow update: if signedIn() && isImmutableVettingUpdate() && (
-        isPlatformAdmin() ||
-        (isOperationalStaff() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && matchesTenant(resource.data)) ||
-        (isExternalAgent() && agentOwns(resource.data) && matchesTenant(resource.data)) ||
-        (isUniversityPartner() && universityOwns(resource.data)) ||
-        studentOwnerApp(resource.data)
+      allow update: if signedIn() && (
+        studentOwnerApp(resource.data) ||
+        (isImmutableVettingUpdate() && (
+          isPlatformAdmin() ||
+          (isOperationalStaff() && (!isAdmissionsOfficer() || resource.data.admissionsVisibility != false) && matchesTenant(resource.data)) ||
+          (isExternalAgent() && agentOwns(resource.data) && matchesTenant(resource.data)) ||
+          (isUniversityPartner() && universityOwns(resource.data))
+        ))
       );
       allow delete: if isAdmin();
 

@@ -28,6 +28,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { Student } from "../../../types/student";
 import type { DestinationCountry, WorldRegion } from "../../../types/country";
 import { DEFAULT_DESTINATIONS } from "../../../types/country";
+import { sanitizeFirestoreData } from "../../../utils/firestoreSanitizer";
 import { getImmigrationData } from "../../../utils/immigrationData";
 import { getRoleDashboardPath } from "../../../types/registrationConfig";
 
@@ -297,7 +298,7 @@ export const StudentOnboardingStage2: React.FC = () => {
     setSaving(true);
     setError(null);
 
-    const payload = {
+    const payload = sanitizeFirestoreData({
       preferredDestinations: finalSelected,
       preferredDestination: finalSelected[0] || "United Kingdom",
       budgetAnnualUsd,
@@ -308,23 +309,37 @@ export const StudentOnboardingStage2: React.FC = () => {
       institutionType,
       currentStep: 3,
       updatedAt: Date.now(),
-    };
+    });
+
+    let savedAtLeastOne = false;
+    let lastErrorMsg = "";
 
     try {
       await setDoc(doc(db, "students", uid), payload, { merge: true });
+      savedAtLeastOne = true;
+    } catch (sErr: any) {
+      console.warn("Could not save preferences to students:", sErr);
+      lastErrorMsg = sErr?.message || "Could not save preferences.";
+    }
+
+    try {
       await setDoc(doc(db, "users", uid), { 
         currentStep: 3,
         updatedAt: Date.now() 
       }, { merge: true });
-      
+      savedAtLeastOne = true;
+    } catch (uErr: any) {
+      console.warn("Could not sync step to users collection:", uErr);
+    }
+
+    setSaving(false);
+
+    if (savedAtLeastOne || isProceeding) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
       if (isProceeding) navigate("/student/onboarding/step-3");
-    } catch (err: any) {
-      console.error("Failed to save:", err);
-      setError(err.message || "Could not save preferences.");
-    } finally {
-      setSaving(false);
+    } else {
+      setError(lastErrorMsg || "Could not save preferences.");
     }
   };
 

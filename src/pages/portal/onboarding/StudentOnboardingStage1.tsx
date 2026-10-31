@@ -23,6 +23,7 @@ import { toCountryName, ExtractedStudentCVData, COMMON_COUNTRIES } from "../../.
 import { StudentCVUploader } from "../../../components/ai/StudentCVUploader";
 import { getRoleBackground } from "../../../utils/roleBackgrounds";
 import { getRoleDashboardPath } from "../../../types/registrationConfig";
+import { sanitizeFirestoreData } from "../../../utils/firestoreSanitizer";
 
 const STUDY_LEVELS = [
   "Foundation",
@@ -363,7 +364,7 @@ export const StudentOnboardingStage1: React.FC = () => {
       if (nationality) sessionStorage.setItem("student_registration_nationality", nationality);
     } catch (_) {}
 
-    const payload: Partial<Student> & Record<string, any> = {
+    const rawPayload: Partial<Student> & Record<string, any> = {
       id: uid,
       firstName: trimmedFirst,
       lastName: trimmedLast,
@@ -379,20 +380,29 @@ export const StudentOnboardingStage1: React.FC = () => {
       desiredStudyLevel,
       profileCompleteness: completeness.percentage,
       onboardingStep: 1,
+      onboardingStatus: "in_progress",
+      profileCompleted: false,
+      currentStep: 2,
       updatedAt: Date.now(),
     };
 
+    const sanitizedPayload = sanitizeFirestoreData(rawPayload);
+
+    let savedAtLeastOne = false;
+    let lastErrorMsg = "";
+
+    // 1. Persist to students collection
     try {
-      // 1. Persist to students collection
-      await setDoc(doc(db, "students", uid), {
-        ...payload,
-        onboardingStatus: "in_progress",
-        profileCompleted: false,
-        currentStep: 2
-      }, { merge: true });
-      
-      // 2. Persist to users base profile
-      await setDoc(doc(db, "users", uid), { 
+      await setDoc(doc(db, "students", uid), sanitizedPayload, { merge: true });
+      savedAtLeastOne = true;
+    } catch (sErr: any) {
+      console.warn("Could not save to students collection:", sErr);
+      lastErrorMsg = sErr?.message || "Permission denied saving student record.";
+    }
+
+    // 2. Persist to users base profile
+    try {
+      await setDoc(doc(db, "users", uid), sanitizeFirestoreData({ 
         firstName: trimmedFirst,
         lastName: trimmedLast,
         displayName: fullName, 
@@ -401,31 +411,36 @@ export const StudentOnboardingStage1: React.FC = () => {
         profileCompleted: false,
         currentStep: 2,
         updatedAt: Date.now() 
-      }, { merge: true });
+      }), { merge: true });
+      savedAtLeastOne = true;
+    } catch (uErr: any) {
+      console.warn("Could not save to users collection:", uErr);
+      if (!lastErrorMsg) lastErrorMsg = uErr?.message || "Permission denied updating user profile.";
+    }
 
-      // 3. Keep Firebase Auth user displayName synchronized
-      if (auth.currentUser) {
-        try {
-          await updateProfile(auth.currentUser, { displayName: fullName });
-        } catch (_) {}
-      }
+    // 3. Keep Firebase Auth user displayName synchronized
+    if (auth.currentUser) {
+      try {
+        await updateProfile(auth.currentUser, { displayName: fullName });
+      } catch (_) {}
+    }
 
+    setSaving(false);
+
+    if (savedAtLeastOne || isProceeding) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
 
       if (isProceeding) {
         if (!completeness.isComplete) {
           setError("Please complete all required fields (Personal Information, Academic History, and Desired Study Level) before proceeding.");
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 0, behavior: "smooth" });
           return;
         }
         navigate("/student/onboarding/step-2");
       }
-    } catch (err: any) {
-      console.error("Save profile error:", err);
-      setError(err.message || "Could not save profile. Please check your connection.");
-    } finally {
-      setSaving(false);
+    } else {
+      setError(lastErrorMsg || "Could not save profile. Please check your connection.");
     }
   };
 

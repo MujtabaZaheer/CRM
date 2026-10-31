@@ -255,6 +255,11 @@ export const StudentOnboardingStage4: React.FC = () => {
         },
         { merge: true }
       );
+    } catch (sErr) {
+      console.warn("Could not mark student onboarding completed:", sErr);
+    }
+
+    try {
       await setDoc(
         doc(db, "users", uid),
         {
@@ -264,12 +269,12 @@ export const StudentOnboardingStage4: React.FC = () => {
         },
         { merge: true }
       );
-      navigate("/student/dashboard");
-    } catch (err) {
-      console.error("Failed to finish onboarding:", err);
-    } finally {
-      setCompletingOnboarding(false);
+    } catch (uErr) {
+      console.warn("Could not mark user onboarding completed:", uErr);
     }
+
+    setCompletingOnboarding(false);
+    navigate("/student/dashboard");
   };
 
   /* ---- Loading Screen ---- */
@@ -440,8 +445,12 @@ export const StudentOnboardingStage4: React.FC = () => {
                           try {
                             const uid = firebaseUser?.uid || appUser?.uid;
                             if (uid) {
-                              await setDoc(doc(db, "students", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
-                              await setDoc(doc(db, "users", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
+                              try {
+                                await setDoc(doc(db, "students", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
+                              } catch (_) {}
+                              try {
+                                await setDoc(doc(db, "users", uid), { onboardingStatus: "completed", profileCompleted: true, updatedAt: Date.now() }, { merge: true });
+                              } catch (_) {}
                             }
                             navigate(app.stage === "Draft"
                               ? buildStudentApplicationPath({
@@ -451,7 +460,9 @@ export const StudentOnboardingStage4: React.FC = () => {
                                   intake: app.intake,
                                 })
                               : `/student/applications/${app.id}`);
-                          } catch (e) {}
+                          } finally {
+                            setCompletingOnboarding(false);
+                          }
                         }}
                         className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >

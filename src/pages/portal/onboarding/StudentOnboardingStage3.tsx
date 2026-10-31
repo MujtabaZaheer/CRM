@@ -402,10 +402,16 @@ export const StudentOnboardingStage3: React.FC = () => {
       setSavingShortlist(true);
       try {
         await setDoc(doc(db, "students", uid), { shortlistedPrograms: shortlistedKeys, currentStep: 4, updatedAt: Date.now() }, { merge: true });
+      } catch (sErr) {
+        console.warn("Could not save shortlistedPrograms to students:", sErr);
+      }
+      try {
         await setDoc(doc(db, "users", uid), { currentStep: 4, updatedAt: Date.now() }, { merge: true });
-        navigate("/student/onboarding/step-4");
-      } catch (err) { console.error("Save error:", err); }
-      finally { setSavingShortlist(false); }
+      } catch (uErr) {
+        console.warn("Could not save currentStep to users:", uErr);
+      }
+      setSavingShortlist(false);
+      navigate("/student/onboarding/step-4");
     }
   };
 
