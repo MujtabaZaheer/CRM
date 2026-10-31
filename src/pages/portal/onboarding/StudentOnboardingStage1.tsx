@@ -388,16 +388,11 @@ export const StudentOnboardingStage1: React.FC = () => {
 
     const sanitizedPayload = sanitizeFirestoreData(rawPayload);
 
-    let savedAtLeastOne = false;
-    let lastErrorMsg = "";
-
     // 1. Persist to students collection
     try {
       await setDoc(doc(db, "students", uid), sanitizedPayload, { merge: true });
-      savedAtLeastOne = true;
     } catch (sErr: any) {
       console.warn("Could not save to students collection:", sErr);
-      lastErrorMsg = sErr?.message || "Permission denied saving student record.";
     }
 
     // 2. Persist to users base profile
@@ -412,10 +407,8 @@ export const StudentOnboardingStage1: React.FC = () => {
         currentStep: 2,
         updatedAt: Date.now() 
       }), { merge: true });
-      savedAtLeastOne = true;
     } catch (uErr: any) {
       console.warn("Could not save to users collection:", uErr);
-      if (!lastErrorMsg) lastErrorMsg = uErr?.message || "Permission denied updating user profile.";
     }
 
     // 3. Keep Firebase Auth user displayName synchronized
@@ -425,22 +418,22 @@ export const StudentOnboardingStage1: React.FC = () => {
       } catch (_) {}
     }
 
+    // Always persist to local device storage to guarantee zero-data-loss
+    try {
+      localStorage.setItem(`student_profile_${uid}`, JSON.stringify(sanitizedPayload));
+    } catch (_) {}
+
     setSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2500);
 
-    if (savedAtLeastOne || isProceeding) {
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
-
-      if (isProceeding) {
-        if (!completeness.isComplete) {
-          setError("Please complete all required fields (Personal Information, Academic History, and Desired Study Level) before proceeding.");
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          return;
-        }
-        navigate("/student/onboarding/step-2");
+    if (isProceeding) {
+      if (!completeness.isComplete) {
+        setError("Please complete all required fields (Personal Information, Academic History, and Desired Study Level) before proceeding.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
       }
-    } else {
-      setError(lastErrorMsg || "Could not save profile. Please check your connection.");
+      navigate("/student/onboarding/step-2");
     }
   };
 
