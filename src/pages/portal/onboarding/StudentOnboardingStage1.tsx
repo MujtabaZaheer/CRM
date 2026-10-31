@@ -822,7 +822,7 @@ export const StudentOnboardingStage1: React.FC = () => {
             type="button"
             onClick={() => saveProgress(true)}
             disabled={saving || !completeness.isComplete}
-            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-on-accent font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Processing..." : "Next Step"}
             {!saving && <ArrowRight className="w-4 h-4" />}

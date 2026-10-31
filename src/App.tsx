@@ -163,7 +163,7 @@ const RootPortal: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B1120] flex items-center justify-center">
+      <div className="min-h-screen bg-main flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
       </div>
     );

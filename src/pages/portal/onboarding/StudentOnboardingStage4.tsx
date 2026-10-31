@@ -319,7 +319,7 @@ export const StudentOnboardingStage4: React.FC = () => {
             <button
               onClick={handleFinishOnboarding}
               disabled={completingOnboarding}
-              className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {completingOnboarding ? (
                 <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Finalizing...</>
@@ -384,7 +384,7 @@ export const StudentOnboardingStage4: React.FC = () => {
               </div>
               <button
                 onClick={() => navigate("/student/onboarding/step-3")}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 inline-flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 inline-flex items-center gap-2 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" /> Explore Universities & Programs
               </button>
@@ -451,7 +451,7 @@ export const StudentOnboardingStage4: React.FC = () => {
                               : `/student/applications/${app.id}`);
                           } catch (e) {}
                         }}
-                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >
                         <span>Continue Application</span>
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -611,7 +611,7 @@ export const StudentOnboardingStage4: React.FC = () => {
                       type="button"
                       disabled={isCreating}
                       onClick={() => handleCreateApplication(match)}
-                      className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs rounded-xl shadow-md shadow-emerald-500/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       {isCreating ? (
                         <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating Draft...</>

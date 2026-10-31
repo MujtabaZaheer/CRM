@@ -191,18 +191,18 @@ export const Login: React.FC = () => {
   const [loginTab, setLoginTab] = useState<"student" | "staff">("student");
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-teal-500 selection:text-slate-950">
+    <div className="min-h-screen bg-main text-primary flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-teal-500 selection:text-on-accent">
       {/* Background Subtle Gradient Lighting Orbs */}
       <div className="fixed -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed -bottom-40 -right-40 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[160px] pointer-events-none z-0" />
 
-      <div className="w-full max-w-lg bg-slate-900/85 border border-slate-800/90 rounded-3xl shadow-2xl shadow-black/60 p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-xl">
+      <div className="w-full max-w-lg bg-surface/85 border border-default/90 rounded-3xl shadow-2xl shadow-black/60 p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-xl">
         {/* Top bar: Return to Public Front-End */}
         <div className="flex items-center justify-between pb-1">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-400 font-semibold transition-colors group"
+            className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-teal-400 font-semibold transition-colors group"
           >
             <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
             <span>Return to Public Portal</span>
@@ -215,14 +215,14 @@ export const Login: React.FC = () => {
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-teal-400 p-0.5 mx-auto shadow-xl shadow-indigo-500/25">
-            <div className="w-full h-full bg-[#0B1120] rounded-[14px] flex items-center justify-center text-teal-300">
+            <div className="w-full h-full bg-main rounded-[14px] flex items-center justify-center text-teal-300">
               <GraduationCap className="w-7 h-7 text-teal-400" />
             </div>
           </div>
-          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-primary tracking-tight">
             {loginTab === "student" ? "International Student Portal" : "EduCRM Operations Desk"}
           </h1>
-          <p className="text-slate-400 text-xs sm:text-sm">
+          <p className="text-muted text-xs sm:text-sm">
             {loginTab === "student"
               ? "Track university applications, document vault & real-time AI admissions"
               : "Operations access for Counsellors, Visa Officers, Admissions & Admins"}
@@ -230,7 +230,7 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Tab Switcher: Student vs Staff */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/70 border border-slate-800/80 rounded-2xl">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-input/70 border border-default/80 rounded-2xl">
           <button
             type="button"
             onClick={() => {
@@ -240,7 +240,7 @@ export const Login: React.FC = () => {
             className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               loginTab === "student"
                 ? "bg-gradient-to-r from-teal-500/20 to-emerald-500/20 text-teal-300 border border-teal-500/40 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                : "text-muted hover:text-primary"
             }`}
           >
             <GraduationCap className="w-4 h-4 text-teal-400" />
@@ -255,7 +255,7 @@ export const Login: React.FC = () => {
             className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               loginTab === "staff"
                 ? "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                : "text-muted hover:text-primary"
             }`}
           >
             <Shield className="w-4 h-4 text-indigo-400" />
@@ -278,36 +278,36 @@ export const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-placeholder" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={loginTab === "student" ? "student@example.com" : "officer@educrm.com"}
-                className="w-full pl-10 pr-3.5 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                className="w-full pl-10 pr-3.5 py-3 bg-input/80 border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
               />
             </div>
           </div>
 
           {!resetMode && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
+                <Lock className="w-4 h-4 absolute left-3.5 top-3.5 text-placeholder" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-3.5 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                  className="w-full pl-10 pr-3.5 py-3 bg-input/80 border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                 />
               </div>
             </div>
@@ -316,14 +316,14 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+            className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-on-accent font-bold text-sm rounded-xl shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
           >
             <LogIn className="w-4 h-4" />
             <span>{loading ? "Signing in..." : resetMode ? "Send Reset Link" : "Sign In to Account"}</span>
           </button>
         </form>
 
-        <div className="text-center text-xs text-slate-400 border-t border-slate-800/80 pt-4 space-y-3">
+        <div className="text-center text-xs text-muted border-t border-default/80 pt-4 space-y-3">
           {resetMode ? (
             <button
               type="button"
@@ -350,13 +350,13 @@ export const Login: React.FC = () => {
                 >
                   Forgot password?
                 </button>
-                <Link to="/accept-invitation" className="font-semibold text-slate-500 hover:text-slate-300 text-[11px]">
+                <Link to="/accept-invitation" className="font-semibold text-placeholder hover:text-secondary text-[11px]">
                   Have an invitation?
                 </Link>
               </div>
               <Link
                 to="/register"
-                className="w-full py-2.5 px-4 bg-slate-800/60 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
+                className="w-full py-2.5 px-4 bg-elevated/60 hover:bg-elevated text-secondary border border-default/80 font-bold text-sm rounded-xl transition-all flex items-center justify-center space-x-2"
               >
                 <UserPlus className="w-4 h-4 text-teal-400" />
                 <span>Create New Account</span>
@@ -370,8 +370,8 @@ export const Login: React.FC = () => {
       {isDemoMode && (
         <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
         {demoOpen && (
-          <div className="mb-3 w-84 sm:w-96 max-h-[80vh] overflow-y-auto bg-slate-900/95 border border-slate-800 rounded-3xl shadow-2xl p-4 backdrop-blur-2xl space-y-3.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
-            <div className="text-xs font-semibold text-teal-400 flex items-center justify-between pb-2 border-b border-slate-800">
+          <div className="mb-3 w-84 sm:w-96 max-h-[80vh] overflow-y-auto bg-surface/95 border border-default rounded-3xl shadow-2xl p-4 backdrop-blur-2xl space-y-3.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <div className="text-xs font-semibold text-teal-400 flex items-center justify-between pb-2 border-b border-default">
               <div className="flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-teal-400" />
                 <span className="font-bold">One-Click Instant Role Demo</span>
@@ -379,7 +379,7 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDemoOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-muted hover:text-primary p-1 rounded-lg hover:bg-elevated transition-colors"
                 aria-label="Close demo panel"
               >
                 <X className="w-3.5 h-3.5" />
@@ -388,7 +388,7 @@ export const Login: React.FC = () => {
 
             {/* Group 1: Students */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <div className="text-[10px] font-bold text-muted uppercase tracking-wider flex items-center gap-1.5">
                 <GraduationCap className="w-3 h-3 text-teal-400" />
                 <span>Student Portals</span>
               </div>
@@ -415,7 +415,7 @@ export const Login: React.FC = () => {
 
             {/* Group 2: Admissions & Operations */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <div className="text-[10px] font-bold text-muted uppercase tracking-wider flex items-center gap-1.5">
                 <Shield className="w-3 h-3 text-indigo-400" />
                 <span>EduCRM Desk & Counsellors</span>
               </div>
@@ -467,7 +467,7 @@ export const Login: React.FC = () => {
 
             {/* Group 3: Leadership & Compliance */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="text-[10px] font-bold text-muted uppercase tracking-wider">
                 Leadership & Partners
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -504,7 +504,7 @@ export const Login: React.FC = () => {
 
             {/* Demo Student Fast Info */}
             <div className="p-2.5 bg-teal-950/40 border border-teal-500/20 rounded-xl space-y-1 text-xs">
-              <div className="flex items-center justify-between text-slate-300 font-semibold text-[10px]">
+              <div className="flex items-center justify-between text-secondary font-semibold text-[10px]">
                 <span className="flex items-center gap-1.5 text-teal-400">
                   <Sparkles className="w-3 h-3 text-teal-400" />
                   Pre-configured Demo Student: Aarav Patel
@@ -513,8 +513,8 @@ export const Login: React.FC = () => {
                   Active
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">
-                Or enter email <code className="text-teal-300 bg-slate-950 px-1 py-0.5 rounded border border-slate-800">student.registered@educrm.demo</code> with any password.
+              <p className="text-[10px] text-muted">
+                Or enter email <code className="text-teal-300 bg-input px-1 py-0.5 rounded border border-default">student.registered@educrm.demo</code> with any password.
               </p>
             </div>
           </div>
@@ -523,15 +523,15 @@ export const Login: React.FC = () => {
         <button
           type="button"
           onClick={() => setDemoOpen(!demoOpen)}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-slate-900/95 hover:bg-slate-850 text-slate-200 hover:text-white border border-slate-700/80 rounded-full shadow-2xl shadow-black/60 backdrop-blur-xl transition-all active:scale-95 group hover:border-teal-500/60 text-xs font-semibold cursor-pointer"
+          className="flex items-center space-x-2 px-4 py-2.5 bg-surface/95 hover:bg-elevated text-secondary hover:text-primary border border-default/80 rounded-full shadow-2xl shadow-black/60 backdrop-blur-xl transition-all active:scale-95 group hover:border-teal-500/60 text-xs font-semibold cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-teal-400 group-hover:rotate-12 transition-transform" />
           <span>Demo Accounts</span>
           <span className="px-1.5 py-0.2 bg-teal-500/20 text-teal-300 rounded-full text-[10px] font-mono">13</span>
           {demoOpen ? (
-            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-teal-400" />
+            <ChevronDown className="w-4 h-4 text-muted group-hover:text-teal-400" />
           ) : (
-            <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-teal-400" />
+            <ChevronUp className="w-4 h-4 text-muted group-hover:text-teal-400" />
           )}
         </button>
         </div>

@@ -99,21 +99,21 @@ export const StudentAiMatchPage: React.FC = () => {
           <Sparkles className="w-3.5 h-3.5 text-teal-400" />
           <span>Intelligent Study Match Engine</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-heading">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-primary font-heading">
           AI University & Programme Matcher
         </h1>
-        <p className="text-xs sm:text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-muted">
           Tailored admissions eligibility matching against official requirements from 120+ accredited global universities.
         </p>
       </div>
 
       {/* Control Panel: Sliders & Criteria */}
-      <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-5">
+      <div className="p-6 rounded-3xl bg-surface/90 border border-default shadow-xl space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* CGPA Slider */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-2xl bg-main/70 border border-default space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your CGPA / Grade</span>
+              <span className="text-xs font-bold text-muted uppercase tracking-wider">Your CGPA / Grade</span>
               <span className="text-sm font-black text-teal-400 font-mono">{gpa === null ? "Not provided" : `${gpa.toFixed(1)} / 4.0`}</span>
             </div>
             <input
@@ -128,9 +128,9 @@ export const StudentAiMatchPage: React.FC = () => {
           </div>
 
           {/* IELTS Slider */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-2xl bg-main/70 border border-default space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">IELTS Overall Band</span>
+              <span className="text-xs font-bold text-muted uppercase tracking-wider">IELTS Overall Band</span>
               <span className="text-sm font-black text-teal-400 font-mono">{ielts === null ? "Not provided" : ielts.toFixed(1)}</span>
             </div>
             <input
@@ -145,12 +145,12 @@ export const StudentAiMatchPage: React.FC = () => {
           </div>
 
           {/* Destination Selector */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Target Country</span>
+          <div className="p-4 rounded-2xl bg-main/70 border border-default space-y-2">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider block">Target Country</span>
             <select
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              className="w-full py-1.5 px-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+              className="w-full py-1.5 px-3 bg-surface border border-default rounded-xl text-xs text-primary focus:outline-none focus:ring-2 focus:ring-teal-500/50"
             >
               <option value="All">All Destinations</option>
               <option value="United Kingdom">United Kingdom (UK)</option>
@@ -162,12 +162,12 @@ export const StudentAiMatchPage: React.FC = () => {
           </div>
 
           {/* Degree Level Selector */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Degree Level</span>
+          <div className="p-4 rounded-2xl bg-main/70 border border-default space-y-2">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider block">Degree Level</span>
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              className="w-full py-1.5 px-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+              className="w-full py-1.5 px-3 bg-surface border border-default rounded-xl text-xs text-primary focus:outline-none focus:ring-2 focus:ring-teal-500/50"
             >
               <option value="Master's">Postgraduate / Master's</option>
               <option value="Bachelor's">Undergraduate / Bachelor's</option>
@@ -176,12 +176,12 @@ export const StudentAiMatchPage: React.FC = () => {
           </div>
 
           {/* Subject Area Selector */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Discipline</span>
+          <div className="p-4 rounded-2xl bg-main/70 border border-default space-y-2">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider block">Discipline</span>
             <select
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full py-1.5 px-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+              className="w-full py-1.5 px-3 bg-surface border border-default rounded-xl text-xs text-primary focus:outline-none focus:ring-2 focus:ring-teal-500/50"
             >
               <option value="All">All Disciplines</option>
               <option value="Computer Science">Computer Science & AI</option>
@@ -192,9 +192,9 @@ export const StudentAiMatchPage: React.FC = () => {
           </div>
 
           {/* Max Budget Slider */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+          <div className="p-4 rounded-2xl bg-main/70 border border-default space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Annual Tuition</span>
+              <span className="text-xs font-bold text-muted uppercase tracking-wider">Max Annual Tuition</span>
               <span className="text-sm font-black text-teal-400 font-mono">£{maxBudget.toLocaleString()}</span>
             </div>
             <input
@@ -221,17 +221,17 @@ export const StudentAiMatchPage: React.FC = () => {
       {/* Results Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white font-heading">
+          <h2 className="text-lg font-bold text-primary font-heading">
             Matched Degree Programmes ({matchedResults.length} Available)
           </h2>
-          <span className="text-xs text-slate-400">Sorted by highest admission probability</span>
+          <span className="text-xs text-muted">Sorted by highest admission probability</span>
         </div>
 
         {matchedResults.length === 0 ? (
-          <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
-            <GraduationCap className="w-10 h-10 text-slate-500 mx-auto" />
-            <h3 className="text-base font-bold text-white">No Direct Matches Found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          <div className="p-12 text-center rounded-3xl bg-surface/60 border border-default space-y-3">
+            <GraduationCap className="w-10 h-10 text-placeholder mx-auto" />
+            <h3 className="text-base font-bold text-primary">No Direct Matches Found</h3>
+            <p className="text-xs text-muted max-w-sm mx-auto">
               Try increasing your maximum tuition slider or broadening your destination filter.
             </p>
           </div>
@@ -244,7 +244,7 @@ export const StudentAiMatchPage: React.FC = () => {
               return (
                 <div
                   key={idx}
-                  className="rounded-3xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between overflow-hidden shadow-lg group"
+                  className="rounded-3xl bg-surface/90 border border-default hover:border-default transition-all flex flex-col justify-between overflow-hidden shadow-lg group"
                 >
                   <div>
                     {/* Campus Image Header */}
@@ -266,7 +266,7 @@ export const StudentAiMatchPage: React.FC = () => {
                           {score}% {tier}
                         </span>
                       </div>
-                      <div className="absolute bottom-3 left-3 text-white">
+                      <div className="absolute bottom-3 left-3 text-primary">
                         <div className="text-xs font-semibold text-teal-300">{university.country}</div>
                         <div className="text-sm font-bold truncate">{university.name}</div>
                       </div>
@@ -274,17 +274,17 @@ export const StudentAiMatchPage: React.FC = () => {
 
                     {/* Card Content */}
                     <div className="p-5 space-y-3">
-                      <h3 className="text-sm font-bold text-white leading-tight font-heading">
+                      <h3 className="text-sm font-bold text-primary leading-tight font-heading">
                         {programme.title}
                       </h3>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted">
                         <div>
-                          <span className="block text-[10px] uppercase text-slate-500 font-bold">Annual Tuition</span>
-                          <span className="text-white font-bold font-mono">£{programme.tuitionFeeAnnual?.toLocaleString()}</span>
+                          <span className="block text-[10px] uppercase text-placeholder font-bold">Annual Tuition</span>
+                          <span className="text-primary font-bold font-mono">£{programme.tuitionFeeAnnual?.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] uppercase text-slate-500 font-bold">Min IELTS</span>
-                          <span className="text-white font-bold font-mono">{programme.minIeltsScore} Band</span>
+                          <span className="block text-[10px] uppercase text-placeholder font-bold">Min IELTS</span>
+                          <span className="text-primary font-bold font-mono">{programme.minIeltsScore} Band</span>
                         </div>
                       </div>
 
@@ -301,7 +301,7 @@ export const StudentAiMatchPage: React.FC = () => {
                   <div className="p-5 pt-0">
                     <Link
                       to={`/student/new-application?universityId=${university.id}&programmeId=${programme.id}`}
-                      className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
+                      className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-primary font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
                     >
                       <span>1-Click Apply with AI</span>
                       <ArrowRight className="w-3.5 h-3.5" />

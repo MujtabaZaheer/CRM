@@ -1033,7 +1033,7 @@ export const StudentApplicationWizard: React.FC = () => {
             <button
               type="button"
               onClick={handleRetry}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-sm rounded-xl flex items-center gap-2 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" /> Retry
             </button>
@@ -1062,7 +1062,7 @@ export const StudentApplicationWizard: React.FC = () => {
           <button
             type="button"
             onClick={handleRetry}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl flex items-center gap-2 mx-auto cursor-pointer"
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-sm rounded-xl flex items-center gap-2 mx-auto cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> Try Again
           </button>
@@ -1075,12 +1075,12 @@ export const StudentApplicationWizard: React.FC = () => {
     return (
       <div className="min-h-screen bg-transparent p-8 text-center text-primary space-y-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-surface border border-subtle rounded-2xl p-6 text-center space-y-4 shadow-xl">
-          <HelpCircle className="w-12 h-12 text-zinc-400 mx-auto" />
+          <HelpCircle className="w-12 h-12 text-muted mx-auto" />
           <h2 className="text-xl font-bold text-primary">No Program Selected</h2>
           <p className="text-sm text-muted">Please choose a university program through the Program Matcher.</p>
           <Link
             to="/student/onboarding/program-matcher"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-sm rounded-xl cursor-pointer"
           >
             Open Program Matcher →
           </Link>
@@ -1210,7 +1210,7 @@ export const StudentApplicationWizard: React.FC = () => {
             </div>
 
             {/* Real University Campus Visual Showcase */}
-            <div className="relative h-48 rounded-2xl overflow-hidden border border-subtle shadow-md group bg-slate-950">
+            <div className="relative h-48 rounded-2xl overflow-hidden border border-subtle shadow-md group bg-main">
               <img
                 src={getUniversityCampusImage(university || universityIdParam)}
                 alt={`${university.name} Campus`}
@@ -1225,10 +1225,10 @@ export const StudentApplicationWizard: React.FC = () => {
                   <span className="bg-emerald-500/25 backdrop-blur-md px-2.5 py-0.5 rounded text-[10px] font-bold text-emerald-400 border border-emerald-500/40">
                     Official Campus
                   </span>
-                  <h3 className="text-lg font-bold text-white mt-1 drop-shadow-md">
+                  <h3 className="text-lg font-bold text-on-brand mt-1 drop-shadow-md">
                     {university.name}
                   </h3>
-                  <p className="text-xs text-zinc-300 flex items-center gap-1.5 mt-0.5">
+                  <p className="text-xs text-secondary flex items-center gap-1.5 mt-0.5">
                     <span>📍 {university.city ? `${university.city}, ` : ""}{university.country}</span>
                     <span>•</span>
                     <span className="text-emerald-300">{getUniversityLandmark(university.id)}</span>
@@ -1293,7 +1293,7 @@ export const StudentApplicationWizard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs rounded-xl shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
               >
                 <span>Go to Step 2 &amp; Upload CV</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1500,7 +1500,7 @@ export const StudentApplicationWizard: React.FC = () => {
                     };
                   });
                 }}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
+                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Qualification</span>
@@ -1955,7 +1955,7 @@ export const StudentApplicationWizard: React.FC = () => {
                         <FileText className="w-4 h-4 text-emerald-400" />
                         <span>{docName}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                          required ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                          required ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-elevated text-muted border-default"
                         }`}>
                           {required ? "Mandatory" : "Optional"}
                         </span>
@@ -1983,7 +1983,7 @@ export const StudentApplicationWizard: React.FC = () => {
                           Preview
                         </button>
                       )}
-                      <label className={`px-3 py-1.5 rounded-lg ${uploadingDoc ? "opacity-60 pointer-events-none" : "hover:bg-emerald-400 cursor-pointer"} bg-emerald-500 text-white font-bold transition-colors flex items-center gap-1`}>
+                      <label className={`px-3 py-1.5 rounded-lg ${uploadingDoc ? "opacity-60 pointer-events-none" : "hover:bg-emerald-400 cursor-pointer"} bg-emerald-500 text-on-brand font-bold transition-colors flex items-center gap-1`}>
                         <Upload className="w-3.5 h-3.5" />
                         <span>{uploadingDoc ? "Uploading..." : existing ? "Replace" : "Upload"}</span>
                         <input
@@ -2210,7 +2210,7 @@ export const StudentApplicationWizard: React.FC = () => {
               type="button"
               onClick={handleSubmitApplication}
               disabled={saving || !readiness.ready}
-              className="w-full py-3.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-on-brand font-bold text-sm shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
@@ -2248,7 +2248,7 @@ export const StudentApplicationWizard: React.FC = () => {
               type="button"
               onClick={() => saveDraft(currentStep + 1)}
               disabled={saving}
-              className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-on-brand font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>Next</span>
               <ArrowRight className="w-3.5 h-3.5" />

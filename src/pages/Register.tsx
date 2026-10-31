@@ -477,14 +477,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   /* ================================================================ */
   if (success) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
+      <div className="min-h-screen bg-main flex items-center justify-center p-4 relative overflow-hidden bg-scene-register">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="w-full max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-8 space-y-6 relative z-10 backdrop-blur-md text-center">
+        <div className="w-full max-w-md bg-surface/90 border border-default rounded-2xl shadow-2xl p-8 space-y-6 relative z-10 backdrop-blur-md text-center">
           <div className="w-16 h-16 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
           </div>
-          <h1 className="text-xl font-bold text-white font-heading">Check Your Email</h1>
-          <p className="text-zinc-400 text-sm leading-relaxed">
+          <h1 className="text-xl font-bold text-primary font-heading">Check Your Email</h1>
+          <p className="text-muted text-sm leading-relaxed">
             We've sent a verification link to <span className="text-emerald-400 font-semibold">{formData.email}</span>.
             Please verify your email before signing in.
           </p>
@@ -495,7 +495,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           )}
           <Link
             to="/login"
-            className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2"
+            className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2"
           >
             <span>Continue to Sign In</span>
           </Link>
@@ -511,7 +511,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
     const activeRoles = EXTERNAL_ROLES;
 
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-main flex items-center justify-center p-4 relative overflow-hidden">
         {/* Dynamic Ambient Background Layer */}
         <div
           className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20"
@@ -523,12 +523,12 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-2xl bg-zinc-900/90 border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-xl transition-all duration-300">
+        <div className="w-full max-w-2xl bg-surface/90 border border-default rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 relative z-10 backdrop-blur-xl transition-all duration-300">
           {/* Top navigation */}
-          <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+          <div className="flex items-center justify-between pb-1 border-b border-default/60">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 font-semibold transition-colors group"
+              className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-emerald-400 font-semibold transition-colors group"
             >
               <span className="group-hover:-translate-x-0.5 transition-transform">&larr;</span>
               <span>Return to Public Portal</span>
@@ -544,12 +544,12 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-teal-400 p-0.5 mx-auto shadow-lg shadow-indigo-500/20">
-              <div className="w-full h-full bg-[#0B1120] rounded-[14px] flex items-center justify-center text-teal-300">
+              <div className="w-full h-full bg-main rounded-[14px] flex items-center justify-center text-teal-300">
                 <GraduationCap className="w-6 h-6 text-teal-400" />
               </div>
             </div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Create Your Account</h1>
-            <p className="text-zinc-400 text-xs sm:text-sm">Select your role to access EduBridge & EduCRM</p>
+            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-primary tracking-tight">Create Your Account</h1>
+            <p className="text-muted text-xs sm:text-sm">Select your role to access EduBridge & EduCRM</p>
           </div>
 
           {/* Role Cards */}
@@ -564,15 +564,15 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                   type="button"
                   onClick={() => setSelectedRole(roleKey)}
                   className={`group relative p-5 rounded-2xl border transition-all duration-200 text-left
-                    ${ac.card} ${ac.cardHover} border-zinc-800 hover:${ac.border}
+                    ${ac.card} ${ac.cardHover} border-default hover:${ac.border}
                     hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer`}
                 >
                   <div className={`w-12 h-12 rounded-xl ${ac.bg} ${ac.text} flex items-center justify-center mb-3`}>
                     {ROLE_ICONS[config.iconName]}
                   </div>
-                  <h3 className="text-sm font-bold text-white mb-1">{config.label}</h3>
+                  <h3 className="text-sm font-bold text-primary mb-1">{config.label}</h3>
                   <p className={`text-[11px] font-semibold ${ac.text} mb-2`}>{config.tagline}</p>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">{config.description}</p>
+                  <p className="text-[11px] text-muted leading-relaxed">{config.description}</p>
                   {/* Arrow indicator */}
                   <div className={`absolute top-4 right-4 w-6 h-6 rounded-full ${ac.bg} ${ac.text} flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
                     <span className="text-xs font-bold">→</span>
@@ -592,13 +592,13 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           </div>
 
           {/* Info note */}
-          <p className="text-[11px] text-zinc-500 text-center">
+          <p className="text-[11px] text-placeholder text-center">
             Internal staff accounts (Counsellor, Finance, Admissions, Audit, Support, Visa) are provisioned by your organization's Super Admin.
             Contact your administrator if you need a staff account.
           </p>
 
           {/* Sign in link */}
-          <div className="text-center text-xs text-zinc-400 border-t border-zinc-800/80 pt-4">
+          <div className="text-center text-xs text-muted border-t border-default/80 pt-4">
             Already have an account?{" "}
             <Link to="/login" className="font-semibold text-emerald-400 hover:text-emerald-300">
               Sign In
@@ -615,7 +615,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
   const roleBg = getRoleBackground(selectedRole);
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-main flex items-center justify-center p-4 relative overflow-hidden">
       {/* Dynamic Role Background Image */}
       <div
         className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700 opacity-20"
@@ -627,20 +627,20 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-xl bg-zinc-900/90 border border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
+      <div className="w-full max-w-xl bg-surface/90 border border-default rounded-2xl shadow-2xl p-6 sm:p-8 space-y-5 relative z-10 backdrop-blur-md">
         {/* Top actions */}
-        <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60">
+        <div className="flex items-center justify-between pb-1 border-b border-default/60">
           <button
             type="button"
             onClick={() => { setSelectedRole(null); setError(null); }}
-            className="flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+            className="flex items-center space-x-1.5 text-xs text-muted hover:text-emerald-400 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Change role</span>
           </button>
           <Link
             to="/"
-            className="text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
+            className="text-xs text-muted hover:text-emerald-400 transition-colors"
           >
             &larr; Return to Portal
           </Link>
@@ -651,10 +651,10 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           <div className={`w-12 h-12 rounded-xl ${accent.bg} ${accent.text} flex items-center justify-center mx-auto shadow-lg ${accent.shadow}`}>
             {activeConfig && ROLE_ICONS[activeConfig.iconName]}
           </div>
-          <h1 className="font-heading text-2xl font-bold text-white tracking-tight">
+          <h1 className="font-heading text-2xl font-bold text-primary tracking-tight">
             {activeConfig?.label} Registration
           </h1>
-          <p className="text-zinc-400 text-sm">{activeConfig?.tagline}</p>
+          <p className="text-muted text-sm">{activeConfig?.tagline}</p>
         </div>
 
         {error && (
@@ -687,31 +687,31 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           {/* ---- SHARED: Full Name (First Name & Last Name) ---- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">First Name *</label>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">First Name *</label>
               <div className="relative">
-                <User className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <User className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                 <input
                   type="text"
                   required
                   value={formData.firstName}
                   onChange={(e) => updateField("firstName", e.target.value)}
                   placeholder="Muhammad"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Last Name *</label>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Last Name *</label>
               <div className="relative">
-                <User className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <User className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                 <input
                   type="text"
                   required
                   value={formData.lastName}
                   onChange={(e) => updateField("lastName", e.target.value)}
                   placeholder="Ali"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -719,14 +719,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
           {/* ---- SHARED: Email ---- */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Email Address *</label>
+            <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Email Address *</label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
               <input
                 type="email" required value={formData.email}
                 onChange={(e) => updateField("email", e.target.value)}
                 placeholder="jane@example.com"
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
             </div>
           </div>
@@ -734,16 +734,16 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           {/* ---- SHARED: Phone (Student + Agent + Staff) ---- */}
           {(selectedRole === "student" || selectedRole === "external_agent" || STAFF_ROLES.includes(selectedRole as any)) && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Phone Number {STAFF_ROLES.includes(selectedRole as any) ? "(Optional)" : "*"}</label>
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Phone Number {STAFF_ROLES.includes(selectedRole as any) ? "(Optional)" : "*"}</label>
               <div className="relative">
-                <Phone className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <Phone className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                 <input
                   type="tel"
                   required={!STAFF_ROLES.includes(selectedRole as any)}
                   value={formData.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
                   placeholder="+1 234 567 890"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -753,9 +753,9 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           {selectedRole === "student" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country of Residence *</label>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Country of Residence *</label>
                 <div className="relative">
-                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                   <select
                     required
                     value={formData.countryOfResidence || "Pakistan"}
@@ -767,7 +767,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                         nationality: (!prev.nationality || prev.nationality === prev.countryOfResidence) ? newCountry : prev.nationality,
                       }));
                     }}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -776,14 +776,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Nationality *</label>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Nationality *</label>
                 <div className="relative">
-                  <Flag className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                  <Flag className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                   <select
                     required
                     value={formData.nationality || formData.countryOfResidence || "Pakistan"}
                     onChange={(e) => updateField("nationality", e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -798,26 +798,26 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           {selectedRole === "external_agent" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Agency Name *</label>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Agency Name *</label>
                 <div className="relative">
-                  <Briefcase className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                  <Briefcase className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                   <input
                     type="text" required value={formData.agencyName}
                     onChange={(e) => updateField("agencyName", e.target.value)}
                     placeholder="e.g. Global Education Partners"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country *</label>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Country *</label>
                 <div className="relative">
-                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                   <select
                     required
                     value={formData.countryOfResidence || "United Kingdom"}
                     onChange={(e) => updateField("countryOfResidence", e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -833,11 +833,11 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
                     Partner University *
                   </label>
                   <div className="relative">
-                    <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500 pointer-events-none" />
+                    <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-placeholder pointer-events-none" />
                     <select
                       required
                       value={formData.universityName}
@@ -850,7 +850,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                           countryOfResidence: selectedUni?.country || prev.countryOfResidence,
                         }));
                       }}
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 cursor-pointer"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 cursor-pointer"
                     >
                       <option value="" disabled>-- Select Your Partner University --</option>
                       {GLOBAL_UNIVERSITIES.map((u) => (
@@ -862,27 +862,27 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Your Position *</label>
+                  <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Your Position *</label>
                   <div className="relative">
-                    <Briefcase className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500 pointer-events-none" />
+                    <Briefcase className="w-4 h-4 absolute left-3.5 top-3 text-placeholder pointer-events-none" />
                     <input
                       type="text" required value={formData.position}
                       onChange={(e) => updateField("position", e.target.value)}
                       placeholder="e.g. Admissions Manager / Director"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
                     />
                   </div>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Country *</label>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Country *</label>
                 <div className="relative">
-                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500 pointer-events-none" />
+                  <Globe className="w-4 h-4 absolute left-3.5 top-3 text-placeholder pointer-events-none" />
                   <select
                     required
                     value={formData.countryOfResidence || "United Kingdom"}
                     onChange={(e) => updateField("countryOfResidence", e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                   >
                     {COMMON_COUNTRIES.map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -896,15 +896,15 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           {/* ---- STAFF: Assigned Office / Branch ---- */}
           {STAFF_ROLES.includes(selectedRole as any) && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
                 Assigned Office / Regional Hub *
               </label>
               <div className="relative">
-                <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <Building2 className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
                 <select
                   value={formData.office}
                   onChange={(e) => updateField("office", e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                 >
                   <option value="London HQ">London HQ (United Kingdom)</option>
                   <option value="Manchester Branch">Manchester Branch (UK)</option>
@@ -921,20 +921,20 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
           {/* ---- Password ---- */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Password *</label>
+            <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Password *</label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
               <input
                 type={showPassword ? "text" : "password"} required
                 value={formData.password}
                 onChange={(e) => updateField("password", e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                className="w-full pl-10 pr-10 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-300"
+                className="absolute right-3 top-2.5 text-placeholder hover:text-secondary"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -944,7 +944,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
             {formData.password.length > 0 && (
               <div className="mt-2 space-y-1.5">
                 <div className="flex items-center space-x-2">
-                  <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-elevated rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
                       style={{ width: `${(passwordStrength.level / 4) * 100}%` }}
@@ -960,7 +960,7 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
                 <div className="grid grid-cols-2 gap-1">
                   {PASSWORD_RULES.map((rule) => (
                     <div key={rule.label} className={`text-[10px] flex items-center space-x-1 ${
-                      rule.test(formData.password) ? "text-emerald-400" : "text-zinc-600"
+                      rule.test(formData.password) ? "text-emerald-400" : "text-placeholder"
                     }`}>
                       <span>{rule.test(formData.password) ? "✓" : "○"}</span>
                       <span>{rule.label}</span>
@@ -973,15 +973,15 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
           {/* ---- Confirm Password ---- */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1">Confirm Password *</label>
+            <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Confirm Password *</label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-placeholder" />
               <input
                 type="password" required
                 value={formData.confirmPassword}
                 onChange={(e) => updateField("confirmPassword", e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-main border border-default rounded-xl text-sm text-primary placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
             </div>
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
@@ -990,14 +990,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
           </div>
 
           {/* ---- Consent ---- */}
-          <div className="flex items-start space-x-2 p-3 bg-zinc-950/50 rounded-xl border border-zinc-800/50">
+          <div className="flex items-start space-x-2 p-3 bg-main/50 rounded-xl border border-default/50">
             <input
               type="checkbox" checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
               id="registration-consent"
               className="mt-1 accent-emerald-500"
             />
-            <label htmlFor="registration-consent" className="text-[11px] text-zinc-400 leading-relaxed">
+            <label htmlFor="registration-consent" className="text-[11px] text-muted leading-relaxed">
               <ShieldCheck className="w-3 h-3 inline-block mr-1 text-emerald-400" />
               I confirm that the information provided is accurate and I consent to my data being processed for educational placement services. I understand my data will be handled in accordance with the Privacy Policy (v1.0).
             </label>
@@ -1005,14 +1005,14 @@ export const Register: React.FC<{ defaultRole?: UserRole }> = ({ defaultRole }) 
 
           <button
             type="submit" disabled={loading}
-            className={`w-full py-2.5 px-4 ${accent.btn} ${accent.btnHover} text-zinc-950 font-bold text-sm rounded-xl shadow-lg ${accent.shadow} transition-all flex items-center justify-center space-x-2 disabled:opacity-50`}
+            className={`w-full py-2.5 px-4 ${accent.btn} ${accent.btnHover} text-on-accent font-bold text-sm rounded-xl shadow-lg ${accent.shadow} transition-all flex items-center justify-center space-x-2 disabled:opacity-50`}
           >
             <UserPlus className="w-4 h-4" />
             <span>{loading ? "Creating Account..." : `Create ${activeConfig?.label} Account`}</span>
           </button>
         </form>
 
-        <div className="text-center text-xs text-zinc-400 border-t border-zinc-800/80 pt-4">
+        <div className="text-center text-xs text-muted border-t border-default/80 pt-4">
           Already have an account?{" "}
           <Link to="/login" className="font-semibold text-emerald-400 hover:text-emerald-300">
             Sign In

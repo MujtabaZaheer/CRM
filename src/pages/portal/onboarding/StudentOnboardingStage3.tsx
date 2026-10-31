@@ -482,7 +482,7 @@ export const StudentOnboardingStage3: React.FC = () => {
             <button
               onClick={proceedToStep4}
               disabled={savingShortlist}
-              className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <span>View Applications ({appliedCount > 0 ? appliedCount : shortlistedKeys.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -501,7 +501,7 @@ export const StudentOnboardingStage3: React.FC = () => {
             </div>
             <button
               onClick={() => navigate("/student/onboarding/step-4")}
-              className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-400 cursor-pointer"
+              className="px-3 py-1 bg-emerald-500 text-on-accent text-xs font-bold rounded-lg hover:bg-emerald-400 cursor-pointer"
             >
               Track in Step 4 →
             </button>
@@ -519,7 +519,7 @@ export const StudentOnboardingStage3: React.FC = () => {
               title={selectedCountries.length > 0 ? selectedCountries.join(", ") : "All Destinations"}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeCountryTab === "All"
-                  ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                  ? "bg-emerald-500 text-on-accent shadow-sm shadow-emerald-500/20"
                   : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
               }`}
             >
@@ -532,7 +532,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                 onClick={() => setActiveCountryTab(c)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   activeCountryTab === c
-                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                    ? "bg-emerald-500 text-on-accent shadow-sm shadow-emerald-500/20"
                     : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
                 }`}
               >
@@ -547,7 +547,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                 onClick={() => setActiveCountryTab(c)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                   activeCountryTab === c
-                    ? "bg-emerald-500 text-white shadow-sm"
+                    ? "bg-emerald-500 text-on-accent shadow-sm"
                     : "bg-elevated/50 text-muted hover:text-secondary hover:bg-elevated"
                 }`}
               >
@@ -824,7 +824,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                                   className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer ${
                                     appNumber
                                       ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
-                                      : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
+                                      : "bg-emerald-500 hover:bg-emerald-400 text-on-accent shadow-emerald-500/20"
                                   }`}
                                 >
                                   {isApplying ? (
@@ -965,7 +965,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                                       type="button"
                                       disabled={isApplying}
                                       onClick={() => handleApplyToProgram(university, programme)}
-                                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-on-accent shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
                                     >
                                       <Send className="w-3.5 h-3.5" /> Apply Now
                                     </button>
@@ -1047,7 +1047,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                               type="button"
                               onClick={() => toggleShortlist(key)}
                               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                                isShortlisted ? "bg-emerald-500 text-white" : "bg-main text-muted hover:text-primary border border-default"
+                                isShortlisted ? "bg-emerald-500 text-on-accent" : "bg-main text-muted hover:text-primary border border-default"
                               }`}
                             >
                               {isShortlisted ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
@@ -1084,7 +1084,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                             className={`w-full py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer ${
                               appNumber
                                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
-                                : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20"
+                                : "bg-emerald-500 hover:bg-emerald-400 text-on-accent shadow-emerald-500/20"
                             }`}
                           >
                             {applyingKey === key ? (
@@ -1232,7 +1232,7 @@ export const StudentOnboardingStage3: React.FC = () => {
                   handleApplyToProgram(drawerItem.university, drawerItem.programme);
                   setDrawerItem(null);
                 }}
-                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 {appliedMap[`${drawerItem.university.id}-${drawerItem.programme.id}`] ? "View Draft" : "Apply to Program"}

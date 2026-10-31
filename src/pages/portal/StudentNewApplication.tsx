@@ -157,15 +157,15 @@ export const StudentNewApplication: React.FC = () => {
   return (
     <div className="mx-auto max-w-4xl space-y-7 pb-16 font-sans animate-fade-in">
       {/* Header */}
-      <header className="rounded-3xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 sm:p-8 text-[var(--text-primary)] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="rounded-3xl bg-surface border border-default p-6 sm:p-8 text-primary shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
             Admissions Application Portal
           </span>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--text-primary)] mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-primary mt-1">
             Start a New Application
           </h1>
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1.5 max-w-xl">
+          <p className="text-xs sm:text-sm text-secondary mt-1.5 max-w-xl">
             Select your desired destination country, institution, and programme to initiate your direct admissions dossier.
           </p>
         </div>
@@ -178,31 +178,31 @@ export const StudentNewApplication: React.FC = () => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-xs font-bold text-[var(--text-primary)]">
+            <h3 className="text-xs font-bold text-primary">
               AI-Powered Application Auto-Fill (CV / Resume Scanner)
             </h3>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold uppercase tracking-wider">
               Gemini 3.8 Flash
             </span>
           </div>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+          <p className="text-[11px] text-secondary mt-0.5">
             Select your destination and programme below to open the application wizard. You can upload your CV or academic transcript to automatically populate your personal info, academic records, and test scores with zero manual data entry.
           </p>
         </div>
       </div>
 
       {/* Cascading Selector Card */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-default)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+      <div className="bg-surface border border-default rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
         {/* 1. Country */}
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
             <MapPin className="w-4 h-4 text-emerald-400" />
             <span>1. Destination Country *</span>
           </label>
           <select
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value)}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none cursor-pointer"
+            className="w-full bg-input border border-default rounded-xl p-3 text-xs text-primary focus:border-emerald-500 focus:outline-none cursor-pointer"
           >
             <option value="">-- Select Destination Country --</option>
             {availableCountries.map((c) => (
@@ -215,7 +215,7 @@ export const StudentNewApplication: React.FC = () => {
 
         {/* 2. University */}
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-400" />
             <span>2. Partner University *</span>
           </label>
@@ -223,7 +223,7 @@ export const StudentNewApplication: React.FC = () => {
             value={selectedUnivId}
             onChange={(e) => setSelectedUnivId(e.target.value)}
             disabled={!selectedCountry}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+            className="w-full bg-input border border-default rounded-xl p-3 text-xs text-primary focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
           >
             <option value="">-- Select Partner University --</option>
             {availableUniversities.map((u) => (
@@ -236,7 +236,7 @@ export const StudentNewApplication: React.FC = () => {
 
         {/* 3. Campus */}
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
             <MapPin className="w-4 h-4 text-emerald-400" />
             <span>3. University Campus *</span>
           </label>
@@ -244,7 +244,7 @@ export const StudentNewApplication: React.FC = () => {
             value={selectedCampus}
             onChange={(e) => setSelectedCampus(e.target.value)}
             disabled={!selectedUnivId}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+            className="w-full bg-input border border-default rounded-xl p-3 text-xs text-primary focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
           >
             <option value="">-- Select Campus --</option>
             {availableCampuses.map((c) => (
@@ -257,7 +257,7 @@ export const StudentNewApplication: React.FC = () => {
 
         {/* 4. Program */}
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-emerald-400" />
             <span>4. Academic Programme *</span>
           </label>
@@ -265,7 +265,7 @@ export const StudentNewApplication: React.FC = () => {
             value={selectedProgId}
             onChange={(e) => setSelectedProgId(e.target.value)}
             disabled={!selectedCampus && availableCampuses.length > 0}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+            className="w-full bg-input border border-default rounded-xl p-3 text-xs text-primary focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
           >
             <option value="">-- Select Academic Programme --</option>
             {availableProgrammes.map((p) => (
@@ -278,7 +278,7 @@ export const StudentNewApplication: React.FC = () => {
 
         {/* 5. Intake */}
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
             <Calendar className="w-4 h-4 text-emerald-400" />
             <span>5. Target Intake *</span>
           </label>
@@ -286,7 +286,7 @@ export const StudentNewApplication: React.FC = () => {
             value={selectedIntake}
             onChange={(e) => setSelectedIntake(e.target.value)}
             disabled={!selectedProgId || availableIntakes.length === 0}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl p-3 text-xs text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
+            className="w-full bg-input border border-default rounded-xl p-3 text-xs text-primary focus:border-emerald-500 focus:outline-none disabled:opacity-40 cursor-pointer"
           >
             <option value="">-- Select Intake Term --</option>
             {availableIntakes.map((i) => (
@@ -297,12 +297,12 @@ export const StudentNewApplication: React.FC = () => {
           </select>
         </div>
 
-        <div className="pt-4 border-t border-[var(--border-default)]">
+        <div className="pt-4 border-t border-default">
           <button
             type="button"
             onClick={proceedToApplication}
             disabled={!selectedUnivId || !selectedProgId || !selectedIntake}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer text-sm"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer text-sm"
           >
             <span>Proceed to Application Dossier</span>
             <ArrowRight className="w-4 h-4" />

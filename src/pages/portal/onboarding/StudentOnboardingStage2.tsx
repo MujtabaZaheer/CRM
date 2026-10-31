@@ -382,7 +382,7 @@ export const StudentOnboardingStage2: React.FC = () => {
               type="button"
               onClick={() => savePreferences(true)}
               disabled={saving}
-              className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-lg shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <span>Continue to Programs</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -448,7 +448,7 @@ export const StudentOnboardingStage2: React.FC = () => {
                 onClick={() => setSelectedRegion(r)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   selectedRegion === r
-                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                    ? "bg-emerald-500 text-on-accent shadow-sm shadow-emerald-500/20"
                     : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
                 }`}
               >
@@ -617,7 +617,7 @@ export const StudentOnboardingStage2: React.FC = () => {
                         <div
                           className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
                             selected
-                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              ? "bg-emerald-500 border-emerald-500 text-on-accent"
                               : "border-default bg-surface"
                           }`}
                         >

@@ -164,17 +164,17 @@ export const StudentApplications: React.FC = () => {
           <p className="text-xs font-bold tracking-wider text-emerald-400 uppercase">
             STUDENT ADMISSIONS TRACKER
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-[var(--text-primary)] mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-primary mt-1">
             My Applications
           </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
+          <p className="text-xs text-secondary mt-1">
             Monitor real-time university admissions stages, offer releases, and CAS compliance.
           </p>
         </div>
 
         <Link
           to="/student/new-application"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
         >
           <Sparkles className="w-4 h-4" />
           <span>New Application</span>
@@ -184,7 +184,7 @@ export const StudentApplications: React.FC = () => {
       {/* Filter Tabs & Search Bar */}
       {ownApplications.length > 0 && (
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b md:border-b-0 border-[var(--border-default)]">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b md:border-b-0 border-default">
             {[
               { id: "all", label: "All", count: counts.all },
               { id: "review", label: "Under Review", count: counts.review },
@@ -198,14 +198,14 @@ export const StudentApplications: React.FC = () => {
                 onClick={() => setFilterTab(tab.id as any)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                   filterTab === tab.id
-                    ? "bg-emerald-500 text-zinc-950 shadow-sm"
-                    : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                    ? "bg-emerald-500 text-on-accent shadow-sm"
+                    : "bg-elevated text-secondary hover:text-primary hover:bg-hover"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    filterTab === tab.id ? "bg-zinc-950/20 text-zinc-950" : "bg-[var(--bg-card)] text-[var(--text-muted)]"
+                    filterTab === tab.id ? "bg-main/20 text-on-accent" : "bg-surface text-muted"
                   }`}
                 >
                   {tab.count}
@@ -215,13 +215,13 @@ export const StudentApplications: React.FC = () => {
           </div>
 
           <div className="relative max-w-sm w-full">
-            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search by university, program, stage..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] focus:border-emerald-500 focus:outline-none transition-colors"
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-surface border border-default text-xs text-primary placeholder:text-placeholder focus:border-emerald-500 focus:outline-none transition-colors"
             />
           </div>
         </div>
@@ -244,11 +244,11 @@ export const StudentApplications: React.FC = () => {
             return (
               <article
                 key={app.id}
-                className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] overflow-hidden shadow-sm hover:border-emerald-500/40 hover:shadow-lg transition-all flex flex-col justify-between"
+                className="rounded-2xl bg-surface border border-default overflow-hidden shadow-sm hover:border-emerald-500/40 hover:shadow-lg transition-all flex flex-col justify-between"
               >
                 <div>
                   {/* Card Campus Banner */}
-                  <div className="relative h-28 w-full overflow-hidden bg-slate-900">
+                  <div className="relative h-28 w-full overflow-hidden bg-surface">
                     <img
                       src={campusImage}
                       alt={app.universityName}
@@ -257,7 +257,7 @@ export const StudentApplications: React.FC = () => {
                         e.currentTarget.src = "/images/campus_uk.jpg";
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-card)] via-[var(--bg-card)]/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent" />
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
                       <span className="font-mono text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
                         {app.applicationNumber || "APP-2026"}
@@ -268,12 +268,12 @@ export const StudentApplications: React.FC = () => {
 
                   <div className="p-5 space-y-3.5">
                     <div>
-                      <h3 className="font-bold text-base text-[var(--text-primary)] flex items-center gap-2">
+                      <h3 className="font-bold text-base text-primary flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
                         <span>{app.universityName}</span>
                       </h3>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
-                        <span className="font-medium text-[var(--text-primary)]">{app.programmeName}</span>
+                      <p className="text-xs text-secondary mt-1 flex items-center gap-1.5">
+                        <span className="font-medium text-primary">{app.programmeName}</span>
                         <span>•</span>
                         <span className="text-emerald-400 font-medium">{app.intake}</span>
                       </p>
@@ -290,11 +290,11 @@ export const StudentApplications: React.FC = () => {
 
                     {/* Progress Bar */}
                     <div>
-                      <div className="flex items-center justify-between text-[11px] font-medium text-[var(--text-muted)] mb-1">
+                      <div className="flex items-center justify-between text-[11px] font-medium text-muted mb-1">
                         <span>Application Stage Progress</span>
                         <span className="text-emerald-400 font-bold">{pct}%</span>
                       </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-elevated">
                         <div
                           className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
@@ -302,14 +302,14 @@ export const StudentApplications: React.FC = () => {
                       </div>
                     </div>
 
-                    <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-2">
+                    <p className="text-xs text-muted leading-relaxed line-clamp-2">
                       {app.nextAction || getStageGuidance(app.stage)}
                     </p>
                   </div>
                 </div>
 
-                <div className="px-5 py-3.5 border-t border-[var(--border-default)] bg-[var(--bg-elevated)]/30 flex items-center justify-between">
-                  <span className="text-[11px] text-[var(--text-muted)]">
+                <div className="px-5 py-3.5 border-t border-default bg-elevated/30 flex items-center justify-between">
+                  <span className="text-[11px] text-muted">
                     Updated: {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : "Recently"}
                   </span>
 
@@ -501,12 +501,12 @@ export const StudentApplicationDetail: React.FC = () => {
 
   if (!app) {
     return (
-      <div className="p-8 text-center text-[var(--text-muted)] space-y-3">
+      <div className="p-8 text-center text-muted space-y-3">
         <AlertCircle className="w-8 h-8 text-amber-400 mx-auto" />
-        <p className="text-base font-bold text-[var(--text-primary)]">Application Not Found</p>
+        <p className="text-base font-bold text-primary">Application Not Found</p>
         <button
           onClick={() => navigate("/student/applications")}
-          className="px-4 py-2 bg-emerald-500 text-zinc-950 font-bold text-xs rounded-lg cursor-pointer"
+          className="px-4 py-2 bg-emerald-500 text-on-accent font-bold text-xs rounded-lg cursor-pointer"
         >
           Back to My Applications
         </button>
@@ -529,13 +529,13 @@ export const StudentApplicationDetail: React.FC = () => {
     <div className="mx-auto max-w-5xl space-y-6 pb-12 font-sans animate-fade-in">
       <button
         onClick={() => navigate("/student/applications")}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-secondary hover:text-primary transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" /> Back to All Applications
       </button>
 
       {/* Header Banner with Real Campus Hero Photography */}
-      <header className="overflow-hidden rounded-3xl border border-[var(--border-default)] p-6 sm:p-8 relative shadow-2xl min-h-[190px] flex flex-col justify-end bg-slate-950">
+      <header className="overflow-hidden rounded-3xl border border-default p-6 sm:p-8 relative shadow-2xl min-h-[190px] flex flex-col justify-end bg-main">
         {/* Real Campus Background Image */}
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105 opacity-40"
@@ -551,16 +551,16 @@ export const StudentApplicationDetail: React.FC = () => {
               <span className="text-xs font-mono text-emerald-400 font-semibold tracking-wider bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 {app.applicationNumber}
               </span>
-              <span className="text-xs text-zinc-300 font-medium flex items-center gap-1">
+              <span className="text-xs text-secondary font-medium flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-emerald-400" />
                 <span>{university?.city ? `${university.city}, ` : ""}{university?.country || app.targetCountry || "International"}</span>
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold font-heading text-white mt-2 drop-shadow-md">
+            <h1 className="text-2xl sm:text-3xl font-bold font-heading text-on-brand mt-2 drop-shadow-md">
               {app.universityName}
             </h1>
-            <p className="text-sm text-zinc-300 mt-1 flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-white">{app.programmeName}</span>
+            <p className="text-sm text-secondary mt-1 flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-on-brand">{app.programmeName}</span>
               <span>·</span>
               <span className="text-emerald-400 font-medium">{app.intake}</span>
             </p>
@@ -595,7 +595,7 @@ export const StudentApplicationDetail: React.FC = () => {
                     applicationId: app.id,
                     intake: app.intake,
                   })}
-                  className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 transition-colors flex items-center gap-1"
+                  className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-on-accent transition-colors flex items-center gap-1"
                 >
                   <span>Continue</span>
                   <span>→</span>
@@ -607,14 +607,14 @@ export const StudentApplicationDetail: React.FC = () => {
       </header>
 
       {/* 8-Step Full Application Lifecycle Stepper */}
-      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 shadow-md space-y-4">
+      <section className="rounded-2xl bg-surface border border-default p-6 shadow-md space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+            <h2 className="font-bold text-sm text-primary flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-emerald-400" />
               Admissions & Visa Lifecycle Progress
             </h2>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            <p className="text-xs text-secondary mt-0.5">
               Live tracking from submission to university enrollment and visa grant.
             </p>
           </div>
@@ -628,10 +628,10 @@ export const StudentApplicationDetail: React.FC = () => {
       </section>
 
       {/* University & Campus Showcase Card */}
-      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] overflow-hidden shadow-lg">
+      <section className="rounded-2xl bg-surface border border-default overflow-hidden shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
           {/* Real University Campus Photo with Landmark Badge */}
-          <div className="relative h-52 md:h-auto min-h-[220px] overflow-hidden group bg-slate-900">
+          <div className="relative h-52 md:h-auto min-h-[220px] overflow-hidden group bg-surface">
             <img
               src={campusImage}
               alt={`${app.universityName} Campus`}
@@ -641,11 +641,11 @@ export const StudentApplicationDetail: React.FC = () => {
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3 text-white text-xs">
+            <div className="absolute bottom-3 left-3 right-3 text-on-brand text-xs">
               <span className="bg-emerald-500/20 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-emerald-400 border border-emerald-500/40">
                 Official Campus View
               </span>
-              <p className="text-[11px] font-medium mt-1 truncate text-zinc-200">
+              <p className="text-[11px] font-medium mt-1 truncate text-secondary">
                 {landmark}
               </p>
             </div>
@@ -656,11 +656,11 @@ export const StudentApplicationDetail: React.FC = () => {
             <div>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="text-base font-bold font-heading text-[var(--text-primary)] flex items-center gap-2">
+                  <h3 className="text-base font-bold font-heading text-primary flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
                     <span>{app.universityName}</span>
                   </h3>
-                  <p className="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
+                  <p className="text-xs text-secondary mt-1 flex items-center gap-1.5">
                     <span>{university?.city ? `${university.city}, ` : ""}{university?.country || app.targetCountry || "International"}</span>
                     {university?.campus && <span>• {university.campus} Campus</span>}
                   </p>
@@ -679,34 +679,34 @@ export const StudentApplicationDetail: React.FC = () => {
               </div>
 
               {university?.description && (
-                <p className="text-xs text-[var(--text-secondary)] mt-3 leading-relaxed">
+                <p className="text-xs text-secondary mt-3 leading-relaxed">
                   {university.description}
                 </p>
               )}
             </div>
 
             {/* Quick Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[var(--border-default)]">
-              <div className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-center">
-                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Global Rank</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-default">
+              <div className="p-2.5 rounded-xl bg-elevated border border-default text-center">
+                <span className="text-[10px] text-muted uppercase tracking-wider block">Global Rank</span>
                 <span className="text-sm font-bold text-emerald-400">
                   {university?.globalRanking ? `#${university.globalRanking}` : "Top 100"}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-center">
-                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">National Rank</span>
-                <span className="text-sm font-bold text-[var(--text-primary)]">
+              <div className="p-2.5 rounded-xl bg-elevated border border-default text-center">
+                <span className="text-[10px] text-muted uppercase tracking-wider block">National Rank</span>
+                <span className="text-sm font-bold text-primary">
                   {university?.nationalRanking ? `#${university.nationalRanking}` : "Tier 1"}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-center">
-                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Acceptance</span>
-                <span className="text-sm font-bold text-[var(--text-primary)]">
+              <div className="p-2.5 rounded-xl bg-elevated border border-default text-center">
+                <span className="text-[10px] text-muted uppercase tracking-wider block">Acceptance</span>
+                <span className="text-sm font-bold text-primary">
                   {university?.acceptanceRate ? `${university.acceptanceRate}%` : "Competitive"}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-center">
-                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">Accreditation</span>
+              <div className="p-2.5 rounded-xl bg-elevated border border-default text-center">
+                <span className="text-[10px] text-muted uppercase tracking-wider block">Accreditation</span>
                 <span className="text-sm font-bold text-emerald-400 truncate block">
                   {university?.accreditationStatus || "Full Partner"}
                 </span>
@@ -725,7 +725,7 @@ export const StudentApplicationDetail: React.FC = () => {
               <h2 className="font-bold text-base text-emerald-300">
                 Official Offer Released & Confirmed!
               </h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              <p className="text-xs text-secondary mt-0.5">
                 The admissions office and {app.universityName} have reviewed your credentials and confirmed your admission.
               </p>
             </div>
@@ -734,30 +734,30 @@ export const StudentApplicationDetail: React.FC = () => {
       )}
 
       {/* Next Action Box */}
-      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-2">
-        <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+      <section className="rounded-2xl bg-surface border border-default p-6 space-y-2">
+        <h2 className="font-bold text-sm text-primary flex items-center gap-2">
           <Clock className="w-4 h-4 text-emerald-400" />
           Next Action
         </h2>
-        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+        <p className="text-xs text-secondary leading-relaxed">
           {app.nextAction || getStageGuidance(app.stage)}
         </p>
       </section>
 
       {/* Visa & Embassy Processing Section */}
       {["CAS Issued", "Visa Preparation", "Visa Submitted", "Visa Approved", "Enrolled"].includes(app.stage) && (
-        <section className="rounded-2xl bg-[var(--bg-card)] border border-emerald-500/30 p-6 space-y-5 shadow-lg relative overflow-hidden">
+        <section className="rounded-2xl bg-surface border border-emerald-500/30 p-6 space-y-5 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-default)] pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-default pb-4">
             <div>
               <div className="flex items-center gap-2">
                 <Plane className="w-5 h-5 text-emerald-400" />
-                <h2 className="font-bold text-base text-[var(--text-primary)]">
+                <h2 className="font-bold text-base text-primary">
                   Visa & Embassy Processing Tracker
                 </h2>
               </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
+              <p className="text-xs text-secondary mt-1">
                 Complete your visa filing, embassy compliance checklist, and arrival milestones.
               </p>
             </div>
@@ -790,60 +790,60 @@ export const StudentApplicationDetail: React.FC = () => {
                   step.active
                     ? "bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm ring-1 ring-emerald-500/30"
                     : step.done
-                    ? "bg-[var(--bg-elevated)] border-emerald-500/30 text-emerald-400"
-                    : "bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-muted)] opacity-60"
+                    ? "bg-elevated border-emerald-500/30 text-emerald-400"
+                    : "bg-elevated border-default text-muted opacity-60"
                 }`}
               >
                 <div className="flex items-center gap-1.5 text-xs font-bold">
                   {step.done ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}
                   <span>{step.title}</span>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] mt-1">{step.desc}</p>
+                <p className="text-[11px] text-muted mt-1">{step.desc}</p>
               </div>
             ))}
           </div>
 
           {/* Detailed Guidance Box */}
-          <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] space-y-3">
-            <h3 className="font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-elevated border border-default space-y-3">
+            <h3 className="font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               Visa Checklist & Requirements
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+              <div className="p-2.5 rounded-lg bg-surface border border-default flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-[var(--text-primary)] block">University CAS / Confirmation Document</span>
-                  <span className="text-[11px] text-[var(--text-muted)]">Official code issued by {app.universityName} registry.</span>
+                  <span className="font-semibold text-primary block">University CAS / Confirmation Document</span>
+                  <span className="text-[11px] text-muted">Official code issued by {app.universityName} registry.</span>
                 </div>
               </div>
-              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+              <div className="p-2.5 rounded-lg bg-surface border border-default flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-[var(--text-primary)] block">28-Day Bank Statement / Maintenance</span>
-                  <span className="text-[11px] text-[var(--text-muted)]">Must cover tuition + living expenses held for 28 consecutive days.</span>
+                  <span className="font-semibold text-primary block">28-Day Bank Statement / Maintenance</span>
+                  <span className="text-[11px] text-muted">Must cover tuition + living expenses held for 28 consecutive days.</span>
                 </div>
               </div>
-              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+              <div className="p-2.5 rounded-lg bg-surface border border-default flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-[var(--text-primary)] block">Medical / TB Screening Certificate</span>
-                  <span className="text-[11px] text-[var(--text-muted)]">From an approved embassy clinic if applicable to your country.</span>
+                  <span className="font-semibold text-primary block">Medical / TB Screening Certificate</span>
+                  <span className="text-[11px] text-muted">From an approved embassy clinic if applicable to your country.</span>
                 </div>
               </div>
-              <div className="p-2.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] flex items-start gap-2">
+              <div className="p-2.5 rounded-lg bg-surface border border-default flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-[var(--text-primary)] block">Biometrics & Passport Validity</span>
-                  <span className="text-[11px] text-[var(--text-muted)]">Ensure passport has at least 6 months validity from travel date.</span>
+                  <span className="font-semibold text-primary block">Biometrics & Passport Validity</span>
+                  <span className="text-[11px] text-muted">Ensure passport has at least 6 months validity from travel date.</span>
                 </div>
               </div>
             </div>
 
             {/* Stage-Specific Call-To-Action */}
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-default)]">
-              <div className="text-xs text-[var(--text-secondary)]">
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-default">
+              <div className="text-xs text-secondary">
                 {app.stage === "Visa Preparation" && (
                   <span>Once you have lodged your visa at the visa center (VFS/Embassy), mark it as submitted below.</span>
                 )}
@@ -861,7 +861,7 @@ export const StudentApplicationDetail: React.FC = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 <Link
                   to="/student/messages"
-                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
+                  className="px-3.5 py-2 rounded-xl bg-surface hover:bg-hover border border-default text-xs font-semibold text-primary flex items-center gap-1.5 transition-colors"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Ask Visa Officer</span>
@@ -869,7 +869,7 @@ export const StudentApplicationDetail: React.FC = () => {
 
                 <Link
                   to="/student/documents"
-                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
+                  className="px-3.5 py-2 rounded-xl bg-surface hover:bg-hover border border-default text-xs font-semibold text-primary flex items-center gap-1.5 transition-colors"
                 >
                   <Upload className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Upload Visa Docs</span>
@@ -879,7 +879,7 @@ export const StudentApplicationDetail: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowVisaSubmitModal(true)}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
                   >
                     <Plane className="w-3.5 h-3.5" />
                     <span>I Have Submitted My Visa</span>
@@ -891,7 +891,7 @@ export const StudentApplicationDetail: React.FC = () => {
                     type="button"
                     onClick={handleStudentVisaApproved}
                     disabled={isUpdatingVisa}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-on-accent text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     <span>Report Visa Approved</span>
@@ -906,29 +906,29 @@ export const StudentApplicationDetail: React.FC = () => {
       {/* Modal: Confirm Visa Lodged / Submitted */}
       {showVisaSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-surface border border-default p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Plane className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-bold text-sm text-[var(--text-primary)]">
+                <h3 className="font-bold text-sm text-primary">
                   Confirm Visa Submission
                 </h3>
               </div>
               <button
                 onClick={() => setShowVisaSubmitModal(false)}
-                className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                className="p-1 rounded-lg text-muted hover:text-primary cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-xs text-secondary leading-relaxed">
               Enter your visa application tracking reference or GWF number to update your application status to <strong>Visa Submitted</strong> and notify your Visa Officer.
             </p>
 
             <form onSubmit={handleStudentVisaSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                <label className="block text-xs font-semibold text-primary mb-1">
                   Visa Reference / GWF Number
                 </label>
                 <input
@@ -937,12 +937,12 @@ export const StudentApplicationDetail: React.FC = () => {
                   value={visaRef}
                   onChange={(e) => setVisaRef(e.target.value)}
                   placeholder="e.g. GWF012345678 or VFS-LON-9921"
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)]"
+                  className="w-full p-2.5 bg-input border border-default rounded-xl text-xs text-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                <label className="block text-xs font-semibold text-primary mb-1">
                   Visa Center / Embassy Location
                 </label>
                 <input
@@ -950,7 +950,7 @@ export const StudentApplicationDetail: React.FC = () => {
                   value={visaCentre}
                   onChange={(e) => setVisaCentre(e.target.value)}
                   placeholder="e.g. VFS Lahore / Gerry's Islamabad / TLSContact"
-                  className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs text-[var(--text-primary)]"
+                  className="w-full p-2.5 bg-input border border-default rounded-xl text-xs text-primary"
                 />
               </div>
 
@@ -958,14 +958,14 @@ export const StudentApplicationDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowVisaSubmitModal(false)}
-                  className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-default)] rounded-xl text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 bg-hover border border-default rounded-xl text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUpdatingVisa || !visaRef.trim()}
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isUpdatingVisa ? "Updating..." : "Confirm & Update Stage"}
                 </button>
@@ -984,9 +984,9 @@ export const StudentApplicationDetail: React.FC = () => {
       )}
 
       {/* Challan / Payment Box */}
-      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4">
+      <section className="rounded-2xl bg-surface border border-default p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+          <h2 className="font-bold text-sm text-primary flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-emerald-400" />
             Fee Challan & Financial Records
           </h2>
@@ -1006,11 +1006,11 @@ export const StudentApplicationDetail: React.FC = () => {
               return (
                 <div
                   key={inv.id}
-                  className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="p-4 rounded-xl bg-elevated border border-default flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-bold text-xs text-[var(--text-primary)]">
+                      <span className="font-mono font-bold text-xs text-primary">
                         {inv.invoiceNumber}
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -1031,7 +1031,7 @@ export const StudentApplicationDetail: React.FC = () => {
                     <p className="text-base font-bold text-emerald-400 font-heading">
                       {inv.currency} {inv.amount.toLocaleString()}
                     </p>
-                    <p className="text-[11px] text-[var(--text-muted)]">
+                    <p className="text-[11px] text-muted">
                       Due Date: {inv.dueDate || "Upon Receipt"}
                       {inv.notes && ` • ${inv.notes}`}
                     </p>
@@ -1044,7 +1044,7 @@ export const StudentApplicationDetail: React.FC = () => {
                         const html = generateInvoiceHtml(inv);
                         printDocumentHtml(html);
                       }}
-                      className="px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-default)] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 bg-surface hover:bg-hover border border-default text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <Receipt className="w-3.5 h-3.5 text-emerald-400" />
                       <span>View Challan</span>
@@ -1054,7 +1054,7 @@ export const StudentApplicationDetail: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setPayingInvoice(inv)}
-                        className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5" />
                         <span>Upload Proof</span>
@@ -1073,7 +1073,7 @@ export const StudentApplicationDetail: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs text-[var(--text-secondary)]">
+          <div className="p-4 rounded-xl bg-elevated border border-default text-xs text-secondary">
             <p>
               {app.stage === "Deposit Pending"
                 ? "Your admission deposit is pending. The finance department is issuing your official fee challan shortly."
@@ -1085,31 +1085,31 @@ export const StudentApplicationDetail: React.FC = () => {
 
       {/* Payment Proof Modal */}
       {payingInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--backdrop)] backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-backdrop backdrop-blur-sm animate-fade-in">
           <form
             onSubmit={handleUploadProofSubmit}
-            className="w-full max-w-md p-6 bg-[var(--bg-card)] border border-[var(--border-default)] rounded-2xl shadow-2xl space-y-4 text-xs"
+            className="w-full max-w-md p-6 bg-surface border border-default rounded-2xl shadow-2xl space-y-4 text-xs"
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-base text-[var(--text-primary)] font-heading">
+                <h3 className="font-bold text-base text-primary font-heading">
                   Submit Payment Proof
                 </h3>
-                <p className="text-[var(--text-muted)] text-[11px] mt-0.5">
+                <p className="text-muted text-[11px] mt-0.5">
                   Challan #{payingInvoice.invoiceNumber} • {payingInvoice.currency} {payingInvoice.amount}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setPayingInvoice(null)}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                className="p-1.5 rounded-lg text-muted hover:text-primary cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+              <label className="block text-xs font-semibold text-primary mb-1">
                 Upload Bank Receipt / Deposit Slip <span className="text-rose-400">*</span>
               </label>
               <input
@@ -1117,15 +1117,15 @@ export const StudentApplicationDetail: React.FC = () => {
                 required
                 accept="application/pdf,image/jpeg,image/png,image/webp"
                 onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                className="w-full p-2 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs cursor-pointer"
+                className="w-full p-2 bg-input border border-default rounded-xl text-xs cursor-pointer"
               />
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+              <p className="text-[10px] text-muted mt-1">
                 Accepted: PDF, PNG, JPG up to 15MB.
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+              <label className="block text-xs font-semibold text-primary mb-1">
                 Bank Transaction / Reference ID
               </label>
               <input
@@ -1133,7 +1133,7 @@ export const StudentApplicationDetail: React.FC = () => {
                 value={proofRef}
                 onChange={(e) => setProofRef(e.target.value)}
                 placeholder="e.g. FT2609148819 or Wire Transfer Ref"
-                className="w-full p-2.5 bg-[var(--bg-input)] border border-[var(--border-default)] rounded-xl text-xs"
+                className="w-full p-2.5 bg-input border border-default rounded-xl text-xs"
               />
             </div>
 
@@ -1141,14 +1141,14 @@ export const StudentApplicationDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setPayingInvoice(null)}
-                className="px-4 py-2 bg-[var(--bg-hover)] border border-[var(--border-default)] rounded-xl text-xs font-semibold cursor-pointer"
+                className="px-4 py-2 bg-hover border border-default rounded-xl text-xs font-semibold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmittingProof || !proofFile}
-                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-on-accent font-bold text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
               >
                 {isSubmittingProof ? "Submitting..." : "Upload & Notify Finance"}
               </button>
@@ -1158,13 +1158,13 @@ export const StudentApplicationDetail: React.FC = () => {
       )}
 
       {/* Timeline Section */}
-      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4">
-        <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+      <section className="rounded-2xl bg-surface border border-default p-6 space-y-4">
+        <h2 className="font-bold text-sm text-primary flex items-center gap-2">
           <FileCheck className="w-4 h-4 text-emerald-400" />
           Application Timeline & Audit Trail
         </h2>
 
-        <ol className="relative border-l border-[var(--border-default)] pl-6 space-y-6">
+        <ol className="relative border-l border-default pl-6 space-y-6">
           {(app.history || [])
             .slice()
             .sort((a, b) => b.timestamp - a.timestamp)
@@ -1173,14 +1173,14 @@ export const StudentApplicationDetail: React.FC = () => {
                 <span className="absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500 text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 </span>
-                <p className="text-xs font-bold text-[var(--text-primary)]">
+                <p className="text-xs font-bold text-primary">
                   {event.stage}
                 </p>
-                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                <p className="text-[11px] text-muted mt-0.5">
                   {new Date(event.timestamp).toLocaleString()} · Updated by {event.updatedBy}
                 </p>
                 {event.note && (
-                  <p className="text-xs text-[var(--text-secondary)] mt-1.5 p-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)]">
+                  <p className="text-xs text-secondary mt-1.5 p-2.5 rounded-lg bg-elevated border border-default">
                     {event.note}
                   </p>
                 )}
@@ -1190,9 +1190,9 @@ export const StudentApplicationDetail: React.FC = () => {
       </section>
 
       {/* Documents Section */}
-      <section className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-default)] p-6 space-y-4">
+      <section className="rounded-2xl bg-surface border border-default p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+          <h2 className="font-bold text-sm text-primary flex items-center gap-2">
             <FileText className="w-4 h-4 text-emerald-400" />
             Supporting Documents
           </h2>
@@ -1205,20 +1205,20 @@ export const StudentApplicationDetail: React.FC = () => {
           </Link>
         </div>
 
-        <p className="text-xs text-[var(--text-secondary)]">
+        <p className="text-xs text-secondary">
           {ownDocuments.length} document record(s) attached to your applicant profile. All academic records, transcripts, and certificates are securely linked to this application.
         </p>
 
-        <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-between gap-3">
+        <div className="p-4 rounded-xl bg-elevated border border-default flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[var(--text-primary)]">
+              <p className="text-xs font-bold text-primary">
                 Admissions Document Encryption Active
               </p>
-              <p className="text-[11px] text-[var(--text-muted)]">
+              <p className="text-[11px] text-muted">
                 Transcripts, ID records, and degree certificates are verified and forwarded to {app.universityName} admissions registry.
               </p>
             </div>
