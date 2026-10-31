@@ -22,6 +22,16 @@ test.describe('Student End-to-End Workflow', () => {
     });
   });
 
+  test('STUD-ROUTE-001: Student root uses the public discovery portal while workspace routes stay dedicated', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText(/EduBridge\.AI|EduBridge Network/i).first()).toBeVisible();
+
+    await page.goto('/student/dashboard');
+    await expect(page).toHaveURL(/\/student\/dashboard/);
+    await expect(page.locator('text=/Applications|My Applications/i').first()).toBeVisible();
+  });
+
   test('STUD-FLOW-001: Student Dashboard renders application metrics and upcoming deadlines', async ({ page }) => {
     await page.goto('/student/dashboard');
     await expect(page).toHaveURL(/\/student\/dashboard/);
@@ -65,7 +75,7 @@ test.describe('Student End-to-End Workflow', () => {
     await expect(page).toHaveURL(/\/apply\/prog_oxford_cs|\/student\/new-application/);
 
     // Check application wizard steps
-    await expect(page.locator('text=/Overview|Personal Info|Academic History|Submit/i').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=/Personal Details|Academic & English|Review & Sign|Submit/i').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('STUD-FLOW-006: New application aliases remain selector-first and reject invalid deep links', async ({ page }) => {
@@ -82,7 +92,7 @@ test.describe('Student End-to-End Workflow', () => {
 
   test('STUD-FLOW-007: Valid programme deep links open the wizard and public intake remains public', async ({ page }) => {
     await page.goto('/student/new-application?universityId=univ_oxf&programmeId=prog_ox_cs&intake=September%202026');
-    await expect(page.locator('text=/Overview|Personal Info|Academic History/i').first()).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('text=/Personal Details|Academic & English|Review & Sign/i').first()).toBeVisible({ timeout: 20000 });
 
     await page.goto('/apply/public-intake-token');
     await expect(page.locator('text=/EduBridge Network|Secure Intake/i').first()).toBeVisible({ timeout: 15000 });

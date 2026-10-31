@@ -1,6 +1,60 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Role-Based Authorization & Permission Boundaries', () => {
+  test('ROLE-BOUND-000: Student root stays public while staff routes remain forbidden', async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate(() => {
+      localStorage.setItem("educrm_demo_user", JSON.stringify({
+        uid: "stu_root_test",
+        email: "student@educrm.demo",
+        displayName: "Student Test",
+        role: "student",
+        createdAt: Date.now(),
+        onboardingStatus: "completed",
+        profileCompleted: true,
+      }));
+    });
+
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText(/EduBridge\.AI|EduBridge Network/i).first()).toBeVisible();
+
+    await page.goto('/finance/invoices');
+    await expect(page.locator('text=/Access Restricted|does not have permission/i').first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('ROLE-BOUND-000A: Staff root redirects to the existing EduCRM workspace', async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate(() => {
+      localStorage.setItem("educrm_demo_user", JSON.stringify({
+        uid: "counsellor_root_test",
+        email: "counsellor@educrm.demo",
+        displayName: "Counsellor Test",
+        role: "counsellor",
+        createdAt: Date.now(),
+      }));
+    });
+
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/counsellor\/dashboard/);
+  });
+
+  test('ROLE-BOUND-000B: Staff cannot enter the dedicated student workspace', async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate(() => {
+      localStorage.setItem("educrm_demo_user", JSON.stringify({
+        uid: "counsellor_student_route_test",
+        email: "counsellor@educrm.demo",
+        displayName: "Counsellor Test",
+        role: "counsellor",
+        createdAt: Date.now(),
+      }));
+    });
+
+    await page.goto('/student/dashboard');
+    await expect(page.locator('text=/Access Restricted|does not have permission/i').first()).toBeVisible({ timeout: 10000 });
+  });
+
   test('ROLE-BOUND-001: Student role CANNOT access Super Admin portal', async ({ page }) => {
     await page.goto('/login');
     await page.evaluate(() => {

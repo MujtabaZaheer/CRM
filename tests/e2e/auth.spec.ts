@@ -8,6 +8,15 @@ test.describe('Authentication and Account Flows', () => {
     await page.reload();
   });
 
+  test('AUTH-000: Guest root renders the public portal and protected workspaces require login', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText(/EduBridge\.AI|EduBridge Network/i).first()).toBeVisible();
+
+    await page.goto('/student/dashboard');
+    await expect(page.locator('text=/Access Restricted|does not have permission/i').first()).toBeVisible();
+  });
+
   test('AUTH-001: Login page renders with branding, input fields, demo logins, and register links', async ({ page }) => {
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();

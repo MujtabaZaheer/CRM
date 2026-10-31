@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-005",
+  "type": "test",
+  "description": "Regress role routing and permission boundaries after the student route, auth, and theme changes.",
+  "status": "completed",
+  "steps": [
+    "Extend role-permissions, student-workflow, and auth Playwright specs for representative student, staff, partner, and guest root/workspace routing.",
+    "Verify forbidden student/staff route attempts retain existing Access Restricted/guard behavior and that non-student users continue entering their existing EduCRM modules.",
+    "Run the focused role/auth E2E suite, typecheck, and production build without weakening guards."
+  ],
+  "acceptance_criteria": [
+    "Guests see the public portal, students reach the dedicated student portal, and representative non-student roles reach their existing dashboards.",
+    "Student-to-staff and staff-to-student unauthorized navigation remains blocked.",
+    "All existing role boundary tests pass."
+  ],
+  "verification": [
+    "npm run test:e2e -- tests/e2e/role-permissions.spec.ts tests/e2e/student-workflow.spec.ts tests/e2e/auth.spec.ts",
+    "npm run typecheck",
+    "npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": "Added guest, student, counsellor, external-agent, and university-partner routing and boundary coverage without changing guards. Focused E2E collected 35 tests; routing/auth tests passed, with AUTH-REAL-001 skipped as environment-gated. The suite still reports an existing student workflow failure: invalid /student/new-application deep links render the wizard with Overview instead of remaining selector-first. Typecheck and production build pass. Source fix required: decide whether invalid programme IDs must return to the selector, then update StudentNewApplication and deploy the hosting change if behavior is changed. No deploy was performed for this test-only increment."
+}
