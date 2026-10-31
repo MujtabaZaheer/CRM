@@ -34,7 +34,7 @@ test.describe('Error Handling, Edge Cases & Recovery', () => {
     await page.evaluate(() => {
       const emptyUser = {
         uid: "demo_empty",
-        email: "empty@educrm.demo",
+        email: "counsellor@educrm.demo",
         displayName: "Empty Roster User",
         role: "counsellor",
         createdAt: Date.now(),
@@ -42,6 +42,7 @@ test.describe('Error Handling, Edge Cases & Recovery', () => {
       localStorage.setItem("educrm_demo_user", JSON.stringify(emptyUser));
     });
 
+    await page.reload();
     await page.goto('/tasks');
     await page.waitForLoadState('domcontentloaded');
     // Either tasks or empty placeholder should be visible, no unhandled exceptions

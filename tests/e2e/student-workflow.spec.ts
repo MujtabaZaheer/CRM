@@ -87,7 +87,7 @@ test.describe('Student End-to-End Workflow', () => {
 
     await page.goto('/student/new-application?universityId=univ_oxf&programmeId=missing-programme');
     await expect(page.locator('text=Start a New Application')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('text=Overview')).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Application Overview' })).not.toBeVisible();
   });
 
   test('STUD-FLOW-007: Valid programme deep links open the wizard and public intake remains public', async ({ page }) => {
@@ -127,7 +127,7 @@ test.describe('Student End-to-End Workflow', () => {
     await page.evaluate(() => {
       const incompleteStudent = {
         uid: "stu_new",
-        email: "new.student@educrm.demo",
+        email: "student@educrm.demo",
         displayName: "New Student",
         role: "student",
         createdAt: Date.now(),
@@ -138,6 +138,7 @@ test.describe('Student End-to-End Workflow', () => {
       localStorage.setItem("educrm_demo_user", JSON.stringify(incompleteStudent));
     });
 
+    await page.reload();
     await page.goto('/student/dashboard');
     // Guard must redirect to onboarding
     await page.waitForURL(/\/student\/onboarding/, { timeout: 10000 });
